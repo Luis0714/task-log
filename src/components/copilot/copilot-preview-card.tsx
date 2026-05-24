@@ -18,6 +18,7 @@ import type { LogWorkPayload } from "@/lib/schemas/agent";
 
 export type CopilotPreviewCardProps = {
   preview: LogWorkPayload;
+  project?: string | null;
   adoExecutionReady: boolean;
   authMethod: AzdoAuthMethod;
   loading?: boolean;
@@ -34,6 +35,7 @@ function getConnectionHint(authMethod: AzdoAuthMethod): string {
 
 export function CopilotPreviewCard({
   preview,
+  project,
   adoExecutionReady,
   authMethod,
   loading = false,
@@ -51,6 +53,7 @@ export function CopilotPreviewCard({
       <CardContent className="space-y-3">
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">log_work</Badge>
+          {project && <Badge variant="outline">{project}</Badge>}
           <Badge variant="outline">WI #{preview.workItemId}</Badge>
           <Badge variant="outline">{preview.hours} h</Badge>
         </div>

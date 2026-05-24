@@ -11,7 +11,9 @@ type UseAdoSprintWorkItemsResult = {
 };
 
 export function useAdoSprintWorkItems(
+  project: string | undefined,
   sprintPath: string | undefined,
+  assignedToMe: boolean,
   enabled = true,
 ): UseAdoSprintWorkItemsResult {
   const [workItems, setWorkItems] = useState<AdoWorkItemOptionDto[]>([]);
@@ -19,13 +21,14 @@ export function useAdoSprintWorkItems(
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!enabled || !sprintPath) {
+    if (!enabled || !project || !sprintPath) {
       setWorkItems([]);
       setError(null);
       setLoading(false);
       return;
     }
 
+    const activeProject = project;
     const iterationPath = sprintPath;
     const controller = new AbortController();
 
@@ -34,7 +37,11 @@ export function useAdoSprintWorkItems(
       setError(null);
 
       try {
-        const params = new URLSearchParams({ sprintPath: iterationPath });
+        const params = new URLSearchParams({
+          project: activeProject,
+          sprintPath: iterationPath,
+          assignedToMe: assignedToMe ? "1" : "0",
+        });
         const res = await fetch(`/api/ado/work-items?${params.toString()}`, {
           signal: controller.signal,
         });
@@ -65,7 +72,7 @@ export function useAdoSprintWorkItems(
 
     void loadWorkItems();
     return () => controller.abort();
-  }, [enabled, sprintPath]);
+  }, [assignedToMe, enabled, project, sprintPath]);
 
   return { workItems, loading, error };
 }

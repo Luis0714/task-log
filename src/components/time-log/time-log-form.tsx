@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { Loader2, Save } from "lucide-react";
-import { useEffect } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
+import { WorkItemFiltersPanel } from "@/components/time-log/work-item-filters-panel";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -23,8 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useAdoSprintWorkItems } from "@/hooks/use-ado-sprint-work-items";
-import { useAdoSprints } from "@/hooks/use-ado-sprints";
+import type { TimeLogCatalog } from "@/hooks/use-time-log-catalog";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 import {
   formatSprintOptionLabel,
@@ -33,6 +32,7 @@ import {
 
 export type TimeLogFormProps = {
   form: UseFormReturn<TimeLogFormValues>;
+  catalog: TimeLogCatalog;
   adoExecutionReady: boolean;
   loading?: boolean;
   onSubmit: () => void;
@@ -40,39 +40,86 @@ export type TimeLogFormProps = {
 
 export function TimeLogForm({
   form,
+  catalog,
   adoExecutionReady,
   loading = false,
   onSubmit,
 }: TimeLogFormProps) {
-  const sprintPath = form.watch("sprintPath");
-  const {
-    sprints,
-    loading: sprintsLoading,
-    error: sprintsError,
-  } = useAdoSprints(adoExecutionReady);
-  console.log({sprints});
-  const {
-    workItems,
-    loading: workItemsLoading,
-    error: workItemsError,
-  } = useAdoSprintWorkItems(sprintPath || undefined, adoExecutionReady);
-
-  useEffect(() => {
-    if (!adoExecutionReady || sprintsLoading || sprints.length === 0) return;
-    if (form.getValues("sprintPath")) return;
-
-    const preferred =
-      sprints.find((sprint) => sprint.timeFrame === "current") ?? sprints[0];
-    form.setValue("sprintPath", preferred.path, { shouldValidate: true });
-  }, [adoExecutionReady, form, sprints, sprintsLoading]);
-
-  const catalogDisabled = loading || !adoExecutionReady;
-  const workItemSelectDisabled =
-    catalogDisabled || !sprintPath || workItemsLoading || sprintsLoading;
-
   return (
     <Form {...form}>
       <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+        <FormField
+          control={form.control}
+          name="project"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Proyecto</FormLabel>
+              <Select
+                value={field.value || null}
+                onValueChange={(value) => {
+                  if (!value) return;
+                  field.onChange(value);
+                  catalog.onProjectChange();
+                }}
+                disabled={catalog.projectSelectDisabled}
+              >
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={catalog.placeholders.project} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {catalog.projects.map((item) => (
+                    <SelectItem key={item.id} value={item.name}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {catalog.projectsError && (
+                <p className="text-destructive text-xs">{catalog.projectsError}</p>
+              )}
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="team"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Equipo</FormLabel>
+              <Select
+                value={field.value || null}
+                onValueChange={(value) => {
+                  if (!value) return;
+                  field.onChange(value);
+                  catalog.onTeamChange();
+                }}
+                disabled={catalog.teamSelectDisabled}
+              >
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={catalog.placeholders.team} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {catalog.teams.map((item) => (
+                    <SelectItem key={item.id} value={item.name}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {catalog.teamsError && (
+                <p className="text-destructive text-xs">{catalog.teamsError}</p>
+              )}
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="sprintPath"
@@ -84,39 +131,45 @@ export function TimeLogForm({
                 onValueChange={(value) => {
                   if (!value) return;
                   field.onChange(value);
-                  form.setValue("workItemId", "");
-                  form.clearErrors("workItemId");
+                  catalog.onSprintChange();
                 }}
-                disabled={catalogDisabled || sprintsLoading}
+                disabled={catalog.sprintSelectDisabled}
               >
                 <FormControl>
                   <SelectTrigger className="w-full">
-                    <SelectValue
-                      placeholder={
-                        sprintsLoading
-                          ? "Cargando sprints..."
-                          : adoExecutionReady
-                            ? "Selecciona un sprint"
-                            : "Conecta Azure DevOps para ver sprints"
-                      }
-                    />
+                    <SelectValue placeholder={catalog.placeholders.sprint}>
+                      {catalog.selectedSprintLabel}
+                    </SelectValue>
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {sprints.map((sprint) => (
+                  {catalog.sprints.map((sprint) => (
                     <SelectItem key={sprint.id} value={sprint.path}>
                       {formatSprintOptionLabel(sprint)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {sprintsError && (
-                <p className="text-destructive text-xs">{sprintsError}</p>
+              {catalog.sprintsError && (
+                <p className="text-destructive text-xs">{catalog.sprintsError}</p>
               )}
               <FormMessage />
             </FormItem>
           )}
         />
+
+        {catalog.sprintPath && (
+          <WorkItemFiltersPanel
+            filters={catalog.workItemFilters}
+            states={catalog.workItemStates}
+            filteredCount={catalog.workItemsFilteredCount}
+            totalCount={catalog.workItemsTotalCount}
+            disabled={catalog.catalogDisabled || catalog.workItemsLoading || !catalog.sprintPath}
+            onSearchChange={catalog.onWorkItemSearchChange}
+            onAssignedToMeChange={catalog.onWorkItemAssignedToMeChange}
+            onStateChange={catalog.onWorkItemStateChange}
+          />
+        )}
 
         <FormField
           control={form.control}
@@ -130,33 +183,25 @@ export function TimeLogForm({
                   if (!value) return;
                   field.onChange(value);
                 }}
-                disabled={workItemSelectDisabled}
+                disabled={catalog.workItemSelectDisabled}
               >
                 <FormControl>
                   <SelectTrigger className="w-full">
-                    <SelectValue
-                      placeholder={
-                        !sprintPath
-                          ? "Primero elige un sprint"
-                          : workItemsLoading
-                            ? "Cargando work items..."
-                            : workItems.length === 0
-                              ? "Sin work items en este sprint"
-                              : "Selecciona un work item"
-                      }
-                    />
+                    <SelectValue placeholder={catalog.placeholders.workItem}>
+                      {catalog.selectedWorkItemLabel}
+                    </SelectValue>
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {workItems.map((item) => (
+                  {catalog.workItems.map((item) => (
                     <SelectItem key={item.id} value={String(item.id)}>
                       {formatWorkItemOptionLabel(item)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {workItemsError && (
-                <p className="text-destructive text-xs">{workItemsError}</p>
+              {catalog.workItemsError && (
+                <p className="text-destructive text-xs">{catalog.workItemsError}</p>
               )}
               <FormMessage />
             </FormItem>

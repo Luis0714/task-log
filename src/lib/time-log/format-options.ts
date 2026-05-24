@@ -1,5 +1,10 @@
-export function formatWorkItemOptionLabel(item: { id: number; title: string }): string {
-  return `#${item.id} — ${item.title}`;
+export function formatWorkItemOptionLabel(item: {
+  id: number;
+  title: string;
+  state?: string;
+}): string {
+  const stateSuffix = item.state ? ` · ${item.state}` : "";
+  return `#${item.id} — ${item.title}${stateSuffix}`;
 }
 
 export function formatSprintOptionLabel(sprint: {

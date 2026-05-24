@@ -1,5 +1,27 @@
 import { z } from "zod";
 
+export const adoProjectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+});
+
+export const adoProjectsResponseSchema = z.object({
+  projects: z.array(adoProjectSchema),
+  defaultProject: z.string().optional(),
+});
+
+export const adoTeamSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
+export const adoTeamsResponseSchema = z.object({
+  teams: z.array(adoTeamSchema),
+  suggestedTeam: z.string().optional(),
+  defaultTeam: z.string().optional(),
+});
+
 export const adoSprintSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -14,6 +36,7 @@ export const adoWorkItemOptionSchema = z.object({
   title: z.string(),
   type: z.string(),
   state: z.string(),
+  assignedTo: z.string().optional(),
 });
 
 export const adoSprintsResponseSchema = z.object({
@@ -24,5 +47,7 @@ export const adoWorkItemsResponseSchema = z.object({
   workItems: z.array(adoWorkItemOptionSchema),
 });
 
+export type AdoProjectDto = z.infer<typeof adoProjectSchema>;
+export type AdoTeamDto = z.infer<typeof adoTeamSchema>;
 export type AdoSprintDto = z.infer<typeof adoSprintSchema>;
 export type AdoWorkItemOptionDto = z.infer<typeof adoWorkItemOptionSchema>;

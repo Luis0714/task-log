@@ -1,33 +1,49 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
-import type { LogWorkPayload } from "@/lib/schemas/agent";
+import { useTimeLogCatalog } from "@/hooks/use-time-log-catalog";
 import {
+  createTimeLogFormDefaults,
   mapTimeLogFormToPayload,
-  TIME_LOG_FORM_DEFAULTS,
   timeLogFormSchema,
+  type TimeLogExecutePayload,
   type TimeLogFormValues,
 } from "@/lib/schemas/time-log";
 import { appToast } from "@/lib/toast";
 
 type UseTimeLogFormOptions = {
   appendHistory: (entry: CopilotHistoryEntry) => void;
+  defaultProject?: string | null;
+  adoExecutionReady: boolean;
 };
 
-export function useTimeLogForm({ appendHistory }: UseTimeLogFormOptions) {
+export function useTimeLogForm({
+  appendHistory,
+  defaultProject = null,
+  adoExecutionReady,
+}: UseTimeLogFormOptions) {
+  const defaultProjectRef = useRef(defaultProject ?? "");
+  defaultProjectRef.current = defaultProject ?? "";
+
   const form = useForm<TimeLogFormValues>({
     resolver: zodResolver(timeLogFormSchema),
-    defaultValues: TIME_LOG_FORM_DEFAULTS,
+    defaultValues: createTimeLogFormDefaults(defaultProject ?? ""),
     mode: "onTouched",
   });
 
-  const [preview, setPreview] = useState<LogWorkPayload | null>(null);
+  const [preview, setPreview] = useState<TimeLogExecutePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingExecute, setLoadingExecute] = useState(false);
+
+  const catalog = useTimeLogCatalog({
+    form,
+    adoExecutionReady,
+    submitting: loadingExecute,
+  });
 
   const prepareSubmit = form.handleSubmit((values) => {
     setError(null);
@@ -35,7 +51,7 @@ export function useTimeLogForm({ appendHistory }: UseTimeLogFormOptions) {
   });
 
   const execute = useCallback(
-    async (payload: LogWorkPayload) => {
+    async (payload: TimeLogExecutePayload) => {
       setError(null);
       setLoadingExecute(true);
 
@@ -43,7 +59,15 @@ export function useTimeLogForm({ appendHistory }: UseTimeLogFormOptions) {
         const res = await fetch("/api/execute", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ preview: payload }),
+          body: JSON.stringify({
+            preview: {
+              action: payload.action,
+              workItemId: payload.workItemId,
+              hours: payload.hours,
+              comment: payload.comment,
+            },
+            project: payload.project,
+          }),
         });
         const data = (await res.json()) as {
           success?: boolean;
@@ -69,7 +93,7 @@ export function useTimeLogForm({ appendHistory }: UseTimeLogFormOptions) {
         }
 
         setPreview(null);
-        form.reset(TIME_LOG_FORM_DEFAULTS);
+        form.reset(createTimeLogFormDefaults(defaultProjectRef.current));
         appToast.success(`Horas registradas en WI #${payload.workItemId}`, {
           description: `+${payload.hours}h · Total acumulado: ${data.newCompletedWork ?? "—"}h`,
         });
@@ -96,6 +120,7 @@ export function useTimeLogForm({ appendHistory }: UseTimeLogFormOptions) {
 
   return {
     form,
+    catalog,
     preview,
     error,
     loadingExecute,

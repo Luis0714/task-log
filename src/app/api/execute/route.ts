@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
+import { withAdoProject } from "@/lib/azure-devops/projects";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import { logWorkOnWorkItem } from "@/lib/azure-devops/work-items";
 import { executeRequestSchema } from "@/lib/schemas/agent";
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const { preview } = parsed.data;
+  const { preview, project } = parsed.data;
   const auth = await resolveAdoCaller();
   if (!auth) {
     const error = isPatAuthMethod()
@@ -31,13 +32,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error }, { status: 401 });
   }
 
+  const authForExecute = project ? withAdoProject(auth, project) : auth;
+
   const result = await logWorkOnWorkItem(
     {
       workItemId: preview.workItemId,
       hours: preview.hours,
       comment: preview.comment,
     },
-    auth,
+    authForExecute,
   );
 
   if (!result.ok) {

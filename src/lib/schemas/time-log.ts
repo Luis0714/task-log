@@ -3,6 +3,8 @@ import { z } from "zod";
 import type { LogWorkPayload } from "@/lib/schemas/agent";
 
 export const timeLogFormSchema = z.object({
+  project: z.string().trim().min(1, "Selecciona un proyecto."),
+  team: z.string().trim().min(1, "Selecciona un equipo."),
   sprintPath: z.string().trim().min(1, "Selecciona un sprint."),
   workItemId: z
     .string()
@@ -29,18 +31,29 @@ export const timeLogFormSchema = z.object({
 
 export type TimeLogFormValues = z.infer<typeof timeLogFormSchema>;
 
-export const TIME_LOG_FORM_DEFAULTS: TimeLogFormValues = {
-  sprintPath: "",
-  workItemId: "",
-  hours: "",
-  comment: "",
+export type TimeLogExecutePayload = LogWorkPayload & {
+  project: string;
 };
 
-export function mapTimeLogFormToPayload(values: TimeLogFormValues): LogWorkPayload {
+export function createTimeLogFormDefaults(defaultProject = ""): TimeLogFormValues {
+  return {
+    project: defaultProject,
+    team: "",
+    sprintPath: "",
+    workItemId: "",
+    hours: "",
+    comment: "",
+  };
+}
+
+export const TIME_LOG_FORM_DEFAULTS = createTimeLogFormDefaults();
+
+export function mapTimeLogFormToPayload(values: TimeLogFormValues): TimeLogExecutePayload {
   return {
     action: "log_work",
     workItemId: Number.parseInt(values.workItemId, 10),
     hours: Number.parseFloat(values.hours.replace(",", ".")),
     comment: values.comment.trim(),
+    project: values.project.trim(),
   };
 }

@@ -30,4 +30,5 @@ export type LogWorkPayload = z.infer<typeof logWorkPayloadSchema>;
 
 export const executeRequestSchema = z.object({
   preview: logWorkPayloadSchema,
+  project: z.string().trim().min(1).max(200).optional(),
 });

@@ -1,6 +1,5 @@
 import {
   adoFetch,
-  adoOrgBase,
   adoProjectBase,
   escapeWiqlString,
 } from "@/lib/azure-devops/client";
@@ -20,6 +19,7 @@ export type AdoWorkItemOption = {
   title: string;
   type: string;
   state: string;
+  assignedTo?: string;
 };
 
 type TeamIterationsResponse = {
@@ -33,23 +33,6 @@ type TeamIterationsResponse = {
       timeFrame?: "past" | "current" | "future";
     };
   }>;
-};
-
-type TeamsResponse = {
-  value?: Array<{ name: string }>;
-};
-
-type ClassificationNode = {
-  id: number;
-  name: string;
-  path?: string;
-  structureType?: string;
-  hasChildren?: boolean;
-  children?: ClassificationNode[];
-  attributes?: {
-    startDate?: string;
-    finishDate?: string;
-  };
 };
 
 type WiqlResponse = {
@@ -66,58 +49,28 @@ type WorkItemsBatchResponse = {
 const TITLE = "System.Title";
 const WORK_ITEM_TYPE = "System.WorkItemType";
 const STATE = "System.State";
+const ASSIGNED_TO = "System.AssignedTo";
+
+function parseAssignedTo(value: string | number | undefined): string {
+  if (typeof value === "string") return value.trim();
+  return "";
+}
+
+function parseAssignedToField(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (value && typeof value === "object" && "displayName" in value) {
+    const displayName = (value as { displayName?: string }).displayName;
+    return typeof displayName === "string" ? displayName.trim() : "";
+  }
+  return parseAssignedTo(value as string | number | undefined);
+}
 
 function adoErrorMessage(res: Response, body: string, fallback: string): string {
   const snippet = body.trim().slice(0, 240);
   return snippet ? `HTTP ${res.status}: ${snippet}` : `HTTP ${res.status}: ${fallback}`;
 }
 
-function normalizeIterationPath(rawPath: string): string {
-  return rawPath.replace(/^\\+/, "");
-}
-
-function inferTimeFrame(
-  startDate?: string,
-  finishDate?: string,
-): AdoSprint["timeFrame"] | undefined {
-  const now = Date.now();
-  const start = startDate ? Date.parse(startDate) : Number.NaN;
-  const finish = finishDate ? Date.parse(finishDate) : Number.NaN;
-
-  if (Number.isFinite(start) && Number.isFinite(finish)) {
-    if (now < start) return "future";
-    if (now > finish) return "past";
-    return "current";
-  }
-
-  return undefined;
-}
-
-async function resolveTeamName(auth: AdoCallerAuth): Promise<string | null> {
-  const fromEnv = process.env.AZDO_TEAM?.trim();
-  if (fromEnv) return fromEnv;
-
-  const url = `${adoOrgBase(auth)}/_apis/projects/${encodeURIComponent(auth.project)}/teams?api-version=7.1&$top=50`;
-  const res = await adoFetch(auth, url);
-  if (!res.ok) return null;
-
-  const data = (await res.json()) as TeamsResponse;
-  const team = data.value?.[0]?.name?.trim();
-  return team ?? null;
-}
-
-function sortSprints(a: AdoSprint, b: AdoSprint): number {
-  const frameOrder = { current: 0, future: 1, past: 2 } as const;
-  const aFrame = a.timeFrame ? frameOrder[a.timeFrame] : 3;
-  const bFrame = b.timeFrame ? frameOrder[b.timeFrame] : 3;
-  if (aFrame !== bFrame) return aFrame - bFrame;
-
-  const aStart = a.startDate ? Date.parse(a.startDate) : 0;
-  const bStart = b.startDate ? Date.parse(b.startDate) : 0;
-  return bStart - aStart;
-}
-
-async function listTeamIterations(
+export async function listTeamIterations(
   auth: AdoCallerAuth,
   team: string,
 ): Promise<AdoSprint[]> {
@@ -142,63 +95,34 @@ async function listTeamIterations(
     .sort(sortSprints);
 }
 
-function collectIterationNodes(node: ClassificationNode, acc: AdoSprint[] = []): AdoSprint[] {
-  const isSelectableIteration =
-    node.structureType === "iteration" &&
-    !node.hasChildren &&
-    node.path &&
-    node.name.toLowerCase() !== "iteration";
+function sortSprints(a: AdoSprint, b: AdoSprint): number {
+  const frameOrder = { current: 0, future: 1, past: 2 } as const;
+  const aFrame = a.timeFrame ? frameOrder[a.timeFrame] : 3;
+  const bFrame = b.timeFrame ? frameOrder[b.timeFrame] : 3;
+  if (aFrame !== bFrame) return aFrame - bFrame;
 
-  if (isSelectableIteration) {
-    acc.push({
-      id: String(node.id),
-      name: node.name,
-      path: normalizeIterationPath(node.path!),
-      startDate: node.attributes?.startDate,
-      finishDate: node.attributes?.finishDate,
-      timeFrame: inferTimeFrame(node.attributes?.startDate, node.attributes?.finishDate),
-    });
-  }
-
-  for (const child of node.children ?? []) {
-    collectIterationNodes(child, acc);
-  }
-
-  return acc;
+  const aStart = a.startDate ? Date.parse(a.startDate) : 0;
+  const bStart = b.startDate ? Date.parse(b.startDate) : 0;
+  return bStart - aStart;
 }
 
-async function listProjectIterationNodes(auth: AdoCallerAuth): Promise<AdoSprint[]> {
-  const url = `${adoProjectBase(auth)}/_apis/wit/classificationnodes/Iterations?$depth=10&api-version=7.1`;
-  const res = await adoFetch(auth, url);
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(adoErrorMessage(res, body, "No se pudieron cargar las iteraciones del proyecto."));
+/** Sprints asignados al equipo seleccionado (misma fuente que Azure Boards). */
+export async function listTeamSprints(
+  auth: AdoCallerAuth,
+  team: string,
+): Promise<AdoSprint[]> {
+  const teamName = team.trim();
+  if (!teamName) {
+    throw new Error("Falta el nombre del equipo.");
   }
 
-  const root = (await res.json()) as ClassificationNode;
-  const sprints = collectIterationNodes(root).sort(sortSprints);
+  const sprints = await listTeamIterations(auth, teamName);
 
   if (sprints.length === 0) {
-    throw new Error("No hay sprints configurados en el proyecto.");
+    throw new Error(`El equipo "${teamName}" no tiene sprints asignados en Azure DevOps.`);
   }
 
   return sprints;
-}
-
-export async function listTeamSprints(auth: AdoCallerAuth): Promise<AdoSprint[]> {
-  const team = await resolveTeamName(auth);
-
-  if (team) {
-    try {
-      const teamSprints = await listTeamIterations(auth, team);
-      if (teamSprints.length > 0) return teamSprints;
-    } catch {
-      // Fallback al árbol de iteraciones del proyecto.
-    }
-  }
-
-  return listProjectIterationNodes(auth);
 }
 
 async function fetchWorkItemDetails(
@@ -207,7 +131,7 @@ async function fetchWorkItemDetails(
 ): Promise<AdoWorkItemOption[]> {
   if (ids.length === 0) return [];
 
-  const fields = [TITLE, WORK_ITEM_TYPE, STATE].join(",");
+  const fields = [TITLE, WORK_ITEM_TYPE, STATE, ASSIGNED_TO].join(",");
   const chunkSize = 200;
   const items: AdoWorkItemOption[] = [];
 
@@ -229,6 +153,7 @@ async function fetchWorkItemDetails(
         title: typeof title === "string" ? title : `Work item ${workItem.id}`,
         type: String(workItem.fields?.[WORK_ITEM_TYPE] ?? "Item"),
         state: String(workItem.fields?.[STATE] ?? ""),
+        assignedTo: parseAssignedToField(workItem.fields?.[ASSIGNED_TO]),
       });
     }
   }
@@ -236,15 +161,31 @@ async function fetchWorkItemDetails(
   return items.sort((a, b) => a.title.localeCompare(b.title, "es"));
 }
 
+export type WorkItemSprintFilters = {
+  assignedToMe?: boolean;
+};
+
 export async function listWorkItemsInSprint(
   auth: AdoCallerAuth,
   iterationPath: string,
+  filters: WorkItemSprintFilters = {},
 ): Promise<AdoWorkItemOption[]> {
+  const assignedToMe = filters.assignedToMe ?? true;
   const project = escapeWiqlString(auth.project);
   const path = escapeWiqlString(iterationPath);
 
+  const conditions = [
+    `[System.TeamProject] = '${project}'`,
+    `[System.IterationPath] UNDER '${path}'`,
+    `[System.State] <> 'Removed'`,
+  ];
+
+  if (assignedToMe) {
+    conditions.push("[System.AssignedTo] = @Me");
+  }
+
   const wiql = {
-    query: `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '${project}' AND [System.IterationPath] UNDER '${path}' AND [System.State] <> 'Removed' ORDER BY [System.ChangedDate] DESC`,
+    query: `SELECT [System.Id] FROM WorkItems WHERE ${conditions.join(" AND ")} ORDER BY [System.ChangedDate] DESC`,
   };
 
   const url = `${adoProjectBase(auth)}/_apis/wit/wiql?api-version=7.1`;

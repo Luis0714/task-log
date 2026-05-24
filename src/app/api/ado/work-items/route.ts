@@ -1,18 +1,32 @@
 import { NextResponse } from "next/server";
 
 import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
+import { withAdoProject } from "@/lib/azure-devops/projects";
 import { listWorkItemsInSprint } from "@/lib/azure-devops/sprints";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 
 export async function GET(req: Request) {
-  const sprintPath = new URL(req.url).searchParams.get("sprintPath")?.trim();
+  const params = new URL(req.url).searchParams;
+  const project = params.get("project")?.trim();
+  const sprintPath = params.get("sprintPath")?.trim();
+
+  if (!project) {
+    return NextResponse.json({ error: "Falta el parámetro project." }, { status: 400 });
+  }
+
   if (!sprintPath) {
     return NextResponse.json({ error: "Falta el parámetro sprintPath." }, { status: 400 });
   }
 
-  if (sprintPath.length > 500) {
-    return NextResponse.json({ error: "sprintPath demasiado largo." }, { status: 400 });
+  if (project.length > 200 || sprintPath.length > 500) {
+    return NextResponse.json({ error: "Parámetros inválidos." }, { status: 400 });
   }
+
+  const assignedParam = params.get("assignedToMe");
+  const assignedToMe =
+    assignedParam === null || assignedParam === ""
+      ? true
+      : assignedParam === "true" || assignedParam === "1";
 
   const auth = await resolveAdoCaller();
   if (!auth) {
@@ -25,7 +39,11 @@ export async function GET(req: Request) {
   }
 
   try {
-    const workItems = await listWorkItemsInSprint(auth, sprintPath);
+    const workItems = await listWorkItemsInSprint(
+      withAdoProject(auth, project),
+      sprintPath,
+      { assignedToMe },
+    );
     return NextResponse.json({ workItems });
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : "Error desconocido";

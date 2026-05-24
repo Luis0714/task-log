@@ -10,18 +10,25 @@ type UseAdoSprintsResult = {
   error: string | null;
 };
 
-export function useAdoSprints(enabled = true): UseAdoSprintsResult {
+export function useAdoSprints(
+  project: string | undefined,
+  team: string | undefined,
+  enabled = true,
+): UseAdoSprintsResult {
   const [sprints, setSprints] = useState<AdoSprintDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !project || !team) {
       setSprints([]);
       setError(null);
+      setLoading(false);
       return;
     }
 
+    const activeProject = project;
+    const activeTeam = team;
     const controller = new AbortController();
 
     async function loadSprints() {
@@ -29,7 +36,10 @@ export function useAdoSprints(enabled = true): UseAdoSprintsResult {
       setError(null);
 
       try {
-        const res = await fetch("/api/ado/sprints", { signal: controller.signal });
+        const params = new URLSearchParams({ project: activeProject, team: activeTeam });
+        const res = await fetch(`/api/ado/sprints?${params.toString()}`, {
+          signal: controller.signal,
+        });
         const data = (await res.json()) as {
           sprints?: AdoSprintDto[];
           error?: string;
@@ -54,7 +64,7 @@ export function useAdoSprints(enabled = true): UseAdoSprintsResult {
 
     void loadSprints();
     return () => controller.abort();
-  }, [enabled]);
+  }, [enabled, project, team]);
 
   return { sprints, loading, error };
 }

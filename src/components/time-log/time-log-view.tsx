@@ -18,11 +18,20 @@ import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
 export type TimeLogViewProps = {
   adoExecutionReady: boolean;
   authMethod: AzdoAuthMethod;
+  defaultProject?: string | null;
 };
 
-export function TimeLogView({ adoExecutionReady, authMethod }: TimeLogViewProps) {
+export function TimeLogView({
+  adoExecutionReady,
+  authMethod,
+  defaultProject = null,
+}: TimeLogViewProps) {
   const { history, appendEntry } = useCopilotHistory();
-  const form = useTimeLogForm({ appendHistory: appendEntry });
+  const form = useTimeLogForm({
+    appendHistory: appendEntry,
+    defaultProject,
+    adoExecutionReady,
+  });
 
   return (
     <div className="flex w-full flex-col gap-5">
@@ -40,12 +49,13 @@ export function TimeLogView({ adoExecutionReady, authMethod }: TimeLogViewProps)
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Formulario</CardTitle>
           <CardDescription>
-            Elige sprint y work item desde Azure DevOps, luego horas y comentario.
+            Elige proyecto, equipo, sprint y work item desde Azure DevOps, luego horas y comentario.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <TimeLogForm
             form={form.form}
+            catalog={form.catalog}
             adoExecutionReady={adoExecutionReady}
             loading={form.loadingExecute}
             onSubmit={form.prepareSubmit}
@@ -59,10 +69,11 @@ export function TimeLogView({ adoExecutionReady, authMethod }: TimeLogViewProps)
       {form.preview && (
         <CopilotPreviewCard
           preview={form.preview}
+          project={form.preview.project}
           adoExecutionReady={adoExecutionReady}
           authMethod={authMethod}
           loading={form.loadingExecute}
-          onConfirm={(payload) => void form.execute(payload)}
+          onConfirm={() => form.preview && void form.execute(form.preview)}
           onCancel={form.dismissPreview}
         />
       )}

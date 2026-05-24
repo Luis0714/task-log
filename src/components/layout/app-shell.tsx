@@ -31,9 +31,11 @@ export function AppShell({
         <AppSidebar connection={connection} activePath={pathname} />
 
         <SidebarInset>
-          <header className="border-border bg-background/90 sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b px-4 backdrop-blur-md md:hidden">
-            <SidebarTrigger />
-            <AppLogo compact showTagline={false} />
+          <header className="border-border bg-background/90 sticky top-0 z-20 flex h-14 shrink-0 items-center border-b px-4 backdrop-blur-md md:hidden">
+            <SidebarTrigger className="relative z-10 shrink-0" />
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <AppLogo compact showTagline={false} className="pointer-events-auto" />
+            </div>
           </header>
 
           <div className="mx-auto flex w-full max-w-md flex-1 flex-col p-4 sm:max-w-lg md:max-w-none md:p-6">
