@@ -1,10 +1,18 @@
 import { Bot, Clock, Kanban, LayoutDashboard, ListTodo, Settings } from "lucide-react";
 
 import { AppLogo } from "@/components/brand/app-logo";
+import { AdoConnectionBadge } from "@/components/connection/ado-connection-badge";
 import { NavGroup, NavGroupList } from "@/components/navigation/nav-group";
 import { NavItem, NavItemList } from "@/components/navigation/nav-item";
+import { mapAuthStateToConnectionDisplay } from "@/lib/auth/connection-display";
+import { getServerAuthState } from "@/lib/auth/server-state";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const auth = await getServerAuthState();
+  const connection = mapAuthStateToConnectionDisplay(auth);
+
   return (
     <main className="mx-auto flex min-h-full w-full max-w-md flex-col gap-4 p-4 sm:max-w-lg">
       <header className="border-sidebar-border bg-sidebar/80 sticky top-0 z-10 -mx-4 border-b px-4 py-3 backdrop-blur-md sm:static sm:mx-0 sm:rounded-xl sm:border sm:px-4">
@@ -13,7 +21,7 @@ export default function Home() {
 
       <nav
         aria-label="Vista previa de navegación"
-        className="border-sidebar-border bg-sidebar w-full rounded-xl border p-3"
+        className="border-sidebar-border bg-sidebar flex w-full flex-col gap-4 rounded-xl border p-3"
       >
         <NavGroupList>
           <NavGroup title="Principal">
@@ -37,6 +45,8 @@ export default function Home() {
             </NavItemList>
           </NavGroup>
         </NavGroupList>
+
+        <AdoConnectionBadge {...connection} />
       </nav>
     </main>
   );
