@@ -50,6 +50,7 @@ export function TimeLogForm({
     loading: sprintsLoading,
     error: sprintsError,
   } = useAdoSprints(adoExecutionReady);
+  console.log({sprints});
   const {
     workItems,
     loading: workItemsLoading,

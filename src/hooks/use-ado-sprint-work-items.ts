@@ -26,6 +26,7 @@ export function useAdoSprintWorkItems(
       return;
     }
 
+    const iterationPath = sprintPath;
     const controller = new AbortController();
 
     async function loadWorkItems() {
@@ -33,7 +34,7 @@ export function useAdoSprintWorkItems(
       setError(null);
 
       try {
-        const params = new URLSearchParams({ sprintPath });
+        const params = new URLSearchParams({ sprintPath: iterationPath });
         const res = await fetch(`/api/ado/work-items?${params.toString()}`, {
           signal: controller.signal,
         });

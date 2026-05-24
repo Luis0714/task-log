@@ -12,6 +12,7 @@ import {
   timeLogFormSchema,
   type TimeLogFormValues,
 } from "@/lib/schemas/time-log";
+import { appToast } from "@/lib/toast";
 
 type UseTimeLogFormOptions = {
   appendHistory: (entry: CopilotHistoryEntry) => void;
@@ -52,9 +53,12 @@ export function useTimeLogForm({ appendHistory }: UseTimeLogFormOptions) {
         };
 
         if (!res.ok) {
-          setError(
-            [data.error, data.detail].filter(Boolean).join(" — ") || "Error al ejecutar",
-          );
+          const message =
+            [data.error, data.detail].filter(Boolean).join(" — ") || "Error al ejecutar";
+          setError(message);
+          appToast.error("No se pudo registrar en Azure DevOps.", {
+            description: message,
+          });
           appendHistory({
             id: crypto.randomUUID(),
             at: new Date().toISOString(),
@@ -66,6 +70,9 @@ export function useTimeLogForm({ appendHistory }: UseTimeLogFormOptions) {
 
         setPreview(null);
         form.reset(TIME_LOG_FORM_DEFAULTS);
+        appToast.success(`Horas registradas en WI #${payload.workItemId}`, {
+          description: `+${payload.hours}h · Total acumulado: ${data.newCompletedWork ?? "—"}h`,
+        });
         appendHistory({
           id: crypto.randomUUID(),
           at: new Date().toISOString(),
@@ -73,7 +80,9 @@ export function useTimeLogForm({ appendHistory }: UseTimeLogFormOptions) {
           ok: true,
         });
       } catch {
-        setError("No se pudo ejecutar la acción.");
+        const message = "No se pudo ejecutar la acción.";
+        setError(message);
+        appToast.error(message);
       } finally {
         setLoadingExecute(false);
       }

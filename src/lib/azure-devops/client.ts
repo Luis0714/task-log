@@ -8,6 +8,10 @@ export function adoAuthHeader(auth: AdoCallerAuth): string {
   return `Bearer ${auth.accessToken}`;
 }
 
+export function adoOrgBase(auth: AdoCallerAuth): string {
+  return `https://dev.azure.com/${encodeURIComponent(auth.organization)}`;
+}
+
 export function adoProjectBase(auth: AdoCallerAuth): string {
   return `https://dev.azure.com/${encodeURIComponent(auth.organization)}/${encodeURIComponent(auth.project)}`;
 }
