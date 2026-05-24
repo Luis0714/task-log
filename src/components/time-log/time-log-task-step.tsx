@@ -30,7 +30,13 @@ export function TimeLogTaskStep({
     <div className="flex flex-col gap-4">
       {catalog.selectedPbi ? <PbiSummaryCard pbi={catalog.selectedPbi} /> : null}
 
-      <TaskFormFields form={form} disabled={loading} />
+      <TaskFormFields
+        form={form}
+        taskStates={catalog.taskStates}
+        taskStatesLoading={catalog.taskStatesLoading}
+        taskStatesError={catalog.taskStatesError}
+        disabled={loading}
+      />
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button

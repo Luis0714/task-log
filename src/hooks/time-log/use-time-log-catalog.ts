@@ -4,9 +4,12 @@ import { useCallback, useEffect, useMemo } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
 import { useCatalogAutoDefaults } from "@/hooks/time-log/use-catalog-auto-defaults";
+import { useAdoBacklogStates } from "@/hooks/use-ado-backlog-states";
 import { useAdoProjects } from "@/hooks/use-ado-projects";
 import { useAdoSprintWorkItems } from "@/hooks/use-ado-sprint-work-items";
 import { useAdoSprints } from "@/hooks/use-ado-sprints";
+import { useAdoTaskStates } from "@/hooks/use-ado-task-states";
+import { useAdoTeamMembers } from "@/hooks/use-ado-team-members";
 import { useAdoTeams } from "@/hooks/use-ado-teams";
 import { useWorkItemFilters } from "@/hooks/use-work-item-filters";
 import {
@@ -14,17 +17,20 @@ import {
   buildCatalogPlaceholders,
 } from "@/lib/time-log/catalog-placeholders";
 import type { TimeLogCatalog } from "@/lib/time-log/catalog-types";
-import {
-  collectWorkItemStates,
-  filterWorkItemsByClientCriteria,
-} from "@/lib/time-log/filter-work-items";
+import { filterWorkItemsByClientCriteria } from "@/lib/time-log/filter-work-items";
 import { formatSprintOptionLabel } from "@/lib/time-log/format-options";
 import {
   resetPbiSelection,
   resetSprintSelection,
   resetTeamSelection,
 } from "@/lib/time-log/form-selection";
+import { resolveTaskStateSelection } from "@/lib/time-log/task-state-utils";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
+import {
+  WORK_ITEM_ASSIGNEE_ME,
+  isWorkItemAssigneeAll,
+  isWorkItemAssigneeMe,
+} from "@/lib/schemas/work-item-filters";
 
 type UseTimeLogCatalogOptions = {
   form: UseFormReturn<TimeLogFormValues>;
@@ -43,11 +49,12 @@ export function useTimeLogCatalog({
   const team = form.watch("team");
   const sprintPath = form.watch("sprintPath");
   const pbiId = form.watch("pbiId");
+  const taskState = form.watch("taskState");
 
   const {
     filters: workItemFilters,
     setSearch: setWorkItemSearch,
-    setAssignedToMe: setWorkItemAssignedToMe,
+    setAssignee: setWorkItemAssignee,
     setState: setWorkItemState,
     resetFilters: resetWorkItemFilters,
   } = useWorkItemFilters();
@@ -74,15 +81,46 @@ export function useTimeLogCatalog({
   } = useAdoSprints(project || undefined, team || undefined, adoExecutionReady);
 
   const {
+    members: teamMembers,
+    loading: teamMembersLoading,
+    error: teamMembersError,
+  } = useAdoTeamMembers(project || undefined, team || undefined, adoExecutionReady);
+
+  const { states: backlogStates } = useAdoBacklogStates(
+    project || undefined,
+    adoExecutionReady,
+  );
+
+  const {
     workItems: sprintPbis,
     loading: pbisLoading,
     error: pbisError,
   } = useAdoSprintWorkItems(
     project || undefined,
     sprintPath || undefined,
-    workItemFilters.assignedToMe,
+    workItemFilters.assignee,
     adoExecutionReady,
   );
+
+  const {
+    states: taskStates,
+    defaultCompletedState: defaultCompletedTaskState,
+    loading: taskStatesLoading,
+    error: taskStatesError,
+  } = useAdoTaskStates(project || undefined, adoExecutionReady);
+
+  const workItemStates = useMemo(
+    () => backlogStates.map((state) => state.name),
+    [backlogStates],
+  );
+
+  useEffect(() => {
+    if (taskStatesLoading || taskStates.length === 0) return;
+    const nextState = resolveTaskStateSelection(taskStates, taskState);
+    if (nextState !== taskState) {
+      form.setValue("taskState", nextState, { shouldValidate: true });
+    }
+  }, [form, taskState, taskStates, taskStatesLoading]);
 
   useCatalogAutoDefaults({
     form,
@@ -100,8 +138,6 @@ export function useTimeLogCatalog({
     team,
   });
 
-  const pbiStates = useMemo(() => collectWorkItemStates(sprintPbis), [sprintPbis]);
-
   const pbis = useMemo(
     () =>
       filterWorkItemsByClientCriteria(sprintPbis, {
@@ -116,10 +152,19 @@ export function useTimeLogCatalog({
   }, [resetWorkItemFilters, sprintPath]);
 
   useEffect(() => {
-    if (workItemFilters.state && !pbiStates.includes(workItemFilters.state)) {
+    if (workItemFilters.state && !workItemStates.includes(workItemFilters.state)) {
       setWorkItemState("");
     }
-  }, [setWorkItemState, workItemFilters.state, pbiStates]);
+  }, [setWorkItemState, workItemFilters.state, workItemStates]);
+
+  useEffect(() => {
+    const assignee = workItemFilters.assignee;
+    if (isWorkItemAssigneeMe(assignee) || isWorkItemAssigneeAll(assignee)) return;
+    if (teamMembersLoading) return;
+    if (!teamMembers.some((member) => member.displayName === assignee)) {
+      setWorkItemAssignee(WORK_ITEM_ASSIGNEE_ME);
+    }
+  }, [setWorkItemAssignee, teamMembers, teamMembersLoading, workItemFilters.assignee]);
 
   useEffect(() => {
     if (!pbiId || pbisLoading) return;
@@ -161,7 +206,7 @@ export function useTimeLogCatalog({
     sprints,
     pbis,
     workItemFilters,
-    workItemStates: pbiStates,
+    workItemStates,
     workItemsTotalCount: sprintPbis.length,
     workItemsFilteredCount: pbis.length,
     projectsLoading,
@@ -172,6 +217,13 @@ export function useTimeLogCatalog({
     teamsError,
     sprintsError,
     pbisError,
+    teamMembers,
+    teamMembersLoading,
+    teamMembersError,
+    taskStates,
+    taskStatesLoading,
+    taskStatesError,
+    defaultCompletedTaskState,
     ...disabledState,
     placeholders: buildCatalogPlaceholders({
       adoExecutionReady,
@@ -193,7 +245,7 @@ export function useTimeLogCatalog({
     onTeamChange,
     onSprintChange,
     onWorkItemSearchChange: setWorkItemSearch,
-    onWorkItemAssignedToMeChange: setWorkItemAssignedToMe,
+    onWorkItemAssigneeChange: setWorkItemAssignee,
     onWorkItemStateChange: setWorkItemState,
   };
 }

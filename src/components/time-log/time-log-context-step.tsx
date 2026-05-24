@@ -31,11 +31,14 @@ export function TimeLogContextStep({ form, catalog, onContinue }: TimeLogContext
         <WorkItemFiltersPanel
           filters={catalog.workItemFilters}
           states={catalog.workItemStates}
+          members={catalog.teamMembers}
+          membersLoading={catalog.teamMembersLoading}
+          membersError={catalog.teamMembersError}
           filteredCount={catalog.workItemsFilteredCount}
           totalCount={catalog.workItemsTotalCount}
           disabled={catalog.catalogDisabled || catalog.pbisLoading}
           onSearchChange={catalog.onWorkItemSearchChange}
-          onAssignedToMeChange={catalog.onWorkItemAssignedToMeChange}
+          onAssigneeChange={catalog.onWorkItemAssigneeChange}
           onStateChange={catalog.onWorkItemStateChange}
           title="Filtros de historias (PBI)"
         />

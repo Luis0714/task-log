@@ -21,19 +21,28 @@ type UseCreateTaskOptions = {
   form: UseFormReturn<TimeLogFormValues>;
   appendHistory: (entry: CopilotHistoryEntry) => void;
   setStep: (step: TimeLogStep) => void;
+  getDefaultTaskState: () => string;
 };
 
-function clearTaskFields(form: UseFormReturn<TimeLogFormValues>) {
+function clearTaskFields(
+  form: UseFormReturn<TimeLogFormValues>,
+  getDefaultTaskState: () => string,
+) {
   form.setValue("taskTitle", "");
   form.setValue("hours", "");
   form.setValue("description", "");
   form.setValue("activity", TIME_LOG_TASK_STEP_DEFAULTS.activity);
   form.setValue("workingDate", getDefaultWorkingDate());
-  form.setValue("taskState", TIME_LOG_TASK_STEP_DEFAULTS.taskState);
+  form.setValue("taskState", getDefaultTaskState());
   resetTaskStepFields(form);
 }
 
-export function useCreateTask({ form, appendHistory, setStep }: UseCreateTaskOptions) {
+export function useCreateTask({
+  form,
+  appendHistory,
+  setStep,
+  getDefaultTaskState,
+}: UseCreateTaskOptions) {
   const [preview, setPreview] = useState<CreateTaskPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -70,7 +79,7 @@ export function useCreateTask({ form, appendHistory, setStep }: UseCreateTaskOpt
         }
 
         setPreview(null);
-        clearTaskFields(form);
+        clearTaskFields(form, getDefaultTaskState);
         setStep(2);
         appToast.success(`Tarea creada: #${result.taskId}`, {
           description: `${payload.title} · ${payload.hours}h · PBI #${payload.pbiId}`,
@@ -89,7 +98,7 @@ export function useCreateTask({ form, appendHistory, setStep }: UseCreateTaskOpt
         setLoading(false);
       }
     },
-    [appendHistory, form, setStep],
+    [appendHistory, form, getDefaultTaskState, setStep],
   );
 
   const dismissPreview = useCallback(() => {

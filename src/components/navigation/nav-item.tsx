@@ -7,6 +7,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -25,12 +26,22 @@ export function NavItem({
   isActive = false,
   className,
 }: NavItemProps) {
+  const { isMobile, setOpenMobile } = useSidebar();
+
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         isActive={isActive}
         tooltip={label}
-        render={<Link href={href} aria-current={isActive ? "page" : undefined} />}
+        render={
+          <Link
+            href={href}
+            aria-current={isActive ? "page" : undefined}
+            onClick={() => {
+              if (isMobile) setOpenMobile(false);
+            }}
+          />
+        }
         className={cn(
           "data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:shadow-sm",
           className,

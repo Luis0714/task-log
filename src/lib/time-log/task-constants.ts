@@ -12,12 +12,10 @@ export const TASK_ACTIVITY_OPTIONS = [
 
 export type TaskActivity = (typeof TASK_ACTIVITY_OPTIONS)[number];
 
-export const TASK_STATE_OPTIONS = ["To Do", "Done"] as const;
-
-export type TaskState = (typeof TASK_STATE_OPTIONS)[number];
+/** Fallback si no se pueden cargar estados desde Azure DevOps. */
+export const FALLBACK_TASK_STATE_OPTIONS = ["To Do", "Done", "Closed"] as const;
 
 export const DEFAULT_TASK_ACTIVITY: TaskActivity = "Development";
-export const DEFAULT_TASK_STATE: TaskState = "Done";
 
 export function getDefaultWorkingDate(): string {
   return new Date().toISOString().slice(0, 10);

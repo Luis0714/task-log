@@ -3,25 +3,25 @@
 import { useMemo } from "react";
 
 import { useAdoQuery } from "@/hooks/use-ado-query";
-import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
+import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 
-const INITIAL = { sprints: [] as AdoSprintDto[] };
+const INITIAL = { members: [] as AdoTeamMemberDto[] };
 
-export function useAdoSprints(
+export function useAdoTeamMembers(
   project: string | undefined,
   team: string | undefined,
   enabled = true,
 ) {
   const params = useMemo(() => ({ project, team }), [project, team]);
   const { data, loading, error } = useAdoQuery({
-    path: "/api/ado/sprints",
+    path: "/api/ado/team-members",
     params,
     enabled,
     requireParams: ["project", "team"],
     initialData: INITIAL,
-    fallbackError: "No se pudieron cargar los sprints.",
+    fallbackError: "No se pudieron cargar los miembros del equipo.",
     parse: (payload) => ({
-      sprints: (payload as { sprints?: AdoSprintDto[] }).sprints ?? [],
+      members: (payload as { members?: AdoTeamMemberDto[] }).members ?? [],
     }),
   });
 

@@ -1,27 +1,20 @@
 import { NextResponse } from "next/server";
 
 import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
+import { listTeamMembers } from "@/lib/azure-devops/work-item-type-states";
 import { withAdoProject } from "@/lib/azure-devops/projects";
-import { listWorkItemsInSprint } from "@/lib/azure-devops/sprints";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
-import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 
 export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   const project = params.get("project")?.trim();
-  const sprintPath = params.get("sprintPath")?.trim();
-  const assignee = params.get("assignee")?.trim() || WORK_ITEM_ASSIGNEE_ALL;
+  const team = params.get("team")?.trim();
 
   if (!project) {
     return NextResponse.json({ error: "Falta el parámetro project." }, { status: 400 });
   }
-
-  if (!sprintPath) {
-    return NextResponse.json({ error: "Falta el parámetro sprintPath." }, { status: 400 });
-  }
-
-  if (project.length > 200 || sprintPath.length > 500 || assignee.length > 200) {
-    return NextResponse.json({ error: "Parámetros inválidos." }, { status: 400 });
+  if (!team) {
+    return NextResponse.json({ error: "Falta el parámetro team." }, { status: 400 });
   }
 
   const auth = await resolveAdoCaller();
@@ -35,16 +28,12 @@ export async function GET(req: Request) {
   }
 
   try {
-    const workItems = await listWorkItemsInSprint(
-      withAdoProject(auth, project),
-      sprintPath,
-      { assignee },
-    );
-    return NextResponse.json({ workItems });
+    const members = await listTeamMembers(withAdoProject(auth, project), team);
+    return NextResponse.json({ members });
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : "Error desconocido";
     return NextResponse.json(
-      { error: "No se pudieron cargar los work items.", detail },
+      { error: "No se pudieron cargar los miembros del equipo.", detail },
       { status: 502 },
     );
   }

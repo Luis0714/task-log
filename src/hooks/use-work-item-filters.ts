@@ -14,8 +14,8 @@ export function useWorkItemFilters() {
     setFilters((current) => ({ ...current, search }));
   }, []);
 
-  const setAssignedToMe = useCallback((assignedToMe: boolean) => {
-    setFilters((current) => ({ ...current, assignedToMe }));
+  const setAssignee = useCallback((assignee: string) => {
+    setFilters((current) => ({ ...current, assignee }));
   }, []);
 
   const setState = useCallback((state: string) => {
@@ -29,7 +29,7 @@ export function useWorkItemFilters() {
   return {
     filters,
     setSearch,
-    setAssignedToMe,
+    setAssignee,
     setState,
     resetFilters,
   };

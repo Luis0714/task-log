@@ -4,6 +4,11 @@ import {
   escapeWiqlString,
 } from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
+import {
+  isWorkItemAssigneeAll,
+  isWorkItemAssigneeMe,
+  WORK_ITEM_ASSIGNEE_ALL,
+} from "@/lib/schemas/work-item-filters";
 
 export type AdoSprint = {
   id: string;
@@ -162,7 +167,7 @@ async function fetchWorkItemDetails(
 }
 
 export type WorkItemSprintFilters = {
-  assignedToMe?: boolean;
+  assignee?: string;
   workItemType?: string;
 };
 
@@ -175,7 +180,7 @@ export async function listWorkItemsInSprint(
   iterationPath: string,
   filters: WorkItemSprintFilters = {},
 ): Promise<AdoWorkItemOption[]> {
-  const assignedToMe = filters.assignedToMe ?? false;
+  const assignee = filters.assignee?.trim() || WORK_ITEM_ASSIGNEE_ALL;
   const workItemType = filters.workItemType?.trim() || resolveBacklogItemType();
   const project = escapeWiqlString(auth.project);
   const path = escapeWiqlString(iterationPath);
@@ -187,8 +192,10 @@ export async function listWorkItemsInSprint(
     `[System.WorkItemType] = '${escapeWiqlString(workItemType)}'`,
   ];
 
-  if (assignedToMe) {
+  if (isWorkItemAssigneeMe(assignee)) {
     conditions.push("[System.AssignedTo] = @Me");
+  } else if (!isWorkItemAssigneeAll(assignee)) {
+    conditions.push(`[System.AssignedTo] = '${escapeWiqlString(assignee)}'`);
   }
 
   const wiql = {

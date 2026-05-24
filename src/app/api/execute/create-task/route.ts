@@ -5,7 +5,7 @@ import { withAdoProject } from "@/lib/azure-devops/projects";
 import { createTaskUnderPbi } from "@/lib/azure-devops/work-items";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import { executeCreateTaskRequestSchema } from "@/lib/schemas/agent";
-import type { TaskActivity, TaskState } from "@/lib/time-log/task-constants";
+import type { TaskActivity } from "@/lib/time-log/task-constants";
 
 export async function POST(req: Request) {
   let raw: unknown;
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       description: task.description,
       activity: task.activity as TaskActivity,
       workingDate: task.workingDate,
-      state: task.state as TaskState,
+      state: task.state,
       sprintPath: task.sprintPath,
     },
     authForExecute,

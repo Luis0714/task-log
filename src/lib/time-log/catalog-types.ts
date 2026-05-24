@@ -1,4 +1,4 @@
-import type { AdoProjectDto, AdoSprintDto, AdoTeamDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import type { AdoProjectDto, AdoSprintDto, AdoTaskStateDto, AdoTeamDto, AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 
 export type TimeLogCatalogPlaceholders = {
@@ -28,6 +28,13 @@ export type TimeLogCatalog = {
   teamsError: string | null;
   sprintsError: string | null;
   pbisError: string | null;
+  teamMembers: AdoTeamMemberDto[];
+  teamMembersLoading: boolean;
+  teamMembersError: string | null;
+  taskStates: AdoTaskStateDto[];
+  taskStatesLoading: boolean;
+  taskStatesError: string | null;
+  defaultCompletedTaskState: string | null;
   catalogDisabled: boolean;
   projectSelectDisabled: boolean;
   teamSelectDisabled: boolean;
@@ -40,7 +47,7 @@ export type TimeLogCatalog = {
   onTeamChange: () => void;
   onSprintChange: () => void;
   onWorkItemSearchChange: (value: string) => void;
-  onWorkItemAssignedToMeChange: (value: boolean) => void;
+  onWorkItemAssigneeChange: (value: string) => void;
   onWorkItemStateChange: (value: string) => void;
 };
 

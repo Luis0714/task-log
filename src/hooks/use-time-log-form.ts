@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
@@ -31,10 +32,16 @@ export function useTimeLogForm({
   });
 
   const wizard = useTimeLogWizard(form);
+  const defaultTaskStateRef = useRef("");
+
   const createTask = useCreateTask({
     form,
     appendHistory,
     setStep: wizard.setStep,
+    getDefaultTaskState: useCallback(
+      () => defaultTaskStateRef.current || form.getValues("taskState"),
+      [form],
+    ),
   });
 
   const catalog = useTimeLogCatalog({
@@ -42,6 +49,12 @@ export function useTimeLogForm({
     adoExecutionReady,
     submitting: createTask.loading,
   });
+
+  useEffect(() => {
+    if (catalog.defaultCompletedTaskState) {
+      defaultTaskStateRef.current = catalog.defaultCompletedTaskState;
+    }
+  }, [catalog.defaultCompletedTaskState]);
 
   const prepareSubmit = form.handleSubmit((values) => {
     createTask.preparePreview(values, catalog.selectedPbi);

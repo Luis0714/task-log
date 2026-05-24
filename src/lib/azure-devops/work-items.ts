@@ -5,7 +5,9 @@ import { isPatConfigured } from "@/lib/azure-devops/resolve-auth";
 import { fetchCurrentAdoProfile } from "@/lib/azure-devops/profile";
 import { isIronSessionConfigured } from "@/lib/auth/session";
 import { getTaskPilotSession } from "@/lib/auth/session";
-import type { TaskActivity, TaskState } from "@/lib/time-log/task-constants";
+import type { TaskActivity } from "@/lib/time-log/task-constants";
+import { findTaskState } from "@/lib/azure-devops/task-states";
+import { isCompletedTaskStateCategory } from "@/lib/time-log/task-state-utils";
 
 function authHeader(auth: AdoCallerAuth): string {
   return adoAuthHeader(auth);
@@ -31,7 +33,7 @@ export type CreateTaskParams = {
   description?: string;
   activity: TaskActivity;
   workingDate: string;
-  state: TaskState;
+  state: string;
   sprintPath: string;
 };
 
@@ -94,9 +96,18 @@ export async function createTaskUnderPbi(
   const pbiUrl = `${adoOrgBase(auth)}/_apis/wit/workitems/${params.pbiId}`;
   const iterationPath = params.sprintPath.trim() || pbiContext.iterationPath;
 
+  const stateMeta = await findTaskState(auth, params.state);
+  if (!stateMeta) {
+    return {
+      ok: false,
+      status: 422,
+      body: `El estado "${params.state}" no es válido para Task en este proyecto.`,
+    };
+  }
+
   const ops: JsonPatchOp[] = [
     { op: "add", path: "/fields/System.Title", value: params.title.trim() },
-    { op: "add", path: "/fields/System.State", value: params.state },
+    { op: "add", path: "/fields/System.State", value: stateMeta.name },
     { op: "add", path: `/fields/${AREA_PATH}`, value: pbiContext.areaPath },
     { op: "add", path: `/fields/${ITERATION_PATH}`, value: iterationPath },
     { op: "add", path: `/fields/${COMPLETED_WORK}`, value: params.hours },
@@ -113,7 +124,7 @@ export async function createTaskUnderPbi(
     },
   ];
 
-  if (params.state === "Done") {
+  if (isCompletedTaskStateCategory(stateMeta.category)) {
     ops.push({ op: "add", path: `/fields/${REMAINING_WORK}`, value: 0 });
   }
 

@@ -11,32 +11,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
+import {
+  WORK_ITEM_ASSIGNEE_ALL,
+  WORK_ITEM_ASSIGNEE_ME,
+  resolveWorkItemAssigneeLabel,
+} from "@/lib/schemas/work-item-filters";
 
 export type WorkItemFiltersPanelProps = {
   filters: WorkItemFilters;
   states: string[];
+  members: AdoTeamMemberDto[];
+  membersLoading?: boolean;
+  membersError?: string | null;
   filteredCount: number;
   totalCount: number;
   disabled?: boolean;
   title?: string;
   onSearchChange: (value: string) => void;
-  onAssignedToMeChange: (value: boolean) => void;
+  onAssigneeChange: (value: string) => void;
   onStateChange: (value: string) => void;
 };
 
 export function WorkItemFiltersPanel({
   filters,
   states,
+  members,
+  membersLoading = false,
+  membersError = null,
   filteredCount,
   totalCount,
   disabled = false,
   title = "Filtros de work items",
   onSearchChange,
-  onAssignedToMeChange,
+  onAssigneeChange,
   onStateChange,
 }: WorkItemFiltersPanelProps) {
   const showCount = totalCount > 0 && !disabled;
+  const assigneeLabel = resolveWorkItemAssigneeLabel(filters.assignee, members);
 
   return (
     <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
@@ -71,23 +84,31 @@ export function WorkItemFiltersPanel({
         <div className="space-y-1.5">
           <Label htmlFor="work-item-assigned">Asignación</Label>
           <Select
-            value={filters.assignedToMe ? "me" : "all"}
+            value={filters.assignee || WORK_ITEM_ASSIGNEE_ALL}
             onValueChange={(value) => {
               if (!value) return;
-              onAssignedToMeChange(value === "me");
+              onAssigneeChange(value);
             }}
-            disabled={disabled}
+            disabled={disabled || membersLoading}
           >
             <SelectTrigger id="work-item-assigned" className="w-full">
               <SelectValue>
-                {filters.assignedToMe ? "Asignados a mí" : "Todos"}
+                {membersLoading ? "Cargando miembros..." : assigneeLabel}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="me">Asignados a mí</SelectItem>
-              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value={WORK_ITEM_ASSIGNEE_ME}>Asignados a mí</SelectItem>
+              <SelectItem value={WORK_ITEM_ASSIGNEE_ALL}>Todos</SelectItem>
+              {members.map((member) => (
+                <SelectItem key={member.id} value={member.displayName}>
+                  {member.displayName}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+          {membersError ? (
+            <p className="text-destructive text-xs">{membersError}</p>
+          ) : null}
         </div>
 
         <div className="space-y-1.5">

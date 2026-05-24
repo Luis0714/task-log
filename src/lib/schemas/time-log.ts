@@ -2,10 +2,8 @@ import { z } from "zod";
 
 import {
   DEFAULT_TASK_ACTIVITY,
-  DEFAULT_TASK_STATE,
   getDefaultWorkingDate,
   TASK_ACTIVITY_OPTIONS,
-  TASK_STATE_OPTIONS,
 } from "@/lib/time-log/task-constants";
 
 const hoursField = z
@@ -49,9 +47,7 @@ export const timeLogTaskStepSchema = z.object({
     .trim()
     .min(1, "Selecciona la fecha de trabajo.")
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida."),
-  taskState: z.enum(TASK_STATE_OPTIONS, {
-    message: "Selecciona un estado.",
-  }),
+  taskState: z.string().trim().min(1, "Selecciona un estado."),
 });
 
 export const timeLogFormSchema = timeLogContextStepSchema.merge(timeLogTaskStepSchema);
@@ -67,7 +63,7 @@ export type CreateTaskPayload = {
   description: string;
   activity: (typeof TASK_ACTIVITY_OPTIONS)[number];
   workingDate: string;
-  state: (typeof TASK_STATE_OPTIONS)[number];
+  state: string;
   sprintPath: string;
   team: string;
   project: string;
@@ -84,7 +80,7 @@ export function createTimeLogFormDefaults(defaultProject = ""): TimeLogFormValue
     description: "",
     activity: DEFAULT_TASK_ACTIVITY,
     workingDate: getDefaultWorkingDate(),
-    taskState: DEFAULT_TASK_STATE,
+    taskState: "",
   };
 }
 
@@ -97,7 +93,7 @@ export const TIME_LOG_TASK_STEP_DEFAULTS: Pick<
   description: "",
   activity: DEFAULT_TASK_ACTIVITY,
   workingDate: getDefaultWorkingDate(),
-  taskState: DEFAULT_TASK_STATE,
+  taskState: "",
 };
 
 export function mapTimeLogFormToPayload(
