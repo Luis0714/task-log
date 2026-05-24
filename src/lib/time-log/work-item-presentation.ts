@@ -7,6 +7,7 @@ type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
 export type WorkItemPresentation = {
   variant: BadgeVariant;
   className?: string;
+  dotClassName?: string;
 };
 
 export function getWorkItemStatePresentation(state: string): WorkItemPresentation {
@@ -17,6 +18,7 @@ export function getWorkItemStatePresentation(state: string): WorkItemPresentatio
       variant: "secondary",
       className:
         "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
+      dotClassName: "bg-emerald-500",
     };
   }
 
@@ -29,6 +31,7 @@ export function getWorkItemStatePresentation(state: string): WorkItemPresentatio
     return {
       variant: "default",
       className: "border-sky-500/25 bg-sky-500/10 text-sky-800 dark:text-sky-300",
+      dotClassName: "bg-sky-500",
     };
   }
 
@@ -36,10 +39,41 @@ export function getWorkItemStatePresentation(state: string): WorkItemPresentatio
     return {
       variant: "outline",
       className: "text-muted-foreground",
+      dotClassName: "bg-muted-foreground/70",
     };
   }
 
-  return { variant: "outline" };
+  return { variant: "outline", dotClassName: "bg-muted-foreground/70" };
+}
+
+export function formatWorkItemTypeAvatarInitials(type: string): string {
+  const normalized = type.trim().toLowerCase();
+
+  if (normalized.includes("product backlog") || normalized === "pbi") {
+    return "PB";
+  }
+  if (normalized.includes("user story") || normalized.includes("historia")) {
+    return "HU";
+  }
+  if (normalized.includes("bug")) {
+    return "BG";
+  }
+  if (normalized.includes("task") || normalized.includes("tarea")) {
+    return "TK";
+  }
+  if (normalized.includes("feature")) {
+    return "FT";
+  }
+  if (normalized.includes("epic")) {
+    return "EP";
+  }
+
+  const words = type.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return `${words[0][0] ?? ""}${words[1][0] ?? ""}`.toUpperCase();
+  }
+
+  return type.slice(0, 2).toUpperCase();
 }
 
 export function formatWorkItemTypeShortLabel(type: string): string {

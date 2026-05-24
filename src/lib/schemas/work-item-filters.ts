@@ -10,6 +10,6 @@ export type WorkItemFilters = z.infer<typeof workItemFiltersSchema>;
 
 export const DEFAULT_WORK_ITEM_FILTERS: WorkItemFilters = {
   search: "",
-  assignedToMe: false,
+  assignedToMe: true,
   state: "",
 };

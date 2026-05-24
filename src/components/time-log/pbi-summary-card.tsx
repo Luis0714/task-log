@@ -9,8 +9,8 @@ export type PbiSummaryCardProps = {
 
 export function PbiSummaryCard({ pbi, title = "Historia seleccionada" }: PbiSummaryCardProps) {
   return (
-    <div className="rounded-lg border bg-muted/30 p-3">
-      <p className="text-muted-foreground mb-1 text-xs font-medium uppercase tracking-wide">
+    <div className="space-y-2">
+      <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
         {title}
       </p>
       <WorkItemSelectOption item={pbi} variant="menu" />

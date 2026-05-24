@@ -44,19 +44,23 @@ export function PbiSelectField({ form, catalog }: PbiSelectFieldProps) {
             disabled={catalog.pbiSelectDisabled}
           >
             <FormControl>
-              <SelectTrigger className="h-auto min-h-8 w-full py-1.5">
-                <SelectValue placeholder={catalog.placeholders.pbi}>
+              <SelectTrigger className="h-auto min-h-8 w-full max-w-full overflow-hidden py-1.5">
+                <SelectValue
+                  placeholder={catalog.placeholders.pbi}
+                  className="min-w-0 overflow-hidden"
+                >
                   {catalog.selectedPbi ? (
                     <WorkItemSelectOption item={catalog.selectedPbi} variant="trigger" />
                   ) : null}
                 </SelectValue>
               </SelectTrigger>
             </FormControl>
-            <SelectContent className="max-h-80">
+            <SelectContent className="max-h-80 w-(--anchor-width) max-w-(--anchor-width) gap-1 p-1.5">
               {catalog.pbis.map((item) => (
                 <SelectItem
                   key={item.id}
                   value={String(item.id)}
+                  textWrap
                   className={WORK_ITEM_SELECT_ITEM_CLASS}
                 >
                   <WorkItemSelectOption item={item} variant="menu" />
