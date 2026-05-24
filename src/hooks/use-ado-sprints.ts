@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { useAdoQuery } from "@/hooks/use-ado-query";
+import { ADO_REQUIRE_PROJECT_TEAM, useAdoQuery } from "@/hooks/use-ado-query";
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
 
 const INITIAL = { sprints: [] as AdoSprintDto[] };
@@ -17,7 +17,7 @@ export function useAdoSprints(
     path: "/api/ado/sprints",
     params,
     enabled,
-    requireParams: ["project", "team"],
+    requireParams: ADO_REQUIRE_PROJECT_TEAM,
     initialData: INITIAL,
     fallbackError: "No se pudieron cargar los sprints.",
     parse: (payload) => ({

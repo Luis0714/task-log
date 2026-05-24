@@ -2,7 +2,7 @@ import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
 import { adoFetch, adoOrgBase, adoProjectBase, adoAuthHeader } from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { isPatConfigured } from "@/lib/azure-devops/resolve-auth";
-import { fetchCurrentAdoProfile } from "@/lib/azure-devops/profile";
+import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
 import { isIronSessionConfigured } from "@/lib/auth/session";
 import { getTaskPilotSession } from "@/lib/auth/session";
 import type { TaskActivity } from "@/lib/time-log/task-constants";
@@ -104,7 +104,7 @@ async function fetchPbiContext(
 }
 
 async function resolveAssignedToValue(auth: AdoCallerAuth): Promise<string | null> {
-  const profile = await fetchCurrentAdoProfile(auth);
+  const profile = await resolveAdoProfile(auth, { persist: true });
   if (!profile) return null;
   return profile.displayName.trim() || null;
 }

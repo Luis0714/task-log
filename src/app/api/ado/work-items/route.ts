@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
 import { withAdoProject } from "@/lib/azure-devops/projects";
-import { listWorkItemsInSprint } from "@/lib/azure-devops/sprints";
+import { listTasksInSprint, listWorkItemsInSprint } from "@/lib/azure-devops/sprints";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 
@@ -11,6 +11,7 @@ export async function GET(req: Request) {
   const project = params.get("project")?.trim();
   const sprintPath = params.get("sprintPath")?.trim();
   const assignee = params.get("assignee")?.trim() || WORK_ITEM_ASSIGNEE_ALL;
+  const kind = params.get("kind")?.trim().toLowerCase();
 
   if (!project) {
     return NextResponse.json({ error: "Falta el parámetro project." }, { status: 400 });
@@ -35,11 +36,11 @@ export async function GET(req: Request) {
   }
 
   try {
-    const workItems = await listWorkItemsInSprint(
-      withAdoProject(auth, project),
-      sprintPath,
-      { assignee },
-    );
+    const scopedAuth = withAdoProject(auth, project);
+    const workItems =
+      kind === "tasks"
+        ? await listTasksInSprint(scopedAuth, sprintPath, { assignee })
+        : await listWorkItemsInSprint(scopedAuth, sprintPath, { assignee });
     return NextResponse.json({ workItems });
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : "Error desconocido";

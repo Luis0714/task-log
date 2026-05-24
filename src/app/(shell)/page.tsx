@@ -8,14 +8,22 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const auth = await getServerAuthState();
   const connection = mapAuthStateToConnectionDisplay(auth);
+  const defaultProject =
+    auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
 
   const header: DashboardHeaderData = {
     displayName: connection.userDisplayName ?? "Usuario",
     initials: connection.userInitials ?? "U",
     avatarUrl: connection.userAvatarUrl,
     project: connection.project ?? "Sin proyecto",
-    sprintName: "Sprint 12",
+    sprintName: "Sprint actual",
   };
 
-  return <DashboardView header={header} />;
+  return (
+    <DashboardView
+      header={header}
+      adoExecutionReady={auth.adoExecutionReady}
+      defaultProject={defaultProject}
+    />
+  );
 }

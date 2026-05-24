@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { useAdoQuery } from "@/hooks/use-ado-query";
+import { ADO_REQUIRE_PROJECT, useAdoQuery } from "@/hooks/use-ado-query";
 import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
 
 const INITIAL = { states: [] as AdoTaskStateDto[] };
@@ -13,7 +13,7 @@ export function useAdoBacklogStates(project: string | undefined, enabled = true)
     path: "/api/ado/backlog-states",
     params,
     enabled,
-    requireParams: ["project"],
+    requireParams: ADO_REQUIRE_PROJECT,
     initialData: INITIAL,
     fallbackError: "No se pudieron cargar los estados del backlog.",
     parse: (payload) => ({

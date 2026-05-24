@@ -11,18 +11,6 @@ export const MOCK_DASHBOARD_HEADER: DashboardHeaderData = {
   sprintName: "Sprint 12",
 };
 
-export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
-  hoursToday: 5,
-  hoursSprintCurrent: 32,
-  hoursSprintTarget: 40,
-  hoursRemaining: 8,
-  pbiStatusCounts: [
-    { label: "En progreso", count: 2 },
-    { label: "Pendientes", count: 5 },
-    { label: "QA", count: 3 },
-  ],
-};
-
 export const MOCK_IN_PROGRESS_PBIS: DashboardWorkItem[] = [
   {
     id: 123,
@@ -90,3 +78,23 @@ export const MOCK_ASSIGNED_PBIS: DashboardWorkItem[] = [
     priority: 4,
   },
 ];
+
+export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
+  hoursToday: 5,
+  hoursSprintCurrent: 32,
+  hoursSprintTarget: 40,
+  hoursRemaining: 8,
+  pbiStateGroups: [
+    { state: "New", items: MOCK_UPCOMING_PBIS.filter((item) => item.state === "New") },
+    { state: "In Progress", items: MOCK_IN_PROGRESS_PBIS },
+    { state: "Ready", items: MOCK_UPCOMING_PBIS.filter((item) => item.state === "Ready") },
+    {
+      state: "QA",
+      items: MOCK_ASSIGNED_PBIS.filter((item) => item.state === "QA"),
+    },
+    {
+      state: "Done",
+      items: MOCK_ASSIGNED_PBIS.filter((item) => item.state === "Done"),
+    },
+  ],
+};

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { useAdoQuery } from "@/hooks/use-ado-query";
+import { ADO_REQUIRE_PROJECT, useAdoQuery } from "@/hooks/use-ado-query";
 import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
 
 const INITIAL = {
@@ -17,7 +17,7 @@ export function useAdoTaskStates(project: string | undefined, enabled = true) {
     path: "/api/ado/task-states",
     params,
     enabled,
-    requireParams: ["project"],
+    requireParams: ADO_REQUIRE_PROJECT,
     initialData: INITIAL,
     fallbackError: "No se pudieron cargar los estados de Task.",
     parse: (payload) => ({

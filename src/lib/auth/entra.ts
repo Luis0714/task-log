@@ -1,5 +1,7 @@
 import { createHash, randomBytes } from "crypto";
 
+import { parseProfileApiPayload } from "@/lib/azure-devops/profile";
+
 /** Recurso Azure DevOps (Microsoft Learn). */
 export const AZDO_RESOURCE_APP_ID = "499b84ac-1321-427f-aa17-267ca6975798";
 
@@ -131,19 +133,9 @@ export async function fetchAdoProfile(accessToken: string): Promise<{
     const t = await res.text();
     throw new Error(`Perfil ADO: ${res.status} ${t.slice(0, 200)}`);
   }
-  const j = (await res.json()) as {
-    displayName?: string;
-    publicAlias?: string;
-    coreAttributes?: { PublicAlias?: { value?: string } };
-    id?: string;
-  };
-  const id = j.id;
-  if (!id) throw new Error("Perfil ADO sin id.");
-  return {
-    displayName: j.displayName ?? j.publicAlias ?? "Usuario",
-    publicAlias: j.publicAlias ?? j.coreAttributes?.PublicAlias?.value,
-    id,
-  };
+  const profile = parseProfileApiPayload(await res.json());
+  if (!profile) throw new Error("Perfil ADO sin id.");
+  return profile;
 }
 
 type AccountSummary = { accountId: string; accountName: string };

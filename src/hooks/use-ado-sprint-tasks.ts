@@ -7,27 +7,28 @@ import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
 const INITIAL = { workItems: [] as AdoWorkItemOptionDto[] };
 
-export function useAdoSprintWorkItems(
+export function useAdoSprintTasks(
   project: string | undefined,
   sprintPath: string | undefined,
   assignee: string,
   enabled = true,
 ) {
   const params = useMemo(
-    () => ({ project, sprintPath, assignee }),
+    () => ({ project, sprintPath, assignee, kind: "tasks" }),
     [project, sprintPath, assignee],
   );
+
   const { data, loading, error } = useAdoQuery({
     path: "/api/ado/work-items",
     params,
     enabled,
     requireParams: ADO_REQUIRE_PROJECT_SPRINT,
     initialData: INITIAL,
-    fallbackError: "No se pudieron cargar los work items.",
+    fallbackError: "No se pudieron cargar las tasks del sprint.",
     parse: (payload) => ({
       workItems: (payload as { workItems?: AdoWorkItemOptionDto[] }).workItems ?? [],
     }),
   });
 
-  return { ...data, loading, error };
+  return { tasks: data.workItems, loading, error };
 }

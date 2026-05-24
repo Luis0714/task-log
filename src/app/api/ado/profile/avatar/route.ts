@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { fetchAdoAvatar, fetchCurrentAdoProfile } from "@/lib/azure-devops/profile";
+import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
+import { fetchAdoAvatar } from "@/lib/azure-devops/profile";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export async function GET() {
     return new NextResponse(null, { status: 401 });
   }
 
-  const profile = await fetchCurrentAdoProfile(auth);
+  const profile = await resolveAdoProfile(auth, { persist: true });
   if (!profile) {
     return new NextResponse(null, { status: 404 });
   }

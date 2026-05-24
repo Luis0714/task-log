@@ -37,6 +37,9 @@ export const adoWorkItemOptionSchema = z.object({
   type: z.string(),
   state: z.string(),
   assignedTo: z.string().optional(),
+  priority: z.number().optional(),
+  loggedHours: z.number().optional(),
+  estimatedHours: z.number().optional(),
 });
 
 export const adoSprintsResponseSchema = z.object({

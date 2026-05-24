@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { useAdoQuery } from "@/hooks/use-ado-query";
+import { ADO_REQUIRE_PROJECT_TEAM, useAdoQuery } from "@/hooks/use-ado-query";
 import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 
 const INITIAL = { members: [] as AdoTeamMemberDto[] };
@@ -17,7 +17,7 @@ export function useAdoTeamMembers(
     path: "/api/ado/team-members",
     params,
     enabled,
-    requireParams: ["project", "team"],
+    requireParams: ADO_REQUIRE_PROJECT_TEAM,
     initialData: INITIAL,
     fallbackError: "No se pudieron cargar los miembros del equipo.",
     parse: (payload) => ({

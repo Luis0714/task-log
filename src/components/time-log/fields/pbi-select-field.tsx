@@ -14,7 +14,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -28,6 +30,8 @@ type PbiSelectFieldProps = {
 };
 
 export function PbiSelectField({ form, catalog }: PbiSelectFieldProps) {
+  const hasGroups = catalog.pbiGroups.length > 0;
+
   return (
     <FormField
       control={form.control}
@@ -56,16 +60,42 @@ export function PbiSelectField({ form, catalog }: PbiSelectFieldProps) {
               </SelectTrigger>
             </FormControl>
             <SelectContent className="max-h-80 w-(--anchor-width) max-w-(--anchor-width) gap-1 p-1.5">
-              {catalog.pbis.map((item) => (
-                <SelectItem
-                  key={item.id}
-                  value={String(item.id)}
-                  textWrap
-                  className={WORK_ITEM_SELECT_ITEM_CLASS}
-                >
-                  <WorkItemSelectOption item={item} variant="menu" />
-                </SelectItem>
-              ))}
+              {hasGroups ? (
+                catalog.pbiGroups.map(({ state, items }) => (
+                  <SelectGroup key={state}>
+                    <SelectLabel className="text-foreground/80 font-medium">
+                      {state}
+                      {items.length > 0 ? (
+                        <span className="text-muted-foreground font-normal">
+                          {" "}
+                          ({items.length})
+                        </span>
+                      ) : null}
+                    </SelectLabel>
+                    {items.map((item) => (
+                      <SelectItem
+                        key={item.id}
+                        value={String(item.id)}
+                        textWrap
+                        className={WORK_ITEM_SELECT_ITEM_CLASS}
+                      >
+                        <WorkItemSelectOption item={item} variant="menu" />
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))
+              ) : (
+                catalog.pbis.map((item) => (
+                  <SelectItem
+                    key={item.id}
+                    value={String(item.id)}
+                    textWrap
+                    className={WORK_ITEM_SELECT_ITEM_CLASS}
+                  >
+                    <WorkItemSelectOption item={item} variant="menu" />
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
           <FormInlineError message={catalog.pbisError} />

@@ -36,7 +36,7 @@ export function SprintOverviewGrid({ metrics, loading = false, className }: Spri
         hint="Restantes del sprint"
         loading={loading}
       />
-      <PbiStatusBreakdown items={metrics.pbiStatusCounts} loading={loading} />
+      <PbiStatusBreakdown groups={metrics.pbiStateGroups} loading={loading} />
     </div>
   );
 }

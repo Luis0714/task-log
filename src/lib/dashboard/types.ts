@@ -1,4 +1,5 @@
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import type { WorkItemsByStateGroup } from "@/lib/time-log/filter-work-items";
 
 export type DashboardWorkItem = AdoWorkItemOptionDto & {
   priority?: number | string;
@@ -6,17 +7,14 @@ export type DashboardWorkItem = AdoWorkItemOptionDto & {
   estimatedHours?: number;
 };
 
-export type DashboardStatusCount = {
-  label: string;
-  count: number;
-};
+export type DashboardPbiStateGroup = WorkItemsByStateGroup;
 
 export type DashboardMetrics = {
   hoursToday: number;
   hoursSprintCurrent: number;
   hoursSprintTarget: number;
   hoursRemaining: number;
-  pbiStatusCounts: DashboardStatusCount[];
+  pbiStateGroups: DashboardPbiStateGroup[];
 };
 
 export type DashboardHeaderData = {
@@ -26,3 +24,5 @@ export type DashboardHeaderData = {
   project: string;
   sprintName: string;
 };
+
+export type { DashboardActivityItem } from "@/lib/dashboard/activity";

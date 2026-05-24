@@ -4,6 +4,7 @@ import {
   escapeWiqlString,
 } from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
+import { resolveTaskWorkItemTypeName } from "@/lib/azure-devops/work-item-type-states";
 import {
   isWorkItemAssigneeAll,
   isWorkItemAssigneeMe,
@@ -25,6 +26,9 @@ export type AdoWorkItemOption = {
   type: string;
   state: string;
   assignedTo?: string;
+  priority?: number;
+  loggedHours?: number;
+  estimatedHours?: number;
 };
 
 type TeamIterationsResponse = {
@@ -55,6 +59,18 @@ const TITLE = "System.Title";
 const WORK_ITEM_TYPE = "System.WorkItemType";
 const STATE = "System.State";
 const ASSIGNED_TO = "System.AssignedTo";
+const PRIORITY = "Microsoft.VSTS.Common.Priority";
+const COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
+const ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
+
+function parseNumericField(value: string | number | undefined): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
 
 function parseAssignedTo(value: string | number | undefined): string {
   if (typeof value === "string") return value.trim();
@@ -136,7 +152,7 @@ async function fetchWorkItemDetails(
 ): Promise<AdoWorkItemOption[]> {
   if (ids.length === 0) return [];
 
-  const fields = [TITLE, WORK_ITEM_TYPE, STATE, ASSIGNED_TO].join(",");
+  const fields = [TITLE, WORK_ITEM_TYPE, STATE, ASSIGNED_TO, PRIORITY, COMPLETED_WORK, ORIGINAL_ESTIMATE].join(",");
   const chunkSize = 200;
   const items: AdoWorkItemOption[] = [];
 
@@ -159,6 +175,9 @@ async function fetchWorkItemDetails(
         type: String(workItem.fields?.[WORK_ITEM_TYPE] ?? "Item"),
         state: String(workItem.fields?.[STATE] ?? ""),
         assignedTo: parseAssignedToField(workItem.fields?.[ASSIGNED_TO]),
+        priority: parseNumericField(workItem.fields?.[PRIORITY]),
+        loggedHours: parseNumericField(workItem.fields?.[COMPLETED_WORK]),
+        estimatedHours: parseNumericField(workItem.fields?.[ORIGINAL_ESTIMATE]),
       });
     }
   }
@@ -217,4 +236,15 @@ export async function listWorkItemsInSprint(
   const data = (await res.json()) as WiqlResponse;
   const ids = (data.workItems ?? []).map((item) => item.id);
   return fetchWorkItemDetails(auth, ids);
+}
+
+export async function listTasksInSprint(
+  auth: AdoCallerAuth,
+  iterationPath: string,
+  filters: Omit<WorkItemSprintFilters, "workItemType"> = {},
+): Promise<AdoWorkItemOption[]> {
+  return listWorkItemsInSprint(auth, iterationPath, {
+    ...filters,
+    workItemType: resolveTaskWorkItemTypeName(),
+  });
 }
