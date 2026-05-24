@@ -1,9 +1,4 @@
-import { Bot, Clock, Kanban, LayoutDashboard, ListTodo, Settings } from "lucide-react";
-
-import { AppLogo } from "@/components/brand/app-logo";
-import { AdoConnectionBadge } from "@/components/connection/ado-connection-badge";
-import { NavGroup, NavGroupList } from "@/components/navigation/nav-group";
-import { NavItem, NavItemList } from "@/components/navigation/nav-item";
+import { AppSidebar } from "@/components/layout/app-sidebar";
 import { mapAuthStateToConnectionDisplay } from "@/lib/auth/connection-display";
 import { getServerAuthState } from "@/lib/auth/server-state";
 
@@ -14,40 +9,12 @@ export default async function Home() {
   const connection = mapAuthStateToConnectionDisplay(auth);
 
   return (
-    <main className="mx-auto flex min-h-full w-full max-w-md flex-col gap-4 p-4 sm:max-w-lg">
-      <header className="border-sidebar-border bg-sidebar/80 sticky top-0 z-10 -mx-4 border-b px-4 py-3 backdrop-blur-md sm:static sm:mx-0 sm:rounded-xl sm:border sm:px-4">
-        <AppLogo />
-      </header>
+    <div className="bg-background flex min-h-full flex-col md:flex-row">
+      <AppSidebar connection={connection} activePath="/" className="md:w-64 md:shrink-0" />
 
-      <nav
-        aria-label="Vista previa de navegación"
-        className="border-sidebar-border bg-sidebar flex w-full flex-col gap-4 rounded-xl border p-3"
-      >
-        <NavGroupList>
-          <NavGroup title="Principal">
-            <NavItemList aria-label="Principal">
-              <NavItem href="/" label="Dashboard" icon={LayoutDashboard} isActive />
-              <NavItem href="/copilot" label="Copiloto IA" icon={Bot} />
-            </NavItemList>
-          </NavGroup>
-
-          <NavGroup title="Trabajo">
-            <NavItemList aria-label="Trabajo">
-              <NavItem href="/time-log" label="Registro de tiempo" icon={Clock} />
-              <NavItem href="/work-items" label="Work Items" icon={ListTodo} />
-              <NavItem href="/sprint" label="Sprint / Kanban" icon={Kanban} />
-            </NavItemList>
-          </NavGroup>
-
-          <NavGroup title="Sistema">
-            <NavItemList aria-label="Sistema">
-              <NavItem href="/settings" label="Configuración" icon={Settings} />
-            </NavItemList>
-          </NavGroup>
-        </NavGroupList>
-
-        <AdoConnectionBadge {...connection} />
-      </nav>
-    </main>
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col p-4 sm:max-w-lg md:max-w-none md:p-6">
+        <p className="text-muted-foreground text-sm">Contenido de la vista — Dashboard (próximamente)</p>
+      </main>
+    </div>
   );
 }
