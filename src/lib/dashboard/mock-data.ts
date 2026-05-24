@@ -84,6 +84,23 @@ export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
   hoursSprintCurrent: 32,
   hoursSprintTarget: 40,
   hoursRemaining: 8,
+  sprintWorkingDaysCount: 10,
+  sprintWeeks: [
+    {
+      label: "1ª semana",
+      hoursCurrent: 20,
+      hoursTarget: 40,
+      workingDaysCount: 5,
+      dateRangeLabel: "3 mar – 7 mar",
+    },
+    {
+      label: "2ª semana",
+      hoursCurrent: 12,
+      hoursTarget: 40,
+      workingDaysCount: 5,
+      dateRangeLabel: "10 mar – 14 mar",
+    },
+  ],
   pbiStateGroups: [
     { state: "New", items: MOCK_UPCOMING_PBIS.filter((item) => item.state === "New") },
     { state: "In Progress", items: MOCK_IN_PROGRESS_PBIS },
@@ -97,4 +114,11 @@ export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
       items: MOCK_ASSIGNED_PBIS.filter((item) => item.state === "Done"),
     },
   ],
+  pbiProgress: {
+    percent: 33,
+    completedCount: 2,
+    pendingCount: 4,
+    otherCount: 0,
+    totalCount: 6,
+  },
 };

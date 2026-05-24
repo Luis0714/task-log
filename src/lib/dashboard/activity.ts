@@ -1,4 +1,5 @@
 import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
+import { parseLocalDateKey, toLocalDateKey } from "@/lib/dashboard/sprint-days";
 
 export type DashboardActivityItem = {
   id: string;
@@ -13,22 +14,68 @@ export function parseHoursFromHistorySummary(summary: string): number | null {
   return Number.parseFloat(match[1].replace(",", "."));
 }
 
-export function computeHoursTodayFromHistory(entries: CopilotHistoryEntry[]): number {
-  const today = new Date();
-  const isToday = (iso: string) => {
-    const date = new Date(iso);
-    return (
-      date.getFullYear() === today.getFullYear() &&
-      date.getMonth() === today.getMonth() &&
-      date.getDate() === today.getDate()
-    );
-  };
+function isEntryOnLocalDay(iso: string, dayKey: string): boolean {
+  const target = parseLocalDateKey(dayKey);
+  if (!target) return false;
 
+  const entryDate = new Date(iso);
+  return toLocalDateKey(entryDate) === dayKey;
+}
+
+export function computeHoursFromHistoryForDay(
+  entries: CopilotHistoryEntry[],
+  dayKey: string,
+): number {
   return entries.reduce((sum, entry) => {
-    if (!entry.ok || !isToday(entry.at)) return sum;
+    if (!entry.ok || !isEntryOnLocalDay(entry.at, dayKey)) return sum;
     const hours = parseHoursFromHistorySummary(entry.summary);
     return hours ? sum + hours : sum;
   }, 0);
+}
+
+export function computeHoursFromHistoryThroughDay(
+  entries: CopilotHistoryEntry[],
+  dayKey: string,
+): number {
+  return entries.reduce((sum, entry) => {
+    if (!entry.ok) return sum;
+    const entryDayKey = toLocalDateKey(new Date(entry.at));
+    if (entryDayKey > dayKey) return sum;
+    const hours = parseHoursFromHistorySummary(entry.summary);
+    return hours ? sum + hours : sum;
+  }, 0);
+}
+
+export function computeHoursFromHistoryForDayKeys(
+  entries: CopilotHistoryEntry[],
+  dayKeys: string[],
+  maxDayKey?: string,
+): number {
+  if (dayKeys.length === 0) return 0;
+
+  const allowedDays = new Set(dayKeys);
+
+  return entries.reduce((sum, entry) => {
+    if (!entry.ok) return sum;
+    const entryDayKey = toLocalDateKey(new Date(entry.at));
+    if (!allowedDays.has(entryDayKey)) return sum;
+    if (maxDayKey && entryDayKey > maxDayKey) return sum;
+    const hours = parseHoursFromHistorySummary(entry.summary);
+    return hours ? sum + hours : sum;
+  }, 0);
+}
+
+export function filterHistoryByDay(
+  entries: CopilotHistoryEntry[],
+  dayKey: string,
+): CopilotHistoryEntry[] {
+  return entries.filter((entry) => isEntryOnLocalDay(entry.at, dayKey));
+}
+
+/** @deprecated Usa computeHoursFromHistoryForDay con el día actual. */
+export function computeHoursTodayFromHistory(entries: CopilotHistoryEntry[]): number {
+  const todayKey = toLocalDateKey(new Date());
+  return computeHoursFromHistoryForDay(entries, todayKey);
 }
 
 export function mapHistoryToActivityItems(

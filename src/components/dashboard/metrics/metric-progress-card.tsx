@@ -15,6 +15,7 @@ export type MetricProgressCardProps = {
   current: number;
   target: number;
   unit?: string;
+  hint?: string;
   icon?: LucideIcon;
   loading?: boolean;
   className?: string;
@@ -25,6 +26,7 @@ export function MetricProgressCard({
   current,
   target,
   unit = "h",
+  hint,
   icon: Icon,
   loading = false,
   className,
@@ -62,6 +64,8 @@ export function MetricProgressCard({
             <ProgressBar value={current} max={target} />
           </>
         )}
+
+        {hint && !loading ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
       </CardContent>
     </Card>
   );

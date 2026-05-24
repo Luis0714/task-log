@@ -1,0 +1,24 @@
+import type { AdoProjectDto, AdoSprintDto, AdoTeamDto } from "@/lib/schemas/ado-catalog";
+import type { TimeLogCatalogPlaceholders } from "@/lib/time-log/catalog-types";
+
+/** Props compartidas por los selects de proyecto / equipo / sprint. */
+export type AdoContextSelectFieldsProps = {
+  project: string;
+  team: string;
+  sprintPath: string;
+  projects: AdoProjectDto[];
+  teams: AdoTeamDto[];
+  sprints: AdoSprintDto[];
+  placeholders: Pick<TimeLogCatalogPlaceholders, "project" | "team" | "sprint">;
+  selectedSprintLabel: string | null;
+  projectSelectDisabled: boolean;
+  teamSelectDisabled: boolean;
+  sprintSelectDisabled: boolean;
+  projectsError: string | null;
+  teamsError: string | null;
+  sprintsError: string | null;
+  onProjectChange: (value: string) => void;
+  onTeamChange: (value: string) => void;
+  onSprintChange: (value: string) => void;
+  className?: string;
+};

@@ -1,12 +1,14 @@
 import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
-import { adoFetch, adoOrgBase, adoProjectBase, adoAuthHeader } from "@/lib/azure-devops/client";
+import {
+  adoFetch,
+  adoOrgBase,
+  adoProjectBase,
+  adoAuthHeader,
+  escapeWiqlString,
+} from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { isPatConfigured } from "@/lib/azure-devops/resolve-auth";
-import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
-import { isIronSessionConfigured } from "@/lib/auth/session";
-import { getTaskPilotSession } from "@/lib/auth/session";
-import type { TaskActivity } from "@/lib/time-log/task-constants";
-import { listTaskStates } from "@/lib/azure-devops/work-item-type-states";
+import { listTaskStates, resolveTaskWorkItemTypeName } from "@/lib/azure-devops/work-item-type-states";
 import {
   isCompletedTaskStateCategory,
   pickDefaultOpenTaskState,
@@ -307,4 +309,253 @@ export async function isAdoExecutionReady(): Promise<boolean> {
   return Boolean(
     session.azdoRefreshToken && session.defaultOrg?.trim() && session.defaultProject?.trim(),
   );
+}
+
+// --- Consulta y filtrado de work items del sprint ---
+
+export type AdoWorkItemOption = AdoWorkItemOptionDto;
+
+export type WorkItemSprintFilters = {
+  assignee?: string;
+  workItemType?: string;
+};
+
+export type WorkItemsByStateGroup = {
+  state: string;
+  items: AdoWorkItemOption[];
+};
+
+type WiqlResponse = {
+  workItems?: Array<{ id: number }>;
+};
+
+type WorkItemsBatchResponse = {
+  value?: Array<{
+    id: number;
+    fields?: Record<string, string | number | undefined>;
+  }>;
+};
+
+const TITLE = "System.Title";
+const WORK_ITEM_TYPE = "System.WorkItemType";
+const STATE = "System.State";
+const ASSIGNED_TO = "System.AssignedTo";
+const PRIORITY = "Microsoft.VSTS.Common.Priority";
+const WI_COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
+const WI_ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
+
+const IN_PROGRESS_PBI_STATE = "Committed";
+
+function parseNumericField(value: string | number | undefined): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+function parseAssignedToField(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (value && typeof value === "object" && "displayName" in value) {
+    const displayName = (value as { displayName?: string }).displayName;
+    return typeof displayName === "string" ? displayName.trim() : "";
+  }
+  return "";
+}
+
+function adoListErrorMessage(res: Response, body: string, fallback: string): string {
+  const snippet = body.trim().slice(0, 240);
+  return snippet ? `HTTP ${res.status}: ${snippet}` : `HTTP ${res.status}: ${fallback}`;
+}
+
+function resolveBacklogItemType(): string {
+  return process.env.AZDO_BACKLOG_ITEM_TYPE?.trim() || "Product Backlog Item";
+}
+
+function normalizeState(state: string): string {
+  return state.trim().toLowerCase();
+}
+
+function compareByPriority(a: AdoWorkItemOption, b: AdoWorkItemOption): number {
+  const priorityA = typeof a.priority === "number" ? a.priority : 99;
+  const priorityB = typeof b.priority === "number" ? b.priority : 99;
+  if (priorityA !== priorityB) return priorityA - priorityB;
+  return a.title.localeCompare(b.title, "es");
+}
+
+async function fetchWorkItemDetails(
+  auth: AdoCallerAuth,
+  ids: number[],
+): Promise<AdoWorkItemOption[]> {
+  if (ids.length === 0) return [];
+
+  const fields = [
+    TITLE,
+    WORK_ITEM_TYPE,
+    STATE,
+    ASSIGNED_TO,
+    PRIORITY,
+    WI_COMPLETED_WORK,
+    WI_ORIGINAL_ESTIMATE,
+  ].join(",");
+  const chunkSize = 200;
+  const items: AdoWorkItemOption[] = [];
+
+  for (let index = 0; index < ids.length; index += chunkSize) {
+    const chunk = ids.slice(index, index + chunkSize);
+    const url = `${adoProjectBase(auth)}/_apis/wit/workitems?ids=${chunk.join(",")}&fields=${encodeURIComponent(fields)}&api-version=7.1`;
+    const res = await adoFetch(auth, url);
+
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(adoListErrorMessage(res, body, "No se pudieron cargar los work items."));
+    }
+
+    const data = (await res.json()) as WorkItemsBatchResponse;
+    for (const workItem of data.value ?? []) {
+      const title = workItem.fields?.[TITLE];
+      items.push({
+        id: workItem.id,
+        title: typeof title === "string" ? title : `Work item ${workItem.id}`,
+        type: String(workItem.fields?.[WORK_ITEM_TYPE] ?? "Item"),
+        state: String(workItem.fields?.[STATE] ?? ""),
+        assignedTo: parseAssignedToField(workItem.fields?.[ASSIGNED_TO]),
+        priority: parseNumericField(workItem.fields?.[PRIORITY]),
+        loggedHours: parseNumericField(workItem.fields?.[WI_COMPLETED_WORK]),
+        estimatedHours: parseNumericField(workItem.fields?.[WI_ORIGINAL_ESTIMATE]),
+      });
+    }
+  }
+
+  return items.sort((a, b) => a.title.localeCompare(b.title, "es"));
+}
+
+export async function listWorkItemsInSprint(
+  auth: AdoCallerAuth,
+  iterationPath: string,
+  filters: WorkItemSprintFilters = {},
+): Promise<AdoWorkItemOption[]> {
+  const assignee = filters.assignee?.trim() || WORK_ITEM_ASSIGNEE_ALL;
+  const workItemType = filters.workItemType?.trim() || resolveBacklogItemType();
+  const project = escapeWiqlString(auth.project);
+  const path = escapeWiqlString(iterationPath);
+
+  const conditions = [
+    `[System.TeamProject] = '${project}'`,
+    `[System.IterationPath] UNDER '${path}'`,
+    `[System.State] <> 'Removed'`,
+    `[System.WorkItemType] = '${escapeWiqlString(workItemType)}'`,
+  ];
+
+  if (isWorkItemAssigneeMe(assignee)) {
+    conditions.push("[System.AssignedTo] = @Me");
+  } else if (!isWorkItemAssigneeAll(assignee)) {
+    conditions.push(`[System.AssignedTo] = '${escapeWiqlString(assignee)}'`);
+  }
+
+  const wiql = {
+    query: `SELECT [System.Id] FROM WorkItems WHERE ${conditions.join(" AND ")} ORDER BY [System.ChangedDate] DESC`,
+  };
+
+  const url = `${adoProjectBase(auth)}/_apis/wit/wiql?api-version=7.1`;
+  const res = await adoFetch(auth, url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(wiql),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(
+      adoListErrorMessage(res, body, "No se pudieron consultar los work items del sprint."),
+    );
+  }
+
+  const data = (await res.json()) as WiqlResponse;
+  const ids = (data.workItems ?? []).map((item) => item.id);
+  return fetchWorkItemDetails(auth, ids);
+}
+
+export async function listTasksInSprint(
+  auth: AdoCallerAuth,
+  iterationPath: string,
+  filters: Omit<WorkItemSprintFilters, "workItemType"> = {},
+): Promise<AdoWorkItemOption[]> {
+  return listWorkItemsInSprint(auth, iterationPath, {
+    ...filters,
+    workItemType: resolveTaskWorkItemTypeName(),
+  });
+}
+
+export function filterWorkItemsByClientCriteria(
+  items: AdoWorkItemOption[],
+  filters: Pick<WorkItemFilters, "search" | "state">,
+): AdoWorkItemOption[] {
+  const search = filters.search.trim().toLowerCase();
+
+  return items.filter((item) => {
+    if (filters.state && item.state !== filters.state) return false;
+
+    if (search) {
+      const haystack = `#${item.id} ${item.title}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+
+    return true;
+  });
+}
+
+export function collectWorkItemStates(items: AdoWorkItemOption[]): string[] {
+  return [...new Set(items.map((item) => item.state).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "es"),
+  );
+}
+
+export function groupWorkItemsByStates(
+  items: AdoWorkItemOption[],
+  stateOrder: readonly string[],
+): WorkItemsByStateGroup[] {
+  const buckets = new Map<string, AdoWorkItemOption[]>();
+
+  for (const state of stateOrder) {
+    buckets.set(state, []);
+  }
+
+  for (const item of items) {
+    const state = item.state?.trim();
+    if (!state) continue;
+    if (!buckets.has(state)) buckets.set(state, []);
+    buckets.get(state)!.push(item);
+  }
+
+  const ordered = stateOrder.map((state) => ({
+    state,
+    items: buckets.get(state) ?? [],
+  }));
+
+  for (const [state, stateItems] of buckets) {
+    if (!stateOrder.includes(state) && stateItems.length > 0) {
+      ordered.push({ state, items: stateItems });
+    }
+  }
+
+  return ordered;
+}
+
+export function isCommittedPbiState(state: string): boolean {
+  return normalizeState(state) === normalizeState(IN_PROGRESS_PBI_STATE);
+}
+
+export function isUpcomingPbiState(state: string): boolean {
+  const normalized = normalizeState(state);
+  return ["new", "proposed", "to do", "todo", "pending", "ready"].includes(normalized);
+}
+
+export function selectInProgressWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
+  return items.filter((item) => isCommittedPbiState(item.state)).sort(compareByPriority);
+}
+
+export function selectUpcomingWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
+  return items.filter((item) => isUpcomingPbiState(item.state)).sort(compareByPriority);
 }

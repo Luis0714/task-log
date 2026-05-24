@@ -1,15 +1,14 @@
-import {
-  adoFetch,
-  adoProjectBase,
-  escapeWiqlString,
-} from "@/lib/azure-devops/client";
+import { adoFetch, adoProjectBase } from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
-import { resolveTaskWorkItemTypeName } from "@/lib/azure-devops/work-item-type-states";
-import {
-  isWorkItemAssigneeAll,
-  isWorkItemAssigneeMe,
-  WORK_ITEM_ASSIGNEE_ALL,
-} from "@/lib/schemas/work-item-filters";
+
+export type {
+  AdoWorkItemOption,
+  WorkItemSprintFilters,
+} from "@/lib/azure-devops/work-items";
+export {
+  listTasksInSprint,
+  listWorkItemsInSprint,
+} from "@/lib/azure-devops/work-items";
 
 export type AdoSprint = {
   id: string;
@@ -18,17 +17,6 @@ export type AdoSprint = {
   timeFrame?: "past" | "current" | "future";
   startDate?: string;
   finishDate?: string;
-};
-
-export type AdoWorkItemOption = {
-  id: number;
-  title: string;
-  type: string;
-  state: string;
-  assignedTo?: string;
-  priority?: number;
-  loggedHours?: number;
-  estimatedHours?: number;
 };
 
 type TeamIterationsResponse = {
@@ -43,48 +31,6 @@ type TeamIterationsResponse = {
     };
   }>;
 };
-
-type WiqlResponse = {
-  workItems?: Array<{ id: number }>;
-};
-
-type WorkItemsBatchResponse = {
-  value?: Array<{
-    id: number;
-    fields?: Record<string, string | number | undefined>;
-  }>;
-};
-
-const TITLE = "System.Title";
-const WORK_ITEM_TYPE = "System.WorkItemType";
-const STATE = "System.State";
-const ASSIGNED_TO = "System.AssignedTo";
-const PRIORITY = "Microsoft.VSTS.Common.Priority";
-const COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
-const ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
-
-function parseNumericField(value: string | number | undefined): number | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string") {
-    const parsed = Number.parseFloat(value.replace(",", "."));
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
-  return undefined;
-}
-
-function parseAssignedTo(value: string | number | undefined): string {
-  if (typeof value === "string") return value.trim();
-  return "";
-}
-
-function parseAssignedToField(value: unknown): string {
-  if (typeof value === "string") return value.trim();
-  if (value && typeof value === "object" && "displayName" in value) {
-    const displayName = (value as { displayName?: string }).displayName;
-    return typeof displayName === "string" ? displayName.trim() : "";
-  }
-  return parseAssignedTo(value as string | number | undefined);
-}
 
 function adoErrorMessage(res: Response, body: string, fallback: string): string {
   const snippet = body.trim().slice(0, 240);
@@ -144,107 +90,4 @@ export async function listTeamSprints(
   }
 
   return sprints;
-}
-
-async function fetchWorkItemDetails(
-  auth: AdoCallerAuth,
-  ids: number[],
-): Promise<AdoWorkItemOption[]> {
-  if (ids.length === 0) return [];
-
-  const fields = [TITLE, WORK_ITEM_TYPE, STATE, ASSIGNED_TO, PRIORITY, COMPLETED_WORK, ORIGINAL_ESTIMATE].join(",");
-  const chunkSize = 200;
-  const items: AdoWorkItemOption[] = [];
-
-  for (let index = 0; index < ids.length; index += chunkSize) {
-    const chunk = ids.slice(index, index + chunkSize);
-    const url = `${adoProjectBase(auth)}/_apis/wit/workitems?ids=${chunk.join(",")}&fields=${encodeURIComponent(fields)}&api-version=7.1`;
-    const res = await adoFetch(auth, url);
-
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(adoErrorMessage(res, body, "No se pudieron cargar los work items."));
-    }
-
-    const data = (await res.json()) as WorkItemsBatchResponse;
-    for (const workItem of data.value ?? []) {
-      const title = workItem.fields?.[TITLE];
-      items.push({
-        id: workItem.id,
-        title: typeof title === "string" ? title : `Work item ${workItem.id}`,
-        type: String(workItem.fields?.[WORK_ITEM_TYPE] ?? "Item"),
-        state: String(workItem.fields?.[STATE] ?? ""),
-        assignedTo: parseAssignedToField(workItem.fields?.[ASSIGNED_TO]),
-        priority: parseNumericField(workItem.fields?.[PRIORITY]),
-        loggedHours: parseNumericField(workItem.fields?.[COMPLETED_WORK]),
-        estimatedHours: parseNumericField(workItem.fields?.[ORIGINAL_ESTIMATE]),
-      });
-    }
-  }
-
-  return items.sort((a, b) => a.title.localeCompare(b.title, "es"));
-}
-
-export type WorkItemSprintFilters = {
-  assignee?: string;
-  workItemType?: string;
-};
-
-function resolveBacklogItemType(): string {
-  return process.env.AZDO_BACKLOG_ITEM_TYPE?.trim() || "Product Backlog Item";
-}
-
-export async function listWorkItemsInSprint(
-  auth: AdoCallerAuth,
-  iterationPath: string,
-  filters: WorkItemSprintFilters = {},
-): Promise<AdoWorkItemOption[]> {
-  const assignee = filters.assignee?.trim() || WORK_ITEM_ASSIGNEE_ALL;
-  const workItemType = filters.workItemType?.trim() || resolveBacklogItemType();
-  const project = escapeWiqlString(auth.project);
-  const path = escapeWiqlString(iterationPath);
-
-  const conditions = [
-    `[System.TeamProject] = '${project}'`,
-    `[System.IterationPath] UNDER '${path}'`,
-    `[System.State] <> 'Removed'`,
-    `[System.WorkItemType] = '${escapeWiqlString(workItemType)}'`,
-  ];
-
-  if (isWorkItemAssigneeMe(assignee)) {
-    conditions.push("[System.AssignedTo] = @Me");
-  } else if (!isWorkItemAssigneeAll(assignee)) {
-    conditions.push(`[System.AssignedTo] = '${escapeWiqlString(assignee)}'`);
-  }
-
-  const wiql = {
-    query: `SELECT [System.Id] FROM WorkItems WHERE ${conditions.join(" AND ")} ORDER BY [System.ChangedDate] DESC`,
-  };
-
-  const url = `${adoProjectBase(auth)}/_apis/wit/wiql?api-version=7.1`;
-  const res = await adoFetch(auth, url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(wiql),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(adoErrorMessage(res, body, "No se pudieron consultar los work items del sprint."));
-  }
-
-  const data = (await res.json()) as WiqlResponse;
-  const ids = (data.workItems ?? []).map((item) => item.id);
-  return fetchWorkItemDetails(auth, ids);
-}
-
-export async function listTasksInSprint(
-  auth: AdoCallerAuth,
-  iterationPath: string,
-  filters: Omit<WorkItemSprintFilters, "workItemType"> = {},
-): Promise<AdoWorkItemOption[]> {
-  return listWorkItemsInSprint(auth, iterationPath, {
-    ...filters,
-    workItemType: resolveTaskWorkItemTypeName(),
-  });
 }

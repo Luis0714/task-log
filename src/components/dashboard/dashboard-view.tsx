@@ -3,10 +3,12 @@
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { ActivityTimeline } from "@/components/dashboard/activity/activity-timeline";
 import { DailySummaryCard } from "@/components/dashboard/daily/daily-summary-card";
+import { AdoContextSelectFields } from "@/components/time-log/ado-context-select-fields";
 import { DashboardHeader } from "@/components/dashboard/layout/dashboard-header";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { SprintOverviewGrid } from "@/components/dashboard/metrics/sprint-overview-grid";
-import { PbiList } from "@/components/dashboard/work-items/pbi-list";
+import { SprintDaySelect } from "@/components/dashboard/sprint-day-select";
+import { SprintPbiProgressCard } from "@/components/dashboard/metrics/sprint-pbi-progress-card";
 import { useDashboardData } from "@/hooks/dashboard/use-dashboard-data";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
 
@@ -24,14 +26,14 @@ export function DashboardView({
   const {
     header: resolvedHeader,
     metrics,
-    inProgress,
-    upcoming,
-    assigned,
+    hoursDayLabel,
+    sprintDay,
     dailySummary,
     activity,
     regenerateDailySummary,
     loading,
     error,
+    context,
   } = useDashboardData({
     adoExecutionReady,
     defaultProject,
@@ -48,48 +50,41 @@ export function DashboardView({
 
       {error ? <CopilotErrorAlert message={error} /> : null}
 
+      {adoExecutionReady ? (
+        <DashboardSection
+          title="Contexto"
+          description="Proyecto, equipo y sprint para filtrar el dashboard."
+        >
+          <AdoContextSelectFields {...context} />
+        </DashboardSection>
+      ) : null}
+
       <DashboardSection
         title="Sprint Overview"
-        description="Tu progreso de hoy y del sprint actual."
+        description={
+          sprintDay.selectedDay
+            ? `Progreso del ${sprintDay.selectedDay.dayIndex}º día laborable del sprint (lun–vie, sin festivos en calendario).`
+            : "Tu progreso de hoy y del sprint actual según días laborables."
+        }
+        action={
+          sprintDay.workingDays.length > 0 ? (
+            <SprintDaySelect
+              value={sprintDay.value}
+              workingDays={sprintDay.workingDays}
+              disabled={loading}
+              onValueChange={sprintDay.onValueChange}
+            />
+          ) : null
+        }
       >
-        <SprintOverviewGrid metrics={metrics} loading={loading} />
-      </DashboardSection>
-
-      <DashboardSection
-        title="PBIs en progreso"
-        description="Historias en estado Committed."
-      >
-        <PbiList
-          items={inProgress}
-          variant="featured"
-          loading={loading}
-          emptyMessage="No tienes PBIs en Committed."
-        />
-      </DashboardSection>
-
-      <DashboardSection
-        title="Próximas PBIs"
-        description="Qué deberías hacer después, ordenadas por prioridad."
-      >
-        <PbiList
-          items={upcoming}
-          variant="compact"
-          loading={loading}
-          emptyMessage="No hay PBIs pendientes por ahora."
-        />
-      </DashboardSection>
-
-      <DashboardSection
-        title="PBIs asignadas al sprint"
-        description="Todas tus historias del sprint actual."
-      >
-        <PbiList
-          items={assigned}
-          variant="compact"
-          showHours
-          loading={loading}
-          emptyMessage="No tienes PBIs asignadas en este sprint."
-        />
+        <div className="flex flex-col gap-3">
+          <SprintPbiProgressCard progress={metrics.pbiProgress} loading={loading} />
+          <SprintOverviewGrid
+            metrics={metrics}
+            hoursDayLabel={hoursDayLabel}
+            loading={loading}
+          />
+        </div>
       </DashboardSection>
 
       <DashboardSection
@@ -104,11 +99,22 @@ export function DashboardView({
         />
       </DashboardSection>
 
-      <DashboardSection title="Actividad reciente" description="Registros y cambios recientes.">
+      <DashboardSection
+        title="Actividad reciente"
+        description={
+          sprintDay.selectedDay
+            ? `Registros del ${sprintDay.selectedDay.dayIndex}º día laborable del sprint.`
+            : "Registros y cambios recientes."
+        }
+      >
         <ActivityTimeline
           items={activity}
           loading={loading}
-          emptyMessage="Registra tiempo para ver tu actividad aquí."
+          emptyMessage={
+            sprintDay.selectedDay
+              ? "No hay registros de tiempo para este día."
+              : "Registra tiempo para ver tu actividad aquí."
+          }
         />
       </DashboardSection>
     </div>

@@ -1,20 +1,34 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useCopilotHistory } from "@/hooks/use-copilot-history";
-import { useAdoProjects } from "@/hooks/use-ado-projects";
+import { useAdoContextSelection } from "@/hooks/use-ado-context-selection";
 import { useAdoSprintWorkItems } from "@/hooks/use-ado-sprint-work-items";
-import { useAdoSprints } from "@/hooks/use-ado-sprints";
-import { useAdoTeams } from "@/hooks/use-ado-teams";
 import {
   buildDailySummary,
-  computeHoursTodayFromHistory,
+  computeHoursFromHistoryForDay,
+  computeHoursFromHistoryThroughDay,
+  filterHistoryByDay,
   mapHistoryToActivityItems,
 } from "@/lib/dashboard/activity";
-import { computeSprintCapacityHours } from "@/lib/dashboard/sprint-hours";
+import {
+  computeSprintCapacityHours,
+  computeSprintCapacityHoursThroughDay,
+} from "@/lib/dashboard/sprint-hours";
+import { computeSprintWeekMetrics } from "@/lib/dashboard/sprint-weeks";
+import {
+  formatSprintDayShortLabel,
+  isSameLocalDay,
+  listSprintWorkingDays,
+  parseLocalDateKey,
+  pickDefaultSprintDayKey,
+  toLocalDateKey,
+  type SprintWorkingDay,
+} from "@/lib/dashboard/sprint-days";
 import {
   computeDashboardMetrics,
+  computeSprintPbiProgress,
   mapToDashboardWorkItems,
   selectInProgressItems,
   selectUpcomingItems,
@@ -27,11 +41,6 @@ import {
   collectWorkItemStates,
   groupWorkItemsByStates,
 } from "@/lib/time-log/filter-work-items";
-import {
-  resolvePreferredProject,
-  resolvePreferredSprint,
-  resolvePreferredTeam,
-} from "@/lib/time-log/form-selection";
 import { WORK_ITEM_ASSIGNEE_ME } from "@/lib/schemas/work-item-filters";
 
 export type UseDashboardDataOptions = {
@@ -46,54 +55,12 @@ export function useDashboardData({
   header,
 }: UseDashboardDataOptions) {
   const { history } = useCopilotHistory();
-
-  const {
-    projects,
-    defaultProject: serverDefaultProject,
-    loading: projectsLoading,
-    error: projectsError,
-  } = useAdoProjects(adoExecutionReady);
-
-  const suggestedProject = useMemo(() => {
-    if (!adoExecutionReady || projectsLoading || projects.length === 0) return "";
-    return resolvePreferredProject(projects, defaultProject ?? serverDefaultProject) ?? "";
-  }, [
+  const context = useAdoContextSelection({
     adoExecutionReady,
     defaultProject,
-    projects,
-    projectsLoading,
-    serverDefaultProject,
-  ]);
+  });
 
-  const project = suggestedProject;
-
-  const {
-    teams,
-    defaultTeam,
-    suggestedTeam: apiSuggestedTeam,
-    loading: teamsLoading,
-    error: teamsError,
-  } = useAdoTeams(project || undefined, adoExecutionReady);
-
-  const suggestedTeam = useMemo(() => {
-    if (!project || teamsLoading || teams.length === 0) return "";
-    return resolvePreferredTeam(teams, defaultTeam, apiSuggestedTeam) ?? "";
-  }, [project, teams, teamsLoading, defaultTeam, apiSuggestedTeam]);
-
-  const team = project ? suggestedTeam : "";
-
-  const {
-    sprints,
-    loading: sprintsLoading,
-    error: sprintsError,
-  } = useAdoSprints(project || undefined, team || undefined, adoExecutionReady);
-
-  const suggestedSprintPath = useMemo(() => {
-    if (!team || sprintsLoading || sprints.length === 0) return "";
-    return resolvePreferredSprint(sprints) ?? "";
-  }, [team, sprints, sprintsLoading]);
-
-  const sprintPath = team ? suggestedSprintPath : "";
+  const { project, sprintPath } = context;
 
   const { states: backlogStates } = useAdoBacklogStates(
     project || undefined,
@@ -137,42 +104,109 @@ export function useDashboardData({
     return groupWorkItemsByStates(assigned, stateOrder);
   }, [assigned, workItemStates, workItems]);
 
-  const hoursToday = useMemo(() => computeHoursTodayFromHistory(history), [history]);
-
   const currentSprint = useMemo(
-    () => sprints.find((sprint) => sprint.path === sprintPath) ?? null,
-    [sprintPath, sprints],
+    () => context.sprints.find((sprint) => sprint.path === sprintPath) ?? null,
+    [context.sprints, sprintPath],
+  );
+
+  const sprintWorkingDays = useMemo(
+    () =>
+      listSprintWorkingDays(currentSprint?.startDate, currentSprint?.finishDate),
+    [currentSprint?.finishDate, currentSprint?.startDate],
+  );
+
+  const [selectedSprintDayKey, setSelectedSprintDayKey] = useState("");
+
+  useEffect(() => {
+    const defaultKey = pickDefaultSprintDayKey(sprintWorkingDays);
+    if (!defaultKey) {
+      setSelectedSprintDayKey("");
+      return;
+    }
+    setSelectedSprintDayKey((current) => {
+      const stillValid = sprintWorkingDays.some((day) => day.value === current);
+      return stillValid ? current : defaultKey;
+    });
+  }, [sprintPath, sprintWorkingDays]);
+
+  const selectedSprintDay = useMemo(
+    () => sprintWorkingDays.find((day) => day.value === selectedSprintDayKey) ?? null,
+    [selectedSprintDayKey, sprintWorkingDays],
+  );
+
+  const dayHistory = useMemo(() => {
+    if (!selectedSprintDayKey) return history;
+    return filterHistoryByDay(history, selectedSprintDayKey);
+  }, [history, selectedSprintDayKey]);
+
+  const hoursToday = useMemo(() => {
+    const dayKey = selectedSprintDayKey || toLocalDateKey(new Date());
+    return computeHoursFromHistoryForDay(history, dayKey);
+  }, [history, selectedSprintDayKey]);
+
+  const pbiProgress = useMemo(
+    () => computeSprintPbiProgress(assigned, workItemStates),
+    [assigned, workItemStates],
   );
 
   const metrics: DashboardMetrics = useMemo(() => {
-    const hoursSprintTarget = computeSprintCapacityHours(
-      currentSprint?.startDate,
-      currentSprint?.finishDate,
-    );
-    const hoursSprintCurrent = sumDoneTaskLoggedHours(mapToDashboardWorkItems(sprintTasks));
-    return computeDashboardMetrics(
-      hoursToday,
-      { hoursSprintCurrent, hoursSprintTarget },
+    const dayKey = selectedSprintDayKey;
+    const hoursSprintTarget = dayKey
+      ? computeSprintCapacityHoursThroughDay(
+          currentSprint?.startDate,
+          dayKey,
+          currentSprint?.finishDate,
+        )
+      : computeSprintCapacityHours(currentSprint?.startDate, currentSprint?.finishDate);
+
+    const hoursFromHistory = dayKey
+      ? computeHoursFromHistoryThroughDay(history, dayKey)
+      : computeHoursFromHistoryThroughDay(history, toLocalDateKey(new Date()));
+    const hoursFromAdo = sumDoneTaskLoggedHours(mapToDashboardWorkItems(sprintTasks));
+    const selectedDate = dayKey ? parseLocalDateKey(dayKey) : null;
+    const viewingToday = selectedDate ? isSameLocalDay(selectedDate, new Date()) : true;
+    const hoursSprintCurrent =
+      viewingToday && hoursFromAdo > hoursFromHistory ? hoursFromAdo : hoursFromHistory;
+
+    const sprintWeeks = selectedSprintDayKey
+      ? computeSprintWeekMetrics(sprintWorkingDays, history, selectedSprintDayKey)
+      : [];
+
+    return computeDashboardMetrics(hoursToday, {
+      sprintHours: { hoursSprintCurrent, hoursSprintTarget },
       pbiStateGroups,
-    );
+      pbiProgress,
+      sprintWorkingDaysCount: sprintWorkingDays.length,
+      sprintWeeks,
+    });
   }, [
-    hoursToday,
     currentSprint?.finishDate,
     currentSprint?.startDate,
+    hoursToday,
+    history,
+    pbiProgress,
     pbiStateGroups,
+    selectedSprintDayKey,
     sprintTasks,
+    sprintWorkingDays,
   ]);
 
+  const hoursDayLabel = useMemo(() => {
+    if (!selectedSprintDay) return "Horas del día";
+    if (isSameLocalDay(selectedSprintDay.date, new Date())) return "Horas hoy";
+    return `Horas ${formatSprintDayShortLabel(selectedSprintDay)}`;
+  }, [selectedSprintDay]);
+
   const dailySummary = useMemo(
-    () => buildDailySummary(inProgress, history),
-    [inProgress, history],
+    () => buildDailySummary(inProgress, dayHistory),
+    [dayHistory, inProgress],
   );
 
-  const activity = useMemo(() => mapHistoryToActivityItems(history), [history]);
+  const activity = useMemo(() => mapHistoryToActivityItems(dayHistory), [dayHistory]);
 
   const regenerateDailySummary = useCallback(
-    () => buildDailySummary(inProgress, history),
-    [history, inProgress],
+    () => buildDailySummary(inProgress, dayHistory),
+    [dayHistory, inProgress],
   );
 
   const resolvedHeader: DashboardHeaderData = useMemo(
@@ -184,24 +218,41 @@ export function useDashboardData({
     [currentSprint?.name, header, project],
   );
 
+  const { contextLoading, ...contextFields } = context;
+
   const loading =
     adoExecutionReady &&
-    (projectsLoading || teamsLoading || sprintsLoading || workItemsLoading || tasksLoading);
+    (contextLoading || workItemsLoading || tasksLoading);
 
   const error =
-    projectsError ?? teamsError ?? sprintsError ?? workItemsError ?? tasksError ?? null;
+    context.projectsError ??
+    context.teamsError ??
+    context.sprintsError ??
+    workItemsError ??
+    tasksError ??
+    null;
 
   return {
     header: resolvedHeader,
     metrics,
-    inProgress,
-    upcoming,
-    assigned,
+    hoursDayLabel,
     dailySummary,
     activity,
     regenerateDailySummary,
     loading,
     error,
     adoExecutionReady,
+    context: contextFields,
+    sprintDay: {
+      value: selectedSprintDayKey,
+      workingDays: sprintWorkingDays,
+      selectedDay: selectedSprintDay,
+      onValueChange: setSelectedSprintDayKey,
+    } satisfies {
+      value: string;
+      workingDays: SprintWorkingDay[];
+      selectedDay: SprintWorkingDay | null;
+      onValueChange: (value: string) => void;
+    },
   };
 }

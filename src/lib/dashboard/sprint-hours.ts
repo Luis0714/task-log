@@ -1,4 +1,5 @@
 import { DEFAULT_SPRINT_HOURS_TARGET } from "@/lib/dashboard/constants";
+import { parseLocalDateKey } from "@/lib/dashboard/sprint-days";
 
 /** Horas de capacidad por día laborable del sprint. */
 export const HOURS_PER_SPRINT_WORKING_DAY = 8;
@@ -37,6 +38,36 @@ export function computeSprintCapacityHours(
   if (!start || !end || end < start) {
     return DEFAULT_SPRINT_HOURS_TARGET;
   }
+
+  const workingDays = countWorkingDays(start, end);
+  if (workingDays <= 0) return DEFAULT_SPRINT_HOURS_TARGET;
+
+  return workingDays * HOURS_PER_SPRINT_WORKING_DAY;
+}
+
+/** Capacidad acumulada hasta un día del sprint (inclusive), en días laborables × 8 h. */
+export function computeSprintCapacityHoursThroughDay(
+  startDate: string | null | undefined,
+  selectedDayKey: string,
+  finishDate?: string | null,
+): number {
+  if (!startDate?.trim() || !selectedDayKey.trim()) {
+    return DEFAULT_SPRINT_HOURS_TARGET;
+  }
+
+  const start = toLocalDateOnly(startDate);
+  const selected = parseLocalDateKey(selectedDayKey);
+  if (!start || !selected) {
+    return DEFAULT_SPRINT_HOURS_TARGET;
+  }
+
+  let end = selected;
+  if (finishDate?.trim()) {
+    const sprintEnd = toLocalDateOnly(finishDate);
+    if (sprintEnd && sprintEnd < end) end = sprintEnd;
+  }
+
+  if (end < start) return DEFAULT_SPRINT_HOURS_TARGET;
 
   const workingDays = countWorkingDays(start, end);
   if (workingDays <= 0) return DEFAULT_SPRINT_HOURS_TARGET;

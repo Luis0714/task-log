@@ -5,12 +5,10 @@ import type { UseFormReturn } from "react-hook-form";
 
 import type { AdoProjectDto, AdoSprintDto, AdoTeamDto } from "@/lib/schemas/ado-catalog";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
+import { pickProject, pickSprint, pickTeam } from "@/lib/time-log/context-defaults";
 import {
   resetSprintSelection,
   resetTeamSelection,
-  resolvePreferredProject,
-  resolvePreferredSprint,
-  resolvePreferredTeam,
 } from "@/lib/time-log/form-selection";
 
 type UseCatalogAutoDefaultsOptions = {
@@ -46,12 +44,11 @@ export function useCatalogAutoDefaults({
 }: UseCatalogAutoDefaultsOptions) {
   useEffect(() => {
     if (!adoExecutionReady || projectsLoading || projects.length === 0) return;
-    if (form.getValues("project")) return;
 
-    const preferred = resolvePreferredProject(projects, defaultProject);
-    if (preferred) {
-      form.setValue("project", preferred, { shouldValidate: true });
-    }
+    const next = pickProject(form.getValues("project"), projects, defaultProject);
+    if (!next || next === form.getValues("project")) return;
+
+    form.setValue("project", next, { shouldValidate: true });
   }, [adoExecutionReady, defaultProject, form, projects, projectsLoading]);
 
   useEffect(() => {
@@ -64,42 +61,33 @@ export function useCatalogAutoDefaults({
 
     if (teamsLoading) return;
 
-    const currentTeam = form.getValues("team");
-    if (currentTeam && !teams.some((item) => item.name === currentTeam)) {
-      resetTeamSelection(form);
-    }
+    const next = pickTeam(
+      form.getValues("team"),
+      teams,
+      defaultTeam,
+      suggestedTeam,
+    );
+    if (next === form.getValues("team")) return;
 
-    if (teams.length === 0) {
+    if (!next) {
       resetTeamSelection(form);
       return;
     }
 
-    if (form.getValues("team")) return;
-
-    const preferred = resolvePreferredTeam(teams, defaultTeam, suggestedTeam);
-    if (preferred) {
-      form.setValue("team", preferred, { shouldValidate: true });
-    }
+    form.setValue("team", next, { shouldValidate: true });
   }, [defaultTeam, form, project, suggestedTeam, teams, teamsLoading]);
 
   useEffect(() => {
     if (!team || sprintsLoading) return;
 
-    const currentSprint = form.getValues("sprintPath");
-    if (currentSprint && !sprints.some((sprint) => sprint.path === currentSprint)) {
-      resetSprintSelection(form);
-    }
+    const next = pickSprint(form.getValues("sprintPath"), sprints);
+    if (next === form.getValues("sprintPath")) return;
 
-    if (sprints.length === 0) {
+    if (!next) {
       resetSprintSelection(form);
       return;
     }
 
-    if (form.getValues("sprintPath")) return;
-
-    const preferred = resolvePreferredSprint(sprints);
-    if (preferred) {
-      form.setValue("sprintPath", preferred, { shouldValidate: true });
-    }
+    form.setValue("sprintPath", next, { shouldValidate: true });
   }, [form, team, sprints, sprintsLoading]);
 }

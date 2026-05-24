@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
 import { withAdoProject } from "@/lib/azure-devops/projects";
-import { listTasksInSprint, listWorkItemsInSprint } from "@/lib/azure-devops/sprints";
+import { listTasksInSprint, listWorkItemsInSprint } from "@/lib/azure-devops/work-items";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 
