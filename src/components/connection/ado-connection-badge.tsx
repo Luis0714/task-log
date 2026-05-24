@@ -2,6 +2,7 @@
 
 import { Cloud } from "lucide-react";
 
+import { ConnectionUserIdentity } from "@/components/connection/connection-user-identity";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -40,14 +41,40 @@ function ConnectionStatus({ isConnected }: { isConnected: boolean }) {
   );
 }
 
-function CompactConnectionBadge({
-  isConnected,
-  organization,
-  project,
-  authMethod,
-}: AdoConnectionDisplay) {
+function CompactConnectionBadge(props: AdoConnectionDisplay) {
+  const {
+    isConnected,
+    organization,
+    project,
+    authMethod,
+    userDisplayName,
+    userInitials,
+    userAvatarUrl,
+  } = props;
   const label = [organization, project].filter(Boolean).join(" / ") || "Sin configurar";
   const status = isConnected ? "Conectado" : "Sin conectar";
+  const tooltip = userDisplayName
+    ? `${userDisplayName} · ${label} · ${status}`
+    : `${label} · ${status}`;
+
+  if (isConnected && userDisplayName && userInitials) {
+    return (
+      <Tooltip>
+        <TooltipTrigger
+          className="hover:bg-sidebar-accent flex size-9 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          aria-label={tooltip}
+        >
+          <ConnectionUserIdentity
+            displayName={userDisplayName}
+            initials={userInitials}
+            avatarUrl={userAvatarUrl}
+            compact
+          />
+        </TooltipTrigger>
+        <TooltipContent side="right">{tooltip}</TooltipContent>
+      </Tooltip>
+    );
+  }
 
   return (
     <Tooltip>
@@ -76,11 +103,15 @@ export function AdoConnectionBadge({
   isConnected,
   organization,
   project,
+  userDisplayName,
+  userInitials,
+  userAvatarUrl,
   className,
 }: AdoConnectionBadgeProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const hasTarget = Boolean(organization?.trim() && project?.trim());
+  const showUser = Boolean(isConnected && userDisplayName && userInitials);
 
   if (collapsed) {
     return (
@@ -90,6 +121,9 @@ export function AdoConnectionBadge({
           isConnected={isConnected}
           organization={organization}
           project={project}
+          userDisplayName={userDisplayName}
+          userInitials={userInitials}
+          userAvatarUrl={userAvatarUrl}
         />
       </div>
     );
@@ -110,7 +144,7 @@ export function AdoConnectionBadge({
         <Cloud className="size-4" />
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-sidebar-foreground/55 text-[0.65rem] font-medium tracking-wide uppercase">
@@ -129,6 +163,14 @@ export function AdoConnectionBadge({
           </div>
           <ConnectionStatus isConnected={isConnected} />
         </div>
+
+        {showUser && (
+          <ConnectionUserIdentity
+            displayName={userDisplayName!}
+            initials={userInitials!}
+            avatarUrl={userAvatarUrl}
+          />
+        )}
       </div>
     </section>
   );

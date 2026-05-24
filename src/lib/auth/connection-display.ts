@@ -6,6 +6,9 @@ export type AdoConnectionDisplay = {
   isConnected: boolean;
   organization: string | null;
   project: string | null;
+  userDisplayName: string | null;
+  userInitials: string | null;
+  userAvatarUrl: string | null;
 };
 
 export function mapAuthStateToConnectionDisplay(
@@ -20,6 +23,9 @@ export function mapAuthStateToConnectionDisplay(
     isConnected: auth.adoExecutionReady,
     organization,
     project,
+    userDisplayName: auth.profileDisplayName,
+    userInitials: auth.profileInitials,
+    userAvatarUrl: auth.profileAvatarUrl,
   };
 }
 
