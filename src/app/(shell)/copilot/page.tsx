@@ -1,5 +1,15 @@
-import { ViewPlaceholder } from "@/components/layout/view-placeholder";
+import { CopilotView } from "@/components/copilot/copilot-view";
+import { getServerAuthState } from "@/lib/auth/server-state";
 
-export default function CopilotPage() {
-  return <ViewPlaceholder title="Copiloto IA" />;
+export const dynamic = "force-dynamic";
+
+export default async function CopilotPage() {
+  const auth = await getServerAuthState();
+
+  return (
+    <CopilotView
+      adoExecutionReady={auth.adoExecutionReady}
+      authMethod={auth.authMethod}
+    />
+  );
 }
