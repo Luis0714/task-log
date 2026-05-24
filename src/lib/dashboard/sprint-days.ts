@@ -21,11 +21,10 @@ export function parseLocalDateKey(key: string): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function toLocalDateOnly(iso: string): Date | null {
-  const timestamp = Date.parse(iso);
-  if (!Number.isFinite(timestamp)) return null;
-  const date = new Date(timestamp);
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+/** Fecha civil YYYY-MM-DD del sprint, sin desfase por zona horaria. */
+export function parseSprintCalendarDate(iso: string | null | undefined): Date | null {
+  if (!iso?.trim()) return null;
+  return parseLocalDateKey(iso.trim().slice(0, 10));
 }
 
 export function isSameLocalDay(a: Date, b: Date): boolean {
@@ -42,8 +41,8 @@ export function listSprintWorkingDays(
 ): SprintWorkingDay[] {
   if (!startDate?.trim() || !finishDate?.trim()) return [];
 
-  const start = toLocalDateOnly(startDate);
-  const end = toLocalDateOnly(finishDate);
+  const start = parseSprintCalendarDate(startDate);
+  const end = parseSprintCalendarDate(finishDate);
   if (!start || !end || end < start) return [];
 
   const days: SprintWorkingDay[] = [];

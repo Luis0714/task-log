@@ -1,3 +1,5 @@
+import "server-only";
+
 import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
 import {
   adoFetch,
@@ -9,11 +11,27 @@ import {
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { isPatConfigured } from "@/lib/azure-devops/resolve-auth";
 import { listTaskStates, resolveTaskWorkItemTypeName } from "@/lib/azure-devops/work-item-type-states";
+import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
+import { isIronSessionConfigured } from "@/lib/auth/session";
+import { getTaskPilotSession } from "@/lib/auth/session";
+import {
+  isWorkItemAssigneeAll,
+  isWorkItemAssigneeMe,
+  WORK_ITEM_ASSIGNEE_ALL,
+} from "@/lib/schemas/work-item-filters";
+import type { TaskActivity } from "@/lib/time-log/task-constants";
+import {
+  resolveWorkingDateFieldName,
+  toWorkingDateKey,
+} from "@/lib/azure-devops/working-date-field";
 import {
   isCompletedTaskStateCategory,
   pickDefaultOpenTaskState,
   resolveTargetTaskState,
 } from "@/lib/time-log/task-state-utils";
+
+export type { AdoWorkItemOption } from "@/lib/azure-devops/work-items-filters";
+import type { AdoWorkItemOption } from "@/lib/azure-devops/work-items-filters";
 
 function authHeader(auth: AdoCallerAuth): string {
   return adoAuthHeader(auth);
@@ -26,11 +44,6 @@ const ACTIVITY = "Microsoft.VSTS.Common.Activity";
 const AREA_PATH = "System.AreaPath";
 const ITERATION_PATH = "System.IterationPath";
 
-function workingDateField(): string {
-  return (
-    process.env.AZDO_WORKING_DATE_FIELD?.trim() || "Microsoft.VSTS.Scheduling.StartDate"
-  );
-}
 
 export type CreateTaskParams = {
   pbiId: number;
@@ -157,7 +170,7 @@ export async function createTaskUnderPbi(
     { op: "add", path: `/fields/${COMPLETED_WORK}`, value: params.hours },
     { op: "add", path: `/fields/${ORIGINAL_ESTIMATE}`, value: params.hours },
     { op: "add", path: `/fields/${ACTIVITY}`, value: params.activity },
-    { op: "add", path: `/fields/${workingDateField()}`, value: params.workingDate },
+    { op: "add", path: `/fields/${resolveWorkingDateFieldName()}`, value: params.workingDate },
     {
       op: "add",
       path: "/relations/-",
@@ -311,18 +324,9 @@ export async function isAdoExecutionReady(): Promise<boolean> {
   );
 }
 
-// --- Consulta y filtrado de work items del sprint ---
-
-export type AdoWorkItemOption = AdoWorkItemOptionDto;
-
 export type WorkItemSprintFilters = {
   assignee?: string;
   workItemType?: string;
-};
-
-export type WorkItemsByStateGroup = {
-  state: string;
-  items: AdoWorkItemOption[];
 };
 
 type WiqlResponse = {
@@ -343,8 +347,7 @@ const ASSIGNED_TO = "System.AssignedTo";
 const PRIORITY = "Microsoft.VSTS.Common.Priority";
 const WI_COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
 const WI_ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
-
-const IN_PROGRESS_PBI_STATE = "Committed";
+const WI_WORKING_DATE = resolveWorkingDateFieldName();
 
 function parseNumericField(value: string | number | undefined): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -373,17 +376,6 @@ function resolveBacklogItemType(): string {
   return process.env.AZDO_BACKLOG_ITEM_TYPE?.trim() || "Product Backlog Item";
 }
 
-function normalizeState(state: string): string {
-  return state.trim().toLowerCase();
-}
-
-function compareByPriority(a: AdoWorkItemOption, b: AdoWorkItemOption): number {
-  const priorityA = typeof a.priority === "number" ? a.priority : 99;
-  const priorityB = typeof b.priority === "number" ? b.priority : 99;
-  if (priorityA !== priorityB) return priorityA - priorityB;
-  return a.title.localeCompare(b.title, "es");
-}
-
 async function fetchWorkItemDetails(
   auth: AdoCallerAuth,
   ids: number[],
@@ -398,6 +390,7 @@ async function fetchWorkItemDetails(
     PRIORITY,
     WI_COMPLETED_WORK,
     WI_ORIGINAL_ESTIMATE,
+    WI_WORKING_DATE,
   ].join(",");
   const chunkSize = 200;
   const items: AdoWorkItemOption[] = [];
@@ -424,6 +417,7 @@ async function fetchWorkItemDetails(
         priority: parseNumericField(workItem.fields?.[PRIORITY]),
         loggedHours: parseNumericField(workItem.fields?.[WI_COMPLETED_WORK]),
         estimatedHours: parseNumericField(workItem.fields?.[WI_ORIGINAL_ESTIMATE]),
+        workingDate: toWorkingDateKey(workItem.fields?.[WI_WORKING_DATE]),
       });
     }
   }
@@ -486,76 +480,4 @@ export async function listTasksInSprint(
     ...filters,
     workItemType: resolveTaskWorkItemTypeName(),
   });
-}
-
-export function filterWorkItemsByClientCriteria(
-  items: AdoWorkItemOption[],
-  filters: Pick<WorkItemFilters, "search" | "state">,
-): AdoWorkItemOption[] {
-  const search = filters.search.trim().toLowerCase();
-
-  return items.filter((item) => {
-    if (filters.state && item.state !== filters.state) return false;
-
-    if (search) {
-      const haystack = `#${item.id} ${item.title}`.toLowerCase();
-      if (!haystack.includes(search)) return false;
-    }
-
-    return true;
-  });
-}
-
-export function collectWorkItemStates(items: AdoWorkItemOption[]): string[] {
-  return [...new Set(items.map((item) => item.state).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b, "es"),
-  );
-}
-
-export function groupWorkItemsByStates(
-  items: AdoWorkItemOption[],
-  stateOrder: readonly string[],
-): WorkItemsByStateGroup[] {
-  const buckets = new Map<string, AdoWorkItemOption[]>();
-
-  for (const state of stateOrder) {
-    buckets.set(state, []);
-  }
-
-  for (const item of items) {
-    const state = item.state?.trim();
-    if (!state) continue;
-    if (!buckets.has(state)) buckets.set(state, []);
-    buckets.get(state)!.push(item);
-  }
-
-  const ordered = stateOrder.map((state) => ({
-    state,
-    items: buckets.get(state) ?? [],
-  }));
-
-  for (const [state, stateItems] of buckets) {
-    if (!stateOrder.includes(state) && stateItems.length > 0) {
-      ordered.push({ state, items: stateItems });
-    }
-  }
-
-  return ordered;
-}
-
-export function isCommittedPbiState(state: string): boolean {
-  return normalizeState(state) === normalizeState(IN_PROGRESS_PBI_STATE);
-}
-
-export function isUpcomingPbiState(state: string): boolean {
-  const normalized = normalizeState(state);
-  return ["new", "proposed", "to do", "todo", "pending", "ready"].includes(normalized);
-}
-
-export function selectInProgressWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
-  return items.filter((item) => isCommittedPbiState(item.state)).sort(compareByPriority);
-}
-
-export function selectUpcomingWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
-  return items.filter((item) => isUpcomingPbiState(item.state)).sort(compareByPriority);
 }

@@ -1,15 +1,8 @@
 import { DEFAULT_SPRINT_HOURS_TARGET } from "@/lib/dashboard/constants";
-import { parseLocalDateKey } from "@/lib/dashboard/sprint-days";
+import { parseLocalDateKey, parseSprintCalendarDate } from "@/lib/dashboard/sprint-days";
 
 /** Horas de capacidad por día laborable del sprint. */
 export const HOURS_PER_SPRINT_WORKING_DAY = 8;
-
-function toLocalDateOnly(iso: string): Date | null {
-  const timestamp = Date.parse(iso);
-  if (!Number.isFinite(timestamp)) return null;
-  const date = new Date(timestamp);
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
 
 function countWorkingDays(start: Date, end: Date): number {
   let count = 0;
@@ -33,8 +26,8 @@ export function computeSprintCapacityHours(
     return DEFAULT_SPRINT_HOURS_TARGET;
   }
 
-  const start = toLocalDateOnly(startDate);
-  const end = toLocalDateOnly(finishDate);
+  const start = parseSprintCalendarDate(startDate);
+  const end = parseSprintCalendarDate(finishDate);
   if (!start || !end || end < start) {
     return DEFAULT_SPRINT_HOURS_TARGET;
   }
@@ -55,7 +48,7 @@ export function computeSprintCapacityHoursThroughDay(
     return DEFAULT_SPRINT_HOURS_TARGET;
   }
 
-  const start = toLocalDateOnly(startDate);
+  const start = parseSprintCalendarDate(startDate);
   const selected = parseLocalDateKey(selectedDayKey);
   if (!start || !selected) {
     return DEFAULT_SPRINT_HOURS_TARGET;
@@ -63,7 +56,7 @@ export function computeSprintCapacityHoursThroughDay(
 
   let end = selected;
   if (finishDate?.trim()) {
-    const sprintEnd = toLocalDateOnly(finishDate);
+    const sprintEnd = parseSprintCalendarDate(finishDate);
     if (sprintEnd && sprintEnd < end) end = sprintEnd;
   }
 

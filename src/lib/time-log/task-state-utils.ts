@@ -2,6 +2,12 @@ import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
 
 const COMPLETED_NAME_HINTS = ["done", "closed", "resolved", "completado", "hecho", "cerrado"];
 
+/** Detecta estado Done/Closed por nombre (sin metadatos de categoría ADO). */
+export function isDoneTaskStateName(stateName: string): boolean {
+  const normalized = stateName.trim().toLowerCase();
+  return COMPLETED_NAME_HINTS.some((hint) => normalized.includes(hint));
+}
+
 function readEnvOverride(key: "AZDO_TASK_DONE_STATE" | "AZDO_TASK_TODO_STATE"): string | null {
   const value = process.env[key]?.trim();
   return value || null;
@@ -14,8 +20,7 @@ export function isCompletedTaskStateCategory(category: string): boolean {
 export function isCompletedTaskState(states: AdoTaskStateDto[], stateName: string): boolean {
   const match = states.find((state) => state.name === stateName);
   if (match) return isCompletedTaskStateCategory(match.category);
-  const normalized = stateName.trim().toLowerCase();
-  return COMPLETED_NAME_HINTS.some((hint) => normalized.includes(hint));
+  return isDoneTaskStateName(stateName);
 }
 
 export function pickDefaultOpenTaskState(states: AdoTaskStateDto[]): string {

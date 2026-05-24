@@ -12,7 +12,7 @@ import {
   filterWorkItemsByClientCriteria,
   selectInProgressWorkItems,
   selectUpcomingWorkItems,
-} from "@/lib/azure-devops/work-items";
+} from "@/lib/azure-devops/work-items-filters";
 import {
   WORK_ITEM_ASSIGNEE_ME,
   isWorkItemAssigneeAll,

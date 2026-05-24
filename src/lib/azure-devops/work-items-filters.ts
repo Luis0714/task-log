@@ -1,0 +1,94 @@
+import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
+
+export type AdoWorkItemOption = AdoWorkItemOptionDto;
+
+export type WorkItemsByStateGroup = {
+  state: string;
+  items: AdoWorkItemOption[];
+};
+
+const IN_PROGRESS_PBI_STATE = "Committed";
+
+function normalizeState(state: string): string {
+  return state.trim().toLowerCase();
+}
+
+function compareByPriority(a: AdoWorkItemOption, b: AdoWorkItemOption): number {
+  const priorityA = typeof a.priority === "number" ? a.priority : 99;
+  const priorityB = typeof b.priority === "number" ? b.priority : 99;
+  if (priorityA !== priorityB) return priorityA - priorityB;
+  return a.title.localeCompare(b.title, "es");
+}
+
+export function filterWorkItemsByClientCriteria(
+  items: AdoWorkItemOption[],
+  filters: Pick<WorkItemFilters, "search" | "state">,
+): AdoWorkItemOption[] {
+  const search = filters.search.trim().toLowerCase();
+
+  return items.filter((item) => {
+    if (filters.state && item.state !== filters.state) return false;
+
+    if (search) {
+      const haystack = `#${item.id} ${item.title}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+
+    return true;
+  });
+}
+
+export function collectWorkItemStates(items: AdoWorkItemOption[]): string[] {
+  return [...new Set(items.map((item) => item.state).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "es"),
+  );
+}
+
+export function groupWorkItemsByStates(
+  items: AdoWorkItemOption[],
+  stateOrder: readonly string[],
+): WorkItemsByStateGroup[] {
+  const buckets = new Map<string, AdoWorkItemOption[]>();
+
+  for (const state of stateOrder) {
+    buckets.set(state, []);
+  }
+
+  for (const item of items) {
+    const state = item.state?.trim();
+    if (!state) continue;
+    if (!buckets.has(state)) buckets.set(state, []);
+    buckets.get(state)!.push(item);
+  }
+
+  const ordered = stateOrder.map((state) => ({
+    state,
+    items: buckets.get(state) ?? [],
+  }));
+
+  for (const [state, stateItems] of buckets) {
+    if (!stateOrder.includes(state) && stateItems.length > 0) {
+      ordered.push({ state, items: stateItems });
+    }
+  }
+
+  return ordered;
+}
+
+export function isCommittedPbiState(state: string): boolean {
+  return normalizeState(state) === normalizeState(IN_PROGRESS_PBI_STATE);
+}
+
+export function isUpcomingPbiState(state: string): boolean {
+  const normalized = normalizeState(state);
+  return ["new", "proposed", "to do", "todo", "pending", "ready"].includes(normalized);
+}
+
+export function selectInProgressWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
+  return items.filter((item) => isCommittedPbiState(item.state)).sort(compareByPriority);
+}
+
+export function selectUpcomingWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
+  return items.filter((item) => isUpcomingPbiState(item.state)).sort(compareByPriority);
+}

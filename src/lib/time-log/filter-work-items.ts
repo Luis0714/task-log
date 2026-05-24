@@ -3,4 +3,4 @@ export {
   filterWorkItemsByClientCriteria,
   groupWorkItemsByStates,
   type WorkItemsByStateGroup,
-} from "@/lib/azure-devops/work-items";
+} from "@/lib/azure-devops/work-items-filters";

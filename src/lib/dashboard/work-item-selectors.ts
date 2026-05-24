@@ -12,7 +12,7 @@ import {
   isUpcomingPbiState,
   selectInProgressWorkItems,
   selectUpcomingWorkItems,
-} from "@/lib/azure-devops/work-items";
+} from "@/lib/azure-devops/work-items-filters";
 
 function normalizeState(state: string): string {
   return state.trim().toLowerCase();
@@ -123,13 +123,6 @@ export function selectInProgressItems(items: DashboardWorkItem[]): DashboardWork
 
 export function selectUpcomingItems(items: DashboardWorkItem[]): DashboardWorkItem[] {
   return selectUpcomingWorkItems(items);
-}
-
-export function sumDoneTaskLoggedHours(items: DashboardWorkItem[]): number {
-  return items.reduce((sum, item) => {
-    if (!isDoneState(item.state)) return sum;
-    return sum + (item.loggedHours ?? 0);
-  }, 0);
 }
 
 export type SprintHoursInput = {

@@ -1,7 +1,7 @@
-import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
-import { computeHoursFromHistoryForDayKeys } from "@/lib/dashboard/activity";
+import { sumDoneTaskHoursForDayKeys } from "@/lib/dashboard/task-hours";
 import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
+import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
 import type { SprintWeekMetrics } from "@/lib/dashboard/types";
 
 export function splitSprintIntoWeeks(
@@ -35,14 +35,14 @@ function roundHours(value: number): number {
 function buildWeekMetrics(
   days: SprintWorkingDay[],
   label: string,
-  history: CopilotHistoryEntry[],
+  tasks: SprintTaskHoursSource[],
   selectedDayKey: string,
 ): SprintWeekMetrics | null {
   if (days.length === 0) return null;
 
   const dayKeys = days.map((day) => day.value);
   const hoursCurrent = selectedDayKey
-    ? computeHoursFromHistoryForDayKeys(history, dayKeys, selectedDayKey)
+    ? sumDoneTaskHoursForDayKeys(tasks, dayKeys, selectedDayKey)
     : 0;
 
   return {
@@ -56,14 +56,14 @@ function buildWeekMetrics(
 
 export function computeSprintWeekMetrics(
   workingDays: SprintWorkingDay[],
-  history: CopilotHistoryEntry[],
+  tasks: SprintTaskHoursSource[],
   selectedDayKey: string,
 ): SprintWeekMetrics[] {
   const [firstWeekDays, secondWeekDays] = splitSprintIntoWeeks(workingDays);
 
   const weeks = [
-    buildWeekMetrics(firstWeekDays, "1ª semana", history, selectedDayKey),
-    buildWeekMetrics(secondWeekDays, "2ª semana", history, selectedDayKey),
+    buildWeekMetrics(firstWeekDays, "1ª semana", tasks, selectedDayKey),
+    buildWeekMetrics(secondWeekDays, "2ª semana", tasks, selectedDayKey),
   ].filter((week): week is SprintWeekMetrics => week !== null);
 
   return weeks;

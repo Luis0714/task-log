@@ -40,6 +40,8 @@ export const adoWorkItemOptionSchema = z.object({
   priority: z.number().optional(),
   loggedHours: z.number().optional(),
   estimatedHours: z.number().optional(),
+  /** Fecha de trabajo (YYYY-MM-DD), desde el campo configurado en ADO. */
+  workingDate: z.string().optional(),
 });
 
 export const adoSprintsResponseSchema = z.object({

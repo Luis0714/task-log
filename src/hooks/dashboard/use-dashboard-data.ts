@@ -7,8 +7,6 @@ import { useAdoContextSelection } from "@/hooks/use-ado-context-selection";
 import { useAdoSprintWorkItems } from "@/hooks/use-ado-sprint-work-items";
 import {
   buildDailySummary,
-  computeHoursFromHistoryForDay,
-  computeHoursFromHistoryThroughDay,
   filterHistoryByDay,
   mapHistoryToActivityItems,
 } from "@/lib/dashboard/activity";
@@ -21,18 +19,20 @@ import {
   formatSprintDayShortLabel,
   isSameLocalDay,
   listSprintWorkingDays,
-  parseLocalDateKey,
   pickDefaultSprintDayKey,
   toLocalDateKey,
   type SprintWorkingDay,
 } from "@/lib/dashboard/sprint-days";
+import {
+  sumDoneTaskHoursForDay,
+  sumDoneTaskHoursThroughDay,
+} from "@/lib/dashboard/task-hours";
 import {
   computeDashboardMetrics,
   computeSprintPbiProgress,
   mapToDashboardWorkItems,
   selectInProgressItems,
   selectUpcomingItems,
-  sumDoneTaskLoggedHours,
 } from "@/lib/dashboard/work-item-selectors";
 import { useAdoBacklogStates } from "@/hooks/use-ado-backlog-states";
 import { useAdoSprintTasks } from "@/hooks/use-ado-sprint-tasks";
@@ -139,19 +139,14 @@ export function useDashboardData({
     return filterHistoryByDay(history, selectedSprintDayKey);
   }, [history, selectedSprintDayKey]);
 
-  const hoursToday = useMemo(() => {
-    const dayKey = selectedSprintDayKey || toLocalDateKey(new Date());
-    return computeHoursFromHistoryForDay(history, dayKey);
-  }, [history, selectedSprintDayKey]);
-
   const pbiProgress = useMemo(
     () => computeSprintPbiProgress(assigned, workItemStates),
     [assigned, workItemStates],
   );
 
   const metrics: DashboardMetrics = useMemo(() => {
-    const dayKey = selectedSprintDayKey;
-    const hoursSprintTarget = dayKey
+    const dayKey = selectedSprintDayKey || toLocalDateKey(new Date());
+    const hoursSprintTarget = selectedSprintDayKey
       ? computeSprintCapacityHoursThroughDay(
           currentSprint?.startDate,
           dayKey,
@@ -159,17 +154,11 @@ export function useDashboardData({
         )
       : computeSprintCapacityHours(currentSprint?.startDate, currentSprint?.finishDate);
 
-    const hoursFromHistory = dayKey
-      ? computeHoursFromHistoryThroughDay(history, dayKey)
-      : computeHoursFromHistoryThroughDay(history, toLocalDateKey(new Date()));
-    const hoursFromAdo = sumDoneTaskLoggedHours(mapToDashboardWorkItems(sprintTasks));
-    const selectedDate = dayKey ? parseLocalDateKey(dayKey) : null;
-    const viewingToday = selectedDate ? isSameLocalDay(selectedDate, new Date()) : true;
-    const hoursSprintCurrent =
-      viewingToday && hoursFromAdo > hoursFromHistory ? hoursFromAdo : hoursFromHistory;
+    const hoursToday = sumDoneTaskHoursForDay(sprintTasks, dayKey);
+    const hoursSprintCurrent = sumDoneTaskHoursThroughDay(sprintTasks, dayKey);
 
     const sprintWeeks = selectedSprintDayKey
-      ? computeSprintWeekMetrics(sprintWorkingDays, history, selectedSprintDayKey)
+      ? computeSprintWeekMetrics(sprintWorkingDays, sprintTasks, selectedSprintDayKey)
       : [];
 
     return computeDashboardMetrics(hoursToday, {
@@ -182,8 +171,6 @@ export function useDashboardData({
   }, [
     currentSprint?.finishDate,
     currentSprint?.startDate,
-    hoursToday,
-    history,
     pbiProgress,
     pbiStateGroups,
     selectedSprintDayKey,
