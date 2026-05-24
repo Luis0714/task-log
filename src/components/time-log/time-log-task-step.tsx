@@ -26,6 +26,9 @@ export function TimeLogTaskStep({
   onBack,
   onSubmit,
 }: TimeLogTaskStepProps) {
+  const taskStatesReady =
+    !catalog.taskStatesLoading && catalog.taskStates.length > 0 && !catalog.taskStatesError;
+
   return (
     <div className="flex flex-col gap-4">
       {catalog.selectedPbi ? <PbiSummaryCard pbi={catalog.selectedPbi} /> : null}
@@ -51,7 +54,7 @@ export function TimeLogTaskStep({
         </Button>
         <Button
           type="button"
-          disabled={loading || !adoExecutionReady}
+          disabled={loading || !adoExecutionReady || !taskStatesReady}
           className="min-h-10 w-full sm:w-auto"
           onClick={onSubmit}
         >

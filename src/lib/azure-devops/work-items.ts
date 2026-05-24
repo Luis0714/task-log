@@ -6,8 +6,12 @@ import { fetchCurrentAdoProfile } from "@/lib/azure-devops/profile";
 import { isIronSessionConfigured } from "@/lib/auth/session";
 import { getTaskPilotSession } from "@/lib/auth/session";
 import type { TaskActivity } from "@/lib/time-log/task-constants";
-import { findTaskState } from "@/lib/azure-devops/task-states";
-import { isCompletedTaskStateCategory } from "@/lib/time-log/task-state-utils";
+import { listTaskStates } from "@/lib/azure-devops/work-item-type-states";
+import {
+  isCompletedTaskStateCategory,
+  pickDefaultOpenTaskState,
+  resolveTargetTaskState,
+} from "@/lib/time-log/task-state-utils";
 
 function authHeader(auth: AdoCallerAuth): string {
   return adoAuthHeader(auth);
@@ -43,7 +47,30 @@ type JsonPatchOp =
       op: "add";
       path: "/relations/-";
       value: { rel: string; url: string };
-    };
+    }
+  | { op: "replace"; path: string; value: string | number };
+
+async function patchWorkItemFields(
+  auth: AdoCallerAuth,
+  taskId: number,
+  ops: Array<{ op: "replace" | "add"; path: string; value: string | number }>,
+): Promise<{ ok: true } | { ok: false; status: number; body: string }> {
+  const url = `${adoProjectBase(auth)}/_apis/wit/workitems/${taskId}?api-version=7.1`;
+  const res = await adoFetch(auth, url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json-patch+json",
+    },
+    body: JSON.stringify(ops),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    return { ok: false, status: res.status, body: body.slice(0, 500) };
+  }
+
+  return { ok: true };
+}
 
 async function fetchPbiContext(
   auth: AdoCallerAuth,
@@ -96,8 +123,17 @@ export async function createTaskUnderPbi(
   const pbiUrl = `${adoOrgBase(auth)}/_apis/wit/workitems/${params.pbiId}`;
   const iterationPath = params.sprintPath.trim() || pbiContext.iterationPath;
 
-  const stateMeta = await findTaskState(auth, params.state);
-  if (!stateMeta) {
+  const taskStates = await listTaskStates(auth);
+  if (taskStates.length === 0) {
+    return {
+      ok: false,
+      status: 422,
+      body: "No hay estados disponibles para Task en este proyecto.",
+    };
+  }
+
+  const targetState = resolveTargetTaskState(taskStates, params.state);
+  if (!targetState) {
     return {
       ok: false,
       status: 422,
@@ -105,9 +141,15 @@ export async function createTaskUnderPbi(
     };
   }
 
+  const createStateName = pickDefaultOpenTaskState(taskStates);
+  const createState =
+    taskStates.find((state) => state.name === createStateName) ??
+    taskStates.find((state) => state.category === "Proposed") ??
+    taskStates[0];
+
   const ops: JsonPatchOp[] = [
     { op: "add", path: "/fields/System.Title", value: params.title.trim() },
-    { op: "add", path: "/fields/System.State", value: stateMeta.name },
+    { op: "add", path: "/fields/System.State", value: createState.name },
     { op: "add", path: `/fields/${AREA_PATH}`, value: pbiContext.areaPath },
     { op: "add", path: `/fields/${ITERATION_PATH}`, value: iterationPath },
     { op: "add", path: `/fields/${COMPLETED_WORK}`, value: params.hours },
@@ -123,10 +165,6 @@ export async function createTaskUnderPbi(
       },
     },
   ];
-
-  if (isCompletedTaskStateCategory(stateMeta.category)) {
-    ops.push({ op: "add", path: `/fields/${REMAINING_WORK}`, value: 0 });
-  }
 
   const description = params.description?.trim();
   if (description) {
@@ -154,6 +192,25 @@ export async function createTaskUnderPbi(
   const created = (await res.json()) as { id?: number };
   if (!created.id) {
     return { ok: false, status: 502, body: "Azure DevOps no devolvió el ID de la tarea creada." };
+  }
+
+  if (createState.name !== targetState.name) {
+    const transitionOps: Array<{ op: "replace" | "add"; path: string; value: string | number }> = [
+      { op: "replace", path: "/fields/System.State", value: targetState.name },
+    ];
+
+    if (isCompletedTaskStateCategory(targetState.category)) {
+      transitionOps.push({ op: "replace", path: `/fields/${REMAINING_WORK}`, value: 0 });
+    }
+
+    const transition = await patchWorkItemFields(auth, created.id, transitionOps);
+    if (!transition.ok) {
+      return {
+        ok: false,
+        status: transition.status,
+        body: `La tarea #${created.id} se creó, pero no se pudo aplicar el estado "${targetState.name}": ${transition.body}`,
+      };
+    }
   }
 
   return { ok: true, taskId: created.id, completedWork: params.hours };

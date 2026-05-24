@@ -4,6 +4,7 @@ import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { createTaskUnderPbi } from "@/lib/azure-devops/work-items";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
+import { formatAdoErrorMessage } from "@/lib/errors/parse-ado-error";
 import { executeCreateTaskRequestSchema } from "@/lib/schemas/agent";
 import type { TaskActivity } from "@/lib/time-log/task-constants";
 
@@ -51,10 +52,11 @@ export async function POST(req: Request) {
   );
 
   if (!result.ok) {
+    const detail = formatAdoErrorMessage(result.body);
     return NextResponse.json(
       {
         error: "No se pudo crear la tarea en Azure DevOps.",
-        detail: result.body,
+        detail,
         status: result.status,
       },
       { status: result.status >= 400 && result.status < 600 ? result.status : 502 },

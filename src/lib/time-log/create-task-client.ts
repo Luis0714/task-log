@@ -1,3 +1,4 @@
+import { formatAdoErrorMessage } from "@/lib/errors/parse-ado-error";
 import type { CreateTaskPayload } from "@/lib/schemas/time-log";
 
 export type CreateTaskApiResponse = {
@@ -35,9 +36,10 @@ export async function createTaskInAdo(
   const data = (await res.json()) as CreateTaskApiResponse;
 
   if (!res.ok) {
+    const raw = [data.error, data.detail].filter(Boolean).join(" — ") || "Error al ejecutar";
     return {
       ok: false,
-      message: [data.error, data.detail].filter(Boolean).join(" — ") || "Error al ejecutar",
+      message: formatAdoErrorMessage(raw),
     };
   }
 

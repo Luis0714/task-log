@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
-import { FALLBACK_TASK_STATE_OPTIONS, TASK_ACTIVITY_OPTIONS } from "@/lib/time-log/task-constants";
+import { TASK_ACTIVITY_OPTIONS } from "@/lib/time-log/task-constants";
 
 type TaskFormFieldsProps = {
   form: UseFormReturn<TimeLogFormValues>;
@@ -30,10 +30,8 @@ export function TaskFormFields({
   taskStatesError = null,
   disabled = false,
 }: TaskFormFieldsProps) {
-  const stateOptions =
-    taskStates.length > 0
-      ? taskStates.map((state) => ({ value: state.name, label: state.name }))
-      : FALLBACK_TASK_STATE_OPTIONS.map((state) => ({ value: state, label: state }));
+  const stateOptions = taskStates.map((state) => ({ value: state.name, label: state.name }));
+  const statesReady = !taskStatesLoading && taskStates.length > 0;
 
   return (
     <>
@@ -103,8 +101,14 @@ export function TaskFormFields({
             control={form.control}
             name="taskState"
             label="Estado"
-            placeholder={taskStatesLoading ? "Cargando estados..." : "Estado de la tarea"}
-            disabled={disabled || taskStatesLoading}
+            placeholder={
+              taskStatesLoading
+                ? "Cargando estados..."
+                : statesReady
+                  ? "Estado de la tarea"
+                  : "Estados no disponibles"
+            }
+            disabled={disabled || taskStatesLoading || !statesReady}
             options={stateOptions}
           />
           <FormInlineError message={taskStatesError} />

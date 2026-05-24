@@ -41,15 +41,32 @@ export function pickDefaultCompletedTaskState(states: AdoTaskStateDto[]): string
   const env = readEnvOverride("AZDO_TASK_DONE_STATE");
   if (env && states.some((state) => state.name === env)) return env;
 
-  const completed = states.find((state) => state.category === "Completed");
-  if (completed) return completed.name;
+  const completedStates = states.filter((state) => state.category === "Completed");
+  if (completedStates.length === 0) return states[states.length - 1]?.name ?? "";
 
   for (const hint of COMPLETED_NAME_HINTS) {
-    const match = states.find((state) => state.name.toLowerCase().includes(hint));
+    const match = completedStates.find((state) => state.name.toLowerCase().includes(hint));
     if (match) return match.name;
   }
 
-  return states[states.length - 1]?.name ?? "";
+  return completedStates[0]?.name ?? "";
+}
+
+export function resolveTargetTaskState(
+  states: AdoTaskStateDto[],
+  requestedState: string,
+): AdoTaskStateDto | null {
+  const normalized = requestedState.trim();
+  const exact = states.find((state) => state.name === normalized);
+  if (exact) return exact;
+
+  if (normalized && isCompletedTaskState(states, normalized)) {
+    const completedName = pickDefaultCompletedTaskState(states);
+    return states.find((state) => state.name === completedName) ?? null;
+  }
+
+  const openName = pickDefaultOpenTaskState(states);
+  return states.find((state) => state.name === openName) ?? states[0] ?? null;
 }
 
 export function resolveTaskStateSelection(
