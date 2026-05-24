@@ -1,15 +1,12 @@
 import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
+import { adoAuthHeader } from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { isPatConfigured } from "@/lib/azure-devops/resolve-auth";
 import { isIronSessionConfigured } from "@/lib/auth/session";
 import { getTaskPilotSession } from "@/lib/auth/session";
 
 function authHeader(auth: AdoCallerAuth): string {
-  if (auth.mode === "pat") {
-    const token = Buffer.from(`:${auth.pat}`).toString("base64");
-    return `Basic ${token}`;
-  }
-  return `Bearer ${auth.accessToken}`;
+  return adoAuthHeader(auth);
 }
 
 const COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
