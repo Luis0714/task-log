@@ -1,6 +1,14 @@
+"use client";
+
 import { Cloud } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useSidebar } from "@/components/ui/sidebar";
 import {
   getAuthMethodLabel,
   type AdoConnectionDisplay,
@@ -32,6 +40,37 @@ function ConnectionStatus({ isConnected }: { isConnected: boolean }) {
   );
 }
 
+function CompactConnectionBadge({
+  isConnected,
+  organization,
+  project,
+  authMethod,
+}: AdoConnectionDisplay) {
+  const label = [organization, project].filter(Boolean).join(" / ") || "Sin configurar";
+  const status = isConnected ? "Conectado" : "Sin conectar";
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        className="hover:bg-sidebar-accent flex size-9 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        aria-label={`Azure DevOps: ${label}. ${status}. ${getAuthMethodLabel(authMethod)}`}
+      >
+        <span className="relative">
+          <Cloud className="text-sidebar-primary size-4" aria-hidden />
+          <span
+            className={cn(
+              "absolute -top-0.5 -right-0.5 size-2 rounded-full ring-2 ring-sidebar",
+              isConnected ? "bg-emerald-400" : "bg-muted-foreground",
+            )}
+            aria-hidden
+          />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="right">{`${label} · ${status}`}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function AdoConnectionBadge({
   authMethod,
   isConnected,
@@ -39,7 +78,22 @@ export function AdoConnectionBadge({
   project,
   className,
 }: AdoConnectionBadgeProps) {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
   const hasTarget = Boolean(organization?.trim() && project?.trim());
+
+  if (collapsed) {
+    return (
+      <div className={cn("flex justify-center py-1", className)}>
+        <CompactConnectionBadge
+          authMethod={authMethod}
+          isConnected={isConnected}
+          organization={organization}
+          project={project}
+        />
+      </div>
+    );
+  }
 
   return (
     <section

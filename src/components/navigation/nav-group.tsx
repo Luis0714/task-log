@@ -1,3 +1,8 @@
+import {
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+} from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
 export type NavGroupProps = {
@@ -7,21 +12,13 @@ export type NavGroupProps = {
 };
 
 export function NavGroup({ title, children, className }: NavGroupProps) {
-  const headingId = `nav-group-${title.toLowerCase().replace(/\s+/g, "-")}`;
-
   return (
-    <section
-      aria-labelledby={headingId}
-      className={cn("flex flex-col gap-1", className)}
-    >
-      <h2
-        id={headingId}
-        className="text-sidebar-foreground/60 px-2 text-xs font-medium tracking-wide uppercase"
-      >
+    <SidebarGroup className={cn("px-0 py-0", className)}>
+      <SidebarGroupLabel className="text-sidebar-foreground/60 h-auto px-2 py-1 text-[0.65rem] tracking-wide uppercase">
         {title}
-      </h2>
-      {children}
-    </section>
+      </SidebarGroupLabel>
+      <SidebarGroupContent>{children}</SidebarGroupContent>
+    </SidebarGroup>
   );
 }
 
@@ -31,5 +28,5 @@ export type NavGroupListProps = {
 };
 
 export function NavGroupList({ children, className }: NavGroupListProps) {
-  return <div className={cn("flex flex-col gap-4", className)}>{children}</div>;
+  return <div className={cn("flex flex-col gap-2", className)}>{children}</div>;
 }

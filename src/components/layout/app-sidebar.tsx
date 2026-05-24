@@ -1,39 +1,59 @@
-import { AppLogo } from "@/components/brand/app-logo";
+"use client";
+
+import { SidebarBrand } from "@/components/layout/sidebar-brand";
 import { AdoConnectionBadge } from "@/components/connection/ado-connection-badge";
 import { NavMenu } from "@/components/navigation/nav-menu";
 import { MAIN_NAVIGATION } from "@/config/navigation";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+  SidebarTrigger,
+  useSidebar,
+} from "@/components/ui/sidebar";
 import type { AdoConnectionDisplay } from "@/lib/auth/connection-display";
 import { cn } from "@/lib/utils";
 
 export type AppSidebarProps = {
   connection: AdoConnectionDisplay;
   activePath: string;
-  className?: string;
 };
 
-export function AppSidebar({ connection, activePath, className }: AppSidebarProps) {
+function SidebarHeaderContent() {
+  const { state, isMobile } = useSidebar();
+  const collapsed = state === "collapsed";
+
   return (
-    <aside
+    <div
       className={cn(
-        "border-sidebar-border bg-sidebar flex min-h-0 w-full flex-col rounded-xl border",
-        "md:min-h-screen md:rounded-none md:border-y-0 md:border-r md:border-l-0",
-        className,
+        "flex items-center gap-2",
+        collapsed && !isMobile ? "justify-center" : "justify-between",
       )}
     >
-      <header className="border-sidebar-border shrink-0 border-b px-4 py-4">
-        <AppLogo />
-      </header>
+      <SidebarBrand />
+      {(!collapsed || isMobile) && <SidebarTrigger className="shrink-0" />}
+    </div>
+  );
+}
 
-      <nav
-        aria-label="Navegación principal"
-        className="min-h-0 flex-1 overflow-y-auto px-3 py-4"
-      >
+export function AppSidebar({ connection, activePath }: AppSidebarProps) {
+  return (
+    <Sidebar collapsible="icon" variant="sidebar">
+      <SidebarHeader className="border-sidebar-border border-b px-3 py-3">
+        <SidebarHeaderContent />
+      </SidebarHeader>
+
+      <SidebarContent className="px-2 py-3">
         <NavMenu groups={MAIN_NAVIGATION} activePath={activePath} />
-      </nav>
+      </SidebarContent>
 
-      <footer className="border-sidebar-border shrink-0 border-t p-3">
+      <SidebarFooter className="border-sidebar-border border-t p-2">
         <AdoConnectionBadge {...connection} />
-      </footer>
-    </aside>
+      </SidebarFooter>
+
+      <SidebarRail />
+    </Sidebar>
   );
 }
