@@ -19,6 +19,7 @@ export type WorkItemFiltersPanelProps = {
   filteredCount: number;
   totalCount: number;
   disabled?: boolean;
+  title?: string;
   onSearchChange: (value: string) => void;
   onAssignedToMeChange: (value: boolean) => void;
   onStateChange: (value: string) => void;
@@ -30,6 +31,7 @@ export function WorkItemFiltersPanel({
   filteredCount,
   totalCount,
   disabled = false,
+  title = "Filtros de work items",
   onSearchChange,
   onAssignedToMeChange,
   onStateChange,
@@ -39,7 +41,7 @@ export function WorkItemFiltersPanel({
   return (
     <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-medium">Filtros de work items</p>
+        <p className="text-sm font-medium">{title}</p>
         {showCount && (
           <p className="text-muted-foreground text-xs">
             {filteredCount} de {totalCount}
@@ -59,7 +61,7 @@ export function WorkItemFiltersPanel({
               id="work-item-search"
               value={filters.search}
               onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Ej. login, API, 12345"
+              placeholder="Ej. HU67 crear componente, login"
               disabled={disabled}
               className="pl-8"
             />

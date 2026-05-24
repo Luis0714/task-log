@@ -1,15 +1,152 @@
 import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
-import { adoAuthHeader } from "@/lib/azure-devops/client";
+import { adoFetch, adoOrgBase, adoProjectBase, adoAuthHeader } from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { isPatConfigured } from "@/lib/azure-devops/resolve-auth";
+import { fetchCurrentAdoProfile } from "@/lib/azure-devops/profile";
 import { isIronSessionConfigured } from "@/lib/auth/session";
 import { getTaskPilotSession } from "@/lib/auth/session";
+import type { TaskActivity, TaskState } from "@/lib/time-log/task-constants";
 
 function authHeader(auth: AdoCallerAuth): string {
   return adoAuthHeader(auth);
 }
 
 const COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
+const REMAINING_WORK = "Microsoft.VSTS.Scheduling.RemainingWork";
+const ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
+const ACTIVITY = "Microsoft.VSTS.Common.Activity";
+const AREA_PATH = "System.AreaPath";
+const ITERATION_PATH = "System.IterationPath";
+
+function workingDateField(): string {
+  return (
+    process.env.AZDO_WORKING_DATE_FIELD?.trim() || "Microsoft.VSTS.Scheduling.StartDate"
+  );
+}
+
+export type CreateTaskParams = {
+  pbiId: number;
+  title: string;
+  hours: number;
+  description?: string;
+  activity: TaskActivity;
+  workingDate: string;
+  state: TaskState;
+  sprintPath: string;
+};
+
+type JsonPatchOp =
+  | { op: "add"; path: string; value: string | number }
+  | {
+      op: "add";
+      path: "/relations/-";
+      value: { rel: string; url: string };
+    };
+
+async function fetchPbiContext(
+  auth: AdoCallerAuth,
+  pbiId: number,
+): Promise<
+  | { ok: true; areaPath: string; iterationPath: string }
+  | { ok: false; status: number; body: string }
+> {
+  const fields = [AREA_PATH, ITERATION_PATH].join(",");
+  const url = `${adoProjectBase(auth)}/_apis/wit/workitems/${pbiId}?fields=${encodeURIComponent(fields)}&api-version=7.1`;
+  const res = await adoFetch(auth, url);
+
+  if (!res.ok) {
+    const body = await res.text();
+    return { ok: false, status: res.status, body: body.slice(0, 500) };
+  }
+
+  const data = (await res.json()) as { fields?: Record<string, string | undefined> };
+  const areaPath = data.fields?.[AREA_PATH]?.trim();
+  const iterationPath = data.fields?.[ITERATION_PATH]?.trim();
+
+  if (!areaPath || !iterationPath) {
+    return {
+      ok: false,
+      status: 422,
+      body: "No se pudo leer el área o la iteración del PBI padre.",
+    };
+  }
+
+  return { ok: true, areaPath, iterationPath };
+}
+
+async function resolveAssignedToValue(auth: AdoCallerAuth): Promise<string | null> {
+  const profile = await fetchCurrentAdoProfile(auth);
+  if (!profile) return null;
+  return profile.displayName.trim() || null;
+}
+
+export async function createTaskUnderPbi(
+  params: CreateTaskParams,
+  auth: AdoCallerAuth,
+): Promise<
+  | { ok: true; taskId: number; completedWork: number }
+  | { ok: false; status: number; body: string }
+> {
+  const pbiContext = await fetchPbiContext(auth, params.pbiId);
+  if (!pbiContext.ok) return pbiContext;
+
+  const assignedTo = await resolveAssignedToValue(auth);
+  const pbiUrl = `${adoOrgBase(auth)}/_apis/wit/workitems/${params.pbiId}`;
+  const iterationPath = params.sprintPath.trim() || pbiContext.iterationPath;
+
+  const ops: JsonPatchOp[] = [
+    { op: "add", path: "/fields/System.Title", value: params.title.trim() },
+    { op: "add", path: "/fields/System.State", value: params.state },
+    { op: "add", path: `/fields/${AREA_PATH}`, value: pbiContext.areaPath },
+    { op: "add", path: `/fields/${ITERATION_PATH}`, value: iterationPath },
+    { op: "add", path: `/fields/${COMPLETED_WORK}`, value: params.hours },
+    { op: "add", path: `/fields/${ORIGINAL_ESTIMATE}`, value: params.hours },
+    { op: "add", path: `/fields/${ACTIVITY}`, value: params.activity },
+    { op: "add", path: `/fields/${workingDateField()}`, value: params.workingDate },
+    {
+      op: "add",
+      path: "/relations/-",
+      value: {
+        rel: "System.LinkTypes.Hierarchy-Reverse",
+        url: pbiUrl,
+      },
+    },
+  ];
+
+  if (params.state === "Done") {
+    ops.push({ op: "add", path: `/fields/${REMAINING_WORK}`, value: 0 });
+  }
+
+  const description = params.description?.trim();
+  if (description) {
+    ops.push({ op: "add", path: "/fields/System.Description", value: description });
+  }
+
+  if (assignedTo) {
+    ops.push({ op: "add", path: "/fields/System.AssignedTo", value: assignedTo });
+  }
+
+  const url = `${adoProjectBase(auth)}/_apis/wit/workitems/$Task?api-version=7.1`;
+  const res = await adoFetch(auth, url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json-patch+json",
+    },
+    body: JSON.stringify(ops),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    return { ok: false, status: res.status, body: body.slice(0, 500) };
+  }
+
+  const created = (await res.json()) as { id?: number };
+  if (!created.id) {
+    return { ok: false, status: 502, body: "Azure DevOps no devolvió el ID de la tarea creada." };
+  }
+
+  return { ok: true, taskId: created.id, completedWork: params.hours };
+}
 
 export async function logWorkOnWorkItem(
   params: { workItemId: number; hours: number; comment: string },

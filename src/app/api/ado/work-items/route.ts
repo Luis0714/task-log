@@ -25,7 +25,7 @@ export async function GET(req: Request) {
   const assignedParam = params.get("assignedToMe");
   const assignedToMe =
     assignedParam === null || assignedParam === ""
-      ? true
+      ? false
       : assignedParam === "true" || assignedParam === "1";
 
   const auth = await resolveAdoCaller();

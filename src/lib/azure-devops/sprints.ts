@@ -163,14 +163,20 @@ async function fetchWorkItemDetails(
 
 export type WorkItemSprintFilters = {
   assignedToMe?: boolean;
+  workItemType?: string;
 };
+
+function resolveBacklogItemType(): string {
+  return process.env.AZDO_BACKLOG_ITEM_TYPE?.trim() || "Product Backlog Item";
+}
 
 export async function listWorkItemsInSprint(
   auth: AdoCallerAuth,
   iterationPath: string,
   filters: WorkItemSprintFilters = {},
 ): Promise<AdoWorkItemOption[]> {
-  const assignedToMe = filters.assignedToMe ?? true;
+  const assignedToMe = filters.assignedToMe ?? false;
+  const workItemType = filters.workItemType?.trim() || resolveBacklogItemType();
   const project = escapeWiqlString(auth.project);
   const path = escapeWiqlString(iterationPath);
 
@@ -178,6 +184,7 @@ export async function listWorkItemsInSprint(
     `[System.TeamProject] = '${project}'`,
     `[System.IterationPath] UNDER '${path}'`,
     `[System.State] <> 'Removed'`,
+    `[System.WorkItemType] = '${escapeWiqlString(workItemType)}'`,
   ];
 
   if (assignedToMe) {

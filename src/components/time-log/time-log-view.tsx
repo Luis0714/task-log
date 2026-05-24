@@ -2,8 +2,8 @@
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { CopilotHistoryList } from "@/components/copilot/copilot-history-list";
-import { CopilotPreviewCard } from "@/components/copilot/copilot-preview-card";
 import { TimeLogCopilotLink, TimeLogForm } from "@/components/time-log/time-log-form";
+import { TimeLogPreviewCard } from "@/components/time-log/time-log-preview-card";
 import {
   Card,
   CardContent,
@@ -40,7 +40,7 @@ export function TimeLogView({
           Registro de tiempo
         </h1>
         <p className="text-muted-foreground text-sm text-pretty">
-          Registra horas en un work item de forma manual. Siempre confirmarás antes de enviar a
+          Elige la historia del sprint, crea la tarea con tus horas y confirma antes de enviar a
           Azure DevOps.
         </p>
       </header>
@@ -49,15 +49,19 @@ export function TimeLogView({
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Formulario</CardTitle>
           <CardDescription>
-            Elige proyecto, equipo, sprint y work item desde Azure DevOps, luego horas y comentario.
+            Paso 1: contexto (proyecto, sprint, PBI). Paso 2: datos de la Task (título, horas,
+            activity, fecha).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <TimeLogForm
             form={form.form}
             catalog={form.catalog}
+            step={form.step}
             adoExecutionReady={adoExecutionReady}
             loading={form.loadingExecute}
+            onContinue={() => void form.goToStep2()}
+            onBack={form.goToStep1}
             onSubmit={form.prepareSubmit}
           />
           <TimeLogCopilotLink />
@@ -67,9 +71,8 @@ export function TimeLogView({
       {form.error && <CopilotErrorAlert message={form.error} />}
 
       {form.preview && (
-        <CopilotPreviewCard
+        <TimeLogPreviewCard
           preview={form.preview}
-          project={form.preview.project}
           adoExecutionReady={adoExecutionReady}
           authMethod={authMethod}
           loading={form.loadingExecute}
