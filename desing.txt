@@ -1,0 +1,222 @@
+Diseña las pantallas de "TaskPilot", una web app profesional para equipos que usan Azure DevOps. 
+Permite ver trabajo del sprint, registrar horas y ejecutar acciones con un copiloto de IA que siempre pide confirmación antes de aplicar cambios.
+
+Estilo: dark mode por defecto, UI moderna tipo SaaS (referencia: Linear, Vercel Dashboard, Notion dark), limpia y densa en información sin sentirse abrumadora.
+Layout: sidebar izquierda fija + área principal con header de página.
+Tipografía: sans-serif legible, jerarquía clara (títulos, subtítulos, metadata en gris).
+Componentes: cards, badges de estado, tablas/listas, inputs, botones primario/secundario, alerts, skeleton loaders, estados vacíos.
+Responsive: desktop first (1280px+), adaptable a tablet (768px) — la sidebar puede colapsar a iconos.
+Accesibilidad: contraste AA, estados hover/focus/disabled visibles.
+Idioma UI: español.
+Incluir variantes de: loading, error, empty state, y éxito en cada pantalla relevante.
+Paleta sugerida: fondo #0a0a0a–#111, superficies #1a1a1a–#222, acento azul/violeta para acciones primarias, verde éxito, ámbar advertencia, rojo error.
+
+Pantalla: Shell de aplicación TaskPilot (estructura base reutilizable)
+
+Objetivo: contenedor maestro que envuelve todas las vistas.
+
+Elementos:
+- Sidebar izquierda (240px): logo "TaskPilot", navegación con iconos + labels:
+  • Dashboard
+  • Copiloto IA
+  • Registro de tiempo
+  • Work Items
+  • Sprint / Kanban
+  • Configuración
+- Footer sidebar: badge de conexión Azure DevOps (org/proyecto), indicador Auth PAT u OAuth, avatar/nombre usuario si aplica
+- Área principal: top bar con título de sección, breadcrumb opcional, acciones contextuales a la derecha
+- Zona de contenido con padding generoso
+
+Estados:
+- Sidebar expandida y colapsada (solo iconos)
+- Item de nav activo vs inactivo
+- Conexión ADO: conectado (verde), desconectado (gris/rojo)
+
+Entregables: desktop + tablet colapsado. Componentes reutilizables del shell.
+
+Pantalla: Dashboard — resumen del sprint actual
+
+Objetivo: vista general del trabajo activo del usuario en Azure DevOps.
+
+Secciones:
+1. Header: "Dashboard" + selector de sprint (ej. "Sprint 13") + chip org/proyecto
+2. Fila de KPIs (4 cards):
+   - Tareas asignadas a mí
+   - Horas registradas esta semana
+   - Items completados en el sprint
+   - Progreso del sprint (%)
+3. Bloque "Mi trabajo activo": lista compacta de tasks/stories asignadas (ID, título, tipo, estado, horas completadas)
+4. Bloque "Actividad reciente": timeline de acciones (registro de horas, cambios de estado)
+5. Bloque "Por tipo de work item": mini resumen épicas / features / stories / tasks (conteos)
+
+Estados: loading con skeletons, empty ("No tienes items en este sprint"), error de conexión ADO.
+
+Entregables: desktop completo + versión tablet (KPIs en 2 columnas).
+
+Pantalla: Copiloto IA — comando en lenguaje natural
+
+Objetivo: el usuario escribe qué hizo y el sistema interpreta la acción antes de ejecutarla en Azure DevOps.
+
+Layout:
+- Header: "Copiloto IA" + subtítulo explicativo
+- Card central grande con textarea multilínea y placeholder: 
+  "Ej: Trabajé 2 horas en la US-123 corrigiendo autenticación"
+- Botón primario "Interpretar" + hint "Ctrl+Enter"
+- Card de "Vista previa de acción" (aparece tras interpretar):
+  - Badge tipo acción (log_work)
+  - Work Item #ID, horas, comentario extraído
+  - Botones: "Confirmar y ejecutar" (primario) + "Cancelar"
+- Alertas inline: aclaración necesaria, acción no soportada, error de servidor
+- Sección inferior "Historial reciente" (últimas ejecuciones ok/fallidas)
+
+Estados: idle, interpretando (spinner), preview lista, ejecutando, éxito, error.
+
+Nota UX: enfatizar que NADA se ejecuta sin confirmación explícita.
+
+Entregables: todos los estados anteriores como frames separados en Figma.
+
+Pantalla: Registro de tiempo — formulario estructurado
+
+Objetivo: alternativa manual al copiloto para registrar horas en un work item.
+
+Layout:
+- Header: "Registro de tiempo"
+- Card formulario:
+  - Campo Work Item ID (numérico) con ayuda "Buscar en Work Items"
+  - Campo Horas (decimal, max 24)
+  - Campo Comentario (textarea)
+  - Botón "Registrar horas"
+- Panel derecho o inferior: "Historial de registros" (fecha, WI, horas, comentario, estado)
+- Opcional: link "Usar copiloto IA" para cambiar de flujo
+
+Estados: form vacío, validación error (campos requeridos), enviando, éxito con toast, error ADO.
+
+Entregables: formulario + historial + estados de validación.
+
+Pantalla: Work Items — listado filtrable y buscable
+
+Objetivo: ver y gestionar épicas, features, user stories y tasks del proyecto.
+
+Layout:
+- Header: "Work Items" + botón secundario "Refrescar"
+- Barra de filtros:
+  - Búsqueda por texto/ID
+  - Filtro tipo (Epic, Feature, User Story, Task)
+  - Filtro estado (New, Active, Resolved, Closed…)
+  - Toggle "Solo asignados a mí"
+  - Selector sprint
+- Tabla/lista con columnas:
+  - ID, Título, Tipo (badge color), Estado (badge), Asignado, Horas completadas, Prioridad
+- Acción inline por fila: cambio rápido de estado (dropdown)
+- Click en fila abre panel lateral de detalle (no navegar fuera)
+
+Estados: loading, empty ("No hay items con estos filtros"), error, fila seleccionada.
+
+Entregables: vista lista + panel lateral de detalle (ver prompt 6).
+
+Pantalla: Panel lateral — Detalle de Work Item
+
+Objetivo: ver y editar rápido un item sin salir del listado.
+
+Panel derecho (~400px):
+- Header: #1234 + tipo badge + botón cerrar
+- Título editable inline
+- Metadata: estado (select), asignado, iteración/sprint, horas completadas
+- Descripción (textarea colapsable)
+- Sección "Registrar tiempo rápido" mini-form (horas + comentario + botón)
+- Footer: "Guardar cambios" + "Abrir en Azure DevOps" (link externo)
+
+Estados: solo lectura, editando, guardando, error de permisos.
+
+Entregables: panel abierto sobre la lista de Work Items (overlay/contexto).
+
+Pantalla: Sprint — Tablero Kanban del sprint activo
+
+Objetivo: visualizar y mover work items entre columnas de estado.
+
+Layout:
+- Header: nombre sprint + fechas + progreso (% completado)
+- Tablero horizontal con columnas (ej. New | Active | Resolved | Closed)
+- Cards por work item: ID, título, tipo icon, asignado (avatar), horas, prioridad
+- Drag & drop visual: card levantada, columna destino resaltada
+- Filtro rápido: "Solo mis items"
+
+Estados: columnas vacías, muchas cards (scroll vertical por columna), drag en curso, error al mover.
+
+Nota: diseñar affordance clara de arrastre; mobile puede ser solo tap-to-change-state.
+
+Entregables: tablero completo + detalle de card + estado drag.
+
+Pantalla: Backlog — lista priorizable
+
+Objetivo: ver items fuera del sprint o pendientes de planificar, con orden de prioridad.
+
+Layout:
+- Header: "Backlog" + contador total items
+- Lista vertical ordenable (drag handle a la izquierda)
+- Cada fila: prioridad #, ID, título, tipo, estado, story points/estimación, asignado
+- Acciones: "Mover a sprint" (dropdown), cambiar prioridad
+- Filtros: tipo, asignado, estado
+
+Estados: empty backlog, reordenando item, confirmación "Mover a Sprint 13".
+
+Entregables: lista + interacción de reorden + modal confirmación mover a sprint.
+
+Pantalla: Configuración — Autenticación y conexión ADO
+
+Objetivo: mostrar y gestionar cómo la app se conecta a Azure DevOps.
+
+Layout:
+- Header: "Configuración"
+- Sección "Método de autenticación" (solo uno visible según entorno):
+  Variante A — PAT (activa):
+    - Card explicando token en servidor
+    - Org: technologyfactory / Proyecto: Plataforma Virtual - NARP
+    - Badge "Conectado" o alerta "Falta configuración"
+  Variante B — OAuth (activa):
+    - Card con botón "Conectar con Azure DevOps"
+    - Estado sesión: nombre usuario, org/proyecto default
+    - Botón "Desconectar"
+- Sección "Preferencias" (placeholder): idioma, notificaciones
+- Sección "Acerca de TaskPilot"
+
+Estados: PAT ok, PAT incompleto, OAuth sin sesión, OAuth conectado, error OAuth/admin consent.
+
+Entregables: dos variantes (PAT y OAuth) como frames separados.
+
+Pantalla: Creación asistida — User Stories y subtareas con IA
+
+Objetivo: generar propuestas de historias/tasks desde una descripción; el usuario edita y confirma antes de crear en ADO.
+
+Layout:
+- Header: "Creación asistida"
+- Input inicial: "Describe la feature o necesidad" (textarea grande)
+- Botón "Generar propuesta"
+- Resultado en cards editables:
+  - User Story propuesta: título, descripción, criterios de aceptación (lista editable)
+  - Subtareas sugeridas (checklist editable, agregar/quitar)
+- Panel resumen: qué se creará en ADO (conteo items)
+- Botones: "Crear en Azure DevOps" (primario) + "Regenerar" + "Descartar"
+
+Estados: generando (skeleton), propuesta lista, editando, creando, éxito (lista IDs creados), error.
+
+Nota UX: mismo patrón que copiloto — confirmación obligatoria antes de crear.
+
+Entregables: flujo completo desde input vacío hasta éxito.
+
+Pantalla: Componentes globales TaskPilot (design system mínimo)
+
+Diseñar como página de sistema en Figma:
+
+1. Modal confirmación genérico ("¿Ejecutar acción en Azure DevOps?")
+2. Toast/notificación: éxito, error, info
+3. Alert banner: conexión ADO ok, error auth, admin consent requerido
+4. Empty states (ilustración simple + CTA):
+   - Sin work items
+   - Sin historial
+   - Sin conexión ADO
+5. Skeleton loaders: dashboard KPIs, tabla work items, kanban columns
+6. Badges de tipo WI: Epic, Feature, User Story, Task (colores distintos)
+7. Badges de estado: New, Active, Resolved, Closed
+
+Entregables: componentes como variants reutilizables + página de documentación visual.
