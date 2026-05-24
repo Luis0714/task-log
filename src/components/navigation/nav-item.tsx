@@ -9,7 +9,7 @@ const navItemVariants = cva(
   {
     variants: {
       active: {
-        true: "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
+        true: "bg-sidebar-primary font-medium text-sidebar-primary-foreground shadow-sm",
         false:
           "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
       },
