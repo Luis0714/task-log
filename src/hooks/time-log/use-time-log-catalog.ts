@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
 import { useCatalogAutoDefaults } from "@/hooks/time-log/use-catalog-auto-defaults";
+import { useSprintWorkingDate } from "@/hooks/time-log/use-sprint-working-date";
 import { useAdoBacklogStates } from "@/hooks/use-ado-backlog-states";
 import { useAdoProjects } from "@/hooks/use-ado-projects";
 import { useAdoSprintWorkItems } from "@/hooks/use-ado-sprint-work-items";
@@ -141,6 +142,8 @@ export function useTimeLogCatalog({
     sprintsLoading,
     team,
   });
+
+  useSprintWorkingDate({ form, sprintPath, sprints, sprintsLoading });
 
   const pbis = useMemo(
     () =>

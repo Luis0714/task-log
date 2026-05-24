@@ -1,3 +1,5 @@
+import { resolveDefaultWorkingDate } from "@/lib/time-log/working-date-default";
+
 /** Valores de Activity en Tasks (proceso Scrum Azure DevOps). */
 export const TASK_ACTIVITY_OPTIONS = [
   "Deployment",
@@ -17,8 +19,9 @@ export const FALLBACK_TASK_STATE_OPTIONS = ["To Do", "Closed"] as const;
 
 export const DEFAULT_TASK_ACTIVITY: TaskActivity = "Development";
 
+/** @deprecated Usa resolveDefaultWorkingDate con fechas del sprint cuando estén disponibles. */
 export function getDefaultWorkingDate(): string {
-  return new Date().toISOString().slice(0, 10);
+  return resolveDefaultWorkingDate();
 }
 
 /** Tipo de work item para PBIs/HUs (configurable vía env en servidor). */

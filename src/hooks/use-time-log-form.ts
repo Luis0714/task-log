@@ -7,7 +7,9 @@ import { useForm } from "react-hook-form";
 import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
 import { useCreateTask } from "@/hooks/time-log/use-create-task";
 import { useTimeLogCatalog } from "@/hooks/time-log/use-time-log-catalog";
+import { resolveWorkingDateForSprint } from "@/hooks/time-log/use-sprint-working-date";
 import { useTimeLogWizard } from "@/hooks/time-log/use-time-log-wizard";
+import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
 import {
   createTimeLogFormDefaults,
   timeLogFormSchema,
@@ -33,6 +35,7 @@ export function useTimeLogForm({
 
   const wizard = useTimeLogWizard(form);
   const defaultTaskStateRef = useRef("");
+  const sprintsRef = useRef<AdoSprintDto[]>([]);
 
   const createTask = useCreateTask({
     form,
@@ -42,6 +45,10 @@ export function useTimeLogForm({
       () => defaultTaskStateRef.current || form.getValues("taskState"),
       [form],
     ),
+    getDefaultWorkingDate: useCallback(
+      () => resolveWorkingDateForSprint(sprintsRef.current, form.getValues("sprintPath")),
+      [form],
+    ),
   });
 
   const catalog = useTimeLogCatalog({
@@ -49,6 +56,8 @@ export function useTimeLogForm({
     adoExecutionReady,
     submitting: createTask.loading,
   });
+
+  sprintsRef.current = catalog.sprints;
 
   useEffect(() => {
     if (catalog.defaultCompletedTaskState) {
