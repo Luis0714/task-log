@@ -1,10 +1,9 @@
 import { UserRound } from "lucide-react";
 
+import { WorkItemId } from "@/components/work-items/work-item-id";
+import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
+import { WorkItemTypeAvatar } from "@/components/work-items/work-item-type-avatar";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
-import {
-  formatWorkItemTypeAvatarInitials,
-  getWorkItemStatePresentation,
-} from "@/lib/time-log/work-item-presentation";
 import { cn } from "@/lib/utils";
 
 export const WORK_ITEM_SELECT_ITEM_CLASS =
@@ -33,46 +32,6 @@ function TruncatedTitle({ title, className }: TruncatedTitleProps) {
     >
       {title}
     </p>
-  );
-}
-type WorkItemStateBadgeProps = {
-  state: string;
-  className?: string;
-};
-
-function WorkItemStateBadge({ state, className }: WorkItemStateBadgeProps) {
-  const presentation = getWorkItemStatePresentation(state);
-
-  return (
-    <span
-      className={cn(
-        "inline-flex min-w-0 max-w-[58%] shrink items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
-        presentation.className,
-        className,
-      )}
-    >
-      <span className={cn("size-1.5 shrink-0 rounded-full", presentation.dotClassName)} aria-hidden />
-      <span className="truncate">{state}</span>
-    </span>
-  );
-}
-
-type WorkItemTypeAvatarProps = {
-  type: string;
-  className?: string;
-};
-
-function WorkItemTypeAvatar({ type, className }: WorkItemTypeAvatarProps) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "bg-primary/20 text-primary flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold tracking-tight",
-        className,
-      )}
-    >
-      {formatWorkItemTypeAvatarInitials(type)}
-    </span>
   );
 }
 
@@ -112,9 +71,7 @@ function WorkItemOptionCard({ item, className }: WorkItemOptionCardProps) {
       )}
     >
       <div className="flex min-w-0 items-start justify-between gap-2">
-        <span className="text-muted-foreground shrink-0 font-mono text-xs tabular-nums">
-          #{item.id}
-        </span>
+        <WorkItemId id={item.id} />
         {item.state ? <WorkItemStateBadge state={item.state} /> : null}
       </div>
 
@@ -138,10 +95,8 @@ export function WorkItemSelectOption({
   if (variant === "trigger") {
     return (
       <span className={cn("flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden", className)}>
-        <span className="text-muted-foreground shrink-0 font-mono text-xs tabular-nums">
-          #{item.id}
-        </span>
-        <WorkItemTypeAvatar type={item.type} className="size-6 shrink-0 text-[9px]" />
+        <WorkItemId id={item.id} />
+        <WorkItemTypeAvatar type={item.type} size="sm" />
         <span className="min-w-0 flex-1 overflow-hidden">
           <TruncatedTitle title={item.title} className="text-sm font-semibold" />
         </span>

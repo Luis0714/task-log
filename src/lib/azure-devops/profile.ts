@@ -7,14 +7,23 @@ export type AdoUserProfile = {
   publicAlias?: string;
 };
 
-const PROFILE_URL =
-  "https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=7.1";
+/** OAuth Bearer works on app.vssps; PAT Basic auth requires the org-scoped vssps host. */
+function profileApiBase(auth: AdoCallerAuth): string {
+  if (auth.mode === "pat") {
+    return `https://vssps.dev.azure.com/${encodeURIComponent(auth.organization)}`;
+  }
+  return "https://app.vssps.visualstudio.com";
+}
+
+function profileMeUrl(auth: AdoCallerAuth): string {
+  return `${profileApiBase(auth)}/_apis/profile/profiles/me?api-version=7.1`;
+}
 
 export async function fetchCurrentAdoProfile(
   auth: AdoCallerAuth,
 ): Promise<AdoUserProfile | null> {
   try {
-    const res = await fetch(PROFILE_URL, {
+    const res = await fetch(profileMeUrl(auth), {
       headers: { Authorization: adoAuthHeader(auth) },
       cache: "no-store",
     });
@@ -40,19 +49,23 @@ export async function fetchCurrentAdoProfile(
   }
 }
 
-export function buildAdoAvatarUrl(profileId: string, size: "small" | "medium" | "large" = "medium") {
+export function buildAdoAvatarUrl(
+  auth: AdoCallerAuth,
+  profileId: string,
+  size: "small" | "medium" | "large" = "medium",
+) {
   const params = new URLSearchParams({
     "api-version": "7.1-preview.1",
     size,
   });
-  return `https://app.vssps.visualstudio.com/_apis/profile/profiles/${encodeURIComponent(profileId)}/avatar?${params.toString()}`;
+  return `${profileApiBase(auth)}/_apis/profile/profiles/${encodeURIComponent(profileId)}/avatar?${params.toString()}`;
 }
 
 export async function fetchAdoAvatar(
   auth: AdoCallerAuth,
   profileId: string,
 ): Promise<Response> {
-  return fetch(buildAdoAvatarUrl(profileId), {
+  return fetch(buildAdoAvatarUrl(auth, profileId), {
     headers: { Authorization: adoAuthHeader(auth) },
     cache: "no-store",
   });

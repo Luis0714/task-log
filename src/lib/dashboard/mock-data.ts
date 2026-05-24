@@ -1,0 +1,92 @@
+import type {
+  DashboardHeaderData,
+  DashboardMetrics,
+  DashboardWorkItem,
+} from "@/lib/dashboard/types";
+
+export const MOCK_DASHBOARD_HEADER: DashboardHeaderData = {
+  displayName: "Luis Martínez",
+  initials: "LM",
+  project: "Core Platform",
+  sprintName: "Sprint 12",
+};
+
+export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
+  hoursToday: 5,
+  hoursSprintCurrent: 32,
+  hoursSprintTarget: 40,
+  hoursRemaining: 8,
+  pbiStatusCounts: [
+    { label: "En progreso", count: 2 },
+    { label: "Pendientes", count: 5 },
+    { label: "QA", count: 3 },
+  ],
+};
+
+export const MOCK_IN_PROGRESS_PBIS: DashboardWorkItem[] = [
+  {
+    id: 123,
+    title: "Implementar autenticación JWT",
+    type: "Product Backlog Item",
+    state: "In Progress",
+    assignedTo: "Luis Martínez",
+    loggedHours: 6,
+    estimatedHours: 12,
+    priority: 1,
+  },
+  {
+    id: 456,
+    title: "Refactorizar módulo de sesión en frontend",
+    type: "User Story",
+    state: "Active",
+    assignedTo: "Luis Martínez",
+    loggedHours: 3.5,
+    estimatedHours: 8,
+    priority: 2,
+  },
+];
+
+export const MOCK_UPCOMING_PBIS: DashboardWorkItem[] = [
+  {
+    id: 789,
+    title: "Agregar validación de tokens en API",
+    type: "Product Backlog Item",
+    state: "Ready",
+    priority: 1,
+  },
+  {
+    id: 890,
+    title: "Documentar flujo OAuth con Entra ID",
+    type: "Task",
+    state: "To Do",
+    priority: 2,
+  },
+  {
+    id: 901,
+    title: "Corregir timeout en refresh token",
+    type: "Bug",
+    state: "New",
+    priority: 1,
+  },
+];
+
+export const MOCK_ASSIGNED_PBIS: DashboardWorkItem[] = [
+  ...MOCK_IN_PROGRESS_PBIS,
+  ...MOCK_UPCOMING_PBIS,
+  {
+    id: 234,
+    title: "Migrar endpoints legacy a App Router",
+    type: "Product Backlog Item",
+    state: "QA",
+    loggedHours: 10,
+    priority: 3,
+  },
+  {
+    id: 567,
+    title: "Actualizar dependencias de seguridad",
+    type: "Task",
+    state: "Done",
+    loggedHours: 4,
+    priority: 4,
+  },
+];
