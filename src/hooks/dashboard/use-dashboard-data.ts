@@ -5,14 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCopilotHistory } from "@/hooks/use-copilot-history";
 import { useAdoContextSelection } from "@/hooks/use-ado-context-selection";
 import { useAdoSprintWorkItems } from "@/hooks/use-ado-sprint-work-items";
-import {
-  buildDailySummary,
-  filterHistoryByDay,
-} from "@/lib/dashboard/activity";
-import {
-  computeSprintCapacityHours,
-  computeSprintCapacityHoursThroughDay,
-} from "@/lib/dashboard/sprint-hours";
+import { buildDailySummary } from "@/lib/dashboard/activity";
+import { computeSprintCapacityHours } from "@/lib/dashboard/sprint-hours";
 import { computeSprintWeekMetrics } from "@/lib/dashboard/sprint-weeks";
 import {
   formatSprintDayShortLabel,
@@ -41,6 +35,7 @@ import {
 import { useAdoBacklogStates } from "@/hooks/use-ado-backlog-states";
 import { useAdoSprintBugs } from "@/hooks/use-ado-sprint-bugs";
 import { useAdoSprintTasks } from "@/hooks/use-ado-sprint-tasks";
+import { useAdoTeamDaysOff } from "@/hooks/use-ado-team-days-off";
 import type { DashboardHeaderData, DashboardMetrics } from "@/lib/dashboard/types";
 import {
   collectWorkItemStates,
@@ -65,7 +60,18 @@ export function useDashboardData({
     defaultProject,
   });
 
-  const { project, sprintPath } = context;
+  const { project, sprintPath, team } = context;
+
+  const { nonWorkingDates, loading: daysOffLoading } = useAdoTeamDaysOff(
+    project || undefined,
+    team || undefined,
+    adoExecutionReady,
+  );
+
+  const workingDayOptions = useMemo(
+    () => ({ nonWorkingDates }),
+    [nonWorkingDates],
+  );
 
   const { states: backlogStates } = useAdoBacklogStates(
     project || undefined,
@@ -128,8 +134,12 @@ export function useDashboardData({
 
   const sprintWorkingDays = useMemo(
     () =>
-      listSprintWorkingDays(currentSprint?.startDate, currentSprint?.finishDate),
-    [currentSprint?.finishDate, currentSprint?.startDate],
+      listSprintWorkingDays(
+        currentSprint?.startDate,
+        currentSprint?.finishDate,
+        workingDayOptions,
+      ),
+    [currentSprint?.finishDate, currentSprint?.startDate, workingDayOptions],
   );
 
   const [selectedSprintDayKey, setSelectedSprintDayKey] = useState("");
@@ -151,11 +161,6 @@ export function useDashboardData({
     [selectedSprintDayKey, sprintWorkingDays],
   );
 
-  const dayHistory = useMemo(() => {
-    if (!selectedSprintDayKey) return history;
-    return filterHistoryByDay(history, selectedSprintDayKey);
-  }, [history, selectedSprintDayKey]);
-
   const pbiProgress = useMemo(
     () => computeSprintPbiProgress(assigned, workItemStates),
     [assigned, workItemStates],
@@ -171,21 +176,22 @@ export function useDashboardData({
   );
 
   const metrics: DashboardMetrics = useMemo(() => {
-    const dayKey = selectedSprintDayKey || toLocalDateKey(new Date());
-    const hoursSprintTarget = selectedSprintDayKey
-      ? computeSprintCapacityHoursThroughDay(
-          currentSprint?.startDate,
-          dayKey,
-          currentSprint?.finishDate,
-        )
-      : computeSprintCapacityHours(currentSprint?.startDate, currentSprint?.finishDate);
+    const todayKey = toLocalDateKey(new Date());
+    const hoursDayKey = selectedSprintDayKey || todayKey;
 
-    const hoursToday = sumDoneTaskHoursForDay(sprintTasks, dayKey);
-    const hoursSprintCurrent = sumDoneTaskHoursThroughDay(sprintTasks, dayKey);
+    const hoursToday = sumDoneTaskHoursForDay(sprintTasks, hoursDayKey);
 
-    const sprintWeeks = selectedSprintDayKey
-      ? computeSprintWeekMetrics(sprintWorkingDays, sprintTasks, selectedSprintDayKey)
-      : [];
+    const hoursSprintTarget = computeSprintCapacityHours(
+      currentSprint?.startDate,
+      currentSprint?.finishDate,
+      workingDayOptions,
+    );
+    const hoursSprintCurrent = sumDoneTaskHoursThroughDay(sprintTasks, todayKey);
+    const sprintWeeks = computeSprintWeekMetrics(
+      sprintWorkingDays,
+      sprintTasks,
+      todayKey,
+    );
 
     return computeDashboardMetrics(hoursToday, {
       sprintHours: { hoursSprintCurrent, hoursSprintTarget },
@@ -198,6 +204,7 @@ export function useDashboardData({
   }, [
     currentSprint?.finishDate,
     currentSprint?.startDate,
+    workingDayOptions,
     pbiProgress,
     pbiStateGroups,
     selectedSprintDayKey,
@@ -213,13 +220,13 @@ export function useDashboardData({
   }, [selectedSprintDay]);
 
   const dailySummary = useMemo(
-    () => buildDailySummary(inProgress, dayHistory),
-    [dayHistory, inProgress],
+    () => buildDailySummary(inProgress, history),
+    [history, inProgress],
   );
 
   const regenerateDailySummary = useCallback(
-    () => buildDailySummary(inProgress, dayHistory),
-    [dayHistory, inProgress],
+    () => buildDailySummary(inProgress, history),
+    [history, inProgress],
   );
 
   const resolvedHeader: DashboardHeaderData = useMemo(
@@ -235,7 +242,7 @@ export function useDashboardData({
 
   const loading =
     adoExecutionReady &&
-    (contextLoading || workItemsLoading || bugsLoading || tasksLoading);
+    (contextLoading || daysOffLoading || workItemsLoading || bugsLoading || tasksLoading);
 
   const error =
     context.projectsError ??

@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
-import { listSprintWorkingDays } from "@/lib/dashboard/sprint-days";
+import { listSprintWorkingDays, type WorkingDayFilterOptions } from "@/lib/dashboard/sprint-days";
 import { resolveDefaultWorkingDate } from "@/lib/time-log/working-date-default";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 
@@ -13,6 +13,7 @@ type UseSprintWorkingDateOptions = {
   sprintPath: string;
   sprints: AdoSprintDto[];
   sprintsLoading: boolean;
+  workingDayOptions?: WorkingDayFilterOptions;
 };
 
 /** Sincroniza workingDate con el día laborable actual del sprint o el último pasado. */
@@ -21,6 +22,7 @@ export function useSprintWorkingDate({
   sprintPath,
   sprints,
   sprintsLoading,
+  workingDayOptions = {},
 }: UseSprintWorkingDateOptions): void {
   const previousSprintPathRef = useRef<string | null>(null);
 
@@ -30,8 +32,16 @@ export function useSprintWorkingDate({
     const sprint = sprints.find((item) => item.path === sprintPath);
     if (!sprint) return;
 
-    const workingDays = listSprintWorkingDays(sprint.startDate, sprint.finishDate);
-    const defaultDate = resolveDefaultWorkingDate(sprint.startDate, sprint.finishDate);
+    const workingDays = listSprintWorkingDays(
+      sprint.startDate,
+      sprint.finishDate,
+      workingDayOptions,
+    );
+    const defaultDate = resolveDefaultWorkingDate(
+      sprint.startDate,
+      sprint.finishDate,
+      workingDayOptions,
+    );
     const currentDate = form.getValues("workingDate");
     const sprintChanged = previousSprintPathRef.current !== sprintPath;
     previousSprintPathRef.current = sprintPath;
@@ -49,13 +59,14 @@ export function useSprintWorkingDate({
     if (!currentDate && defaultDate) {
       form.setValue("workingDate", defaultDate, { shouldValidate: true });
     }
-  }, [form, sprintPath, sprints, sprintsLoading]);
+  }, [form, sprintPath, sprints, sprintsLoading, workingDayOptions]);
 }
 
 export function resolveWorkingDateForSprint(
   sprints: AdoSprintDto[],
   sprintPath: string,
+  workingDayOptions: WorkingDayFilterOptions = {},
 ): string {
   const sprint = sprints.find((item) => item.path === sprintPath);
-  return resolveDefaultWorkingDate(sprint?.startDate, sprint?.finishDate);
+  return resolveDefaultWorkingDate(sprint?.startDate, sprint?.finishDate, workingDayOptions);
 }

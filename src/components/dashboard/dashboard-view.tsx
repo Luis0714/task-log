@@ -53,7 +53,21 @@ export function DashboardView({
           title="Contexto"
           description="Proyecto, equipo y sprint para filtrar el dashboard."
         >
-          <AdoContextSelectFields {...context} />
+          <AdoContextSelectFields
+            {...context}
+            sprintDayFilter={
+              sprintDay.workingDays.length > 0 ? (
+                <SprintDaySelect
+                  showLabel
+                  value={sprintDay.value}
+                  workingDays={sprintDay.workingDays}
+                  disabled={loading}
+                  className="w-full sm:min-w-48 sm:flex-1"
+                  onValueChange={sprintDay.onValueChange}
+                />
+              ) : null
+            }
+          />
         </DashboardSection>
       ) : null}
 
@@ -67,19 +81,7 @@ export function DashboardView({
         />
       </DashboardSection>
 
-      <DashboardSection
-        title="Sprint Overview"
-        action={
-          sprintDay.workingDays.length > 0 ? (
-            <SprintDaySelect
-              value={sprintDay.value}
-              workingDays={sprintDay.workingDays}
-              disabled={loading}
-              onValueChange={sprintDay.onValueChange}
-            />
-          ) : null
-        }
-      >
+      <DashboardSection title="Sprint Overview">
         <div className="flex flex-col gap-3">
           <SprintOverviewGrid
             metrics={metrics}

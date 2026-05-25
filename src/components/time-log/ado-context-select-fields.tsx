@@ -27,10 +27,17 @@ export function AdoContextSelectFields({
   onProjectChange,
   onTeamChange,
   onSprintChange,
+  sprintDayFilter,
   className,
 }: AdoContextSelectFieldsProps) {
   return (
-    <div className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-3", className)}>
+    <div
+      className={cn(
+        "grid gap-4 sm:grid-cols-2",
+        sprintDayFilter ? "lg:grid-cols-[1fr_1fr_minmax(0,1fr)]" : "lg:grid-cols-3",
+        className,
+      )}
+    >
       <ControlledSelectField
         label="Proyecto"
         value={project}
@@ -49,16 +56,26 @@ export function AdoContextSelectFields({
         options={teamSelectOptions(teams)}
         onValueChange={onTeamChange}
       />
-      <ControlledSelectField
-        label="Sprint"
-        value={sprintPath}
-        placeholder={placeholders.sprint}
-        disabled={sprintSelectDisabled}
-        error={sprintsError}
-        displayValue={selectedSprintLabel}
-        options={sprintSelectOptions(sprints)}
-        onValueChange={onSprintChange}
-      />
+      <div
+        className={cn(
+          "flex flex-col gap-4",
+          sprintDayFilter && "sm:flex-row sm:items-end sm:gap-3",
+        )}
+      >
+        <div className={cn(sprintDayFilter && "min-w-0 flex-1")}>
+          <ControlledSelectField
+            label="Sprint"
+            value={sprintPath}
+            placeholder={placeholders.sprint}
+            disabled={sprintSelectDisabled}
+            error={sprintsError}
+            displayValue={selectedSprintLabel}
+            options={sprintSelectOptions(sprints)}
+            onValueChange={onSprintChange}
+          />
+        </div>
+        {sprintDayFilter}
+      </div>
     </div>
   );
 }

@@ -1,3 +1,9 @@
+import {
+  countWorkingDaysInRange,
+  isWorkingDay,
+  type WorkingDayFilterOptions,
+} from "@/lib/dashboard/non-working-days";
+
 export type SprintWorkingDay = {
   /** Fecha local en formato YYYY-MM-DD. */
   value: string;
@@ -5,6 +11,8 @@ export type SprintWorkingDay = {
   dayIndex: number;
   date: Date;
 };
+
+export type { WorkingDayFilterOptions };
 
 export function toLocalDateKey(date: Date): string {
   const year = date.getFullYear();
@@ -38,6 +46,7 @@ export function isSameLocalDay(a: Date, b: Date): boolean {
 export function listSprintWorkingDays(
   startDate?: string | null,
   finishDate?: string | null,
+  options: WorkingDayFilterOptions = {},
 ): SprintWorkingDay[] {
   if (!startDate?.trim() || !finishDate?.trim()) return [];
 
@@ -50,8 +59,7 @@ export function listSprintWorkingDays(
   let dayIndex = 0;
 
   while (cursor <= end) {
-    const weekday = cursor.getDay();
-    if (weekday !== 0 && weekday !== 6) {
+    if (isWorkingDay(cursor, options)) {
       dayIndex += 1;
       days.push({
         value: toLocalDateKey(cursor),
@@ -64,6 +72,8 @@ export function listSprintWorkingDays(
 
   return days;
 }
+
+export { countWorkingDaysInRange };
 
 export function pickDefaultSprintDayKey(workingDays: SprintWorkingDay[]): string | null {
   if (workingDays.length === 0) return null;

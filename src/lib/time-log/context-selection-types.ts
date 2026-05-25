@@ -20,5 +20,7 @@ export type AdoContextSelectFieldsProps = {
   onProjectChange: (value: string) => void;
   onTeamChange: (value: string) => void;
   onSprintChange: (value: string) => void;
+  /** Filtro opcional (p. ej. día del sprint) junto al select de sprint. */
+  sprintDayFilter?: React.ReactNode;
   className?: string;
 };

@@ -1,3 +1,4 @@
+import type { WorkingDayFilterOptions } from "@/lib/dashboard/sprint-days";
 import {
   listSprintWorkingDays,
   pickDefaultSprintDayKey,
@@ -8,8 +9,9 @@ import {
 export function resolveDefaultWorkingDate(
   sprintStartDate?: string | null,
   sprintFinishDate?: string | null,
+  options: WorkingDayFilterOptions = {},
 ): string {
-  const workingDays = listSprintWorkingDays(sprintStartDate, sprintFinishDate);
+  const workingDays = listSprintWorkingDays(sprintStartDate, sprintFinishDate, options);
   const defaultDay = pickDefaultSprintDayKey(workingDays);
   if (defaultDay) return defaultDay;
 

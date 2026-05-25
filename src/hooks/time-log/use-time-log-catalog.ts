@@ -11,6 +11,7 @@ import { useAdoSprintWorkItems } from "@/hooks/use-ado-sprint-work-items";
 import { useAdoSprints } from "@/hooks/use-ado-sprints";
 import { useAdoTaskStates } from "@/hooks/use-ado-task-states";
 import { useAdoTeamMembers } from "@/hooks/use-ado-team-members";
+import { useAdoTeamDaysOff } from "@/hooks/use-ado-team-days-off";
 import { useAdoTeams } from "@/hooks/use-ado-teams";
 import { useWorkItemFilters } from "@/hooks/use-work-item-filters";
 import {
@@ -85,6 +86,17 @@ export function useTimeLogCatalog({
     error: sprintsError,
   } = useAdoSprints(project || undefined, team || undefined, adoExecutionReady);
 
+  const { nonWorkingDates } = useAdoTeamDaysOff(
+    project || undefined,
+    team || undefined,
+    adoExecutionReady,
+  );
+
+  const workingDayOptions = useMemo(
+    () => ({ nonWorkingDates }),
+    [nonWorkingDates],
+  );
+
   const {
     members: teamMembers,
     loading: teamMembersLoading,
@@ -143,7 +155,13 @@ export function useTimeLogCatalog({
     team,
   });
 
-  useSprintWorkingDate({ form, sprintPath, sprints, sprintsLoading });
+  useSprintWorkingDate({
+    form,
+    sprintPath,
+    sprints,
+    sprintsLoading,
+    workingDayOptions,
+  });
 
   const pbis = useMemo(
     () =>
