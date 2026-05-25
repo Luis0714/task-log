@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 export type SectionBlockSkeletonProps = {
   content?: "list-compact" | "list-featured" | "chart" | "chart-delivery" | "chart-hours" | "chart-workflow" | "card";
   className?: string;
+  /** Si false, solo pinta el contenido (útil dentro de DashboardSection con título real). */
+  showHeader?: boolean;
 };
 
 function DeliveryChartSkeleton({ className }: { className?: string }) {
@@ -31,13 +33,17 @@ function WorkflowChartSkeleton({ className }: { className?: string }) {
 
 function HoursChartSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("grid gap-3 lg:grid-cols-12", className)}>
-      <Skeleton className="h-24 rounded-xl lg:col-span-3" />
-      <Skeleton className="h-24 rounded-xl lg:col-span-3" />
-      <Skeleton className="h-24 rounded-xl lg:col-span-3" />
-      <Skeleton className="h-24 rounded-xl lg:col-span-3" />
-      <Skeleton className="h-44 rounded-xl lg:col-span-8" />
-      <Skeleton className="h-44 rounded-xl lg:col-span-4" />
+    <div className={cn("flex flex-col gap-3", className)}>
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-12">
+        <Skeleton className="h-24 rounded-xl lg:col-span-4" />
+        <Skeleton className="h-24 rounded-xl lg:col-span-4" />
+        <Skeleton className="h-24 rounded-xl col-span-2 lg:col-span-4" />
+      </div>
+      <Skeleton className="h-32 w-full rounded-xl" />
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Skeleton className="h-44 rounded-xl" />
+        <Skeleton className="h-44 rounded-xl" />
+      </div>
     </div>
   );
 }
@@ -49,13 +55,16 @@ function CardBlockSkeleton({ className }: { className?: string }) {
 export function SectionBlockSkeleton({
   content = "list-compact",
   className,
+  showHeader = true,
 }: SectionBlockSkeletonProps) {
   return (
     <section className={cn("flex flex-col gap-2", className)}>
-      <div className="space-y-1.5">
-        <Skeleton className="h-6 w-40 max-w-full sm:w-48" />
-        <Skeleton className="h-4 w-full max-w-lg" />
-      </div>
+      {showHeader ? (
+        <div className="space-y-1.5">
+          <Skeleton className="h-6 w-40 max-w-full sm:w-48" />
+          <Skeleton className="h-4 w-full max-w-lg" />
+        </div>
+      ) : null}
       {content === "list-featured" ? <PbiListSkeleton variant="featured" /> : null}
       {content === "list-compact" ? <PbiListSkeleton variant="compact" /> : null}
       {content === "chart" ? <DeliveryChartSkeleton /> : null}

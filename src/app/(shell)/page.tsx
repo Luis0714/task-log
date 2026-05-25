@@ -1,8 +1,5 @@
-import { Suspense } from "react";
-
-import { DashboardBodyServer } from "@/components/dashboard/dashboard-body-server";
 import { DashboardPageShell } from "@/components/dashboard/dashboard-page-shell";
-import { DashboardPageSkeleton } from "@/components/skeletons/dashboard-page-skeleton";
+import { DashboardSectionsStream } from "@/components/dashboard/dashboard-sections-stream";
 import { loadAdoCatalog } from "@/lib/ado/load-ado-catalog";
 import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
 import { parseAdoContextSearchParams } from "@/lib/ado/parse-context-search-params";
@@ -50,13 +47,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       ? await loadNonWorkingDates(catalog.project, catalog.team)
       : [];
 
-  const suspenseKey = [
-    catalog.project,
-    catalog.team,
-    catalog.sprintPath,
-    sprintDayKey,
-  ].join("|");
-
   return (
     <DashboardPageShell
       header={header}
@@ -66,9 +56,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       nonWorkingDates={nonWorkingDates}
     >
       {auth.adoExecutionReady && catalog.sprintPath ? (
-        <Suspense key={suspenseKey} fallback={<DashboardPageSkeleton />}>
-          <DashboardBodyServer catalog={catalog} sprintDayKey={sprintDayKey} />
-        </Suspense>
+        <DashboardSectionsStream catalog={catalog} sprintDayKey={sprintDayKey} />
       ) : null}
     </DashboardPageShell>
   );

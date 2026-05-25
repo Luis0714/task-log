@@ -25,8 +25,15 @@ const BAR_SERIES = [
   { key: "completed" as const },
 ] as const;
 
+const DELIVERY_BAR_MARGIN = { ...CHART_MARGIN, top: 22 } as const;
+
 function seriesFill(key: (typeof BAR_SERIES)[number]["key"]): string {
   return `var(--color-${key})`;
+}
+
+function formatBarLabel(value: unknown): string {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) && n > 0 ? String(n) : "";
 }
 
 export type GroupedBarChartProps = {
@@ -43,7 +50,7 @@ export function GroupedBarChart({ rows, className }: GroupedBarChartProps) {
       initialDimension={{ ...CHART_INITIAL_DIMENSION, height: 180 }}
       className={chartContainerClass(CHART_HEIGHT_DEFAULT, className)}
     >
-      <BarChart data={rows} margin={CHART_MARGIN} barCategoryGap="22%" barGap={6}>
+      <BarChart data={rows} margin={DELIVERY_BAR_MARGIN} barCategoryGap="22%" barGap={6}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
         <XAxis
           dataKey="label"
@@ -73,13 +80,13 @@ export function GroupedBarChart({ rows, className }: GroupedBarChartProps) {
               opacity: 1,
             }}
           >
-            {key === "completed" ? (
-              <LabelList
-                dataKey="completed"
-                position="top"
-                className="fill-foreground text-[10px] font-medium"
-              />
-            ) : null}
+            <LabelList
+              dataKey={key}
+              position="top"
+              offset={4}
+              className="fill-foreground text-[10px] font-medium"
+              formatter={formatBarLabel}
+            />
           </Bar>
         ))}
       </BarChart>
