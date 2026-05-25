@@ -5,8 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
 import type { BacklogResponsableFieldDto } from "@/lib/schemas/ado-backlog-fields";
 import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
-import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
-import { resolveDefaultAssignee } from "@/lib/work-items/resolve-default-assignee";
+import { getTodayDateKey } from "@/lib/time-log/working-date-default";
+import { resolveResponsableDraftValue } from "@/lib/work-items/resolve-default-assignee";
 import {
   getPbiTransitionKind,
   requiresCommittedDates,
@@ -26,17 +26,15 @@ export type UseUserStoryDetailFormOptions = {
   onClose?: () => void;
 };
 
-function resolveInitialDate(
-  primary: string | undefined,
-  fallback: string | undefined,
-): string {
-  const primaryTrimmed = primary?.trim();
-  if (primaryTrimmed && DATE_KEY_PATTERN.test(primaryTrimmed)) return primaryTrimmed;
+function readStoredSchedulingDate(value: string | undefined): string {
+  const trimmed = value?.trim();
+  if (trimmed && DATE_KEY_PATTERN.test(trimmed)) return trimmed;
+  return "";
+}
 
-  const fallbackTrimmed = fallback?.trim();
-  if (fallbackTrimmed && DATE_KEY_PATTERN.test(fallbackTrimmed)) return fallbackTrimmed;
-
-  return getDefaultWorkingDate();
+/** Fecha guardada en ADO o hoy si el campo está vacío. */
+function resolveSchedulingDraftDate(value: string | undefined): string {
+  return readStoredSchedulingDate(value) || getTodayDateKey();
 }
 
 export function useUserStoryDetailForm({
@@ -68,55 +66,64 @@ export function useUserStoryDetailForm({
     if (!workItem) return;
 
     setDraftState(workItem.state);
-    setDraftStartDate(
-      resolveInitialDate(workItem.startDate, workItem.targetDate ?? workItem.workingDate),
+    setDraftStartDate(resolveSchedulingDraftDate(workItem.startDate));
+    setDraftTargetDate(resolveSchedulingDraftDate(workItem.targetDate));
+    setDraftMaquetacion(
+      resolveResponsableDraftValue(
+        workItem.responsableMaquetacion,
+        currentUserDisplayName,
+        members,
+        true,
+      ),
     );
-    setDraftTargetDate(
-      resolveInitialDate(workItem.targetDate, workItem.startDate ?? workItem.workingDate),
+    setDraftIntegrador(
+      resolveResponsableDraftValue(
+        workItem.responsableIntegrador,
+        currentUserDisplayName,
+        members,
+        true,
+      ),
     );
-    setDraftMaquetacion(workItem.responsableMaquetacion?.trim() ?? "");
-    setDraftIntegrador(workItem.responsableIntegrador?.trim() ?? "");
-    setDraftQa(workItem.responsableQA?.trim() ?? "");
-  }, [workItem]);
+    setDraftQa(
+      resolveResponsableDraftValue(
+        workItem.responsableQA,
+        currentUserDisplayName,
+        members,
+        false,
+      ),
+    );
+  }, [workItem, currentUserDisplayName, members]);
 
   useEffect(() => {
     syncDraftsFromWorkItem();
   }, [syncDraftsFromWorkItem]);
 
-  useEffect(() => {
-    if (!workItem || transitionKind !== "qa") return;
-
-    setDraftMaquetacion((current) =>
-      current.trim()
-        ? current
-        : resolveDefaultAssignee(
-            workItem.responsableMaquetacion,
-            currentUserDisplayName,
-            members,
-          ),
-    );
-    setDraftIntegrador((current) =>
-      current.trim()
-        ? current
-        : resolveDefaultAssignee(
-            workItem.responsableIntegrador,
-            currentUserDisplayName,
-            members,
-          ),
-    );
-  }, [workItem, transitionKind, currentUserDisplayName, members]);
-
   const initialSnapshot = useMemo(() => {
     if (!workItem) return null;
     return {
       state: workItem.state,
-      startDate: resolveInitialDate(workItem.startDate, workItem.targetDate ?? workItem.workingDate),
-      targetDate: resolveInitialDate(workItem.targetDate, workItem.startDate ?? workItem.workingDate),
-      maquetacion: workItem.responsableMaquetacion?.trim() ?? "",
-      integrador: workItem.responsableIntegrador?.trim() ?? "",
-      qa: workItem.responsableQA?.trim() ?? "",
+      startDate: resolveSchedulingDraftDate(workItem.startDate),
+      targetDate: resolveSchedulingDraftDate(workItem.targetDate),
+      maquetacion: resolveResponsableDraftValue(
+        workItem.responsableMaquetacion,
+        currentUserDisplayName,
+        members,
+        true,
+      ),
+      integrador: resolveResponsableDraftValue(
+        workItem.responsableIntegrador,
+        currentUserDisplayName,
+        members,
+        true,
+      ),
+      qa: resolveResponsableDraftValue(
+        workItem.responsableQA,
+        currentUserDisplayName,
+        members,
+        false,
+      ),
     };
-  }, [workItem]);
+  }, [workItem, currentUserDisplayName, members]);
 
   const isStateDirty = Boolean(workItem && draftState !== workItem.state);
   const isDatesDirty =

@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 
-import { BacklogFieldReferenceHelp } from "@/components/work-items/backlog-field-reference-help";
 import { UserStoryResponsableFields } from "@/components/work-items/user-story-responsable-fields";
 import { UserStorySchedulingFields } from "@/components/work-items/user-story-scheduling-fields";
 import { UserStorySummaryCard } from "@/components/work-items/user-story-summary-card";
@@ -89,10 +88,10 @@ export function UserStoryDetailSheet({
   membersLoading = false,
   onSaved,
 }: UserStoryDetailSheetProps) {
-  const {
-    data: backlogFieldsMeta,
-    loading: backlogFieldsLoading,
-  } = useAdoBacklogFields(project ?? undefined, open && Boolean(project));
+  const { data: backlogFieldsMeta } = useAdoBacklogFields(
+    project ?? undefined,
+    open && Boolean(project),
+  );
 
   const form = useUserStoryDetailForm({
     workItem,
@@ -144,23 +143,6 @@ export function UserStoryDetailSheet({
             {workItem ? (
               <>
                 <UserStorySummaryCard item={workItem} />
-
-                <section className="space-y-2">
-                  <h3 className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-                    Bugs ({childBugs.length})
-                  </h3>
-                  {childBugs.length === 0 ? (
-                    <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-6 text-center text-sm">
-                      No hay bugs vinculados a esta historia.
-                    </p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {childBugs.map((bug) => (
-                        <BugListItem key={bug.id} bug={bug} />
-                      ))}
-                    </ul>
-                  )}
-                </section>
 
                 <section className="space-y-2">
                   <Label htmlFor="user-story-state">Estado</Label>
@@ -227,10 +209,22 @@ export function UserStoryDetailSheet({
                   </section>
                 ) : null}
 
-                <BacklogFieldReferenceHelp
-                  metadata={backlogFieldsMeta}
-                  loading={backlogFieldsLoading}
-                />
+                <section className="space-y-2">
+                  <h3 className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
+                    Bugs ({childBugs.length})
+                  </h3>
+                  {childBugs.length === 0 ? (
+                    <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-6 text-center text-sm">
+                      No hay bugs vinculados a esta historia.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {childBugs.map((bug) => (
+                        <BugListItem key={bug.id} bug={bug} />
+                      ))}
+                    </ul>
+                  )}
+                </section>
               </>
             ) : (
               <p className="text-muted-foreground text-sm">

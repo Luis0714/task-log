@@ -38,7 +38,9 @@ const RESPONSABLE_DEFINITIONS: ReadonlyArray<{
     label: "Responsable QA",
     defaultToCurrentUser: false,
     matchName: (name) => {
-      if (name.includes("maquet") || name.includes("integr")) return false;
+      if (name.includes("maquet") || name.includes("integr") || name.includes("backend")) {
+        return false;
+      }
       return name.includes("responsable") && name.includes("qa");
     },
   },

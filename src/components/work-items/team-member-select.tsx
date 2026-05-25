@@ -40,9 +40,15 @@ export function TeamMemberSelect({
         <SelectTrigger id={id} className="w-full">
           <SelectValue
             placeholder={membersLoading ? "Cargando miembros…" : "Selecciona una persona"}
-          />
+          >
+            {value.trim() ? value : null}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
+          {value.trim() &&
+          !members.some((member) => member.displayName === value) ? (
+            <SelectItem value={value}>{value}</SelectItem>
+          ) : null}
           {members.map((member) => (
             <SelectItem key={member.id} value={member.displayName}>
               {member.displayName}
