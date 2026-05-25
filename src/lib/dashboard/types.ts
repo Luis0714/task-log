@@ -70,3 +70,16 @@ export type DashboardHeaderData = {
   sprintName: string;
 };
 
+export type DashboardSectionLoading = {
+  /** Selectores de proyecto/equipo/sprint y día del sprint. */
+  context: boolean;
+  /** KPIs y gráfico de entrega (historias + bugs). */
+  delivery: boolean;
+  /** Horas del día, sprint y semanas (tasks + bugs + días libres). */
+  hours: boolean;
+  /** Progreso PBI y barras por estado (historias). */
+  workflow: boolean;
+  /** Resumen daily (historias en progreso). */
+  daily: boolean;
+};
+

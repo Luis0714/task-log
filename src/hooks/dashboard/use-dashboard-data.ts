@@ -38,7 +38,12 @@ import { useAdoBacklogStates } from "@/hooks/use-ado-backlog-states";
 import { useAdoSprintBugs } from "@/hooks/use-ado-sprint-bugs";
 import { useAdoSprintTasks } from "@/hooks/use-ado-sprint-tasks";
 import { useAdoTeamDaysOff } from "@/hooks/use-ado-team-days-off";
-import type { DashboardHeaderData, DashboardMetrics } from "@/lib/dashboard/types";
+import { isSectionLoading } from "@/lib/dashboard/section-loading";
+import type {
+  DashboardHeaderData,
+  DashboardMetrics,
+  DashboardSectionLoading,
+} from "@/lib/dashboard/types";
 import {
   collectWorkItemStates,
   groupWorkItemsByStates,
@@ -261,9 +266,25 @@ export function useDashboardData({
 
   const { contextLoading, ...contextFields } = context;
 
-  const loading =
-    adoExecutionReady &&
-    (contextLoading || daysOffLoading || workItemsLoading || bugsLoading || tasksLoading);
+  const sectionLoading: DashboardSectionLoading = {
+    context: isSectionLoading(adoExecutionReady, contextLoading, daysOffLoading),
+    delivery: isSectionLoading(
+      adoExecutionReady,
+      contextLoading,
+      workItemsLoading,
+      bugsLoading,
+    ),
+    hours: isSectionLoading(
+      adoExecutionReady,
+      contextLoading,
+      daysOffLoading,
+      workItemsLoading,
+      bugsLoading,
+      tasksLoading,
+    ),
+    workflow: isSectionLoading(adoExecutionReady, contextLoading, workItemsLoading),
+    daily: isSectionLoading(adoExecutionReady, contextLoading, workItemsLoading),
+  };
 
   const error =
     context.projectsError ??
@@ -280,7 +301,7 @@ export function useDashboardData({
     hoursDayLabel,
     dailySummary,
     regenerateDailySummary,
-    loading,
+    sectionLoading,
     error,
     adoExecutionReady,
     context: contextFields,

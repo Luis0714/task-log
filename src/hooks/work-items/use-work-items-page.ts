@@ -16,6 +16,7 @@ import {
   selectInProgressWorkItems,
   selectUpcomingWorkItems,
 } from "@/lib/azure-devops/work-items-filters";
+import { isSectionLoading } from "@/lib/dashboard/section-loading";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 
 export type UseWorkItemsPageOptions = {
@@ -132,7 +133,12 @@ export function useWorkItemsPage({
 
   const { contextLoading, ...contextFields } = context;
 
-  const loading = adoExecutionReady && (contextLoading || workItemsLoading || bugsLoading);
+  const listsLoading = isSectionLoading(
+    adoExecutionReady,
+    contextLoading,
+    workItemsLoading,
+  );
+  const filtersBusy = isSectionLoading(adoExecutionReady, contextLoading);
 
   const error =
     context.projectsError ??
@@ -144,7 +150,8 @@ export function useWorkItemsPage({
 
   return {
     adoExecutionReady,
-    loading,
+    listsLoading,
+    filtersBusy,
     error,
     sprintName: currentSprint?.name ?? null,
     project: project || null,

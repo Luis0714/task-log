@@ -22,7 +22,8 @@ export function WorkItemsView({
   currentUserDisplayName = null,
 }: WorkItemsViewProps) {
   const {
-    loading,
+    listsLoading,
+    filtersBusy,
     error,
     sprintName,
     project,
@@ -80,7 +81,7 @@ export function WorkItemsView({
             membersError: filters.membersError,
             filteredCount: filters.filteredCount,
             totalCount: filters.totalCount,
-            disabled: loading || !context.sprintPath,
+            disabled: filtersBusy || !context.sprintPath,
             title: "Filtros",
             onSearchChange: filters.onSearchChange,
             onAssigneeChange: filters.onAssigneeChange,
@@ -98,7 +99,7 @@ export function WorkItemsView({
           items={assigned}
           variant="compact"
           showHours
-          loading={loading}
+          loading={listsLoading}
           emptyMessage="No hay historias de usuario que coincidan con los filtros."
           onItemClick={handleWorkItemClick}
         />
@@ -111,7 +112,7 @@ export function WorkItemsView({
         <PbiList
           items={inProgress}
           variant="featured"
-          loading={loading}
+          loading={listsLoading}
           emptyMessage="No hay historias en Committed con los filtros actuales."
           onItemClick={handleWorkItemClick}
         />
@@ -124,7 +125,7 @@ export function WorkItemsView({
         <PbiList
           items={upcoming}
           variant="compact"
-          loading={loading}
+          loading={listsLoading}
           emptyMessage="No hay historias en New o Approved con los filtros actuales."
           onItemClick={handleWorkItemClick}
         />
@@ -137,7 +138,7 @@ export function WorkItemsView({
         <PbiList
           items={developed}
           variant="compact"
-          loading={loading}
+          loading={listsLoading}
           emptyMessage="No hay historias desarrolladas con los filtros actuales."
           onItemClick={handleWorkItemClick}
         />
@@ -149,7 +150,7 @@ export function WorkItemsView({
         workItem={selectedWorkItem}
         bugs={sprintBugs}
         backlogStates={backlogStates}
-        statesLoading={loading}
+        statesLoading={listsLoading}
         project={project}
         team={team}
         currentUserDisplayName={currentUserDisplayName}

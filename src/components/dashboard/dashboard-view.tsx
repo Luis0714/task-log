@@ -30,7 +30,7 @@ export function DashboardView({
     sprintDay,
     dailySummary,
     regenerateDailySummary,
-    loading,
+    sectionLoading,
     error,
     context,
   } = useDashboardData({
@@ -60,7 +60,7 @@ export function DashboardView({
                   showLabel
                   value={sprintDay.value}
                   workingDays={sprintDay.workingDays}
-                  disabled={loading}
+                  disabled={sectionLoading.context}
                   className="w-full"
                   onValueChange={sprintDay.onValueChange}
                 />
@@ -72,7 +72,7 @@ export function DashboardView({
       ) : null}
 
       <DashboardSection title="Entrega del sprint">
-        <SprintDeliverySection metrics={metrics} loading={loading} />
+        <SprintDeliverySection metrics={metrics} loading={sectionLoading.delivery} />
       </DashboardSection>
 
       <DashboardSection title="Tiempo y ritmo">
@@ -80,12 +80,12 @@ export function DashboardView({
           metrics={metrics}
           hoursDayLabel={hoursDayLabel}
           selectedDayKey={sprintDay.value}
-          loading={loading}
+          loading={sectionLoading.hours}
         />
       </DashboardSection>
 
       <DashboardSection title="Trabajo por estado">
-        <SprintWorkflowSection metrics={metrics} loading={loading} />
+        <SprintWorkflowSection metrics={metrics} loading={sectionLoading.workflow} />
       </DashboardSection>
 
       <DashboardSection
@@ -95,7 +95,7 @@ export function DashboardView({
         <DailySummaryCard
           key={dailySummary}
           summary={dailySummary}
-          loading={loading}
+          loading={sectionLoading.daily}
           onRegenerate={regenerateDailySummary}
         />
       </DashboardSection>
