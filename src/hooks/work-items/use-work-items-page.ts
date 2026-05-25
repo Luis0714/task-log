@@ -142,6 +142,7 @@ export function useWorkItemsPage({
     error,
     sprintName: currentSprint?.name ?? null,
     project: project || null,
+    team: team || null,
     sprintBugs,
     backlogStates,
     refetchWorkItems,

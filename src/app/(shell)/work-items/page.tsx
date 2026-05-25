@@ -12,6 +12,7 @@ export default async function WorkItemsPage() {
     <WorkItemsView
       adoExecutionReady={auth.adoExecutionReady}
       defaultProject={defaultProject}
+      currentUserDisplayName={auth.profileDisplayName}
     />
   );
 }

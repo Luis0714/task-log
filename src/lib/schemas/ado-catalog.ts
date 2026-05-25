@@ -46,6 +46,13 @@ export const adoWorkItemOptionSchema = z.object({
   estimatedHours: z.number().optional(),
   /** Fecha de trabajo (YYYY-MM-DD), desde el campo configurado en ADO. */
   workingDate: z.string().optional(),
+  /** Start Date del PBI/HU (YYYY-MM-DD). */
+  startDate: z.string().optional(),
+  /** Target Date del PBI/HU (YYYY-MM-DD). */
+  targetDate: z.string().optional(),
+  responsableMaquetacion: z.string().optional(),
+  responsableIntegrador: z.string().optional(),
+  responsableQA: z.string().optional(),
 });
 
 export const adoSprintsResponseSchema = z.object({

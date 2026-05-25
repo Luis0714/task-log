@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
+import { BacklogFieldReferenceHelp } from "@/components/work-items/backlog-field-reference-help";
+import { UserStoryResponsableFields } from "@/components/work-items/user-story-responsable-fields";
+import { UserStorySchedulingFields } from "@/components/work-items/user-story-scheduling-fields";
 import { UserStorySummaryCard } from "@/components/work-items/user-story-summary-card";
+import { useAdoBacklogFields } from "@/hooks/use-ado-backlog-fields";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,9 +28,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WorkItemId } from "@/components/work-items/work-item-id";
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
+import { useUserStoryDetailForm } from "@/hooks/work-items/use-user-story-detail-form";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
 import { appToast } from "@/lib/toast";
-import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import type { AdoTaskStateDto, AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import { getWorkItemStatePresentation } from "@/lib/time-log/work-item-presentation";
 import { filterBugsForParent } from "@/lib/work-items/bugs-for-parent";
 import { cn } from "@/lib/utils";
@@ -39,6 +44,10 @@ export type UserStoryDetailSheetProps = {
   backlogStates: readonly AdoTaskStateDto[];
   statesLoading?: boolean;
   project: string | null;
+  team: string | null;
+  currentUserDisplayName: string | null;
+  members: readonly AdoTeamMemberDto[];
+  membersLoading?: boolean;
   onSaved?: () => void;
 };
 
@@ -74,10 +83,27 @@ export function UserStoryDetailSheet({
   backlogStates,
   statesLoading = false,
   project,
+  team,
+  currentUserDisplayName,
+  members,
+  membersLoading = false,
   onSaved,
 }: UserStoryDetailSheetProps) {
-  const [draftState, setDraftState] = useState("");
-  const [saving, setSaving] = useState(false);
+  const {
+    data: backlogFieldsMeta,
+    loading: backlogFieldsLoading,
+  } = useAdoBacklogFields(project ?? undefined, open && Boolean(project));
+
+  const form = useUserStoryDetailForm({
+    workItem,
+    project,
+    team,
+    currentUserDisplayName,
+    members,
+    responsableFields: backlogFieldsMeta?.fields ?? [],
+    onSaved,
+    onClose: () => onOpenChange(false),
+  });
 
   const childBugs = useMemo(
     () => (workItem ? filterBugsForParent(bugs, workItem.id) : []),
@@ -91,45 +117,13 @@ export function UserStoryDetailSheet({
 
   const statesReady = !statesLoading && stateOptions.length > 0;
 
-  useEffect(() => {
-    if (workItem) {
-      setDraftState(workItem.state);
-    }
-  }, [workItem?.id, workItem?.state]);
-
-  const isDirty = Boolean(workItem && draftState !== workItem.state);
-  const canSave = isDirty && statesReady && Boolean(project) && !saving;
-
   async function handleSave() {
-    if (!workItem || !project || !canSave) return;
-
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/ado/work-items/${workItem.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          project,
-          state: draftState,
-          ...(workItem.workingDate ? { workingDate: workItem.workingDate } : {}),
-        }),
-      });
-      const payload = (await res.json()) as { error?: string; detail?: string };
-
-      if (!res.ok) {
-        const message = [payload.error, payload.detail].filter(Boolean).join(" — ");
-        appToast.error(message || "No se pudo guardar el estado.");
-        return;
-      }
-
+    const result = await form.save();
+    if (result.ok) {
       appToast.success("Estado actualizado.");
-      onSaved?.();
-      onOpenChange(false);
-    } catch {
-      appToast.error("No se pudo guardar el estado.");
-    } finally {
-      setSaving(false);
+      return;
     }
+    appToast.error(result.message);
   }
 
   return (
@@ -147,60 +141,102 @@ export function UserStoryDetailSheet({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4">
           <div className="flex flex-col gap-6 pb-4">
-          {workItem ? (
-            <>
-              <UserStorySummaryCard item={workItem} />
+            {workItem ? (
+              <>
+                <UserStorySummaryCard item={workItem} />
 
-              <section className="space-y-2">
-                <h3 className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-                  Bugs ({childBugs.length})
-                </h3>
-                {childBugs.length === 0 ? (
-                  <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-6 text-center text-sm">
-                    No hay bugs vinculados a esta historia.
-                  </p>
-                ) : (
-                  <ul className="space-y-2">
-                    {childBugs.map((bug) => (
-                      <BugListItem key={bug.id} bug={bug} />
-                    ))}
-                  </ul>
-                )}
-              </section>
-
-              <section className="space-y-2">
-                <Label htmlFor="user-story-state">Estado</Label>
-                {statesLoading ? (
-                  <Skeleton className="h-9 w-full" />
-                ) : (
-                  <Select
-                    value={draftState || undefined}
-                    onValueChange={(value) => setDraftState(value ?? "")}
-                    disabled={!statesReady || saving}
-                  >
-                    <SelectTrigger id="user-story-state" className="w-full">
-                      <SelectValue
-                        placeholder={
-                          statesReady ? "Selecciona un estado" : "Estados no disponibles"
-                        }
-                      >
-                        {draftState ? <WorkItemStateLabel state={draftState} /> : null}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {stateOptions.map((state) => (
-                        <SelectItem key={state} value={state}>
-                          <WorkItemStateLabel state={state} />
-                        </SelectItem>
+                <section className="space-y-2">
+                  <h3 className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
+                    Bugs ({childBugs.length})
+                  </h3>
+                  {childBugs.length === 0 ? (
+                    <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-6 text-center text-sm">
+                      No hay bugs vinculados a esta historia.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {childBugs.map((bug) => (
+                        <BugListItem key={bug.id} bug={bug} />
                       ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </section>
-            </>
-          ) : (
-            <p className="text-muted-foreground text-sm">Selecciona una historia para ver el detalle.</p>
-          )}
+                    </ul>
+                  )}
+                </section>
+
+                <section className="space-y-2">
+                  <Label htmlFor="user-story-state">Estado</Label>
+                  {statesLoading ? (
+                    <Skeleton className="h-9 w-full" />
+                  ) : (
+                    <Select
+                      value={form.draftState || undefined}
+                      onValueChange={(value) => form.setDraftState(value ?? "")}
+                      disabled={!statesReady || form.saving}
+                    >
+                      <SelectTrigger id="user-story-state" className="w-full">
+                        <SelectValue
+                          placeholder={
+                            statesReady ? "Selecciona un estado" : "Estados no disponibles"
+                          }
+                        >
+                          {form.draftState ? (
+                            <WorkItemStateLabel state={form.draftState} />
+                          ) : null}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stateOptions.map((state) => (
+                          <SelectItem key={state} value={state}>
+                            <WorkItemStateLabel state={state} />
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </section>
+
+                <UserStorySchedulingFields
+                  startDate={form.draftStartDate}
+                  targetDate={form.draftTargetDate}
+                  disabled={form.saving}
+                  onStartDateChange={form.setDraftStartDate}
+                  onTargetDateChange={form.setDraftTargetDate}
+                />
+
+                {form.hasResponsableFields ? (
+                  <section className="space-y-2">
+                    <h3 className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
+                      Responsables
+                    </h3>
+                    <UserStoryResponsableFields
+                      fields={backlogFieldsMeta?.fields ?? []}
+                      values={{
+                        maquetacion: form.draftMaquetacion,
+                        integrador: form.draftIntegrador,
+                        qa: form.draftQa,
+                      }}
+                      members={members}
+                      membersLoading={membersLoading}
+                      disabled={form.saving}
+                      required={form.transitionKind === "qa"}
+                      onChange={(key, value) => {
+                        if (key === "maquetacion") form.setDraftMaquetacion(value);
+                        if (key === "integrador") form.setDraftIntegrador(value);
+                        if (key === "qa") form.setDraftQa(value);
+                      }}
+                    />
+                  </section>
+                ) : null}
+
+                <BacklogFieldReferenceHelp
+                  metadata={backlogFieldsMeta}
+                  loading={backlogFieldsLoading}
+                />
+              </>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Selecciona una historia para ver el detalle.
+              </p>
+            )}
           </div>
         </div>
 
@@ -208,10 +244,10 @@ export function UserStoryDetailSheet({
           <Button
             type="button"
             className="w-full"
-            disabled={!canSave}
+            disabled={!form.canSave || !statesReady}
             onClick={() => void handleSave()}
           >
-            {saving ? "Guardando…" : "Guardar"}
+            {form.saving ? "Guardando…" : "Guardar"}
           </Button>
         </SheetFooter>
       </SheetContent>

@@ -13,17 +13,20 @@ import type { DashboardWorkItem } from "@/lib/dashboard/types";
 export type WorkItemsViewProps = {
   adoExecutionReady: boolean;
   defaultProject?: string | null;
+  currentUserDisplayName?: string | null;
 };
 
 export function WorkItemsView({
   adoExecutionReady,
   defaultProject = null,
+  currentUserDisplayName = null,
 }: WorkItemsViewProps) {
   const {
     loading,
     error,
     sprintName,
     project,
+    team,
     sprintBugs,
     backlogStates,
     refetchWorkItems,
@@ -134,6 +137,10 @@ export function WorkItemsView({
         backlogStates={backlogStates}
         statesLoading={loading}
         project={project}
+        team={team}
+        currentUserDisplayName={currentUserDisplayName}
+        members={filters.members}
+        membersLoading={filters.membersLoading}
         onSaved={refetchWorkItems}
       />
     </div>
