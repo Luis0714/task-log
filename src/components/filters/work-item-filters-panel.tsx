@@ -2,7 +2,7 @@
 
 import { Search } from "lucide-react";
 
-import { PbiStateDot } from "@/components/work-items/pbi-state-dot";
+import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -125,10 +125,7 @@ export function WorkItemFiltersPanel({
             <SelectTrigger id="work-item-state" className="w-full">
               <SelectValue placeholder="Todos los estados">
                 {filters.state ? (
-                  <span className="flex min-w-0 items-center gap-2">
-                    <PbiStateDot state={filters.state} />
-                    <span className="truncate">{filters.state}</span>
-                  </span>
+                  <WorkItemStateLabel state={filters.state} />
                 ) : (
                   "Todos los estados"
                 )}
@@ -138,10 +135,7 @@ export function WorkItemFiltersPanel({
               <SelectItem value="__all__">Todos los estados</SelectItem>
               {states.map((state) => (
                 <SelectItem key={state} value={state}>
-                  <span className="flex items-center gap-2">
-                    <PbiStateDot state={state} />
-                    {state}
-                  </span>
+                  <WorkItemStateLabel state={state} />
                 </SelectItem>
               ))}
             </SelectContent>

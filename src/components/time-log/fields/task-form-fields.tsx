@@ -1,6 +1,9 @@
+"use client";
+
 import type { UseFormReturn } from "react-hook-form";
 
 import { FormSelectField } from "@/components/time-log/fields/form-select-field";
+import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { FormInlineError } from "@/components/time-log/fields/form-select-field";
 import {
   FormControl,
@@ -31,7 +34,11 @@ export function TaskFormFields({
   taskStatesError = null,
   disabled = false,
 }: TaskFormFieldsProps) {
-  const stateOptions = taskStates.map((state) => ({ value: state.name, label: state.name }));
+  const taskState = form.watch("taskState");
+  const stateOptions = taskStates.map((state) => ({
+    value: state.name,
+    label: <WorkItemStateLabel state={state.name} />,
+  }));
   const statesReady = !taskStatesLoading && taskStates.length > 0;
 
   return (
@@ -115,6 +122,9 @@ export function TaskFormFields({
             }
             disabled={disabled || taskStatesLoading || !statesReady}
             options={stateOptions}
+            displayValue={
+              taskState ? <WorkItemStateLabel state={taskState} /> : undefined
+            }
           />
           <FormInlineError message={taskStatesError} />
         </div>

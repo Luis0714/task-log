@@ -22,8 +22,8 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WorkItemId } from "@/components/work-items/work-item-id";
-import { PbiStateDot } from "@/components/work-items/pbi-state-dot";
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
+import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
 import { appToast } from "@/lib/toast";
 import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
@@ -184,21 +184,13 @@ export function UserStoryDetailSheet({
                           statesReady ? "Selecciona un estado" : "Estados no disponibles"
                         }
                       >
-                        {draftState ? (
-                          <span className="flex min-w-0 items-center gap-2">
-                            <PbiStateDot state={draftState} />
-                            <span className="truncate">{draftState}</span>
-                          </span>
-                        ) : null}
+                        {draftState ? <WorkItemStateLabel state={draftState} /> : null}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {stateOptions.map((state) => (
                         <SelectItem key={state} value={state}>
-                          <span className="flex items-center gap-2">
-                            <PbiStateDot state={state} />
-                            {state}
-                          </span>
+                          <WorkItemStateLabel state={state} />
                         </SelectItem>
                       ))}
                     </SelectContent>

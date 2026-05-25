@@ -1,5 +1,5 @@
 /**
- * Paleta consistente para estados de Historias de Usuario (PBI/Story).
+ * Paleta consistente para estados de work items (HU/PBI, Task, Bug).
  * Los tokens CSS viven en globals.css (`--pbi-state-*`) con variantes :root y .dark.
  */
 
@@ -10,6 +10,7 @@ export const PBI_STATE_SLUGS = [
   "approved",
   "committed",
   "impediment",
+  "reopened",
   "qa",
   "review-po",
   "in-stage",
@@ -46,6 +47,10 @@ const STATE_MATCHERS: ReadonlyArray<{ slug: Exclude<PbiStateSlug, "unknown">; te
     {
       slug: "impediment",
       test: (n) => n.includes("impediment"),
+    },
+    {
+      slug: "reopened",
+      test: (n) => n === "reopened" || n.includes("reopened"),
     },
     {
       slug: "review-po",
@@ -136,6 +141,7 @@ export const PBI_STATE_LABELS: Record<Exclude<PbiStateSlug, "unknown">, string> 
   approved: "Approved",
   committed: "Committed",
   impediment: "Impediment",
+  reopened: "Reopened",
   qa: "QA",
   "review-po": "Review PO",
   "in-stage": "In stage",
