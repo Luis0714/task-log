@@ -1,10 +1,10 @@
 import { TimeLogView } from "@/components/time-log/time-log-view";
-import { getServerAuthState } from "@/lib/auth/server-state";
+import { getServerAuthBootstrap } from "@/lib/auth/server-state";
 
 export const dynamic = "force-dynamic";
 
 export default async function TimeLogPage() {
-  const auth = await getServerAuthState();
+  const auth = await getServerAuthBootstrap();
   const defaultProject =
     auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
 

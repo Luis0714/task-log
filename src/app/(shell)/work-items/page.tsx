@@ -1,10 +1,10 @@
 import { WorkItemsView } from "@/components/work-items/work-items-view";
-import { getServerAuthState } from "@/lib/auth/server-state";
+import { getServerAuthBootstrap } from "@/lib/auth/server-state";
 
 export const dynamic = "force-dynamic";
 
 export default async function WorkItemsPage() {
-  const auth = await getServerAuthState();
+  const auth = await getServerAuthBootstrap();
   const defaultProject =
     auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
 

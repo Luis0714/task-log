@@ -16,12 +16,14 @@ import type { AdoConnectionDisplay } from "@/lib/auth/connection-display";
 export type AppShellProps = {
   connection: AdoConnectionDisplay;
   defaultSidebarOpen?: boolean;
+  sidebarConnection?: React.ReactNode;
   children: React.ReactNode;
 };
 
 export function AppShell({
   connection,
   defaultSidebarOpen = true,
+  sidebarConnection,
   children,
 }: AppShellProps) {
   const pathname = usePathname();
@@ -30,7 +32,11 @@ export function AppShell({
     <TooltipProvider delay={0}>
       <AdoProfileSync isConnected={connection.isConnected} />
       <SidebarProvider defaultOpen={defaultSidebarOpen}>
-        <AppSidebar connection={connection} activePath={pathname} />
+        <AppSidebar
+          connection={connection}
+          connectionFooter={sidebarConnection}
+          activePath={pathname}
+        />
 
         <SidebarInset>
           <header className="border-border bg-background/90 sticky top-0 z-20 flex h-14 shrink-0 items-center border-b px-4 backdrop-blur-md md:hidden">
