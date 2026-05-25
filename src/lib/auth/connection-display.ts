@@ -9,6 +9,8 @@ export type AdoConnectionDisplay = {
   userDisplayName: string | null;
   userInitials: string | null;
   userAvatarUrl: string | null;
+  /** Sesión OAuth activa; habilita cerrar sesión desde la barra lateral. */
+  canLogout: boolean;
 };
 
 export function mapAuthStateToConnectionDisplay(
@@ -26,6 +28,7 @@ export function mapAuthStateToConnectionDisplay(
     userDisplayName: auth.profileDisplayName,
     userInitials: auth.profileInitials,
     userAvatarUrl: auth.profileAvatarUrl,
+    canLogout: auth.authMethod === "oauth" && auth.oauthConnected,
   };
 }
 

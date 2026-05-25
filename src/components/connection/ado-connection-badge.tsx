@@ -2,6 +2,7 @@
 
 import { Cloud } from "lucide-react";
 
+import { ConnectionSidebarActions } from "@/components/connection/connection-sidebar-actions";
 import { ConnectionUserIdentity } from "@/components/connection/connection-user-identity";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -25,7 +26,7 @@ function ConnectionStatus({ isConnected }: { isConnected: boolean }) {
     return (
       <Badge
         variant="outline"
-        className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+        className="border-emerald-500/30 bg-emerald-500/10 shrink-0 text-emerald-400"
       >
         <span className="size-1.5 rounded-full bg-emerald-400" aria-hidden />
         Conectado
@@ -34,28 +35,24 @@ function ConnectionStatus({ isConnected }: { isConnected: boolean }) {
   }
 
   return (
-    <Badge variant="outline" className="border-border text-muted-foreground">
+    <Badge variant="outline" className="border-border shrink-0 text-muted-foreground">
       <span className="bg-muted-foreground size-1.5 rounded-full" aria-hidden />
       Sin conectar
     </Badge>
   );
 }
 
-function CompactConnectionBadge(props: AdoConnectionDisplay) {
-  const {
-    isConnected,
-    organization,
-    project,
-    authMethod,
-    userDisplayName,
-    userInitials,
-    userAvatarUrl,
-  } = props;
-  const label = [organization, project].filter(Boolean).join(" / ") || "Sin configurar";
+function CompactConnectionBadge({
+  isConnected,
+  authMethod,
+  userDisplayName,
+  userInitials,
+  userAvatarUrl,
+}: AdoConnectionDisplay) {
   const status = isConnected ? "Conectado" : "Sin conectar";
   const tooltip = userDisplayName
-    ? `${userDisplayName} · ${label} · ${status}`
-    : `${label} · ${status}`;
+    ? `${userDisplayName} · ${status}`
+    : `${status} · ${getAuthMethodLabel(authMethod)}`;
 
   if (isConnected && userDisplayName && userInitials) {
     return (
@@ -80,7 +77,7 @@ function CompactConnectionBadge(props: AdoConnectionDisplay) {
     <Tooltip>
       <TooltipTrigger
         className="hover:bg-sidebar-accent flex size-9 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-        aria-label={`Azure DevOps: ${label}. ${status}. ${getAuthMethodLabel(authMethod)}`}
+        aria-label={`Azure DevOps · ${tooltip}`}
       >
         <span className="relative">
           <Cloud className="text-sidebar-primary size-4" aria-hidden />
@@ -93,7 +90,7 @@ function CompactConnectionBadge(props: AdoConnectionDisplay) {
           />
         </span>
       </TooltipTrigger>
-      <TooltipContent side="right">{`${label} · ${status}`}</TooltipContent>
+      <TooltipContent side="right">{tooltip}</TooltipContent>
     </Tooltip>
   );
 }
@@ -101,30 +98,32 @@ function CompactConnectionBadge(props: AdoConnectionDisplay) {
 export function AdoConnectionBadge({
   authMethod,
   isConnected,
-  organization,
-  project,
+  canLogout,
   userDisplayName,
   userInitials,
   userAvatarUrl,
   className,
+  ...rest
 }: AdoConnectionBadgeProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const hasTarget = Boolean(organization?.trim() && project?.trim());
   const showUser = Boolean(isConnected && userDisplayName && userInitials);
+  const displayProps: AdoConnectionDisplay = {
+    authMethod,
+    isConnected,
+    canLogout,
+    userDisplayName,
+    userInitials,
+    userAvatarUrl,
+    organization: rest.organization,
+    project: rest.project,
+  };
 
   if (collapsed) {
     return (
-      <div className={cn("flex justify-center py-1", className)}>
-        <CompactConnectionBadge
-          authMethod={authMethod}
-          isConnected={isConnected}
-          organization={organization}
-          project={project}
-          userDisplayName={userDisplayName}
-          userInitials={userInitials}
-          userAvatarUrl={userAvatarUrl}
-        />
+      <div className={cn("flex flex-col items-center gap-2 py-1", className)}>
+        <CompactConnectionBadge {...displayProps} />
+        <ConnectionSidebarActions showLogout={canLogout} className="justify-center border-t-0 pt-0" />
       </div>
     );
   }
@@ -133,45 +132,36 @@ export function AdoConnectionBadge({
     <section
       aria-label="Conexión con Azure DevOps"
       className={cn(
-        "border-sidebar-border bg-sidebar-accent/25 flex flex-col gap-2 rounded-lg border p-3",
+        "border-sidebar-border bg-sidebar-accent/25 flex flex-col gap-2.5 rounded-lg border p-3",
         className,
       )}
     >
-      <div className="flex gap-3">
-        <div
-          className="bg-sidebar-primary/15 text-sidebar-primary flex size-9 shrink-0 items-center justify-center rounded-lg"
-          aria-hidden
-        >
-          <Cloud className="size-4" />
-        </div>
-
-        <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-sidebar-foreground/55 text-[0.65rem] font-medium tracking-wide uppercase">
-              Azure DevOps
-            </p>
-            {hasTarget ? (
-              <p className="text-sidebar-foreground truncate text-sm font-medium">
-                {organization}
-                <span className="text-sidebar-foreground/45 mx-1 font-normal">/</span>
-                {project}
-              </p>
-            ) : (
-              <p className="text-muted-foreground text-sm">Org y proyecto no configurados</p>
-            )}
-            <p className="text-muted-foreground mt-0.5 text-xs">{getAuthMethodLabel(authMethod)}</p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div
+            className="bg-sidebar-primary/15 text-sidebar-primary flex size-9 shrink-0 items-center justify-center rounded-lg"
+            aria-hidden
+          >
+            <Cloud className="size-4" />
           </div>
-          <ConnectionStatus isConnected={isConnected} />
+          <div className="min-w-0">
+            <p className="text-sidebar-foreground text-sm font-medium">Azure DevOps</p>
+            <p className="text-muted-foreground text-xs">{getAuthMethodLabel(authMethod)}</p>
+          </div>
         </div>
+        <ConnectionStatus isConnected={isConnected} />
       </div>
 
-      {showUser && (
+      {showUser ? (
         <ConnectionUserIdentity
           displayName={userDisplayName!}
           initials={userInitials!}
           avatarUrl={userAvatarUrl}
+          className="border-sidebar-border border-t pt-2.5"
         />
-      )}
+      ) : null}
+
+      <ConnectionSidebarActions showLogout={canLogout} />
     </section>
   );
 }
