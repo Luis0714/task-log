@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { getAzdoAuthMethod, type AzdoAuthMethod } from "@/lib/auth/auth-method";
 import { isEntraOAuthConfigured } from "@/lib/auth/entra";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
@@ -28,7 +30,7 @@ export type ServerAuthState = {
   patProject: string | null;
 };
 
-export async function getServerAuthState(): Promise<ServerAuthState> {
+export const getServerAuthState = cache(async function getServerAuthState(): Promise<ServerAuthState> {
   const authMethod = getAzdoAuthMethod();
   const patTarget = getPatTargetFromEnv();
   const oauthEnabled = authMethod === "oauth";
@@ -67,5 +69,5 @@ export async function getServerAuthState(): Promise<ServerAuthState> {
     patOrganization: patEnabled ? (patTarget?.organization ?? null) : null,
     patProject: patEnabled ? (patTarget?.project ?? null) : null,
   };
-}
+});
 
