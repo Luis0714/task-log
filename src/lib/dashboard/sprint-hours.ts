@@ -61,3 +61,10 @@ export function computeSprintCapacityHoursThroughDay(
 
   return workingDays * HOURS_PER_SPRINT_WORKING_DAY;
 }
+
+export function formatWorkingDaysHint(count: number): string {
+  if (count <= 0) return "Sin días laborables en el sprint";
+  const dayLabel = count === 1 ? "día laborable" : "días laborables";
+  const capacity = count * HOURS_PER_SPRINT_WORKING_DAY;
+  return `${count} ${dayLabel} · ${capacity}h capacidad`;
+}

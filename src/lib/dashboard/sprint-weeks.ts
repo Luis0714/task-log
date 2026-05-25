@@ -6,7 +6,7 @@ import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
 import type { SprintWeekMetrics } from "@/lib/dashboard/types";
 
 export function splitSprintIntoWeeks(
-  workingDays: SprintWorkingDay[],
+  workingDays: readonly SprintWorkingDay[],
 ): [SprintWorkingDay[], SprintWorkingDay[]] {
   if (workingDays.length === 0) return [[], []];
 
@@ -14,7 +14,7 @@ export function splitSprintIntoWeeks(
   return [workingDays.slice(0, mid), workingDays.slice(mid)];
 }
 
-export function formatSprintWeekDateRange(days: SprintWorkingDay[]): string {
+export function formatSprintWeekDateRange(days: readonly SprintWorkingDay[]): string {
   if (days.length === 0) return "";
 
   const formatter = new Intl.DateTimeFormat("es", {
@@ -30,7 +30,7 @@ export function formatSprintWeekDateRange(days: SprintWorkingDay[]): string {
 }
 
 function buildWeekMetrics(
-  days: SprintWorkingDay[],
+  days: readonly SprintWorkingDay[],
   label: string,
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
@@ -49,28 +49,24 @@ function buildWeekMetrics(
     hoursTarget: days.length * HOURS_PER_SPRINT_WORKING_DAY,
     workingDaysCount: days.length,
     dateRangeLabel: formatSprintWeekDateRange(days),
+    dayKeys,
   };
 }
 
 export function computeSprintWeekMetrics(
-  workingDays: SprintWorkingDay[],
+  workingDays: readonly SprintWorkingDay[],
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
   selectedDayKey: string,
 ): SprintWeekMetrics[] {
   const [firstWeekDays, secondWeekDays] = splitSprintIntoWeeks(workingDays);
 
-  const weeks = [
+  return [
     buildWeekMetrics(firstWeekDays, "1ª semana", tasks, bugs, selectedDayKey),
     buildWeekMetrics(secondWeekDays, "2ª semana", tasks, bugs, selectedDayKey),
   ].filter((week): week is SprintWeekMetrics => week !== null);
-
-  return weeks;
 }
 
-export function formatWorkingDaysHint(count: number): string {
-  if (count <= 0) return "Sin días laborables en el sprint";
-  const dayLabel = count === 1 ? "día laborable" : "días laborables";
-  const capacity = count * HOURS_PER_SPRINT_WORKING_DAY;
-  return `${count} ${dayLabel} · ${capacity}h capacidad`;
+export function weekContainsDay(week: SprintWeekMetrics, dayKey: string): boolean {
+  return week.dayKeys.includes(dayKey);
 }

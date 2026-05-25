@@ -5,47 +5,57 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { SprintPbiProgress } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils";
 
-const RING_RADIUS = 52;
-const RING_STROKE = 10;
-const RING_SIZE = (RING_RADIUS + RING_STROKE) * 2;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+const RING_RADIUS_COMPACT = 40;
+const RING_RADIUS_DEFAULT = 48;
+const RING_STROKE = 8;
+
+function ringSize(compact: boolean) {
+  const radius = compact ? RING_RADIUS_COMPACT : RING_RADIUS_DEFAULT;
+  const size = (radius + RING_STROKE) * 2;
+  const circumference = 2 * Math.PI * radius;
+  return { radius, size, circumference };
+}
 
 export type SprintPbiProgressCardProps = {
   progress: SprintPbiProgress;
   loading?: boolean;
+  compact?: boolean;
+  highlight?: boolean;
   className?: string;
 };
 
-function ProgressRing({ percent }: { percent: number }) {
+function ProgressRing({ percent, compact }: { percent: number; compact: boolean }) {
   const clamped = Math.min(100, Math.max(0, percent));
-  const offset = RING_CIRCUMFERENCE - (clamped / 100) * RING_CIRCUMFERENCE;
+  const { radius, size, circumference } = ringSize(compact);
+  const offset = circumference - (clamped / 100) * circumference;
+  const cx = size / 2;
 
   return (
     <svg
-      width={RING_SIZE}
-      height={RING_SIZE}
-      viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
       className="shrink-0 -rotate-90"
       role="img"
       aria-label={`Progreso del sprint: ${clamped} por ciento`}
     >
       <circle
-        cx={RING_SIZE / 2}
-        cy={RING_SIZE / 2}
-        r={RING_RADIUS}
+        cx={cx}
+        cy={cx}
+        r={radius}
         fill="none"
         className="stroke-muted"
         strokeWidth={RING_STROKE}
       />
       <circle
-        cx={RING_SIZE / 2}
-        cy={RING_SIZE / 2}
-        r={RING_RADIUS}
+        cx={cx}
+        cy={cx}
+        r={radius}
         fill="none"
         className="stroke-primary transition-[stroke-dashoffset] duration-500 ease-out"
         strokeWidth={RING_STROKE}
         strokeLinecap="round"
-        strokeDasharray={RING_CIRCUMFERENCE}
+        strokeDasharray={circumference}
         strokeDashoffset={offset}
       />
     </svg>
@@ -68,9 +78,9 @@ function BreakdownRow({ icon: Icon, label, count, tone }: BreakdownRowProps) {
         : "text-muted-foreground";
 
   return (
-    <li className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-muted-foreground flex items-center gap-2">
-        <Icon className={cn("size-4 shrink-0", toneClass)} aria-hidden />
+    <li className="flex items-center justify-between gap-2 text-xs">
+      <span className="text-muted-foreground flex items-center gap-1.5">
+        <Icon className={cn("size-3.5 shrink-0", toneClass)} aria-hidden />
         {label}
       </span>
       <span className="font-heading font-semibold tabular-nums">{count}</span>
@@ -81,6 +91,8 @@ function BreakdownRow({ icon: Icon, label, count, tone }: BreakdownRowProps) {
 export function SprintPbiProgressCard({
   progress,
   loading = false,
+  compact = false,
+  highlight = false,
   className,
 }: SprintPbiProgressCardProps) {
   const hasItems = progress.totalCount > 0;
@@ -89,71 +101,71 @@ export function SprintPbiProgressCard({
     <Card
       size="sm"
       className={cn(
-        "border-border/60 dark:border-white/6 transition-colors hover:border-primary/20 hover:bg-card/95",
+        "border-border/60 dark:border-white/6 transition-colors",
+        highlight
+          ? "border-primary/30 bg-primary/[0.03] ring-1 ring-primary/15"
+          : "hover:border-primary/20 hover:bg-card/95",
         className,
       )}
     >
-      <CardContent className="flex flex-col gap-4 pt-0">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-            Progreso PBIs del sprint
-          </p>
-          <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-lg">
-            <ListChecks className="size-4" aria-hidden />
-          </span>
-        </div>
+      <CardContent className="flex flex-col gap-2 pt-0">
+        <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
+          Progreso PBIs
+        </p>
 
         {loading ? (
-          <div className="flex items-center gap-6">
-            <Skeleton className="size-[124px] shrink-0 rounded-full" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-5 w-full" />
-              <Skeleton className="h-5 w-4/5" />
-              <Skeleton className="h-5 w-3/5" />
+          <div className="flex items-center gap-4">
+            <Skeleton className="size-20 shrink-0 rounded-full" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/5" />
             </div>
           </div>
         ) : !hasItems ? (
           <p className="text-muted-foreground text-sm">
-            No tienes PBIs asignadas en este sprint para calcular el progreso.
+            Sin PBIs asignadas en este sprint.
           </p>
         ) : (
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-8">
-            <div className="relative mx-auto flex shrink-0 items-center justify-center sm:mx-0">
-              <ProgressRing percent={progress.percent} />
+          <div className="flex items-center gap-4">
+            <div className="relative flex shrink-0 items-center justify-center">
+              <ProgressRing percent={progress.percent} compact={compact} />
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-heading text-3xl font-semibold tracking-tight tabular-nums">
+                <span
+                  className={cn(
+                    "font-heading font-semibold tracking-tight tabular-nums",
+                    compact ? "text-2xl" : "text-3xl",
+                  )}
+                >
                   {progress.percent}%
                 </span>
-                <span className="text-muted-foreground text-xs">
+                <span className="text-muted-foreground text-[10px]">
                   {progress.completedCount}/{progress.totalCount}
                 </span>
               </div>
             </div>
 
-            <div className="min-w-0 flex-1">
-              <ul className="space-y-2">
+            <ul className="min-w-0 flex-1 space-y-1">
+              <BreakdownRow
+                icon={CheckCircle2}
+                label="Desarrolladas"
+                count={progress.completedCount}
+                tone="done"
+              />
+              <BreakdownRow
+                icon={CircleDashed}
+                label="Pendientes"
+                count={progress.pendingCount}
+                tone="pending"
+              />
+              {progress.otherCount > 0 ? (
                 <BreakdownRow
-                  icon={CheckCircle2}
-                  label="Desarrolladas"
-                  count={progress.completedCount}
-                  tone="done"
+                  icon={ListChecks}
+                  label="Otros"
+                  count={progress.otherCount}
+                  tone="other"
                 />
-                <BreakdownRow
-                  icon={CircleDashed}
-                  label="Pendientes"
-                  count={progress.pendingCount}
-                  tone="pending"
-                />
-                {progress.otherCount > 0 ? (
-                  <BreakdownRow
-                    icon={ListChecks}
-                    label="Otros estados"
-                    count={progress.otherCount}
-                    tone="other"
-                  />
-                ) : null}
-              </ul>
-            </div>
+              ) : null}
+            </ul>
           </div>
         )}
       </CardContent>

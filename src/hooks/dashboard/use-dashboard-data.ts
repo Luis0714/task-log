@@ -7,6 +7,7 @@ import { useAdoContextSelection } from "@/hooks/use-ado-context-selection";
 import { useAdoSprintWorkItems } from "@/hooks/use-ado-sprint-work-items";
 import { buildDailySummary } from "@/lib/dashboard/activity";
 import { computeSprintCapacityHours } from "@/lib/dashboard/sprint-hours";
+import { computeSprintHoursSeries } from "@/lib/dashboard/sprint-hours-series";
 import { computeSprintWeekMetrics } from "@/lib/dashboard/sprint-weeks";
 import {
   formatSprintDayShortLabel,
@@ -26,6 +27,7 @@ import {
 } from "@/lib/dashboard/sprint-status-mapping";
 import { computeSprintStatusOverview } from "@/lib/dashboard/sprint-status-overview";
 import {
+  computeAssignedStoryPoints,
   computeDashboardMetrics,
   computeSprintPbiProgress,
   mapToDashboardWorkItems,
@@ -166,6 +168,11 @@ export function useDashboardData({
     [assigned, workItemStates],
   );
 
+  const storyPointsAssigned = useMemo(
+    () => computeAssignedStoryPoints(assigned),
+    [assigned],
+  );
+
   const sprintStatusOverview = useMemo(
     () =>
       computeSprintStatusOverview(assigned, assignedBugs, {
@@ -187,6 +194,12 @@ export function useDashboardData({
       workingDayOptions,
     );
     const hoursSprintCurrent = sumHoursBreakdownThroughDay(sprintTasks, sprintBugs, hoursDayKey);
+    const hoursByDay = computeSprintHoursSeries(
+      sprintWorkingDays,
+      sprintTasks,
+      sprintBugs,
+      hoursDayKey,
+    );
     const sprintWeeks = computeSprintWeekMetrics(
       sprintWorkingDays,
       sprintTasks,
@@ -196,10 +209,12 @@ export function useDashboardData({
 
     return computeDashboardMetrics(hoursToday, {
       sprintHours: { hoursSprintCurrent, hoursSprintTarget },
+      storyPointsAssigned,
       pbiStateGroups,
       pbiProgress,
       sprintStatusOverview,
       sprintWorkingDaysCount: sprintWorkingDays.length,
+      hoursByDay,
       sprintWeeks,
     });
   }, [
@@ -213,6 +228,7 @@ export function useDashboardData({
     sprintBugs,
     sprintTasks,
     sprintWorkingDays,
+    storyPointsAssigned,
   ]);
 
   const hoursDayLabel = useMemo(() => {

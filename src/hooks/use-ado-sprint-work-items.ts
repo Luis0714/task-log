@@ -17,7 +17,7 @@ export function useAdoSprintWorkItems(
     () => ({ project, sprintPath, assignee }),
     [project, sprintPath, assignee],
   );
-  const { data, loading, error } = useAdoQuery({
+  const { data, loading, error, refetch } = useAdoQuery({
     path: "/api/ado/work-items",
     params,
     enabled,
@@ -29,5 +29,5 @@ export function useAdoSprintWorkItems(
     }),
   });
 
-  return { ...data, loading, error };
+  return { ...data, loading, error, refetch };
 }

@@ -9,6 +9,7 @@ export type SprintItemListProps = {
   emptyMessage?: string;
   showHours?: boolean;
   className?: string;
+  onItemClick?: (item: AdoWorkItemOptionDto) => void;
 };
 
 function SprintItemListSkeleton() {
@@ -27,6 +28,7 @@ export function SprintItemList({
   emptyMessage = "No hay elementos que coincidan con los filtros.",
   showHours = true,
   className,
+  onItemClick,
 }: SprintItemListProps) {
   if (loading) {
     return <SprintItemListSkeleton />;
@@ -48,7 +50,12 @@ export function SprintItemList({
       )}
     >
       {items.map((item) => (
-        <SprintItemRow key={item.id} item={item} showHours={showHours} />
+        <SprintItemRow
+          key={item.id}
+          item={item}
+          showHours={showHours}
+          onClick={onItemClick ? () => onItemClick(item) : undefined}
+        />
       ))}
     </div>
   );

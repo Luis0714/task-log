@@ -5,9 +5,10 @@ import { DailySummaryCard } from "@/components/dashboard/daily/daily-summary-car
 import { AdoContextSelectFields } from "@/components/time-log/ado-context-select-fields";
 import { DashboardHeader } from "@/components/dashboard/layout/dashboard-header";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
-import { SprintOverviewGrid } from "@/components/dashboard/metrics/sprint-overview-grid";
-import { SprintStatusOverviewGrid } from "@/components/dashboard/metrics/sprint-status-overview";
 import { SprintDaySelect } from "@/components/dashboard/sprint-day-select";
+import { SprintDeliverySection } from "@/components/dashboard/sections/sprint-delivery-section";
+import { SprintHoursSection } from "@/components/dashboard/sections/sprint-hours-section";
+import { SprintWorkflowSection } from "@/components/dashboard/sections/sprint-workflow-section";
 import { useDashboardData } from "@/hooks/dashboard/use-dashboard-data";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
 
@@ -39,7 +40,7 @@ export function DashboardView({
   });
 
   return (
-    <div className="flex w-full flex-col gap-8 pb-6">
+    <div className="flex w-full flex-col gap-6 pb-6">
       <DashboardHeader data={resolvedHeader} />
 
       {!adoExecutionReady ? (
@@ -49,10 +50,7 @@ export function DashboardView({
       {error ? <CopilotErrorAlert message={error} /> : null}
 
       {adoExecutionReady ? (
-        <DashboardSection
-          title="Contexto"
-          description="Proyecto, equipo y sprint para filtrar el dashboard."
-        >
+        <DashboardSection title="Contexto" contentClassName="max-w-3xl">
           <AdoContextSelectFields
             {...context}
             sprintDayFilter={
@@ -71,24 +69,21 @@ export function DashboardView({
         </DashboardSection>
       ) : null}
 
-      <DashboardSection
-        title="Sprint Status Overview"
-        description="Historias de usuario y bugs asignados en el sprint actual."
-      >
-        <SprintStatusOverviewGrid
-          overview={metrics.sprintStatusOverview}
+      <DashboardSection title="Entrega del sprint">
+        <SprintDeliverySection metrics={metrics} loading={loading} />
+      </DashboardSection>
+
+      <DashboardSection title="Tiempo y ritmo">
+        <SprintHoursSection
+          metrics={metrics}
+          hoursDayLabel={hoursDayLabel}
+          selectedDayKey={sprintDay.value}
           loading={loading}
         />
       </DashboardSection>
 
-      <DashboardSection title="Sprint Overview">
-        <div className="flex flex-col gap-3">
-          <SprintOverviewGrid
-            metrics={metrics}
-            hoursDayLabel={hoursDayLabel}
-            loading={loading}
-          />
-        </div>
+      <DashboardSection title="Trabajo por estado">
+        <SprintWorkflowSection metrics={metrics} loading={loading} />
       </DashboardSection>
 
       <DashboardSection

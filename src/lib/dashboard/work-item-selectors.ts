@@ -18,8 +18,9 @@ import type {
   DashboardWorkItem,
   SprintPbiProgress,
   SprintStatusOverview,
-  SprintWeekMetrics,
 } from "@/lib/dashboard/types";
+import type { SprintDayHoursPoint } from "@/lib/dashboard/sprint-hours-series";
+import type { SprintWeekMetrics } from "@/lib/dashboard/types";
 import {
   isCommittedPbiState as isCommittedPbiStateFromLib,
   isUpcomingPbiState,
@@ -134,6 +135,21 @@ export function mapToDashboardWorkItems(items: AdoWorkItemOptionDto[]): Dashboar
   return items.map((item) => ({ ...item }));
 }
 
+export function formatStoryPoints(value: number): string {
+  if (Number.isInteger(value)) return String(value);
+  return value.toFixed(1).replace(/\.0$/, "");
+}
+
+export function computeAssignedStoryPoints(items: DashboardWorkItem[]): number {
+  let total = 0;
+  for (const item of items) {
+    if (item.effort !== undefined && Number.isFinite(item.effort) && item.effort >= 0) {
+      total += item.effort;
+    }
+  }
+  return Math.round(total * 10) / 10;
+}
+
 export function selectInProgressItems(items: DashboardWorkItem[]): DashboardWorkItem[] {
   return selectInProgressWorkItems(items);
 }
@@ -162,10 +178,12 @@ const EMPTY_PBI_PROGRESS: SprintPbiProgress = {
 
 export type DashboardMetricsInput = {
   sprintHours?: SprintHoursInput;
+  storyPointsAssigned?: number;
   pbiStateGroups?: DashboardMetrics["pbiStateGroups"];
   pbiProgress?: SprintPbiProgress;
   sprintStatusOverview?: SprintStatusOverview;
   sprintWorkingDaysCount?: number;
+  hoursByDay?: SprintDayHoursPoint[];
   sprintWeeks?: SprintWeekMetrics[];
 };
 
@@ -188,7 +206,9 @@ export function computeDashboardMetrics(
     hoursSprintCurrent,
     hoursSprintTarget,
     hoursRemaining,
+    storyPointsAssigned: input.storyPointsAssigned ?? 0,
     sprintWorkingDaysCount: input.sprintWorkingDaysCount ?? 0,
+    hoursByDay: input.hoursByDay ?? [],
     sprintWeeks: input.sprintWeeks ?? [],
     pbiStateGroups: input.pbiStateGroups ?? [],
     pbiProgress: input.pbiProgress ?? EMPTY_PBI_PROGRESS,

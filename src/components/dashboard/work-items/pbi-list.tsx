@@ -12,6 +12,7 @@ export type PbiListProps = {
   emptyMessage?: string;
   className?: string;
   itemClassName?: string;
+  onItemClick?: (item: DashboardWorkItem) => void;
 };
 
 function PbiListSkeleton({ variant }: { variant: "featured" | "compact" }) {
@@ -41,6 +42,7 @@ export function PbiList({
   emptyMessage = "No hay PBIs para mostrar.",
   className,
   itemClassName,
+  onItemClick,
 }: PbiListProps) {
   if (loading) {
     return <PbiListSkeleton variant={variant} />;
@@ -58,7 +60,12 @@ export function PbiList({
     return (
       <div className={cn("grid gap-3 sm:grid-cols-2", className)}>
         {items.map((item) => (
-          <PbiFeaturedCard key={item.id} item={item} className={itemClassName} />
+          <PbiFeaturedCard
+            key={item.id}
+            item={item}
+            className={itemClassName}
+            onClick={onItemClick ? () => onItemClick(item) : undefined}
+          />
         ))}
       </div>
     );
@@ -67,7 +74,13 @@ export function PbiList({
   return (
     <div className={cn("divide-border/60 flex flex-col divide-y rounded-xl border border-border/60", className)}>
       {items.map((item) => (
-        <PbiCompactRow key={item.id} item={item} showHours={showHours} className={itemClassName} />
+        <PbiCompactRow
+          key={item.id}
+          item={item}
+          showHours={showHours}
+          className={itemClassName}
+          onClick={onItemClick ? () => onItemClick(item) : undefined}
+        />
       ))}
     </div>
   );

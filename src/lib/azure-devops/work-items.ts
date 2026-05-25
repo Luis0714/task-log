@@ -22,9 +22,12 @@ import {
 import type { TaskActivity } from "@/lib/time-log/task-constants";
 import {
   getWorkItemDateFieldNames,
+  getWorkingDateFieldNamesForUpdate,
   resolveWorkingDateFieldName,
   resolveWorkingDateKeyFromFields,
+  toWorkingDateKey,
 } from "@/lib/azure-devops/working-date-field";
+import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
 import { pickDefaultOpenTaskState } from "@/lib/time-log/task-state-utils";
 
 export type { AdoWorkItemOption } from "@/lib/azure-devops/work-items-filters";
@@ -460,4 +463,129 @@ export async function listTasksInSprint(
     ...filters,
     workItemType: resolveTaskWorkItemTypeName(),
   });
+}
+
+const SYSTEM_STATE = "System.State";
+
+export type UpdateWorkItemStateResult =
+  | { ok: true; state: string }
+  | { ok: false; status: number; body: string };
+
+type WorkItemFieldPatchOp = {
+  op: "add" | "replace";
+  path: string;
+  value: string | number;
+};
+
+function buildWorkingDatePatchOps(
+  fields: Record<string, string | number | undefined> | undefined,
+  dateValue: string,
+): WorkItemFieldPatchOp[] {
+  const ops: WorkItemFieldPatchOp[] = [];
+
+  for (const fieldName of getWorkingDateFieldNamesForUpdate()) {
+    const hadValue =
+      fields?.[fieldName] !== undefined && fields?.[fieldName] !== null && fields?.[fieldName] !== "";
+    ops.push({
+      op: hadValue ? "replace" : "add",
+      path: `/fields/${fieldName}`,
+      value: dateValue,
+    });
+  }
+
+  return ops;
+}
+
+function buildCompletedWorkPatchOps(
+  fields: Record<string, string | number | undefined> | undefined,
+  hours: number,
+): WorkItemFieldPatchOp[] {
+  const hadValue =
+    fields?.[COMPLETED_WORK] !== undefined &&
+    fields?.[COMPLETED_WORK] !== null &&
+    fields?.[COMPLETED_WORK] !== "";
+
+  return [
+    {
+      op: hadValue ? "replace" : "add",
+      path: `/fields/${COMPLETED_WORK}`,
+      value: Math.round(hours * 100) / 100,
+    },
+  ];
+}
+
+export async function updateWorkItemState(
+  params: {
+    workItemId: number;
+    state: string;
+    workingDate?: string;
+    completedWork?: number;
+  },
+  auth: AdoCallerAuth,
+): Promise<UpdateWorkItemStateResult> {
+  const state = params.state.trim();
+  if (!state) {
+    return { ok: false, status: 400, body: "El estado no puede estar vacío." };
+  }
+
+  const base = `${adoProjectBase(auth)}/_apis/wit/workitems`;
+  const api = "api-version=7.1";
+  const headers: Record<string, string> = {
+    Authorization: authHeader(auth),
+    "Content-Type": "application/json-patch+json",
+  };
+
+  const dateFields = [
+    SYSTEM_STATE,
+    COMPLETED_WORK,
+    ...getWorkingDateFieldNamesForUpdate(),
+    ...getWorkItemDateFieldNames(),
+  ];
+  const getFields = [...new Set(dateFields)].join(",");
+  const getUrl = `${base}/${params.workItemId}?${api}&$fields=${encodeURIComponent(getFields)}`;
+  const getRes = await adoFetch(auth, getUrl);
+
+  if (!getRes.ok) {
+    const body = await getRes.text();
+    return {
+      ok: false,
+      status: getRes.status,
+      body: body.slice(0, 500) || "No se pudo leer el work item antes de actualizar.",
+    };
+  }
+
+  const wi = (await getRes.json()) as {
+    fields?: Record<string, string | number | undefined>;
+  };
+
+  const dateValue =
+    toWorkingDateKey(params.workingDate) ??
+    resolveWorkingDateKeyFromFields(wi.fields) ??
+    getDefaultWorkingDate();
+
+  const patchOps: WorkItemFieldPatchOp[] = [...buildWorkingDatePatchOps(wi.fields, dateValue)];
+
+  if (params.completedWork !== undefined && Number.isFinite(params.completedWork)) {
+    patchOps.push(...buildCompletedWorkPatchOps(wi.fields, params.completedWork));
+  }
+
+  patchOps.push({ op: "replace", path: `/fields/${SYSTEM_STATE}`, value: state });
+
+  const patchUrl = `${base}/${params.workItemId}?${api}`;
+  const patchRes = await adoFetch(auth, patchUrl, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(patchOps),
+  });
+
+  if (!patchRes.ok) {
+    const body = await patchRes.text();
+    return {
+      ok: false,
+      status: patchRes.status,
+      body: body.slice(0, 500) || "No se pudo actualizar el estado del work item.",
+    };
+  }
+
+  return { ok: true, state };
 }

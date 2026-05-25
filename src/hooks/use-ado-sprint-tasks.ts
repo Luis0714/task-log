@@ -18,7 +18,7 @@ export function useAdoSprintTasks(
     [project, sprintPath, assignee],
   );
 
-  const { data, loading, error } = useAdoQuery({
+  const { data, loading, error, refetch } = useAdoQuery({
     path: "/api/ado/work-items",
     params,
     enabled,
@@ -30,5 +30,5 @@ export function useAdoSprintTasks(
     }),
   });
 
-  return { tasks: data.workItems, loading, error };
+  return { tasks: data.workItems, loading, error, refetch };
 }

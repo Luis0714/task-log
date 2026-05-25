@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { useAdoBacklogStates } from "@/hooks/use-ado-backlog-states";
+import { useAdoBugStates } from "@/hooks/use-ado-bug-states";
 import { useAdoContextSelection } from "@/hooks/use-ado-context-selection";
 import { useAdoSprintBugs } from "@/hooks/use-ado-sprint-bugs";
 import { useAdoSprintTasks } from "@/hooks/use-ado-sprint-tasks";
@@ -24,6 +24,7 @@ import {
 import {
   SPRINT_DAY_ALL,
   filterSprintItemsByCriteria,
+  sortItemsByWorkingDateAsc,
 } from "@/lib/sprint-items/filter-by-criteria";
 
 export type SprintItemsKind = "tasks" | "bugs";
@@ -78,15 +79,16 @@ export function useSprintItemsPage({
   } = useAdoTaskStates(project || undefined, adoExecutionReady && kind === "tasks");
 
   const {
-    states: backlogStates,
-    loading: backlogStatesLoading,
-    error: backlogStatesError,
-  } = useAdoBacklogStates(project || undefined, adoExecutionReady && kind === "bugs");
+    states: bugStatesFromApi,
+    loading: bugStatesLoading,
+    error: bugStatesError,
+  } = useAdoBugStates(project || undefined, adoExecutionReady && kind === "bugs");
 
   const {
     tasks: sprintTasks,
     loading: tasksLoading,
     error: tasksError,
+    refetch: refetchTasks,
   } = useAdoSprintTasks(
     project || undefined,
     sprintPath || undefined,
@@ -98,6 +100,7 @@ export function useSprintItemsPage({
     bugs: sprintBugs,
     loading: bugsLoading,
     error: bugsError,
+    refetch: refetchBugs,
   } = useAdoSprintBugs(
     project || undefined,
     sprintPath || undefined,
@@ -108,18 +111,18 @@ export function useSprintItemsPage({
   const sprintItems = kind === "tasks" ? sprintTasks : sprintBugs;
   const itemsLoading = kind === "tasks" ? tasksLoading : bugsLoading;
   const itemsError = kind === "tasks" ? tasksError : bugsError;
-  const statesLoading = kind === "tasks" ? taskStatesLoading : backlogStatesLoading;
-  const statesError = kind === "tasks" ? taskStatesError : backlogStatesError;
+  const statesLoading = kind === "tasks" ? taskStatesLoading : bugStatesLoading;
+  const statesError = kind === "tasks" ? taskStatesError : bugStatesError;
 
   const stateNames = useMemo(() => {
     if (kind === "tasks" && taskStatesFromApi.length > 0) {
       return taskStatesFromApi.map((state) => state.name);
     }
-    if (kind === "bugs" && backlogStates.length > 0) {
-      return backlogStates.map((state) => state.name);
+    if (kind === "bugs" && bugStatesFromApi.length > 0) {
+      return bugStatesFromApi.map((state) => state.name);
     }
     return [];
-  }, [backlogStates, kind, taskStatesFromApi]);
+  }, [bugStatesFromApi, kind, taskStatesFromApi]);
 
   const currentSprint = useMemo(
     () => context.sprints.find((sprint) => sprint.path === sprintPath) ?? null,
@@ -159,15 +162,16 @@ export function useSprintItemsPage({
     return collectWorkItemStates(sprintItems);
   }, [sprintItems, stateNames]);
 
-  const filteredItems = useMemo(
-    () =>
-      filterSprintItemsByCriteria(sprintItems, {
-        search: filters.search,
-        state: filters.state,
-        dayKey,
-      }),
-    [dayKey, filters.search, filters.state, sprintItems],
-  );
+  const filteredItems = useMemo(() => {
+    const filtered = filterSprintItemsByCriteria(sprintItems, {
+      search: filters.search,
+      state: filters.state,
+      dayKey,
+    });
+    return kind === "tasks" || kind === "bugs"
+      ? sortItemsByWorkingDateAsc(filtered)
+      : filtered;
+  }, [dayKey, filters.search, filters.state, kind, sprintItems]);
 
   useEffect(() => {
     if (filters.state && !filterStates.includes(filters.state)) {
@@ -226,5 +230,8 @@ export function useSprintItemsPage({
       onStateChange: setState,
     },
     items: filteredItems,
+    project: project || null,
+    itemStates: kind === "tasks" ? taskStatesFromApi : bugStatesFromApi,
+    refetchItems: kind === "tasks" ? refetchTasks : refetchBugs,
   };
 }

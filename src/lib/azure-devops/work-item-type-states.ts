@@ -52,6 +52,14 @@ export async function listBacklogItemStates(auth: AdoCallerAuth): Promise<AdoWor
   return listWorkItemTypeStates(auth, resolveBacklogWorkItemTypeName());
 }
 
+export function resolveBugWorkItemTypeName(): string {
+  return process.env.AZDO_BUG_WORK_ITEM_TYPE?.trim() || "Bug";
+}
+
+export async function listBugStates(auth: AdoCallerAuth): Promise<AdoWorkItemTypeState[]> {
+  return listWorkItemTypeStates(auth, resolveBugWorkItemTypeName());
+}
+
 export async function findTaskState(
   auth: AdoCallerAuth,
   stateName: string,

@@ -1,8 +1,16 @@
+const CUSTOM_WORKING_DATE_FIELD = "Custom.WorkingDate";
+
 /** Campo de fecha de trabajo en Tasks (configurable vía env en servidor). */
 export function resolveWorkingDateFieldName(): string {
   return (
     process.env.AZDO_WORKING_DATE_FIELD?.trim() || "Microsoft.VSTS.Scheduling.StartDate"
   );
+}
+
+/** Campos de fecha a rellenar al actualizar estado (reglas Required en Custom.WorkingDate, etc.). */
+export function getWorkingDateFieldNamesForUpdate(): readonly string[] {
+  const primary = resolveWorkingDateFieldName();
+  return [...new Set([primary, CUSTOM_WORKING_DATE_FIELD])];
 }
 
 const FALLBACK_DATE_FIELDS = [

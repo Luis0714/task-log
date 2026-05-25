@@ -1,11 +1,15 @@
 "use client";
 
+import { useCallback, useState } from "react";
+
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { PbiList } from "@/components/dashboard/work-items/pbi-list";
 import { AdoContextSelectFields } from "@/components/time-log/ado-context-select-fields";
 import { WorkItemFiltersPanel } from "@/components/time-log/work-item-filters-panel";
+import { UserStoryDetailSheet } from "@/components/work-items/user-story-detail-sheet";
 import { useWorkItemsPage } from "@/hooks/work-items/use-work-items-page";
+import type { DashboardWorkItem } from "@/lib/dashboard/types";
 
 export type WorkItemsViewProps = {
   adoExecutionReady: boolean;
@@ -20,12 +24,29 @@ export function WorkItemsView({
     loading,
     error,
     sprintName,
+    project,
+    sprintBugs,
+    backlogStates,
+    refetchWorkItems,
     context,
     filters,
     inProgress,
     upcoming,
     assigned,
   } = useWorkItemsPage({ adoExecutionReady, defaultProject });
+
+  const [selectedWorkItem, setSelectedWorkItem] = useState<DashboardWorkItem | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const handleWorkItemClick = useCallback((item: DashboardWorkItem) => {
+    setSelectedWorkItem(item);
+    setSheetOpen(true);
+  }, []);
+
+  const handleSheetOpenChange = useCallback((open: boolean) => {
+    setSheetOpen(open);
+    if (!open) setSelectedWorkItem(null);
+  }, []);
 
   return (
     <div className="flex w-full flex-col gap-8 pb-6">
@@ -81,6 +102,7 @@ export function WorkItemsView({
           showHours
           loading={loading}
           emptyMessage="No hay PBIs que coincidan con los filtros."
+          onItemClick={handleWorkItemClick}
         />
       </DashboardSection>
 
@@ -93,6 +115,7 @@ export function WorkItemsView({
           variant="featured"
           loading={loading}
           emptyMessage="No hay PBIs en Committed con los filtros actuales."
+          onItemClick={handleWorkItemClick}
         />
       </DashboardSection>
 
@@ -105,8 +128,20 @@ export function WorkItemsView({
           variant="compact"
           loading={loading}
           emptyMessage="No hay PBIs pendientes con los filtros actuales."
+          onItemClick={handleWorkItemClick}
         />
       </DashboardSection>
+
+      <UserStoryDetailSheet
+        open={sheetOpen}
+        onOpenChange={handleSheetOpenChange}
+        workItem={selectedWorkItem}
+        bugs={sprintBugs}
+        backlogStates={backlogStates}
+        statesLoading={loading}
+        project={project}
+        onSaved={refetchWorkItems}
+      />
     </div>
   );
 }

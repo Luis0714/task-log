@@ -18,7 +18,7 @@ export function DashboardSection({
   contentClassName,
 }: DashboardSectionProps) {
   return (
-    <section className={cn("flex flex-col gap-3", className)}>
+    <section className={cn("flex flex-col gap-2", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-0.5">
           <h2 className="font-heading text-base font-semibold tracking-tight sm:text-lg">{title}</h2>

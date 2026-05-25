@@ -10,17 +10,17 @@ export type SprintItemRowProps = {
   item: AdoWorkItemOptionDto;
   showHours?: boolean;
   className?: string;
+  onClick?: () => void;
 };
 
-export function SprintItemRow({ item, showHours = true, className }: SprintItemRowProps) {
-  return (
-    <div
-      className={cn(
-        "flex w-full min-w-0 items-center gap-3 rounded-lg border border-transparent px-3 py-2.5",
-        "transition-colors hover:border-border/60 hover:bg-muted/40",
-        className,
-      )}
-    >
+export function SprintItemRow({
+  item,
+  showHours = true,
+  className,
+  onClick,
+}: SprintItemRowProps) {
+  const content = (
+    <>
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <WorkItemId id={item.id} />
@@ -40,6 +40,23 @@ export function SprintItemRow({ item, showHours = true, className }: SprintItemR
         ) : null}
         {item.state ? <StatusBadge state={item.state} className="max-w-30" /> : null}
       </div>
-    </div>
+    </>
   );
+
+  const rowClassName = cn(
+    "flex w-full min-w-0 items-center gap-3 rounded-lg border border-transparent px-3 py-2.5",
+    "transition-colors hover:border-border/60 hover:bg-muted/40",
+    onClick && "cursor-pointer",
+    className,
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={cn(rowClassName, "text-left")}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={rowClassName}>{content}</div>;
 }

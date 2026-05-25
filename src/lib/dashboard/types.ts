@@ -1,5 +1,6 @@
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import type { SprintDayHoursPoint } from "@/lib/dashboard/sprint-hours-series";
 import type { WorkItemsByStateGroup } from "@/lib/time-log/filter-work-items";
 
 export type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
@@ -35,12 +36,15 @@ export type SprintStatusOverview = {
   bugs: WorkItemStatusCounts;
 };
 
+export type { SprintDayHoursPoint } from "@/lib/dashboard/sprint-hours-series";
+
 export type SprintWeekMetrics = {
   label: string;
   hours: HoursBreakdown;
   hoursTarget: number;
   workingDaysCount: number;
   dateRangeLabel: string;
+  dayKeys: string[];
 };
 
 export type DashboardMetrics = {
@@ -48,7 +52,10 @@ export type DashboardMetrics = {
   hoursSprintCurrent: HoursBreakdown;
   hoursSprintTarget: number;
   hoursRemaining: number;
+  /** Suma de story points / effort de historias asignadas en el sprint. */
+  storyPointsAssigned: number;
   sprintWorkingDaysCount: number;
+  hoursByDay: SprintDayHoursPoint[];
   sprintWeeks: SprintWeekMetrics[];
   pbiStateGroups: DashboardPbiStateGroup[];
   pbiProgress: SprintPbiProgress;
@@ -63,4 +70,3 @@ export type DashboardHeaderData = {
   sprintName: string;
 };
 
-export type { DashboardActivityItem } from "@/lib/dashboard/activity";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type AdoApiErrorPayload = {
   error?: string;
@@ -11,6 +11,7 @@ export type UseAdoQueryResult<T> = {
   data: T;
   loading: boolean;
   error: string | null;
+  refetch: () => void;
 };
 
 export type UseAdoQueryOptions<T> = {
@@ -63,6 +64,8 @@ export function useAdoQuery<T>({
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refetchTick, setRefetchTick] = useState(0);
+  const refetch = useCallback(() => setRefetchTick((tick) => tick + 1), []);
   const parseRef = useRef(parse);
   const initialDataRef = useRef(initialData);
 
@@ -84,8 +87,8 @@ export function useAdoQuery<T>({
   const paramsKey = useMemo(() => JSON.stringify(stableParams), [stableParams]);
 
   const requestKey = useMemo(
-    () => JSON.stringify({ path, paramsKey, enabled, requiredKey }),
-    [path, paramsKey, enabled, requiredKey],
+    () => JSON.stringify({ path, paramsKey, enabled, requiredKey, refetchTick }),
+    [path, paramsKey, enabled, requiredKey, refetchTick],
   );
 
   useEffect(() => {
@@ -126,5 +129,5 @@ export function useAdoQuery<T>({
     return () => controller.abort();
   }, [requestKey, fallbackError]);
 
-  return { data, loading, error };
+  return { data, loading, error, refetch };
 }

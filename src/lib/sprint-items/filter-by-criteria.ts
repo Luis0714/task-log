@@ -23,3 +23,24 @@ export function filterSprintItemsByCriteria(
 
   return byText.filter((item) => item.workingDate === filters.dayKey);
 }
+
+/** Ítems sin fecha de trabajo al final; mismo día ordenados por título. */
+export function sortItemsByWorkingDateAsc(
+  items: readonly AdoWorkItemOptionDto[],
+): AdoWorkItemOptionDto[] {
+  return [...items].sort((a, b) => {
+    const aDate = a.workingDate?.trim() ?? "";
+    const bDate = b.workingDate?.trim() ?? "";
+
+    if (!aDate && !bDate) {
+      return a.title.localeCompare(b.title, "es");
+    }
+    if (!aDate) return 1;
+    if (!bDate) return -1;
+
+    const byDate = aDate.localeCompare(bDate);
+    if (byDate !== 0) return byDate;
+
+    return a.title.localeCompare(b.title, "es");
+  });
+}

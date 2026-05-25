@@ -20,6 +20,7 @@ export const MOCK_IN_PROGRESS_PBIS: DashboardWorkItem[] = [
     assignedTo: "Luis Martínez",
     loggedHours: 6,
     estimatedHours: 12,
+    effort: 5,
     priority: 1,
   },
   {
@@ -30,6 +31,7 @@ export const MOCK_IN_PROGRESS_PBIS: DashboardWorkItem[] = [
     assignedTo: "Luis Martínez",
     loggedHours: 3.5,
     estimatedHours: 8,
+    effort: 3,
     priority: 2,
   },
 ];
@@ -40,6 +42,7 @@ export const MOCK_UPCOMING_PBIS: DashboardWorkItem[] = [
     title: "Agregar validación de tokens en API",
     type: "Product Backlog Item",
     state: "Ready",
+    effort: 2,
     priority: 1,
   },
   {
@@ -67,6 +70,7 @@ export const MOCK_ASSIGNED_PBIS: DashboardWorkItem[] = [
     type: "Product Backlog Item",
     state: "QA",
     loggedHours: 10,
+    effort: 8,
     priority: 3,
   },
   {
@@ -75,6 +79,7 @@ export const MOCK_ASSIGNED_PBIS: DashboardWorkItem[] = [
     type: "Task",
     state: "Done",
     loggedHours: 4,
+    effort: 1,
     priority: 4,
   },
 ];
@@ -84,6 +89,7 @@ export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
   hoursSprintCurrent: { taskHours: 28, bugHours: 4 },
   hoursSprintTarget: 40,
   hoursRemaining: 8,
+  storyPointsAssigned: 19,
   sprintWorkingDaysCount: 10,
   sprintWeeks: [
     {
@@ -92,6 +98,7 @@ export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
       hoursTarget: 40,
       workingDaysCount: 5,
       dateRangeLabel: "3 mar – 7 mar",
+      dayKeys: ["2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07"],
     },
     {
       label: "2ª semana",
@@ -99,6 +106,27 @@ export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
       hoursTarget: 40,
       workingDaysCount: 5,
       dateRangeLabel: "10 mar – 14 mar",
+      dayKeys: ["2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-14"],
+    },
+  ],
+  hoursByDay: [
+    {
+      dayKey: "2026-03-03",
+      label: "lun 3",
+      taskHours: 6,
+      bugHours: 2,
+      totalHours: 8,
+      cumulativeHours: 8,
+      idealCumulativeHours: 8,
+    },
+    {
+      dayKey: "2026-03-04",
+      label: "mar 4",
+      taskHours: 5,
+      bugHours: 0,
+      totalHours: 5,
+      cumulativeHours: 13,
+      idealCumulativeHours: 16,
     },
   ],
   pbiStateGroups: [

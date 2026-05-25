@@ -1,5 +1,8 @@
 "use client";
 
+import { useCallback, useState } from "react";
+
+import { BugDetailSheet } from "@/components/bugs/bug-detail-sheet";
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { SprintDaySelect } from "@/components/sprint-items/sprint-day-select";
@@ -7,6 +10,7 @@ import { SprintItemList } from "@/components/sprint-items/sprint-item-list";
 import { AdoContextSelectFields } from "@/components/time-log/ado-context-select-fields";
 import { WorkItemFiltersPanel } from "@/components/time-log/work-item-filters-panel";
 import { useBugsPage } from "@/hooks/bugs/use-bugs-page";
+import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
 export type BugsViewProps = {
   adoExecutionReady: boolean;
@@ -17,10 +21,34 @@ export function BugsView({
   adoExecutionReady,
   defaultProject = null,
 }: BugsViewProps) {
-  const { loading, error, sprintName, context, sprintDay, filters, bugs } = useBugsPage({
+  const {
+    loading,
+    error,
+    sprintName,
+    project,
+    itemStates,
+    refetchItems,
+    context,
+    sprintDay,
+    filters,
+    bugs,
+  } = useBugsPage({
     adoExecutionReady,
     defaultProject,
   });
+
+  const [selectedBug, setSelectedBug] = useState<AdoWorkItemOptionDto | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const handleBugClick = useCallback((item: AdoWorkItemOptionDto) => {
+    setSelectedBug(item);
+    setSheetOpen(true);
+  }, []);
+
+  const handleSheetOpenChange = useCallback((open: boolean) => {
+    setSheetOpen(open);
+    if (!open) setSelectedBug(null);
+  }, []);
 
   return (
     <div className="flex w-full flex-col gap-8 pb-6">
@@ -86,8 +114,20 @@ export function BugsView({
           items={bugs}
           loading={loading}
           emptyMessage="No hay bugs que coincidan con los filtros."
+          onItemClick={handleBugClick}
         />
       </DashboardSection>
+
+      <BugDetailSheet
+        open={sheetOpen}
+        onOpenChange={handleSheetOpenChange}
+        bug={selectedBug}
+        bugStates={itemStates}
+        statesLoading={loading}
+        project={project}
+        sprintWorkingDays={sprintDay.workingDays}
+        onSaved={refetchItems}
+      />
     </div>
   );
 }

@@ -61,6 +61,7 @@ export function useWorkItemsPage({
     workItems: sprintWorkItems,
     loading: workItemsLoading,
     error: workItemsError,
+    refetch: refetchWorkItems,
   } = useAdoSprintWorkItems(
     project || undefined,
     sprintPath || undefined,
@@ -154,6 +155,10 @@ export function useWorkItemsPage({
     loading,
     error,
     sprintName: currentSprint?.name ?? null,
+    project: project || null,
+    sprintBugs,
+    backlogStates,
+    refetchWorkItems,
     context: contextFields,
     filters: {
       values: filters,
