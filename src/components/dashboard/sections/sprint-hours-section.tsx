@@ -8,10 +8,7 @@ import { SprintWeekHoursPanel } from "@/components/dashboard/charts/sprint-week-
 import { StackedBarChart } from "@/components/dashboard/charts/stacked-bar-chart";
 import { formatHours } from "@/lib/dashboard/format-hours";
 import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
-import {
-  formatWorkingDaysHint,
-  HOURS_PER_SPRINT_WORKING_DAY,
-} from "@/lib/dashboard/sprint-hours";
+import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
 import { getHoursPaceStatus } from "@/lib/dashboard/hours-pace";
 import { kpiProgressPercent, kpiVariantFromProgress } from "@/lib/dashboard/kpi-variant";
 import { resolveProgressStatus } from "@/lib/dashboard/progress-status";
@@ -84,7 +81,6 @@ export function SprintHoursSection({
           hoursPending={metrics.hoursRemaining}
           variant={sprintVariant}
           highlight={sprintVariant === "destructive" || sprintVariant === "success"}
-          hint={formatWorkingDaysHint(metrics.sprintWorkingDaysCount)}
           className="min-w-0 lg:col-span-4"
           loading={loading}
         />
