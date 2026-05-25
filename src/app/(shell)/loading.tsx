@@ -1,5 +1,5 @@
-import { ShellContentSkeleton } from "@/components/skeletons/shell-content-skeleton";
+import { DashboardPageSkeleton } from "@/components/skeletons/dashboard-page-skeleton";
 
 export default function ShellLoading() {
-  return <ShellContentSkeleton />;
+  return <DashboardPageSkeleton />;
 }

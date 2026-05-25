@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 import { DashboardBodyServer } from "@/components/dashboard/dashboard-body-server";
 import { DashboardPageShell } from "@/components/dashboard/dashboard-page-shell";
-import { ShellContentSkeleton } from "@/components/skeletons/shell-content-skeleton";
+import { DashboardPageSkeleton } from "@/components/skeletons/dashboard-page-skeleton";
 import { loadAdoCatalog } from "@/lib/ado/load-ado-catalog";
 import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
 import { parseAdoContextSearchParams } from "@/lib/ado/parse-context-search-params";
@@ -66,7 +66,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       nonWorkingDates={nonWorkingDates}
     >
       {auth.adoExecutionReady && catalog.sprintPath ? (
-        <Suspense key={suspenseKey} fallback={<ShellContentSkeleton />}>
+        <Suspense key={suspenseKey} fallback={<DashboardPageSkeleton />}>
           <DashboardBodyServer catalog={catalog} sprintDayKey={sprintDayKey} />
         </Suspense>
       ) : null}
