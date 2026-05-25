@@ -10,8 +10,7 @@ import { SprintDaySelect } from "@/components/sprint-items/sprint-day-select";
 import { SprintItemList } from "@/components/sprint-items/sprint-item-list";
 import { TaskDetailSheet } from "@/components/tasks/task-detail-sheet";
 import { Button } from "@/components/ui/button";
-import { AdoContextSelectFields } from "@/components/time-log/ado-context-select-fields";
-import { WorkItemFiltersPanel } from "@/components/time-log/work-item-filters-panel";
+import { AdoFiltersSection } from "@/components/filters/ado-filters-section";
 import { useTasksPage } from "@/hooks/tasks/use-tasks-page";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
@@ -82,13 +81,10 @@ export function TasksView({
       {error ? <CopilotErrorAlert message={error} /> : null}
 
       {adoExecutionReady ? (
-        <DashboardSection
-          title="Contexto"
-          description="Proyecto, equipo, sprint y día para cargar las tasks."
-        >
-          <AdoContextSelectFields
-            {...context}
-            sprintDayFilter={
+        <AdoFiltersSection
+          context={{
+            ...context,
+            sprintDayFilter:
               sprintDay.workingDays.length > 0 ? (
                 <SprintDaySelect
                   showLabel
@@ -98,26 +94,23 @@ export function TasksView({
                   className="w-full sm:min-w-48 sm:flex-1"
                   onValueChange={sprintDay.onValueChange}
                 />
-              ) : null
-            }
-          />
-        </DashboardSection>
-      ) : null}
-
-      {adoExecutionReady ? (
-        <WorkItemFiltersPanel
-          title="Filtros"
-          filters={filters.values}
-          states={filters.states}
-          members={filters.members}
-          membersLoading={filters.membersLoading}
-          membersError={filters.membersError}
-          filteredCount={filters.filteredCount}
-          totalCount={filters.totalCount}
-          disabled={loading || !context.sprintPath}
-          onSearchChange={filters.onSearchChange}
-          onAssigneeChange={filters.onAssigneeChange}
-          onStateChange={filters.onStateChange}
+              ) : null,
+          }}
+          workItems={{
+            filters: filters.values,
+            states: filters.states,
+            members: filters.members,
+            membersLoading: filters.membersLoading,
+            membersError: filters.membersError,
+            filteredCount: filters.filteredCount,
+            totalCount: filters.totalCount,
+            disabled: loading || !context.sprintPath,
+            title: "Filtros",
+            onSearchChange: filters.onSearchChange,
+            onAssigneeChange: filters.onAssigneeChange,
+            onStateChange: filters.onStateChange,
+          }}
+          defaultOpen={false}
         />
       ) : null}
 

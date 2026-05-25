@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 
 import { useAdoBacklogStates } from "@/hooks/use-ado-backlog-states";
 import { useAdoContextSelection } from "@/hooks/use-ado-context-selection";
@@ -8,19 +8,14 @@ import { useAdoSprintBugs } from "@/hooks/use-ado-sprint-bugs";
 import { useAdoSprintWorkItems } from "@/hooks/use-ado-sprint-work-items";
 import { attachBugCounts, buildBugCountsByParentId } from "@/lib/dashboard/bug-counts";
 import { useAdoTeamMembers } from "@/hooks/use-ado-team-members";
+import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-panel";
 import { useWorkItemFilters } from "@/hooks/use-work-item-filters";
 import {
-  collectWorkItemStates,
   filterWorkItemsByClientCriteria,
   selectInProgressWorkItems,
   selectUpcomingWorkItems,
 } from "@/lib/azure-devops/work-items-filters";
-import {
-  WORK_ITEM_ASSIGNEE_ALL,
-  WORK_ITEM_ASSIGNEE_ME,
-  isWorkItemAssigneeAll,
-  isWorkItemAssigneeMe,
-} from "@/lib/schemas/work-item-filters";
+import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 
 export type UseWorkItemsPageOptions = {
   adoExecutionReady: boolean;
@@ -90,12 +85,6 @@ export function useWorkItemsPage({
     [backlogStates],
   );
 
-  const filterStates = useMemo(
-    () =>
-      workItemStates.length > 0 ? workItemStates : collectWorkItemStates(sprintWorkItems),
-    [sprintWorkItems, workItemStates],
-  );
-
   const filteredItems = useMemo(() => {
     const items = filterWorkItemsByClientCriteria(sprintWorkItems, {
       search: filters.search,
@@ -114,24 +103,21 @@ export function useWorkItemsPage({
     [filteredItems],
   );
 
-  useEffect(() => {
-    resetFilters();
-  }, [resetFilters, sprintPath]);
-
-  useEffect(() => {
-    if (filters.state && !filterStates.includes(filters.state)) {
-      setState("");
-    }
-  }, [filterStates, filters.state, setState]);
-
-  useEffect(() => {
-    const assignee = filters.assignee;
-    if (isWorkItemAssigneeMe(assignee) || isWorkItemAssigneeAll(assignee)) return;
-    if (teamMembersLoading) return;
-    if (!teamMembers.some((member) => member.displayName === assignee)) {
-      setAssignee(WORK_ITEM_ASSIGNEE_ME);
-    }
-  }, [filters.assignee, setAssignee, teamMembers, teamMembersLoading]);
+  const filtersPanel = useWorkItemFiltersPanel({
+    filters,
+    setSearch,
+    setAssignee,
+    setState,
+    resetFilters,
+    sprintPath,
+    items: sprintWorkItems,
+    stateNames: workItemStates,
+    members: teamMembers,
+    membersLoading: teamMembersLoading,
+    membersError: teamMembersError,
+    totalCount: sprintWorkItems.length,
+    filteredCount: filteredItems.length,
+  });
 
   const currentSprint = useMemo(
     () => context.sprints.find((sprint) => sprint.path === sprintPath) ?? null,
@@ -161,16 +147,16 @@ export function useWorkItemsPage({
     refetchWorkItems,
     context: contextFields,
     filters: {
-      values: filters,
-      states: filterStates,
-      members: teamMembers,
-      membersLoading: teamMembersLoading,
-      membersError: teamMembersError,
-      totalCount: sprintWorkItems.length,
-      filteredCount: filteredItems.length,
-      onSearchChange: setSearch,
-      onAssigneeChange: setAssignee,
-      onStateChange: setState,
+      values: filtersPanel.values,
+      states: filtersPanel.states,
+      members: filtersPanel.members,
+      membersLoading: filtersPanel.membersLoading,
+      membersError: filtersPanel.membersError,
+      totalCount: filtersPanel.totalCount,
+      filteredCount: filtersPanel.filteredCount,
+      onSearchChange: filtersPanel.onSearchChange,
+      onAssigneeChange: filtersPanel.onAssigneeChange,
+      onStateChange: filtersPanel.onStateChange,
     },
     inProgress,
     upcoming,

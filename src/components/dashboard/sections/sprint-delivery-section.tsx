@@ -8,6 +8,7 @@ import {
   completionPercent,
 } from "@/lib/dashboard/delivery-chart-data";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
+import { kpiProgressPercent, kpiVariantFromProgress } from "@/lib/dashboard/kpi-variant";
 import { formatStoryPoints } from "@/lib/dashboard/work-item-selectors";
 import { cn } from "@/lib/utils";
 
@@ -32,23 +33,24 @@ export function SprintDeliverySection({
 
   return (
     <div className={cn("grid gap-3 lg:grid-cols-12", className)}>
-      <ChartPanel
-        title="Estado de entrega"
-        loading={loading}
-        isEmpty={!hasData}
-        emptyMessage="Sin historias ni bugs asignados en este sprint."
-        highlight={huPercent >= 75 || bugPercent >= 75}
-        className="lg:col-span-8"
-      >
-        <GroupedBarChart rows={rows} />
-      </ChartPanel>
-
-      <div className="flex flex-col gap-2 lg:col-span-4">
+      <div className="grid grid-cols-3 gap-2 sm:max-w-md lg:col-span-4 lg:max-w-none lg:grid-cols-1 lg:gap-1.5">
         <DashboardKpi
+          size="compact"
+          layout="inline"
           label="HU desarrolladas"
           value={`${huPercent}%`}
-          progress={huPercent}
-          variant={huPercent >= 50 ? "success" : userStories.pending > 0 ? "warning" : "default"}
+          progress={
+            userStories.assigned > 0
+              ? kpiProgressPercent(userStories.completed, userStories.assigned)
+              : undefined
+          }
+          variant={
+            userStories.assigned > 0
+              ? kpiVariantFromProgress(userStories.completed, userStories.assigned, {
+                  lowProgress: userStories.pending > 0 && huPercent < 50,
+                })
+              : "default"
+          }
           highlight={huPercent >= 75}
           hint={
             userStories.assigned > 0
@@ -58,20 +60,31 @@ export function SprintDeliverySection({
           loading={loading}
         />
         <DashboardKpi
+          size="compact"
+          layout="inline"
           label="Bugs atendidos"
           value={`${bugPercent}%`}
-          progress={bugPercent}
-          variant={bugs.pending > 0 && bugPercent < 50 ? "warning" : bugPercent >= 50 ? "success" : "default"}
-          highlight={bugs.assigned > 0 && bugs.pending === 0}
-          hint={
-            bugs.assigned > 0 ? `${bugs.completed} de ${bugs.assigned}` : "Sin bugs"
+          progress={
+            bugs.assigned > 0 ? kpiProgressPercent(bugs.completed, bugs.assigned) : undefined
           }
+          variant={
+            bugs.assigned > 0
+              ? kpiVariantFromProgress(bugs.completed, bugs.assigned, {
+                  lowProgress: bugs.pending > 0 && bugPercent < 50,
+                })
+              : "default"
+          }
+          highlight={bugs.assigned > 0 && bugs.pending === 0}
+          hint={bugs.assigned > 0 ? `${bugs.completed} de ${bugs.assigned}` : "Sin bugs"}
           loading={loading}
         />
         <DashboardKpi
+          size="compact"
+          layout="inline"
           label="Story points"
           value={formatStoryPoints(metrics.storyPointsAssigned)}
           variant="accent"
+          highlight={metrics.storyPointsAssigned > 0}
           hint={
             metrics.pbiProgress.totalCount > 0
               ? `${metrics.pbiProgress.totalCount} historias`
@@ -80,6 +93,18 @@ export function SprintDeliverySection({
           loading={loading}
         />
       </div>
+
+      <ChartPanel
+        title="Estado de entrega"
+        size="compact"
+        loading={loading}
+        isEmpty={!hasData}
+        emptyMessage="Sin historias ni bugs asignados en este sprint."
+        highlight={huPercent >= 75 || bugPercent >= 75}
+        className="min-w-0 lg:col-span-8"
+      >
+        <GroupedBarChart rows={rows} className="h-[140px] sm:h-[150px]" />
+      </ChartPanel>
     </div>
   );
 }

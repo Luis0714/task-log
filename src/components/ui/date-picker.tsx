@@ -1,0 +1,97 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
+import { es as esDayPicker } from "react-day-picker/locale";
+import type { Matcher } from "react-day-picker";
+
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { parseLocalDateKey, toLocalDateKey } from "@/lib/dashboard/sprint-days";
+import { cn } from "@/lib/utils";
+
+export type DatePickerProps = {
+  id?: string;
+  value: string;
+  onChange: (value: string) => void;
+  min?: string;
+  max?: string;
+  disabled?: boolean;
+  placeholder?: string;
+  className?: string;
+};
+
+function formatPickerLabel(dateKey: string): string {
+  const date = parseLocalDateKey(dateKey);
+  if (!date) return dateKey;
+  return format(date, "PPP", { locale: es });
+}
+
+function buildDisabledMatcher(min?: string, max?: string): Matcher | undefined {
+  const minDate = min ? (parseLocalDateKey(min) ?? undefined) : undefined;
+  const maxDate = max ? (parseLocalDateKey(max) ?? undefined) : undefined;
+  if (minDate && maxDate) return { before: minDate, after: maxDate };
+  if (minDate) return { before: minDate };
+  if (maxDate) return { after: maxDate };
+  return undefined;
+}
+
+export function DatePicker({
+  id,
+  value,
+  onChange,
+  min,
+  max,
+  disabled = false,
+  placeholder = "Selecciona una fecha",
+  className,
+}: DatePickerProps) {
+  const [open, setOpen] = useState(false);
+  const selectedDate = useMemo(
+    () => (value ? (parseLocalDateKey(value) ?? undefined) : undefined),
+    [value],
+  );
+  const disabledMatcher = useMemo(() => buildDisabledMatcher(min, max), [min, max]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        id={id}
+        disabled={disabled}
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            data-empty={!value}
+            className={cn(
+              "h-8 w-full justify-between gap-2 px-2.5 font-normal data-[empty=true]:text-muted-foreground",
+              className,
+            )}
+          />
+        }
+      >
+        <span className="truncate text-left">
+          {value ? formatPickerLabel(value) : placeholder}
+        </span>
+        <CalendarIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          locale={esDayPicker}
+          selected={selectedDate}
+          defaultMonth={selectedDate}
+          disabled={disabledMatcher}
+          onSelect={(date) => {
+            if (!date) return;
+            onChange(toLocalDateKey(date));
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}

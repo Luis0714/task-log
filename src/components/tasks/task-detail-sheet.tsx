@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { TaskSummaryCard } from "@/components/tasks/task-summary-card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -133,14 +133,13 @@ export function TaskDetailSheet({
 
                 <section className="space-y-2">
                   <Label htmlFor="task-working-date">Fecha de trabajo</Label>
-                  <Input
+                  <DatePicker
                     id="task-working-date"
-                    type="date"
                     value={draftWorkingDate}
                     min={sprintDateBounds.min}
                     max={sprintDateBounds.max}
                     disabled={saving}
-                    onChange={(event) => setDraftWorkingDate(event.target.value)}
+                    onChange={setDraftWorkingDate}
                   />
                   <p className="text-muted-foreground text-xs">
                     Working Date en Azure DevOps. Obligatoria al cambiar el estado.

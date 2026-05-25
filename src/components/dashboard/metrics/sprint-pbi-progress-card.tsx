@@ -1,20 +1,10 @@
 import { CheckCircle2, CircleDashed, ListChecks } from "lucide-react";
 
+import { PbiProgressRingChart } from "@/components/dashboard/charts/pbi-progress-ring-chart";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SprintPbiProgress } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils";
-
-const RING_RADIUS_COMPACT = 40;
-const RING_RADIUS_DEFAULT = 48;
-const RING_STROKE = 8;
-
-function ringSize(compact: boolean) {
-  const radius = compact ? RING_RADIUS_COMPACT : RING_RADIUS_DEFAULT;
-  const size = (radius + RING_STROKE) * 2;
-  const circumference = 2 * Math.PI * radius;
-  return { radius, size, circumference };
-}
 
 export type SprintPbiProgressCardProps = {
   progress: SprintPbiProgress;
@@ -23,44 +13,6 @@ export type SprintPbiProgressCardProps = {
   highlight?: boolean;
   className?: string;
 };
-
-function ProgressRing({ percent, compact }: { percent: number; compact: boolean }) {
-  const clamped = Math.min(100, Math.max(0, percent));
-  const { radius, size, circumference } = ringSize(compact);
-  const offset = circumference - (clamped / 100) * circumference;
-  const cx = size / 2;
-
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${size} ${size}`}
-      className="shrink-0 -rotate-90"
-      role="img"
-      aria-label={`Progreso del sprint: ${clamped} por ciento`}
-    >
-      <circle
-        cx={cx}
-        cy={cx}
-        r={radius}
-        fill="none"
-        className="stroke-muted"
-        strokeWidth={RING_STROKE}
-      />
-      <circle
-        cx={cx}
-        cy={cx}
-        r={radius}
-        fill="none"
-        className="stroke-primary transition-[stroke-dashoffset] duration-500 ease-out"
-        strokeWidth={RING_STROKE}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-      />
-    </svg>
-  );
-}
 
 type BreakdownRowProps = {
   icon: typeof CheckCircle2;
@@ -115,7 +67,7 @@ export function SprintPbiProgressCard({
 
         {loading ? (
           <div className="flex items-center gap-4">
-            <Skeleton className="size-20 shrink-0 rounded-full" />
+            <Skeleton className="size-24 shrink-0 rounded-full" />
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-4/5" />
@@ -128,7 +80,7 @@ export function SprintPbiProgressCard({
         ) : (
           <div className="flex items-center gap-4">
             <div className="relative flex shrink-0 items-center justify-center">
-              <ProgressRing percent={progress.percent} compact={compact} />
+              <PbiProgressRingChart percent={progress.percent} compact={compact} />
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                 <span
                   className={cn(

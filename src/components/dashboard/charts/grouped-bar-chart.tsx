@@ -2,32 +2,32 @@
 
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
 
+import { DeliveryChartLegend } from "@/components/dashboard/charts/delivery-chart-legend";
+import { DeliveryChartTooltip } from "@/components/dashboard/charts/delivery-chart-tooltip";
 import {
   ChartContainer,
   ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
-  ChartTooltipContent,
 } from "@/components/ui/chart";
 import type { DeliveryChartRow } from "@/lib/dashboard/delivery-chart-data";
 import {
   CHART_HEIGHT_DEFAULT,
+  CHART_INITIAL_DIMENSION,
+  CHART_MARGIN,
+  CHART_TOOLTIP_CURSOR,
+  chartContainerClass,
   deliveryChartConfig,
 } from "@/lib/dashboard/chart-config";
-import {
-  ChartGradientDefs,
-  DELIVERY_GRADIENTS,
-  gradientFill,
-} from "@/lib/dashboard/chart-gradients";
-import { cn } from "@/lib/utils";
-
-const MARGIN = { top: 12, right: 8, left: -18, bottom: 0 };
 
 const BAR_SERIES = [
-  { key: "pending" as const, gradientId: "grad-pending" },
-  { key: "inProgress" as const, gradientId: "grad-inProgress" },
-  { key: "completed" as const, gradientId: "grad-completed" },
-];
+  { key: "pending" as const },
+  { key: "inProgress" as const },
+  { key: "completed" as const },
+] as const;
+
+function seriesFill(key: (typeof BAR_SERIES)[number]["key"]): string {
+  return `var(--color-${key})`;
+}
 
 export type GroupedBarChartProps = {
   rows: DeliveryChartRow[];
@@ -40,10 +40,10 @@ export function GroupedBarChart({ rows, className }: GroupedBarChartProps) {
   return (
     <ChartContainer
       config={deliveryChartConfig}
-      className={cn(CHART_HEIGHT_DEFAULT, "w-full", className)}
+      initialDimension={{ ...CHART_INITIAL_DIMENSION, height: 180 }}
+      className={chartContainerClass(CHART_HEIGHT_DEFAULT, className)}
     >
-      <BarChart data={rows} margin={MARGIN} barCategoryGap="22%" barGap={6}>
-        <ChartGradientDefs gradients={DELIVERY_GRADIENTS} />
+      <BarChart data={rows} margin={CHART_MARGIN} barCategoryGap="22%" barGap={6}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
         <XAxis
           dataKey="label"
@@ -53,19 +53,25 @@ export function GroupedBarChart({ rows, className }: GroupedBarChartProps) {
           tick={{ fontSize: 11 }}
         />
         <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={24} tick={{ fontSize: 10 }} />
-        <ChartTooltip
-          cursor={{ fill: "hsl(var(--primary))", opacity: 0.08 }}
-          content={<ChartTooltipContent indicator="dot" />}
-        />
-        <ChartLegend content={<ChartLegendContent />} />
-        {BAR_SERIES.map(({ key, gradientId }) => (
+        <ChartTooltip cursor={CHART_TOOLTIP_CURSOR} content={<DeliveryChartTooltip />} />
+        <ChartLegend content={<DeliveryChartLegend />} />
+        {BAR_SERIES.map(({ key }) => (
           <Bar
             key={key}
             dataKey={key}
-            fill={gradientFill(gradientId)}
+            name={key}
+            fill={seriesFill(key)}
+            stroke={seriesFill(key)}
+            strokeWidth={0}
             radius={[5, 5, 0, 0]}
             maxBarSize={28}
             animationDuration={650}
+            activeBar={{
+              fill: seriesFill(key),
+              stroke: seriesFill(key),
+              strokeWidth: 1,
+              opacity: 1,
+            }}
           >
             {key === "completed" ? (
               <LabelList

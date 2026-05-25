@@ -9,6 +9,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
@@ -75,7 +76,11 @@ export function TaskFormFields({
             <FormItem>
               <FormLabel>Fecha de trabajo</FormLabel>
               <FormControl>
-                <Input type="date" disabled={disabled} {...field} />
+                <DatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={disabled}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

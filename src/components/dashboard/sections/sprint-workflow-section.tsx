@@ -32,7 +32,7 @@ export function SprintWorkflowSection({
       />
 
       <ChartPanel
-        title="PBIs por estado"
+        title="Historias de usuario por estado"
         size="compact"
         loading={loading}
         isEmpty={stateBars.length === 0}

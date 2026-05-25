@@ -1,3 +1,8 @@
+import {
+  clampProgressPercent,
+  PROGRESS_BAR_CLASS,
+  resolveProgressStatus,
+} from "@/lib/dashboard/progress-status";
 import { cn } from "@/lib/utils";
 
 export type ProgressBarProps = {
@@ -7,28 +12,8 @@ export type ProgressBarProps = {
   indicatorClassName?: string;
 };
 
-type ProgressStatus = "in-progress" | "complete" | "over";
-
-function clampProgress(value: number, max: number): number {
-  if (max <= 0) return value > 0 ? 100 : 0;
-  return Math.min(100, Math.max(0, (value / max) * 100));
-}
-
-function resolveProgressStatus(value: number, max: number): ProgressStatus {
-  if (max <= 0) return value > 0 ? "over" : "in-progress";
-  if (value > max) return "over";
-  if (value >= max) return "complete";
-  return "in-progress";
-}
-
-const INDICATOR_STATUS_CLASS: Record<ProgressStatus, string> = {
-  "in-progress": "bg-primary",
-  complete: "bg-emerald-500",
-  over: "bg-destructive",
-};
-
 export function ProgressBar({ value, max, className, indicatorClassName }: ProgressBarProps) {
-  const percent = clampProgress(value, max);
+  const percent = clampProgressPercent(value, max);
   const status = resolveProgressStatus(value, max);
 
   return (
@@ -42,7 +27,7 @@ export function ProgressBar({ value, max, className, indicatorClassName }: Progr
       <div
         className={cn(
           "h-full rounded-full transition-[width] duration-500 ease-out",
-          INDICATOR_STATUS_CLASS[status],
+          PROGRESS_BAR_CLASS[status],
           indicatorClassName,
         )}
         style={{ width: `${percent}%` }}

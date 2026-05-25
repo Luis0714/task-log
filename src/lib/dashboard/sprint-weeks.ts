@@ -34,13 +34,13 @@ function buildWeekMetrics(
   label: string,
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
-  selectedDayKey: string,
 ): SprintWeekMetrics | null {
   if (days.length === 0) return null;
 
   const dayKeys = days.map((day) => day.value);
-  const hours = selectedDayKey
-    ? sumHoursBreakdownForDayKeys(tasks, bugs, dayKeys, selectedDayKey)
+  const weekEndKey = dayKeys[dayKeys.length - 1] ?? "";
+  const hours = weekEndKey
+    ? sumHoursBreakdownForDayKeys(tasks, bugs, dayKeys, weekEndKey)
     : { taskHours: 0, bugHours: 0 };
 
   return {
@@ -57,13 +57,12 @@ export function computeSprintWeekMetrics(
   workingDays: readonly SprintWorkingDay[],
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
-  selectedDayKey: string,
 ): SprintWeekMetrics[] {
   const [firstWeekDays, secondWeekDays] = splitSprintIntoWeeks(workingDays);
 
   return [
-    buildWeekMetrics(firstWeekDays, "1ª semana", tasks, bugs, selectedDayKey),
-    buildWeekMetrics(secondWeekDays, "2ª semana", tasks, bugs, selectedDayKey),
+    buildWeekMetrics(firstWeekDays, "1ª semana", tasks, bugs),
+    buildWeekMetrics(secondWeekDays, "2ª semana", tasks, bugs),
   ].filter((week): week is SprintWeekMetrics => week !== null);
 }
 

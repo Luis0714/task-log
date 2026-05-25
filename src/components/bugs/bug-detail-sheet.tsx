@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { BugSummaryCard } from "@/components/bugs/bug-summary-card";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -157,14 +158,13 @@ export function BugDetailSheet({
 
                 <section className="space-y-2">
                   <Label htmlFor="bug-working-date">Fecha de trabajo</Label>
-                  <Input
+                  <DatePicker
                     id="bug-working-date"
-                    type="date"
                     value={draftWorkingDate}
                     min={sprintDateBounds.min}
                     max={sprintDateBounds.max}
                     disabled={saving}
-                    onChange={(event) => setDraftWorkingDate(event.target.value)}
+                    onChange={setDraftWorkingDate}
                   />
                   <p className="text-muted-foreground text-xs">
                     Working Date en Azure DevOps. Obligatoria al cambiar el estado.

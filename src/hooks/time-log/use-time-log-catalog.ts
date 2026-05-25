@@ -13,6 +13,7 @@ import { useAdoTaskStates } from "@/hooks/use-ado-task-states";
 import { useAdoTeamMembers } from "@/hooks/use-ado-team-members";
 import { useAdoTeamDaysOff } from "@/hooks/use-ado-team-days-off";
 import { useAdoTeams } from "@/hooks/use-ado-teams";
+import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-panel";
 import { useWorkItemFilters } from "@/hooks/use-work-item-filters";
 import {
   buildCatalogDisabledState,
@@ -20,7 +21,6 @@ import {
 } from "@/lib/time-log/catalog-placeholders";
 import type { TimeLogCatalog } from "@/lib/time-log/catalog-types";
 import {
-  collectWorkItemStates,
   filterWorkItemsByClientCriteria,
   groupWorkItemsByStates,
 } from "@/lib/time-log/filter-work-items";
@@ -32,11 +32,6 @@ import {
 } from "@/lib/time-log/form-selection";
 import { resolveTaskStateSelection } from "@/lib/time-log/task-state-utils";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
-import {
-  WORK_ITEM_ASSIGNEE_ME,
-  isWorkItemAssigneeAll,
-  isWorkItemAssigneeMe,
-} from "@/lib/schemas/work-item-filters";
 
 type UseTimeLogCatalogOptions = {
   form: UseFormReturn<TimeLogFormValues>;
@@ -172,30 +167,26 @@ export function useTimeLogCatalog({
     [sprintPbis, workItemFilters.search, workItemFilters.state],
   );
 
-  const pbiGroups = useMemo(() => {
-    const stateOrder =
-      workItemStates.length > 0 ? workItemStates : collectWorkItemStates(sprintPbis);
-    return groupWorkItemsByStates(pbis, stateOrder);
-  }, [pbis, sprintPbis, workItemStates]);
+  const workItemFiltersPanel = useWorkItemFiltersPanel({
+    filters: workItemFilters,
+    setSearch: setWorkItemSearch,
+    setAssignee: setWorkItemAssignee,
+    setState: setWorkItemState,
+    resetFilters: resetWorkItemFilters,
+    sprintPath,
+    items: sprintPbis,
+    stateNames: workItemStates,
+    members: teamMembers,
+    membersLoading: teamMembersLoading,
+    membersError: teamMembersError,
+    totalCount: sprintPbis.length,
+    filteredCount: pbis.length,
+  });
 
-  useEffect(() => {
-    resetWorkItemFilters();
-  }, [resetWorkItemFilters, sprintPath]);
-
-  useEffect(() => {
-    if (workItemFilters.state && !workItemStates.includes(workItemFilters.state)) {
-      setWorkItemState("");
-    }
-  }, [setWorkItemState, workItemFilters.state, workItemStates]);
-
-  useEffect(() => {
-    const assignee = workItemFilters.assignee;
-    if (isWorkItemAssigneeMe(assignee) || isWorkItemAssigneeAll(assignee)) return;
-    if (teamMembersLoading) return;
-    if (!teamMembers.some((member) => member.displayName === assignee)) {
-      setWorkItemAssignee(WORK_ITEM_ASSIGNEE_ME);
-    }
-  }, [setWorkItemAssignee, teamMembers, teamMembersLoading, workItemFilters.assignee]);
+  const pbiGroups = useMemo(
+    () => groupWorkItemsByStates(pbis, workItemFiltersPanel.states),
+    [pbis, workItemFiltersPanel.states],
+  );
 
   useEffect(() => {
     if (!pbiId || pbisLoading) return;

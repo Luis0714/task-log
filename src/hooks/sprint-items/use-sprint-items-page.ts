@@ -9,18 +9,13 @@ import { useAdoSprintTasks } from "@/hooks/use-ado-sprint-tasks";
 import { useAdoTaskStates } from "@/hooks/use-ado-task-states";
 import { useAdoTeamDaysOff } from "@/hooks/use-ado-team-days-off";
 import { useAdoTeamMembers } from "@/hooks/use-ado-team-members";
+import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-panel";
 import { useWorkItemFilters } from "@/hooks/use-work-item-filters";
-import { collectWorkItemStates } from "@/lib/azure-devops/work-items-filters";
 import {
   listSprintWorkingDays,
   pickDefaultSprintDayKey,
   type SprintWorkingDay,
 } from "@/lib/dashboard/sprint-days";
-import {
-  WORK_ITEM_ASSIGNEE_ME,
-  isWorkItemAssigneeAll,
-  isWorkItemAssigneeMe,
-} from "@/lib/schemas/work-item-filters";
 import {
   SPRINT_DAY_ALL,
   filterSprintItemsByCriteria,
@@ -142,9 +137,8 @@ export function useSprintItemsPage({
   const [dayKey, setDayKey] = useState(SPRINT_DAY_ALL);
 
   useEffect(() => {
-    resetFilters();
     setDayKey(SPRINT_DAY_ALL);
-  }, [resetFilters, sprintPath]);
+  }, [sprintPath]);
 
   useEffect(() => {
     const defaultKey = pickDefaultSprintDayKey(sprintWorkingDays);
@@ -157,11 +151,6 @@ export function useSprintItemsPage({
     });
   }, [sprintPath, sprintWorkingDays]);
 
-  const filterStates = useMemo(() => {
-    if (stateNames.length > 0) return stateNames;
-    return collectWorkItemStates(sprintItems);
-  }, [sprintItems, stateNames]);
-
   const filteredItems = useMemo(() => {
     const filtered = filterSprintItemsByCriteria(sprintItems, {
       search: filters.search,
@@ -173,20 +162,21 @@ export function useSprintItemsPage({
       : filtered;
   }, [dayKey, filters.search, filters.state, kind, sprintItems]);
 
-  useEffect(() => {
-    if (filters.state && !filterStates.includes(filters.state)) {
-      setState("");
-    }
-  }, [filterStates, filters.state, setState]);
-
-  useEffect(() => {
-    const assignee = filters.assignee;
-    if (isWorkItemAssigneeMe(assignee) || isWorkItemAssigneeAll(assignee)) return;
-    if (teamMembersLoading) return;
-    if (!teamMembers.some((member) => member.displayName === assignee)) {
-      setAssignee(WORK_ITEM_ASSIGNEE_ME);
-    }
-  }, [filters.assignee, setAssignee, teamMembers, teamMembersLoading]);
+  const filtersPanel = useWorkItemFiltersPanel({
+    filters,
+    setSearch,
+    setAssignee,
+    setState,
+    resetFilters,
+    sprintPath,
+    items: sprintItems,
+    stateNames,
+    members: teamMembers,
+    membersLoading: teamMembersLoading,
+    membersError: teamMembersError,
+    totalCount: sprintItems.length,
+    filteredCount: filteredItems.length,
+  });
 
   const { contextLoading, ...contextFields } = context;
 
@@ -218,16 +208,16 @@ export function useSprintItemsPage({
       onValueChange: (value: string) => void;
     },
     filters: {
-      values: filters,
-      states: filterStates,
-      members: teamMembers,
-      membersLoading: teamMembersLoading,
-      membersError: teamMembersError,
-      totalCount: sprintItems.length,
-      filteredCount: filteredItems.length,
-      onSearchChange: setSearch,
-      onAssigneeChange: setAssignee,
-      onStateChange: setState,
+      values: filtersPanel.values,
+      states: filtersPanel.states,
+      members: filtersPanel.members,
+      membersLoading: filtersPanel.membersLoading,
+      membersError: filtersPanel.membersError,
+      totalCount: filtersPanel.totalCount,
+      filteredCount: filtersPanel.filteredCount,
+      onSearchChange: filtersPanel.onSearchChange,
+      onAssigneeChange: filtersPanel.onAssigneeChange,
+      onStateChange: filtersPanel.onStateChange,
     },
     items: filteredItems,
     project: project || null,

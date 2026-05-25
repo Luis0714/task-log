@@ -185,6 +185,8 @@ export function useDashboardData({
   const metrics: DashboardMetrics = useMemo(() => {
     const todayKey = toLocalDateKey(new Date());
     const hoursDayKey = selectedSprintDayKey || todayKey;
+    const sprintEndKey =
+      sprintWorkingDays[sprintWorkingDays.length - 1]?.value ?? "";
 
     const hoursToday = sumHoursBreakdownForDay(sprintTasks, sprintBugs, hoursDayKey);
 
@@ -193,18 +195,23 @@ export function useDashboardData({
       currentSprint?.finishDate,
       workingDayOptions,
     );
-    const hoursSprintCurrent = sumHoursBreakdownThroughDay(sprintTasks, sprintBugs, hoursDayKey);
-    const hoursByDay = computeSprintHoursSeries(
-      sprintWorkingDays,
-      sprintTasks,
-      sprintBugs,
-      hoursDayKey,
-    );
+    const hoursSprintCurrent =
+      sprintEndKey !== ""
+        ? sumHoursBreakdownThroughDay(sprintTasks, sprintBugs, sprintEndKey)
+        : { taskHours: 0, bugHours: 0 };
+    const hoursByDay =
+      sprintEndKey !== ""
+        ? computeSprintHoursSeries(
+            sprintWorkingDays,
+            sprintTasks,
+            sprintBugs,
+            sprintEndKey,
+          )
+        : [];
     const sprintWeeks = computeSprintWeekMetrics(
       sprintWorkingDays,
       sprintTasks,
       sprintBugs,
-      hoursDayKey,
     );
 
     return computeDashboardMetrics(hoursToday, {

@@ -13,7 +13,10 @@ import {
   HOURS_PER_SPRINT_WORKING_DAY,
 } from "@/lib/dashboard/sprint-hours";
 import { getHoursPaceStatus } from "@/lib/dashboard/hours-pace";
+import { kpiProgressPercent, kpiVariantFromProgress } from "@/lib/dashboard/kpi-variant";
+import { resolveProgressStatus } from "@/lib/dashboard/progress-status";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
+import type { KpiVariant } from "@/lib/dashboard/kpi-variant";
 import { cn } from "@/lib/utils";
 
 export type SprintHoursSectionProps = {
@@ -33,46 +36,63 @@ export function SprintHoursSection({
 }: SprintHoursSectionProps) {
   const hoursToday = totalHoursBreakdown(metrics.hoursToday);
   const hoursSprint = totalHoursBreakdown(metrics.hoursSprintCurrent);
+  const hoursDayPending = Math.max(
+    0,
+    Math.round((HOURS_PER_SPRINT_WORKING_DAY - hoursToday) * 10) / 10,
+  );
   const hasDaySeries = metrics.hoursByDay.length > 0;
   const pace = getHoursPaceStatus(metrics.hoursByDay);
-  const todayProgress = Math.round((hoursToday / HOURS_PER_SPRINT_WORKING_DAY) * 100);
-  const sprintProgress = Math.round((hoursSprint / metrics.hoursSprintTarget) * 100);
   const todayLow = hoursToday > 0 && hoursToday < HOURS_PER_SPRINT_WORKING_DAY * 0.5;
+  const todayVariant = kpiVariantFromProgress(hoursToday, HOURS_PER_SPRINT_WORKING_DAY, {
+    lowProgress: todayLow,
+  });
+  const sprintStatus = resolveProgressStatus(hoursSprint, metrics.hoursSprintTarget);
+  const sprintVariant: KpiVariant =
+    sprintStatus === "over"
+      ? "destructive"
+      : sprintStatus === "complete"
+        ? "success"
+        : pace === "behind"
+          ? "warning"
+          : pace === "ahead"
+            ? "accent"
+            : "default";
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-12">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-12">
         <DashboardKpi
+          size="compact"
+          layout="stack"
           label={hoursDayLabel}
           value={`${formatHours(hoursToday)} / ${HOURS_PER_SPRINT_WORKING_DAY}h`}
-          progress={todayProgress}
-          variant={todayLow ? "warning" : todayProgress >= 100 ? "success" : "default"}
-          highlight
-          className="lg:col-span-3"
+          progress={kpiProgressPercent(hoursToday, HOURS_PER_SPRINT_WORKING_DAY)}
+          hoursBreakdown={metrics.hoursToday}
+          hoursPending={hoursDayPending}
+          variant={todayVariant}
+          highlight={todayVariant !== "default"}
+          className="min-w-0 lg:col-span-4"
           loading={loading}
         />
         <DashboardKpi
+          size="compact"
+          layout="stack"
           label="Horas sprint"
           value={`${formatHours(hoursSprint)} / ${formatHours(metrics.hoursSprintTarget)}`}
-          progress={sprintProgress}
-          variant={pace === "behind" ? "warning" : pace === "ahead" ? "success" : "accent"}
+          progress={kpiProgressPercent(hoursSprint, metrics.hoursSprintTarget)}
+          hoursBreakdown={metrics.hoursSprintCurrent}
+          hoursPending={metrics.hoursRemaining}
+          variant={sprintVariant}
+          highlight={sprintVariant === "destructive" || sprintVariant === "success"}
           hint={formatWorkingDaysHint(metrics.sprintWorkingDaysCount)}
-          className="lg:col-span-3"
-          loading={loading}
-        />
-        <DashboardKpi
-          label="Pendientes"
-          value={formatHours(metrics.hoursRemaining)}
-          hint="Capacidad restante"
-          variant={metrics.hoursRemaining <= 8 ? "accent" : "default"}
-          className="lg:col-span-2"
+          className="min-w-0 lg:col-span-4"
           loading={loading}
         />
         <ChartPanel
           title="Mix task / bug"
           size="inline"
           loading={loading}
-          className="sm:col-span-2 lg:col-span-4"
+          className="col-span-2 min-w-0 lg:col-span-4"
         >
           <HoursMixChart breakdown={metrics.hoursSprintCurrent} />
         </ChartPanel>

@@ -2,7 +2,7 @@
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { DailySummaryCard } from "@/components/dashboard/daily/daily-summary-card";
-import { AdoContextSelectFields } from "@/components/time-log/ado-context-select-fields";
+import { AdoFiltersSection } from "@/components/filters/ado-filters-section";
 import { DashboardHeader } from "@/components/dashboard/layout/dashboard-header";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { SprintDaySelect } from "@/components/dashboard/sprint-day-select";
@@ -50,10 +50,11 @@ export function DashboardView({
       {error ? <CopilotErrorAlert message={error} /> : null}
 
       {adoExecutionReady ? (
-        <DashboardSection title="Contexto" contentClassName="max-w-3xl">
-          <AdoContextSelectFields
-            {...context}
-            sprintDayFilter={
+        <AdoFiltersSection
+          className="max-w-3xl"
+          context={{
+            ...context,
+            sprintDayFilter:
               sprintDay.workingDays.length > 0 ? (
                 <SprintDaySelect
                   showLabel
@@ -63,10 +64,11 @@ export function DashboardView({
                   className="w-full sm:min-w-48 sm:flex-1"
                   onValueChange={sprintDay.onValueChange}
                 />
-              ) : null
-            }
-          />
-        </DashboardSection>
+              ) : null,
+          }}
+          defaultOpen={false}
+          collapsibleTitle="Contexto"
+        />
       ) : null}
 
       <DashboardSection title="Entrega del sprint">

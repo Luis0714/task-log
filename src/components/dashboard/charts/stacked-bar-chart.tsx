@@ -2,28 +2,21 @@
 
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
 
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+import { ConfigChartLegend } from "@/components/dashboard/charts/config-chart-legend";
+import { ConfigChartTooltip } from "@/components/dashboard/charts/config-chart-tooltip";
+import { ChartContainer, ChartLegend, ChartTooltip } from "@/components/ui/chart";
 import type { SprintDayHoursPoint } from "@/lib/dashboard/sprint-hours-series";
 import {
+  CHART_INITIAL_DIMENSION,
+  CHART_MARGIN,
+  CHART_TOOLTIP_CURSOR,
   CHART_HEIGHT_COMPACT,
+  chartContainerClass,
   hoursDailyChartConfig,
 } from "@/lib/dashboard/chart-config";
 import { formatHours } from "@/lib/dashboard/format-hours";
-import {
-  ChartGradientDefs,
-  gradientFill,
-  HOURS_BUG_GRADIENT,
-  HOURS_TASK_GRADIENT,
-} from "@/lib/dashboard/chart-gradients";
-import { cn } from "@/lib/utils";
 
-const MARGIN = { top: 10, right: 8, left: -16, bottom: 0 };
+const DAILY_LEGEND_KEYS = ["taskHours", "bugHours"] as const;
 
 export type StackedBarChartProps = {
   points: readonly SprintDayHoursPoint[];
@@ -43,10 +36,10 @@ export function StackedBarChart({
   return (
     <ChartContainer
       config={hoursDailyChartConfig}
-      className={cn(CHART_HEIGHT_COMPACT, "w-full", className)}
+      initialDimension={CHART_INITIAL_DIMENSION}
+      className={chartContainerClass(CHART_HEIGHT_COMPACT, className)}
     >
-      <BarChart data={[...points]} margin={MARGIN} barCategoryGap="24%">
-        <ChartGradientDefs gradients={[HOURS_TASK_GRADIENT, HOURS_BUG_GRADIENT]} />
+      <BarChart data={[...points]} margin={CHART_MARGIN} barCategoryGap="24%">
         <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
         <XAxis
           dataKey="label"
@@ -54,7 +47,7 @@ export function StackedBarChart({
           axisLine={false}
           tickMargin={6}
           interval="preserveStartEnd"
-          tick={{ fontSize: 10 }}
+          tick={{ fontSize: 11 }}
         />
         <YAxis
           tickLine={false}
@@ -64,23 +57,24 @@ export function StackedBarChart({
           tickFormatter={(v) => `${v}h`}
         />
         <ChartTooltip
-          cursor={{ fill: "hsl(var(--primary))", opacity: 0.08 }}
+          cursor={CHART_TOOLTIP_CURSOR}
           content={
-            <ChartTooltipContent
-              formatter={(value, name) => (
-                <span className="font-mono tabular-nums">
-                  {formatHours(Number(value))} ·{" "}
-                  {hoursDailyChartConfig[name as keyof typeof hoursDailyChartConfig]?.label ?? name}
-                </span>
-              )}
+            <ConfigChartTooltip
+              config={hoursDailyChartConfig}
+              formatValue={(value) => formatHours(value)}
             />
           }
         />
-        <ChartLegend content={<ChartLegendContent />} />
+        <ChartLegend
+          content={
+            <ConfigChartLegend config={hoursDailyChartConfig} keys={DAILY_LEGEND_KEYS} />
+          }
+        />
         <Bar
           dataKey="taskHours"
+          name="taskHours"
           stackId="hours"
-          fill={gradientFill(HOURS_TASK_GRADIENT.id)}
+          fill="var(--color-taskHours)"
           maxBarSize={32}
           animationDuration={650}
         >
@@ -91,7 +85,7 @@ export function StackedBarChart({
               <Cell
                 key={`task-${point.dayKey}`}
                 fillOpacity={selected ? 1 : dim ? 0.55 : 0.85}
-                stroke={selected ? "var(--chart-1)" : "transparent"}
+                stroke={selected ? "var(--color-taskHours)" : "transparent"}
                 strokeWidth={selected ? 2 : 0}
               />
             );
@@ -99,8 +93,9 @@ export function StackedBarChart({
         </Bar>
         <Bar
           dataKey="bugHours"
+          name="bugHours"
           stackId="hours"
-          fill={gradientFill(HOURS_BUG_GRADIENT.id)}
+          fill="var(--color-bugHours)"
           radius={[5, 5, 0, 0]}
           maxBarSize={32}
           animationDuration={750}
@@ -112,7 +107,7 @@ export function StackedBarChart({
               <Cell
                 key={`bug-${point.dayKey}`}
                 fillOpacity={selected ? 1 : dim ? 0.55 : 0.9}
-                stroke={selected ? "var(--chart-4)" : "transparent"}
+                stroke={selected ? "var(--color-bugHours)" : "transparent"}
                 strokeWidth={selected ? 2 : 0}
               />
             );

@@ -2,15 +2,16 @@
 
 import { Cell, Pie, PieChart } from "recharts";
 
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+import { ConfigChartTooltip } from "@/components/dashboard/charts/config-chart-tooltip";
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { formatHours } from "@/lib/dashboard/format-hours";
 import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
-import { CHART_HEIGHT_INLINE, hoursMixChartConfig } from "@/lib/dashboard/chart-config";
+import {
+  CHART_HEIGHT_INLINE,
+  chartContainerClass,
+  hoursMixChartConfig,
+} from "@/lib/dashboard/chart-config";
 import { cn } from "@/lib/utils";
 
 export type HoursMixChartProps = {
@@ -36,10 +37,17 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
     <div className={cn("flex items-center gap-4", className)}>
       <ChartContainer
         config={hoursMixChartConfig}
-        className={cn(CHART_HEIGHT_INLINE, "w-[100px] shrink-0")}
+        className={chartContainerClass(CHART_HEIGHT_INLINE, "w-[100px] shrink-0")}
       >
         <PieChart>
-          <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="key" />} />
+          <ChartTooltip
+            content={
+              <ConfigChartTooltip
+                config={hoursMixChartConfig}
+                formatValue={(value) => formatHours(value)}
+              />
+            }
+          />
           <Pie
             data={slices}
             dataKey="value"

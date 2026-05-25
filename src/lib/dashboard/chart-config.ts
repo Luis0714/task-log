@@ -1,19 +1,33 @@
 import type { ChartConfig } from "@/components/ui/chart";
+import { cn } from "@/lib/utils";
 
 export const CHART_HEIGHT_COMPACT = "h-[150px]";
 export const CHART_HEIGHT_DEFAULT = "h-[180px]";
 export const CHART_HEIGHT_INLINE = "h-[120px]";
 
+export const CHART_MARGIN = { top: 12, right: 8, left: -18, bottom: 0 } as const;
+
+export const CHART_INITIAL_DIMENSION = { width: 320, height: 150 } as const;
+
+export const CHART_TOOLTIP_CURSOR = {
+  fill: "hsl(var(--muted))",
+  opacity: 0.25,
+} as const;
+
+/** Anula aspect-video del contenedor shadcn para altura fija coherente */
+export function chartContainerClass(heightClass?: string, className?: string): string {
+  return cn("aspect-auto min-h-0 w-full", heightClass, className);
+}
+
 export const deliveryChartConfig = {
   pending: { label: "Pendiente", color: "var(--chart-3)" },
-  inProgress: { label: "En curso", color: "var(--chart-2)" },
-  completed: { label: "Completado", color: "var(--chart-1)" },
+  inProgress: { label: "En curso", color: "var(--chart-1)" },
+  completed: { label: "Completado", color: "var(--chart-2)" },
 } satisfies ChartConfig;
 
 export const hoursTrendChartConfig = {
   cumulativeHours: { label: "Acumulado", color: "var(--chart-1)" },
   idealCumulativeHours: { label: "Ritmo ideal", color: "var(--chart-5)" },
-  gap: { label: "Desfase", color: "var(--chart-4)" },
 } satisfies ChartConfig;
 
 export const hoursDailyChartConfig = {
@@ -28,4 +42,12 @@ export const hoursMixChartConfig = {
 
 export const pbiStateChartConfig = {
   count: { label: "PBIs", color: "var(--chart-1)" },
+} satisfies ChartConfig;
+
+export const pbiProgressChartConfig = {
+  completed: { label: "Completado", color: "var(--chart-1)" },
+  remaining: {
+    label: "Restante",
+    theme: { light: "hsl(var(--muted))", dark: "hsl(var(--muted))" },
+  },
 } satisfies ChartConfig;

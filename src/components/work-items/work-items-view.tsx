@@ -5,8 +5,7 @@ import { useCallback, useState } from "react";
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { PbiList } from "@/components/dashboard/work-items/pbi-list";
-import { AdoContextSelectFields } from "@/components/time-log/ado-context-select-fields";
-import { WorkItemFiltersPanel } from "@/components/time-log/work-item-filters-panel";
+import { AdoFiltersSection } from "@/components/filters/ado-filters-section";
 import { UserStoryDetailSheet } from "@/components/work-items/user-story-detail-sheet";
 import { useWorkItemsPage } from "@/hooks/work-items/use-work-items-page";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
@@ -67,28 +66,23 @@ export function WorkItemsView({
       {error ? <CopilotErrorAlert message={error} /> : null}
 
       {adoExecutionReady ? (
-        <DashboardSection
-          title="Contexto"
-          description="Proyecto, equipo y sprint para cargar las historias."
-        >
-          <AdoContextSelectFields {...context} />
-        </DashboardSection>
-      ) : null}
-
-      {adoExecutionReady ? (
-        <WorkItemFiltersPanel
-          title="Filtros"
-          filters={filters.values}
-          states={filters.states}
-          members={filters.members}
-          membersLoading={filters.membersLoading}
-          membersError={filters.membersError}
-          filteredCount={filters.filteredCount}
-          totalCount={filters.totalCount}
-          disabled={loading || !context.sprintPath}
-          onSearchChange={filters.onSearchChange}
-          onAssigneeChange={filters.onAssigneeChange}
-          onStateChange={filters.onStateChange}
+        <AdoFiltersSection
+          context={context}
+          workItems={{
+            filters: filters.values,
+            states: filters.states,
+            members: filters.members,
+            membersLoading: filters.membersLoading,
+            membersError: filters.membersError,
+            filteredCount: filters.filteredCount,
+            totalCount: filters.totalCount,
+            disabled: loading || !context.sprintPath,
+            title: "Filtros",
+            onSearchChange: filters.onSearchChange,
+            onAssigneeChange: filters.onAssigneeChange,
+            onStateChange: filters.onStateChange,
+          }}
+          defaultOpen={false}
         />
       ) : null}
 

@@ -7,8 +7,7 @@ import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { SprintDaySelect } from "@/components/sprint-items/sprint-day-select";
 import { SprintItemList } from "@/components/sprint-items/sprint-item-list";
-import { AdoContextSelectFields } from "@/components/time-log/ado-context-select-fields";
-import { WorkItemFiltersPanel } from "@/components/time-log/work-item-filters-panel";
+import { AdoFiltersSection } from "@/components/filters/ado-filters-section";
 import { useBugsPage } from "@/hooks/bugs/use-bugs-page";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
@@ -67,13 +66,10 @@ export function BugsView({
       {error ? <CopilotErrorAlert message={error} /> : null}
 
       {adoExecutionReady ? (
-        <DashboardSection
-          title="Contexto"
-          description="Proyecto, equipo, sprint y día para cargar los bugs."
-        >
-          <AdoContextSelectFields
-            {...context}
-            sprintDayFilter={
+        <AdoFiltersSection
+          context={{
+            ...context,
+            sprintDayFilter:
               sprintDay.workingDays.length > 0 ? (
                 <SprintDaySelect
                   showLabel
@@ -83,26 +79,23 @@ export function BugsView({
                   className="w-full sm:min-w-48 sm:flex-1"
                   onValueChange={sprintDay.onValueChange}
                 />
-              ) : null
-            }
-          />
-        </DashboardSection>
-      ) : null}
-
-      {adoExecutionReady ? (
-        <WorkItemFiltersPanel
-          title="Filtros"
-          filters={filters.values}
-          states={filters.states}
-          members={filters.members}
-          membersLoading={filters.membersLoading}
-          membersError={filters.membersError}
-          filteredCount={filters.filteredCount}
-          totalCount={filters.totalCount}
-          disabled={loading || !context.sprintPath}
-          onSearchChange={filters.onSearchChange}
-          onAssigneeChange={filters.onAssigneeChange}
-          onStateChange={filters.onStateChange}
+              ) : null,
+          }}
+          workItems={{
+            filters: filters.values,
+            states: filters.states,
+            members: filters.members,
+            membersLoading: filters.membersLoading,
+            membersError: filters.membersError,
+            filteredCount: filters.filteredCount,
+            totalCount: filters.totalCount,
+            disabled: loading || !context.sprintPath,
+            title: "Filtros",
+            onSearchChange: filters.onSearchChange,
+            onAssigneeChange: filters.onAssigneeChange,
+            onStateChange: filters.onStateChange,
+          }}
+          defaultOpen={false}
         />
       ) : null}
 

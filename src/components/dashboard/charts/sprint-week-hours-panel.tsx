@@ -1,40 +1,20 @@
 "use client";
 
-import { Bug, ListChecks } from "lucide-react";
-import { Bar, BarChart, XAxis, YAxis } from "recharts";
-
+import { HoursBreakdownStrip } from "@/components/dashboard/charts/hours-breakdown-strip";
 import { ProgressBar } from "@/components/dashboard/metrics/progress-bar";
 import { ChartPanel } from "@/components/dashboard/charts/chart-panel";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatHours } from "@/lib/dashboard/format-hours";
-import { totalHoursBreakdown, type HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
-import {
-  ChartGradientDefs,
-  gradientFill,
-  HOURS_BUG_GRADIENT,
-  HOURS_TASK_GRADIENT,
-} from "@/lib/dashboard/chart-gradients";
-import { hoursDailyChartConfig } from "@/lib/dashboard/chart-config";
+import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import { weekContainsDay } from "@/lib/dashboard/sprint-weeks";
 import type { SprintWeekMetrics } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils";
-
-const weekChartConfig = hoursDailyChartConfig;
 
 type WeekCardProps = {
   week: SprintWeekMetrics;
   active: boolean;
   loading?: boolean;
 };
-
-function weekBarData(hours: HoursBreakdown) {
-  return [{ name: "hours", taskHours: hours.taskHours, bugHours: hours.bugHours }];
-}
 
 function WeekCard({ week, active, loading = false }: WeekCardProps) {
   const total = totalHoursBreakdown(week.hours);
@@ -47,7 +27,7 @@ function WeekCard({ week, active, loading = false }: WeekCardProps) {
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-7 w-28" />
         <Skeleton className="h-1.5 w-full" />
-        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-3 w-full" />
       </div>
     );
   }
@@ -84,42 +64,7 @@ function WeekCard({ week, active, loading = false }: WeekCardProps) {
 
       <ProgressBar value={total} max={week.hoursTarget} className="h-2" />
 
-      {total > 0 ? (
-        <>
-          <ChartContainer
-            config={weekChartConfig}
-            className="h-[52px] w-full"
-          >
-            <BarChart
-              data={weekBarData(week.hours)}
-              layout="vertical"
-              margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
-              barSize={14}
-            >
-              <ChartGradientDefs gradients={[HOURS_TASK_GRADIENT, HOURS_BUG_GRADIENT]} />
-              <XAxis type="number" hide />
-              <YAxis type="category" dataKey="name" hide />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel indicator="dot" />}
-              />
-              <Bar dataKey="taskHours" stackId="w" fill={gradientFill(HOURS_TASK_GRADIENT.id)} radius={[0, 0, 0, 0]} />
-              <Bar dataKey="bugHours" stackId="w" fill={gradientFill(HOURS_BUG_GRADIENT.id)} radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ChartContainer>
-
-          <div className="text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5 text-[10px]">
-            <span className="inline-flex items-center gap-1">
-              <ListChecks className="text-chart-1 size-3 shrink-0" aria-hidden />
-              <span className="tabular-nums">{formatHours(week.hours.taskHours)}</span>
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Bug className="text-chart-4 size-3 shrink-0" aria-hidden />
-              <span className="tabular-nums">{formatHours(week.hours.bugHours)}</span>
-            </span>
-          </div>
-        </>
-      ) : null}
+      <HoursBreakdownStrip breakdown={week.hours} className="gap-1.5" />
     </div>
   );
 }

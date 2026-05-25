@@ -7,7 +7,7 @@ import { useAdoSprints } from "@/hooks/use-ado-sprints";
 import { useAdoTeams } from "@/hooks/use-ado-teams";
 import { buildCatalogPlaceholders } from "@/lib/time-log/catalog-placeholders";
 import { pickProject, pickSprint, pickTeam } from "@/lib/time-log/context-defaults";
-import type { AdoContextSelectFieldsProps } from "@/lib/time-log/context-selection-types";
+import type { AdoContextSelectFieldsProps } from "@/lib/filters/context-selection-types";
 import { formatSprintOptionLabel } from "@/lib/time-log/format-options";
 
 export type UseAdoContextSelectionOptions = {
