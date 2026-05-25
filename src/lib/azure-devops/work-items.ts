@@ -313,6 +313,8 @@ const WORK_ITEM_TYPE = "System.WorkItemType";
 const STATE = "System.State";
 const ASSIGNED_TO = "System.AssignedTo";
 const PRIORITY = "Microsoft.VSTS.Common.Priority";
+const EFFORT = "Microsoft.VSTS.Scheduling.Effort";
+const STORY_POINTS = "Microsoft.VSTS.Scheduling.StoryPoints";
 const PARENT = "System.Parent";
 const WI_COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
 const WI_ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
@@ -323,6 +325,12 @@ function parseNumericField(value: string | number | undefined): number | undefin
     return Number.isFinite(parsed) ? parsed : undefined;
   }
   return undefined;
+}
+
+function parseEffortField(fields: Record<string, string | number | undefined> | undefined): number | undefined {
+  return (
+    parseNumericField(fields?.[EFFORT]) ?? parseNumericField(fields?.[STORY_POINTS])
+  );
 }
 
 function parseAssignedToField(value: unknown): string {
@@ -355,6 +363,8 @@ async function fetchWorkItemDetails(
     STATE,
     ASSIGNED_TO,
     PRIORITY,
+    EFFORT,
+    STORY_POINTS,
     PARENT,
     WI_COMPLETED_WORK,
     WI_ORIGINAL_ESTIMATE,
@@ -383,6 +393,7 @@ async function fetchWorkItemDetails(
         state: String(workItem.fields?.[STATE] ?? ""),
         assignedTo: parseAssignedToField(workItem.fields?.[ASSIGNED_TO]),
         priority: parseNumericField(workItem.fields?.[PRIORITY]),
+        effort: parseEffortField(workItem.fields),
         parentId: parseNumericField(workItem.fields?.[PARENT]),
         loggedHours: parseNumericField(workItem.fields?.[WI_COMPLETED_WORK]),
         estimatedHours: parseNumericField(workItem.fields?.[WI_ORIGINAL_ESTIMATE]),

@@ -1,6 +1,7 @@
 import { WorkItemHoursLabel } from "@/components/work-items/work-item-hours-label";
 import { WorkItemId } from "@/components/work-items/work-item-id";
 import { WorkItemBugCountBadge } from "@/components/work-items/work-item-bug-count-badge";
+import { WorkItemEffortBadge } from "@/components/work-items/work-item-effort-badge";
 import { WorkItemPriorityBadge } from "@/components/work-items/work-item-priority-badge";
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import { WorkItemTypeAvatar } from "@/components/work-items/work-item-type-avatar";
@@ -30,6 +31,7 @@ export function PbiCompactRow({
           {item.priority !== undefined ? (
             <WorkItemPriorityBadge priority={item.priority} />
           ) : null}
+          {item.effort !== undefined ? <WorkItemEffortBadge effort={item.effort} /> : null}
           {item.bugCount !== undefined && item.bugCount > 0 ? (
             <WorkItemBugCountBadge count={item.bugCount} variant="total" />
           ) : null}

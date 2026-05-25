@@ -72,7 +72,7 @@ export function WorkItemsView({
       ) : null}
 
       <DashboardSection
-        title="PBIs del sprint"
+        title="Historias de usuario"
         description="Todas las historias que coinciden con los filtros."
       >
         <PbiList
