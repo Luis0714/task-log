@@ -121,7 +121,7 @@ export function WorkItemsView({
           items={upcoming}
           variant="compact"
           loading={loading}
-          emptyMessage="No hay PBIs pendientes con los filtros actuales."
+          emptyMessage="No hay PBIs en New o Approved con los filtros actuales."
           onItemClick={handleWorkItemClick}
         />
       </DashboardSection>
