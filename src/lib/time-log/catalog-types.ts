@@ -36,7 +36,7 @@ export type TimeLogCatalog = {
   taskStates: AdoTaskStateDto[];
   taskStatesLoading: boolean;
   taskStatesError: string | null;
-  defaultCompletedTaskState: string | null;
+  defaultOpenTaskState: string | null;
   catalogDisabled: boolean;
   projectSelectDisabled: boolean;
   teamSelectDisabled: boolean;

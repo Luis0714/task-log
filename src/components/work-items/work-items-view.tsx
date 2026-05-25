@@ -72,6 +72,19 @@ export function WorkItemsView({
       ) : null}
 
       <DashboardSection
+        title="PBIs del sprint"
+        description="Todas las historias que coinciden con los filtros."
+      >
+        <PbiList
+          items={assigned}
+          variant="compact"
+          showHours
+          loading={loading}
+          emptyMessage="No hay PBIs que coincidan con los filtros."
+        />
+      </DashboardSection>
+
+      <DashboardSection
         title="PBIs en progreso"
         description="Historias en estado Committed."
       >
@@ -92,19 +105,6 @@ export function WorkItemsView({
           variant="compact"
           loading={loading}
           emptyMessage="No hay PBIs pendientes con los filtros actuales."
-        />
-      </DashboardSection>
-
-      <DashboardSection
-        title="PBIs del sprint"
-        description="Todas las historias que coinciden con los filtros."
-      >
-        <PbiList
-          items={assigned}
-          variant="compact"
-          showHours
-          loading={loading}
-          emptyMessage="No hay PBIs que coincidan con los filtros."
         />
       </DashboardSection>
     </div>

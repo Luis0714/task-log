@@ -1,10 +1,10 @@
-import { Clock, Hourglass, Timer } from "lucide-react";
+import { Clock, Timer } from "lucide-react";
 
 import { MetricProgressCard } from "@/components/dashboard/metrics/metric-progress-card";
-import { MetricStatCard } from "@/components/dashboard/metrics/metric-stat-card";
 import { PbiStatusBreakdown } from "@/components/dashboard/metrics/pbi-status-breakdown";
 import { SprintWeekHoursPanel } from "@/components/dashboard/metrics/sprint-week-hours-panel";
 import { formatHours } from "@/lib/dashboard/format-hours";
+import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
 import { formatWorkingDaysHint } from "@/lib/dashboard/sprint-weeks";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils";
@@ -25,11 +25,12 @@ export function SprintOverviewGrid({
   const sprintDaysHint = formatWorkingDaysHint(metrics.sprintWorkingDaysCount);
 
   return (
-    <div className={cn("grid gap-3 sm:grid-cols-2 xl:grid-cols-4", className)}>
+    <div className={cn("grid gap-3 sm:grid-cols-2", className)}>
       <div className="flex flex-col gap-3">
-        <MetricStatCard
+        <MetricProgressCard
           label={hoursDayLabel}
-          value={formatHours(metrics.hoursToday)}
+          current={metrics.hoursToday}
+          target={HOURS_PER_SPRINT_WORKING_DAY}
           icon={Clock}
           loading={loading}
         />
@@ -41,16 +42,23 @@ export function SprintOverviewGrid({
         target={metrics.hoursSprintTarget}
         icon={Timer}
         hint={sprintDaysHint}
+        footer={
+          loading ? null : (
+            <p className="text-muted-foreground text-xs">
+              <span className="text-foreground font-heading font-semibold tabular-nums">
+                {formatHours(metrics.hoursRemaining)}
+              </span>{" "}
+              pendientes
+            </p>
+          )
+        }
         loading={loading}
       />
-      <MetricStatCard
-        label="Horas pendientes"
-        value={formatHours(metrics.hoursRemaining)}
-        icon={Hourglass}
-        hint={sprintDaysHint}
+      <PbiStatusBreakdown
+        groups={metrics.pbiStateGroups}
         loading={loading}
+        className="sm:col-span-2"
       />
-      <PbiStatusBreakdown groups={metrics.pbiStateGroups} loading={loading} />
     </div>
   );
 }

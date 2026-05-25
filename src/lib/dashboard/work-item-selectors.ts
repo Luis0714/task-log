@@ -1,10 +1,18 @@
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
 import { DEFAULT_SPRINT_HOURS_TARGET } from "@/lib/dashboard/constants";
+import {
+  stateMatchesCategory,
+  stateMatchesCompletedState,
+  USER_STORY_STATUS_MAPPING,
+  type SprintStatusMapping,
+} from "@/lib/dashboard/sprint-status-mapping";
+import { EMPTY_SPRINT_STATUS_OVERVIEW } from "@/lib/dashboard/sprint-status-overview";
 import type {
   DashboardMetrics,
   DashboardWorkItem,
   SprintPbiProgress,
+  SprintStatusOverview,
   SprintWeekMetrics,
 } from "@/lib/dashboard/types";
 import {
@@ -41,15 +49,18 @@ export function isDoneState(state: string): boolean {
   return ["done", "closed", "completed", "resolved"].includes(normalized);
 }
 
-const PENDING_SPRINT_PBI_STATES = new Set([
-  "new",
-  "committed",
-  "approved",
-  "aprobado",
-]);
+export function isPendingSprintPbiState(
+  state: string,
+  mapping: SprintStatusMapping = USER_STORY_STATUS_MAPPING,
+): boolean {
+  return stateMatchesCategory(state, mapping.pending);
+}
 
-export function isPendingSprintPbiState(state: string): boolean {
-  return PENDING_SPRINT_PBI_STATES.has(normalizeState(state));
+export function isWorkedSprintPbiState(
+  state: string,
+  mapping: SprintStatusMapping = USER_STORY_STATUS_MAPPING,
+): boolean {
+  return stateMatchesCompletedState(state, mapping);
 }
 
 export function findQaStartIndexInStateOrder(stateOrder: readonly string[]): number | null {
@@ -77,7 +88,8 @@ export function isSprintPbiCompletedByWorkflow(
 
 export function computeSprintPbiProgress(
   items: DashboardWorkItem[],
-  stateOrder: readonly string[],
+  _stateOrder: readonly string[] = [],
+  mapping: SprintStatusMapping = USER_STORY_STATUS_MAPPING,
 ): SprintPbiProgress {
   const totalCount = items.length;
   if (totalCount === 0) {
@@ -94,9 +106,9 @@ export function computeSprintPbiProgress(
   let pendingCount = 0;
 
   for (const item of items) {
-    if (isSprintPbiCompletedByWorkflow(item.state, stateOrder)) {
+    if (isWorkedSprintPbiState(item.state, mapping)) {
       completedCount += 1;
-    } else if (isPendingSprintPbiState(item.state)) {
+    } else if (isPendingSprintPbiState(item.state, mapping)) {
       pendingCount += 1;
     }
   }
@@ -147,6 +159,7 @@ export type DashboardMetricsInput = {
   sprintHours?: SprintHoursInput;
   pbiStateGroups?: DashboardMetrics["pbiStateGroups"];
   pbiProgress?: SprintPbiProgress;
+  sprintStatusOverview?: SprintStatusOverview;
   sprintWorkingDaysCount?: number;
   sprintWeeks?: SprintWeekMetrics[];
 };
@@ -174,5 +187,6 @@ export function computeDashboardMetrics(
     sprintWeeks: input.sprintWeeks ?? [],
     pbiStateGroups: input.pbiStateGroups ?? [],
     pbiProgress: input.pbiProgress ?? EMPTY_PBI_PROGRESS,
+    sprintStatusOverview: input.sprintStatusOverview ?? EMPTY_SPRINT_STATUS_OVERVIEW,
   };
 }

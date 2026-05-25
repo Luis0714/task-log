@@ -133,19 +133,19 @@ export function AdoConnectionBadge({
     <section
       aria-label="Conexión con Azure DevOps"
       className={cn(
-        "border-sidebar-border bg-sidebar-accent/25 flex gap-3 rounded-lg border p-3",
+        "border-sidebar-border bg-sidebar-accent/25 flex flex-col gap-2 rounded-lg border p-3",
         className,
       )}
     >
-      <div
-        className="bg-sidebar-primary/15 text-sidebar-primary flex size-9 shrink-0 items-center justify-center rounded-lg"
-        aria-hidden
-      >
-        <Cloud className="size-4" />
-      </div>
+      <div className="flex gap-3">
+        <div
+          className="bg-sidebar-primary/15 text-sidebar-primary flex size-9 shrink-0 items-center justify-center rounded-lg"
+          aria-hidden
+        >
+          <Cloud className="size-4" />
+        </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-sidebar-foreground/55 text-[0.65rem] font-medium tracking-wide uppercase">
               Azure DevOps
@@ -163,15 +163,15 @@ export function AdoConnectionBadge({
           </div>
           <ConnectionStatus isConnected={isConnected} />
         </div>
-
-        {showUser && (
-          <ConnectionUserIdentity
-            displayName={userDisplayName!}
-            initials={userInitials!}
-            avatarUrl={userAvatarUrl}
-          />
-        )}
       </div>
+
+      {showUser && (
+        <ConnectionUserIdentity
+          displayName={userDisplayName!}
+          initials={userInitials!}
+          avatarUrl={userAvatarUrl}
+        />
+      )}
     </section>
   );
 }

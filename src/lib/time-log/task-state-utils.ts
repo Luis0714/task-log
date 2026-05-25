@@ -79,5 +79,5 @@ export function resolveTaskStateSelection(
   current: string,
 ): string {
   if (current && states.some((state) => state.name === current)) return current;
-  return pickDefaultCompletedTaskState(states);
+  return pickDefaultOpenTaskState(states);
 }

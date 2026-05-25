@@ -60,10 +60,10 @@ export function useTimeLogForm({
   sprintsRef.current = catalog.sprints;
 
   useEffect(() => {
-    if (catalog.defaultCompletedTaskState) {
-      defaultTaskStateRef.current = catalog.defaultCompletedTaskState;
+    if (catalog.defaultOpenTaskState) {
+      defaultTaskStateRef.current = catalog.defaultOpenTaskState;
     }
-  }, [catalog.defaultCompletedTaskState]);
+  }, [catalog.defaultOpenTaskState]);
 
   const prepareSubmit = form.handleSubmit((values) => {
     createTask.preparePreview(values, catalog.selectedPbi);

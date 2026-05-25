@@ -1,5 +1,9 @@
 import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
-import { parseLocalDateKey, toLocalDateKey } from "@/lib/dashboard/sprint-days";
+import {
+  parseLocalDateKey,
+  parseSprintCalendarDate,
+  toLocalDateKey,
+} from "@/lib/dashboard/sprint-days";
 
 export type DashboardActivityItem = {
   id: string;
@@ -70,6 +74,24 @@ export function filterHistoryByDay(
   dayKey: string,
 ): CopilotHistoryEntry[] {
   return entries.filter((entry) => isEntryOnLocalDay(entry.at, dayKey));
+}
+
+export function filterHistoryBySprint(
+  entries: CopilotHistoryEntry[],
+  startDate?: string | null,
+  finishDate?: string | null,
+): CopilotHistoryEntry[] {
+  const start = parseSprintCalendarDate(startDate);
+  const end = parseSprintCalendarDate(finishDate);
+  if (!start || !end) return entries;
+
+  const startKey = toLocalDateKey(start);
+  const endKey = toLocalDateKey(end);
+
+  return entries.filter((entry) => {
+    const entryDayKey = toLocalDateKey(new Date(entry.at));
+    return entryDayKey >= startKey && entryDayKey <= endKey;
+  });
 }
 
 /** @deprecated Usa computeHoursFromHistoryForDay con el día actual. */

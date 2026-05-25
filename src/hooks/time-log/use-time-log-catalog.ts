@@ -109,7 +109,7 @@ export function useTimeLogCatalog({
 
   const {
     states: taskStates,
-    defaultCompletedState: defaultCompletedTaskState,
+    defaultOpenState: defaultOpenTaskState,
     loading: taskStatesLoading,
     error: taskStatesError,
   } = useAdoTaskStates(project || undefined, adoExecutionReady);
@@ -237,7 +237,7 @@ export function useTimeLogCatalog({
     taskStates,
     taskStatesLoading,
     taskStatesError,
-    defaultCompletedTaskState,
+    defaultOpenTaskState,
     ...disabledState,
     placeholders: buildCatalogPlaceholders({
       adoExecutionReady,

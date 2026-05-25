@@ -1,14 +1,13 @@
 "use client";
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
-import { ActivityTimeline } from "@/components/dashboard/activity/activity-timeline";
 import { DailySummaryCard } from "@/components/dashboard/daily/daily-summary-card";
 import { AdoContextSelectFields } from "@/components/time-log/ado-context-select-fields";
 import { DashboardHeader } from "@/components/dashboard/layout/dashboard-header";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { SprintOverviewGrid } from "@/components/dashboard/metrics/sprint-overview-grid";
+import { SprintStatusOverviewGrid } from "@/components/dashboard/metrics/sprint-status-overview";
 import { SprintDaySelect } from "@/components/dashboard/sprint-day-select";
-import { SprintPbiProgressCard } from "@/components/dashboard/metrics/sprint-pbi-progress-card";
 import { useDashboardData } from "@/hooks/dashboard/use-dashboard-data";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
 
@@ -29,7 +28,6 @@ export function DashboardView({
     hoursDayLabel,
     sprintDay,
     dailySummary,
-    activity,
     regenerateDailySummary,
     loading,
     error,
@@ -60,12 +58,17 @@ export function DashboardView({
       ) : null}
 
       <DashboardSection
+        title="Sprint Status Overview"
+        description="Historias de usuario y bugs asignados en el sprint actual."
+      >
+        <SprintStatusOverviewGrid
+          overview={metrics.sprintStatusOverview}
+          loading={loading}
+        />
+      </DashboardSection>
+
+      <DashboardSection
         title="Sprint Overview"
-        description={
-          sprintDay.selectedDay
-            ? `Progreso del ${sprintDay.selectedDay.dayIndex}º día laborable del sprint (lun–vie, sin festivos en calendario).`
-            : "Tu progreso de hoy y del sprint actual según días laborables."
-        }
         action={
           sprintDay.workingDays.length > 0 ? (
             <SprintDaySelect
@@ -78,7 +81,6 @@ export function DashboardView({
         }
       >
         <div className="flex flex-col gap-3">
-          <SprintPbiProgressCard progress={metrics.pbiProgress} loading={loading} />
           <SprintOverviewGrid
             metrics={metrics}
             hoursDayLabel={hoursDayLabel}
@@ -96,25 +98,6 @@ export function DashboardView({
           summary={dailySummary}
           loading={loading}
           onRegenerate={regenerateDailySummary}
-        />
-      </DashboardSection>
-
-      <DashboardSection
-        title="Actividad reciente"
-        description={
-          sprintDay.selectedDay
-            ? `Registros del ${sprintDay.selectedDay.dayIndex}º día laborable del sprint.`
-            : "Registros y cambios recientes."
-        }
-      >
-        <ActivityTimeline
-          items={activity}
-          loading={loading}
-          emptyMessage={
-            sprintDay.selectedDay
-              ? "No hay registros de tiempo para este día."
-              : "Registra tiempo para ver tu actividad aquí."
-          }
         />
       </DashboardSection>
     </div>

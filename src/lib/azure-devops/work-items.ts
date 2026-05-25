@@ -24,11 +24,7 @@ import {
   resolveWorkingDateFieldName,
   toWorkingDateKey,
 } from "@/lib/azure-devops/working-date-field";
-import {
-  isCompletedTaskStateCategory,
-  pickDefaultOpenTaskState,
-  resolveTargetTaskState,
-} from "@/lib/time-log/task-state-utils";
+import { pickDefaultOpenTaskState } from "@/lib/time-log/task-state-utils";
 
 export type { AdoWorkItemOption } from "@/lib/azure-devops/work-items-filters";
 import type { AdoWorkItemOption } from "@/lib/azure-devops/work-items-filters";
@@ -38,7 +34,6 @@ function authHeader(auth: AdoCallerAuth): string {
 }
 
 const COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
-const REMAINING_WORK = "Microsoft.VSTS.Scheduling.RemainingWork";
 const ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
 const ACTIVITY = "Microsoft.VSTS.Common.Activity";
 const AREA_PATH = "System.AreaPath";
@@ -147,15 +142,6 @@ export async function createTaskUnderPbi(
     };
   }
 
-  const targetState = resolveTargetTaskState(taskStates, params.state);
-  if (!targetState) {
-    return {
-      ok: false,
-      status: 422,
-      body: `El estado "${params.state}" no es válido para Task en este proyecto.`,
-    };
-  }
-
   const createStateName = pickDefaultOpenTaskState(taskStates);
   const createState =
     taskStates.find((state) => state.name === createStateName) ??
@@ -207,25 +193,6 @@ export async function createTaskUnderPbi(
   const created = (await res.json()) as { id?: number };
   if (!created.id) {
     return { ok: false, status: 502, body: "Azure DevOps no devolvió el ID de la tarea creada." };
-  }
-
-  if (createState.name !== targetState.name) {
-    const transitionOps: Array<{ op: "replace" | "add"; path: string; value: string | number }> = [
-      { op: "replace", path: "/fields/System.State", value: targetState.name },
-    ];
-
-    if (isCompletedTaskStateCategory(targetState.category)) {
-      transitionOps.push({ op: "replace", path: `/fields/${REMAINING_WORK}`, value: 0 });
-    }
-
-    const transition = await patchWorkItemFields(auth, created.id, transitionOps);
-    if (!transition.ok) {
-      return {
-        ok: false,
-        status: transition.status,
-        body: `La tarea #${created.id} se creó, pero no se pudo aplicar el estado "${targetState.name}": ${transition.body}`,
-      };
-    }
   }
 
   return { ok: true, taskId: created.id, completedWork: params.hours };

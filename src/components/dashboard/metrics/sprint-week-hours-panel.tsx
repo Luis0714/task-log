@@ -20,24 +20,24 @@ function SprintWeekCell({ week, loading = false }: SprintWeekCellProps) {
   }${week.dateRangeLabel ? ` · ${week.dateRangeLabel}` : ""}`;
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-2 px-3 py-3 sm:px-4">
+    <div className="flex min-w-0 flex-col gap-3">
       <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
         {week.label}
       </p>
 
       {loading ? (
         <>
-          <Skeleton className="h-7 w-24" />
+          <Skeleton className="h-8 w-28" />
           <Skeleton className="h-1.5 w-full rounded-full" />
           <Skeleton className="h-3 w-full max-w-40" />
         </>
       ) : (
         <>
-          <p className="font-heading text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">
+          <p className="font-heading text-2xl font-semibold tracking-tight tabular-nums">
             {formatWeekValue(week.hoursCurrent, week.hoursTarget)}
           </p>
           <ProgressBar value={week.hoursCurrent} max={week.hoursTarget} />
-          <p className="text-muted-foreground text-xs leading-snug">{hint}</p>
+          {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
         </>
       )}
     </div>
@@ -57,7 +57,25 @@ export function SprintWeekHoursPanel({
 }: SprintWeekHoursPanelProps) {
   if (!loading && weeks.length === 0) return null;
 
-  const [firstWeek, secondWeek] = weeks;
+  const displayWeeks =
+    loading && weeks.length === 0
+      ? [
+          {
+            label: "1ª semana",
+            hoursCurrent: 0,
+            hoursTarget: 0,
+            workingDaysCount: 0,
+            dateRangeLabel: "",
+          },
+          {
+            label: "2ª semana",
+            hoursCurrent: 0,
+            hoursTarget: 0,
+            workingDaysCount: 0,
+            dateRangeLabel: "",
+          },
+        ]
+      : weeks;
 
   return (
     <Card
@@ -67,34 +85,16 @@ export function SprintWeekHoursPanel({
         className,
       )}
     >
-      <CardContent className="p-0">
-        <div className="divide-border/60 grid divide-y sm:grid-cols-2 sm:divide-x sm:divide-y-0">
-          {firstWeek ? <SprintWeekCell week={firstWeek} loading={loading} /> : null}
-          {secondWeek ? <SprintWeekCell week={secondWeek} loading={loading} /> : null}
-          {loading && weeks.length === 0 ? (
-            <>
-              <SprintWeekCell
-                week={{
-                  label: "1ª semana",
-                  hoursCurrent: 0,
-                  hoursTarget: 0,
-                  workingDaysCount: 0,
-                  dateRangeLabel: "",
-                }}
-                loading
-              />
-              <SprintWeekCell
-                week={{
-                  label: "2ª semana",
-                  hoursCurrent: 0,
-                  hoursTarget: 0,
-                  workingDaysCount: 0,
-                  dateRangeLabel: "",
-                }}
-                loading
-              />
-            </>
-          ) : null}
+      <CardContent className="flex flex-col gap-3 pt-0">
+        <div
+          className={cn(
+            "grid gap-3",
+            displayWeeks.length > 1 && "sm:grid-cols-2",
+          )}
+        >
+          {displayWeeks.map((week) => (
+            <SprintWeekCell key={week.label} week={week} loading={loading} />
+          ))}
         </div>
       </CardContent>
     </Card>

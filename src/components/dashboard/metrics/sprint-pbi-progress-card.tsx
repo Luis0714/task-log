@@ -130,24 +130,17 @@ export function SprintPbiProgressCard({
               </div>
             </div>
 
-            <div className="min-w-0 flex-1 space-y-3">
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Terminadas: estados desde <span className="text-foreground font-medium">QA</span> en
-                adelante. Pendientes:{" "}
-                <span className="text-foreground font-medium">New</span>,{" "}
-                <span className="text-foreground font-medium">Approved</span> o{" "}
-                <span className="text-foreground font-medium">Committed</span>.
-              </p>
+            <div className="min-w-0 flex-1">
               <ul className="space-y-2">
                 <BreakdownRow
                   icon={CheckCircle2}
-                  label="En QA o posteriores"
+                  label="Desarrolladas"
                   count={progress.completedCount}
                   tone="done"
                 />
                 <BreakdownRow
                   icon={CircleDashed}
-                  label="New, Approved o Committed"
+                  label="Pendientes"
                   count={progress.pendingCount}
                   tone="pending"
                 />

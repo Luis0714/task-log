@@ -46,7 +46,8 @@ export function TimeLogPreviewCard({
       <CardHeader className="pb-2">
         <CardTitle>Confirmar creación de tarea</CardTitle>
         <CardDescription>
-          Se creará una Task hija del PBI en Azure DevOps con las horas indicadas.
+          Se creará una Task hija del PBI en Azure DevOps con las horas indicadas. La tarea
+          quedará en estado inicial To Do (o equivalente abierto del proceso).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

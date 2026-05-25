@@ -17,6 +17,17 @@ export type SprintPbiProgress = {
   totalCount: number;
 };
 
+export type WorkItemStatusCounts = {
+  assigned: number;
+  pending: number;
+  completed: number;
+};
+
+export type SprintStatusOverview = {
+  userStories: WorkItemStatusCounts;
+  bugs: WorkItemStatusCounts;
+};
+
 export type SprintWeekMetrics = {
   label: string;
   hoursCurrent: number;
@@ -34,6 +45,7 @@ export type DashboardMetrics = {
   sprintWeeks: SprintWeekMetrics[];
   pbiStateGroups: DashboardPbiStateGroup[];
   pbiProgress: SprintPbiProgress;
+  sprintStatusOverview: SprintStatusOverview;
 };
 
 export type DashboardHeaderData = {

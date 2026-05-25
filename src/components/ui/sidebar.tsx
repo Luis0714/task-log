@@ -23,7 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { PanelLeftIcon } from "lucide-react"
+import { MenuIcon, PanelLeftIcon } from "lucide-react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -254,9 +254,13 @@ function Sidebar({
 function SidebarTrigger({
   className,
   onClick,
+  icon = "panel",
   ...props
-}: React.ComponentProps<typeof Button>) {
+}: React.ComponentProps<typeof Button> & {
+  icon?: "panel" | "menu"
+}) {
   const { toggleSidebar } = useSidebar()
+  const Icon = icon === "menu" ? MenuIcon : PanelLeftIcon
 
   return (
     <Button
@@ -271,7 +275,7 @@ function SidebarTrigger({
       }}
       {...props}
     >
-      <PanelLeftIcon />
+      <Icon />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )

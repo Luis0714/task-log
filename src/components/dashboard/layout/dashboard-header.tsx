@@ -2,7 +2,6 @@
 
 import { LogOut, Moon, FolderKanban } from "lucide-react";
 
-import { ConnectionUserIdentity } from "@/components/connection/connection-user-identity";
 import { Button } from "@/components/ui/button";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils";
@@ -29,23 +28,15 @@ export function DashboardHeader({
         className,
       )}
     >
-      <div className="flex min-w-0 items-center gap-3">
-        <ConnectionUserIdentity
-          displayName={data.displayName}
-          initials={data.initials}
-          avatarUrl={data.avatarUrl}
-          compact
-        />
-        <div className="min-w-0">
-          <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
-            {firstName} 👋
-          </h1>
-          <p className="text-muted-foreground truncate text-sm">
-            {data.sprintName}
-            <span className="mx-1.5 opacity-40">—</span>
-            {data.project}
-          </p>
-        </div>
+      <div className="min-w-0">
+        <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
+          {firstName} 👋
+        </h1>
+        <p className="text-muted-foreground truncate text-sm">
+          {data.sprintName}
+          <span className="mx-1.5 opacity-40">—</span>
+          {data.project}
+        </p>
       </div>
 
       <div className="flex shrink-0 items-center gap-1 self-end sm:self-auto">

@@ -8,7 +8,6 @@ import { useAdoSprintWorkItems } from "@/hooks/use-ado-sprint-work-items";
 import {
   buildDailySummary,
   filterHistoryByDay,
-  mapHistoryToActivityItems,
 } from "@/lib/dashboard/activity";
 import {
   computeSprintCapacityHours,
@@ -28,6 +27,11 @@ import {
   sumDoneTaskHoursThroughDay,
 } from "@/lib/dashboard/task-hours";
 import {
+  BUG_STATUS_MAPPING,
+  USER_STORY_STATUS_MAPPING,
+} from "@/lib/dashboard/sprint-status-mapping";
+import { computeSprintStatusOverview } from "@/lib/dashboard/sprint-status-overview";
+import {
   computeDashboardMetrics,
   computeSprintPbiProgress,
   mapToDashboardWorkItems,
@@ -35,6 +39,7 @@ import {
   selectUpcomingItems,
 } from "@/lib/dashboard/work-item-selectors";
 import { useAdoBacklogStates } from "@/hooks/use-ado-backlog-states";
+import { useAdoSprintBugs } from "@/hooks/use-ado-sprint-bugs";
 import { useAdoSprintTasks } from "@/hooks/use-ado-sprint-tasks";
 import type { DashboardHeaderData, DashboardMetrics } from "@/lib/dashboard/types";
 import {
@@ -79,6 +84,17 @@ export function useDashboardData({
   );
 
   const {
+    bugs: sprintBugs,
+    loading: bugsLoading,
+    error: bugsError,
+  } = useAdoSprintBugs(
+    project || undefined,
+    sprintPath || undefined,
+    WORK_ITEM_ASSIGNEE_ME,
+    adoExecutionReady,
+  );
+
+  const {
     tasks: sprintTasks,
     loading: tasksLoading,
     error: tasksError,
@@ -90,6 +106,7 @@ export function useDashboardData({
   );
 
   const assigned = useMemo(() => mapToDashboardWorkItems(workItems), [workItems]);
+  const assignedBugs = useMemo(() => mapToDashboardWorkItems(sprintBugs), [sprintBugs]);
   const inProgress = useMemo(() => selectInProgressItems(assigned), [assigned]);
   const upcoming = useMemo(() => selectUpcomingItems(assigned), [assigned]);
 
@@ -144,6 +161,15 @@ export function useDashboardData({
     [assigned, workItemStates],
   );
 
+  const sprintStatusOverview = useMemo(
+    () =>
+      computeSprintStatusOverview(assigned, assignedBugs, {
+        userStories: USER_STORY_STATUS_MAPPING,
+        bugs: BUG_STATUS_MAPPING,
+      }),
+    [assigned, assignedBugs],
+  );
+
   const metrics: DashboardMetrics = useMemo(() => {
     const dayKey = selectedSprintDayKey || toLocalDateKey(new Date());
     const hoursSprintTarget = selectedSprintDayKey
@@ -165,6 +191,7 @@ export function useDashboardData({
       sprintHours: { hoursSprintCurrent, hoursSprintTarget },
       pbiStateGroups,
       pbiProgress,
+      sprintStatusOverview,
       sprintWorkingDaysCount: sprintWorkingDays.length,
       sprintWeeks,
     });
@@ -174,6 +201,7 @@ export function useDashboardData({
     pbiProgress,
     pbiStateGroups,
     selectedSprintDayKey,
+    sprintStatusOverview,
     sprintTasks,
     sprintWorkingDays,
   ]);
@@ -188,8 +216,6 @@ export function useDashboardData({
     () => buildDailySummary(inProgress, dayHistory),
     [dayHistory, inProgress],
   );
-
-  const activity = useMemo(() => mapHistoryToActivityItems(dayHistory), [dayHistory]);
 
   const regenerateDailySummary = useCallback(
     () => buildDailySummary(inProgress, dayHistory),
@@ -209,13 +235,14 @@ export function useDashboardData({
 
   const loading =
     adoExecutionReady &&
-    (contextLoading || workItemsLoading || tasksLoading);
+    (contextLoading || workItemsLoading || bugsLoading || tasksLoading);
 
   const error =
     context.projectsError ??
     context.teamsError ??
     context.sprintsError ??
     workItemsError ??
+    bugsError ??
     tasksError ??
     null;
 
@@ -224,7 +251,6 @@ export function useDashboardData({
     metrics,
     hoursDayLabel,
     dailySummary,
-    activity,
     regenerateDailySummary,
     loading,
     error,

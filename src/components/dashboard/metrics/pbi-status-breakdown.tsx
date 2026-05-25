@@ -28,19 +28,25 @@ export function PbiStatusBreakdown({
         </p>
 
         {loading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-4/5" />
-            <Skeleton className="h-5 w-3/5" />
+          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-lg" />
           </div>
         ) : groups.length === 0 ? (
           <p className="text-muted-foreground text-sm">Sin estados de backlog disponibles.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {groups.map(({ state, items }) => (
-              <li key={state} className="flex items-center justify-between gap-2 text-sm">
-                <span className="text-muted-foreground">{state}</span>
-                <span className="font-heading font-semibold tabular-nums">{items.length}</span>
+              <li
+                key={state}
+                className="flex items-center justify-between gap-2 rounded-lg border border-border/60 px-3 py-2 text-sm"
+              >
+                <span className="text-muted-foreground truncate">{state}</span>
+                <span className="font-heading shrink-0 font-semibold tabular-nums">
+                  {items.length}
+                </span>
               </li>
             ))}
           </ul>

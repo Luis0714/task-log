@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { ProgressBar } from "@/components/dashboard/metrics/progress-bar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +17,8 @@ export type MetricProgressCardProps = {
   target: number;
   unit?: string;
   hint?: string;
+  /** Contenido debajo de la barra de progreso (p. ej. horas pendientes). */
+  footer?: ReactNode;
   icon?: LucideIcon;
   loading?: boolean;
   className?: string;
@@ -27,6 +30,7 @@ export function MetricProgressCard({
   target,
   unit = "h",
   hint,
+  footer,
   icon: Icon,
   loading = false,
   className,
@@ -62,6 +66,7 @@ export function MetricProgressCard({
               {valueLabel}
             </p>
             <ProgressBar value={current} max={target} />
+            {footer ?? null}
           </>
         )}
 

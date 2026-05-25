@@ -40,7 +40,12 @@ export async function GET(req: Request) {
     const workItems =
       kind === "tasks"
         ? await listTasksInSprint(scopedAuth, sprintPath, { assignee })
-        : await listWorkItemsInSprint(scopedAuth, sprintPath, { assignee });
+        : kind === "bugs"
+          ? await listWorkItemsInSprint(scopedAuth, sprintPath, {
+              assignee,
+              workItemType: "Bug",
+            })
+          : await listWorkItemsInSprint(scopedAuth, sprintPath, { assignee });
     return NextResponse.json({ workItems });
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : "Error desconocido";
