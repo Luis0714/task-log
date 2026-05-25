@@ -11,6 +11,7 @@ import {
   sprintDayChartMargin,
 } from "@/lib/dashboard/sprint-hours-series";
 import {
+  CHART_EMPTY_SEGMENT_COLOR,
   CHART_INITIAL_DIMENSION,
   CHART_TOOLTIP_CURSOR,
   CHART_HEIGHT_DAILY,
@@ -20,6 +21,8 @@ import {
 import { formatHours } from "@/lib/dashboard/format-hours";
 
 const DAILY_LEGEND_KEYS = ["taskHours", "bugHours"] as const;
+
+const EMPTY_SEGMENT_OPACITY = 0.28;
 
 export type StackedBarChartProps = {
   points: readonly SprintDayHoursPoint[];
@@ -93,11 +96,17 @@ export function StackedBarChart({
           {points.map((point) => {
             const selected = point.dayKey === selectedDayKey;
             const dim = point.totalHours < maxTotal * 0.25 && !selected;
+            const emptyDay = point.totalHours <= 0;
             return (
               <Cell
                 key={`task-${point.dayKey}`}
-                fillOpacity={selected ? 1 : dim ? 0.55 : 0.85}
-                stroke={selected ? "var(--color-taskHours)" : "transparent"}
+                fill={emptyDay ? CHART_EMPTY_SEGMENT_COLOR : "var(--color-taskHours)"}
+                fillOpacity={
+                  emptyDay ? EMPTY_SEGMENT_OPACITY : selected ? 1 : dim ? 0.55 : 0.85
+                }
+                stroke={
+                  selected && !emptyDay ? "var(--color-taskHours)" : "transparent"
+                }
                 strokeWidth={selected ? 2 : 0}
               />
             );
@@ -110,17 +119,29 @@ export function StackedBarChart({
           fill="var(--color-bugHours)"
           radius={[5, 5, 0, 0]}
           maxBarSize={dense ? 20 : 32}
-          minPointSize={3}
+          minPointSize={0}
           animationDuration={750}
         >
           {points.map((point) => {
             const selected = point.dayKey === selectedDayKey;
             const dim = point.totalHours < maxTotal * 0.25 && !selected;
+            const noBugHours = point.bugHours <= 0;
             return (
               <Cell
                 key={`bug-${point.dayKey}`}
-                fillOpacity={selected ? 1 : dim ? 0.55 : 0.9}
-                stroke={selected ? "var(--color-bugHours)" : "transparent"}
+                fill={noBugHours ? CHART_EMPTY_SEGMENT_COLOR : "var(--color-bugHours)"}
+                fillOpacity={
+                  noBugHours
+                    ? EMPTY_SEGMENT_OPACITY
+                    : selected
+                      ? 1
+                      : dim
+                        ? 0.55
+                        : 0.9
+                }
+                stroke={
+                  selected && !noBugHours ? "var(--color-bugHours)" : "transparent"
+                }
                 strokeWidth={selected ? 2 : 0}
               />
             );

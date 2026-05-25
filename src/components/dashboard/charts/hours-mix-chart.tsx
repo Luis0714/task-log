@@ -31,6 +31,7 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
   ].filter((slice) => slice.value > 0);
 
   const taskPercent = Math.round((breakdown.taskHours / total) * 100);
+  const bugPercent = 100 - taskPercent;
   const bugHeavy = taskPercent < 60;
 
   return (
@@ -68,11 +69,20 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
       </ChartContainer>
 
       <div className="min-w-0 flex-1 space-y-1">
-        <p className="font-heading text-lg font-semibold tabular-nums leading-none">
-          <span className={bugHeavy ? "text-amber-600 dark:text-amber-400" : "text-primary"}>
-            {taskPercent}%
+        <p className="font-heading flex flex-wrap items-baseline gap-x-1.5 gap-y-0 text-lg font-semibold tabular-nums leading-none">
+          <span>
+            <span className={bugHeavy ? "text-amber-600 dark:text-amber-400" : "text-primary"}>
+              {taskPercent}%
+            </span>
+            <span className="text-muted-foreground text-sm font-normal"> tasks</span>
           </span>
-          <span className="text-muted-foreground ml-1 text-sm font-normal">tasks</span>
+          <span aria-hidden className="text-muted-foreground text-sm font-normal">
+            ·
+          </span>
+          <span>
+            <span className="text-destructive">{bugPercent}%</span>
+            <span className="text-muted-foreground text-sm font-normal"> bugs</span>
+          </span>
         </p>
         <p className="text-muted-foreground text-xs leading-snug">
           {formatHours(breakdown.taskHours)} dev · {formatHours(breakdown.bugHours)} bugs

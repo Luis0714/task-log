@@ -99,12 +99,7 @@ export function pickDefaultSprintDayKey(workingDays: SprintWorkingDay[]): string
 }
 
 export function formatSprintDayOptionLabel(day: SprintWorkingDay): string {
-  const formatter = new Intl.DateTimeFormat("es", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
-  const dateLabel = formatter.format(day.date);
+  const dateLabel = formatSprintDayDateLabel(day);
 
   if (isSameLocalDay(day.date, new Date())) {
     return `Hoy · ${dateLabel}`;
@@ -118,12 +113,15 @@ export function formatSprintDayShortLabel(day: SprintWorkingDay): string {
   return `día ${day.dayIndex}`;
 }
 
-/** Etiqueta de eje para gráficas por día (mismo estilo que el selector de día). */
-export function formatSprintDayChartLabel(day: SprintWorkingDay): string {
-  const dateLabel = new Intl.DateTimeFormat("es", {
+function formatSprintDayDateLabel(day: SprintWorkingDay): string {
+  return new Intl.DateTimeFormat("es", {
     weekday: "short",
     day: "numeric",
     month: "short",
   }).format(day.date);
-  return `Día ${day.dayIndex} · ${dateLabel}`;
+}
+
+/** Etiqueta de eje para gráficas por día (solo fecha, sin índice del sprint). */
+export function formatSprintDayChartLabel(day: SprintWorkingDay): string {
+  return formatSprintDayDateLabel(day);
 }

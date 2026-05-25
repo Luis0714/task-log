@@ -32,6 +32,9 @@ export const hoursTrendChartConfig = {
   idealCumulativeHours: { label: "Ritmo ideal", color: "var(--chart-5)" },
 } satisfies ChartConfig;
 
+/** Segmento vacío en barras apiladas (0 h de bugs o día sin registro). */
+export const CHART_EMPTY_SEGMENT_COLOR = "var(--muted-foreground)";
+
 export const hoursDailyChartConfig = {
   taskHours: { label: "Tasks", color: "var(--chart-1)" },
   bugHours: { label: "Bugs", color: "var(--chart-4)" },
