@@ -21,15 +21,15 @@ export function PbiFeaturedCard({ item, className, onClick }: PbiFeaturedCardPro
   const content = (
     <>
       <div className="flex min-w-0 items-start justify-between gap-2">
-        <WorkItemId id={item.id} />
-        {item.state ? <WorkItemStateBadge state={item.state} className="max-w-none" /> : null}
+        <WorkItemId id={item.id} className="shrink-0" />
+        {item.state ? <WorkItemStateBadge state={item.state} className="shrink" /> : null}
       </div>
 
-      <div className="mt-3 flex min-w-0 items-start gap-3">
-        <WorkItemTypeAvatar type={item.type} />
+      <div className="mt-3 flex min-w-0 items-start gap-2.5 sm:gap-3">
+        <WorkItemTypeAvatar type={item.type} className="shrink-0" />
         <div className="min-w-0 flex-1">
           <p
-            className="text-foreground line-clamp-2 text-[15px] leading-snug font-semibold"
+            className="text-foreground line-clamp-2 text-sm leading-snug font-semibold sm:text-[15px]"
             title={item.title}
           >
             {item.title}
@@ -41,9 +41,9 @@ export function PbiFeaturedCard({ item, className, onClick }: PbiFeaturedCardPro
       </div>
 
       {hasProgress ? (
-        <div className="mt-4 space-y-1.5">
+        <div className="mt-4 min-w-0 space-y-1.5">
           <ProgressBar value={item.loggedHours!} max={item.estimatedHours!} />
-          <p className="text-muted-foreground text-xs tabular-nums">
+          <p className="text-muted-foreground text-pretty text-xs tabular-nums">
             Progreso estimado · {item.loggedHours}h de {item.estimatedHours}h
           </p>
         </div>
@@ -52,7 +52,7 @@ export function PbiFeaturedCard({ item, className, onClick }: PbiFeaturedCardPro
   );
 
   const cardClassName = cn(
-    "flex w-full min-w-0 flex-col rounded-xl border border-border/60 bg-card p-4 shadow-sm",
+    "flex w-full min-w-0 flex-col rounded-xl border border-border/60 bg-card p-3 shadow-sm sm:p-4",
     "dark:border-white/6 dark:bg-card/90",
     "transition-colors hover:border-primary/25 hover:bg-card/95",
     onClick && "cursor-pointer",

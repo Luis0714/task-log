@@ -1,7 +1,5 @@
 import type { AdoProjectDto, AdoSprintDto, AdoTaskStateDto, AdoTeamDto, AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
-import type { WorkItemsByStateGroup } from "@/lib/time-log/filter-work-items";
-
 export type TimeLogCatalogPlaceholders = {
   project: string;
   team: string;
@@ -17,7 +15,6 @@ export type TimeLogCatalog = {
   teams: AdoTeamDto[];
   sprints: AdoSprintDto[];
   pbis: AdoWorkItemOptionDto[];
-  pbiGroups: WorkItemsByStateGroup[];
   workItemFilters: WorkItemFilters;
   workItemStates: string[];
   workItemsTotalCount: number;

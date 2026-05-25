@@ -7,6 +7,10 @@ import { useForm } from "react-hook-form";
 import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
 import { useCreateTask } from "@/hooks/time-log/use-create-task";
 import { useTimeLogCatalog } from "@/hooks/time-log/use-time-log-catalog";
+import type {
+  TimeLogPbisSnapshot,
+  TimeLogServerBaseline,
+} from "@/lib/time-log/load-time-log-baseline";
 import { resolveWorkingDateForSprint } from "@/hooks/time-log/use-sprint-working-date";
 import { useTimeLogWizard } from "@/hooks/time-log/use-time-log-wizard";
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
@@ -20,18 +24,40 @@ type UseTimeLogFormOptions = {
   appendHistory: (entry: CopilotHistoryEntry) => void;
   defaultProject?: string | null;
   adoExecutionReady: boolean;
+  serverBaseline: TimeLogServerBaseline;
+  pbisSnapshot: TimeLogPbisSnapshot;
 };
 
 export function useTimeLogForm({
   appendHistory,
   defaultProject = null,
   adoExecutionReady,
+  serverBaseline,
+  pbisSnapshot,
 }: UseTimeLogFormOptions) {
   const form = useForm<TimeLogFormValues>({
     resolver: zodResolver(timeLogFormSchema),
-    defaultValues: createTimeLogFormDefaults(defaultProject ?? ""),
+    defaultValues: createTimeLogFormDefaults(
+      defaultProject ?? "",
+      serverBaseline.catalog,
+    ),
     mode: "onTouched",
   });
+
+  const { project: catalogProject, team: catalogTeam, sprintPath: catalogSprintPath } =
+    serverBaseline.catalog;
+
+  useEffect(() => {
+    if (catalogProject && catalogProject !== form.getValues("project")) {
+      form.setValue("project", catalogProject, { shouldValidate: true });
+    }
+    if (catalogTeam !== form.getValues("team")) {
+      form.setValue("team", catalogTeam, { shouldValidate: true });
+    }
+    if (catalogSprintPath !== form.getValues("sprintPath")) {
+      form.setValue("sprintPath", catalogSprintPath, { shouldValidate: true });
+    }
+  }, [catalogProject, catalogSprintPath, catalogTeam, form]);
 
   const wizard = useTimeLogWizard(form);
   const defaultTaskStateRef = useRef("");
@@ -55,6 +81,8 @@ export function useTimeLogForm({
     form,
     adoExecutionReady,
     submitting: createTask.loading,
+    serverBaseline,
+    pbisSnapshot,
   });
 
   sprintsRef.current = catalog.sprints;

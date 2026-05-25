@@ -1,11 +1,13 @@
+import { cache } from "react";
+
 import { getAzdoAuthMethod, type AzdoAuthMethod } from "@/lib/auth/auth-method";
 import { isEntraOAuthConfigured } from "@/lib/auth/entra";
-import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
 import {
   emptyServerProfileFields,
   toServerProfileFields,
 } from "@/lib/auth/profile-display";
 import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
+import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
 import {
   getPatTargetFromEnv,
   isPatConfigured,
@@ -13,13 +15,16 @@ import {
 } from "@/lib/azure-devops/resolve-auth";
 import { isAdoExecutionReady } from "@/lib/azure-devops/work-items";
 
-export type ServerAuthState = {
-  authMethod: AzdoAuthMethod;
-  oauthAppReady: boolean;
-  oauthConnected: boolean;
+export type ServerAuthProfileFields = {
   profileDisplayName: string | null;
   profileInitials: string | null;
   profileAvatarUrl: string | null;
+};
+
+export type ServerAuthBootstrap = {
+  authMethod: AzdoAuthMethod;
+  oauthAppReady: boolean;
+  oauthConnected: boolean;
   defaultOrg: string | null;
   defaultProject: string | null;
   adoExecutionReady: boolean;
@@ -28,7 +33,9 @@ export type ServerAuthState = {
   patProject: string | null;
 };
 
-export async function getServerAuthState(): Promise<ServerAuthState> {
+export type ServerAuthState = ServerAuthBootstrap & ServerAuthProfileFields;
+
+export const getServerAuthBootstrap = cache(async function getServerAuthBootstrap(): Promise<ServerAuthBootstrap> {
   const authMethod = getAzdoAuthMethod();
   const patTarget = getPatTargetFromEnv();
   const oauthEnabled = authMethod === "oauth";
@@ -51,15 +58,10 @@ export async function getServerAuthState(): Promise<ServerAuthState> {
   const patConfigured = patEnabled && isPatConfigured();
   const adoExecutionReady = await isAdoExecutionReady();
 
-  const caller = adoExecutionReady ? await resolveAdoCaller() : null;
-  const profile = caller ? await resolveAdoProfile(caller) : null;
-  const profileFields = profile ? toServerProfileFields(profile) : emptyServerProfileFields;
-
   return {
     authMethod,
     oauthAppReady,
     oauthConnected,
-    ...profileFields,
     defaultOrg,
     defaultProject,
     adoExecutionReady,
@@ -67,5 +69,26 @@ export async function getServerAuthState(): Promise<ServerAuthState> {
     patOrganization: patEnabled ? (patTarget?.organization ?? null) : null,
     patProject: patEnabled ? (patTarget?.project ?? null) : null,
   };
-}
+});
 
+export const getServerAuthProfile = cache(async function getServerAuthProfile(): Promise<ServerAuthProfileFields> {
+  const bootstrap = await getServerAuthBootstrap();
+
+  if (!bootstrap.adoExecutionReady) {
+    return emptyServerProfileFields;
+  }
+
+  const caller = await resolveAdoCaller();
+  const profile = caller ? await resolveAdoProfile(caller) : null;
+
+  return profile ? toServerProfileFields(profile) : emptyServerProfileFields;
+});
+
+export const getServerAuthState = cache(async function getServerAuthState(): Promise<ServerAuthState> {
+  const [bootstrap, profile] = await Promise.all([
+    getServerAuthBootstrap(),
+    getServerAuthProfile(),
+  ]);
+
+  return { ...bootstrap, ...profile };
+});

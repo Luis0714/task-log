@@ -1,6 +1,6 @@
 import { PbiCompactRow } from "@/components/dashboard/work-items/pbi-compact-row";
 import { PbiFeaturedCard } from "@/components/dashboard/work-items/pbi-featured-card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PbiListSkeleton } from "@/components/skeletons/pbi-list-skeleton";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils";
 
@@ -14,25 +14,6 @@ export type PbiListProps = {
   itemClassName?: string;
   onItemClick?: (item: DashboardWorkItem) => void;
 };
-
-function PbiListSkeleton({ variant }: { variant: "featured" | "compact" }) {
-  if (variant === "featured") {
-    return (
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Skeleton className="h-40 w-full rounded-xl" />
-        <Skeleton className="h-40 w-full rounded-xl" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2 rounded-xl border border-border/60 p-2">
-      <Skeleton className="h-14 w-full" />
-      <Skeleton className="h-14 w-full" />
-      <Skeleton className="h-14 w-5/6" />
-    </div>
-  );
-}
 
 export function PbiList({
   items,
@@ -58,7 +39,7 @@ export function PbiList({
 
   if (variant === "featured") {
     return (
-      <div className={cn("grid gap-3 sm:grid-cols-2", className)}>
+      <div className={cn("@container grid grid-cols-1 gap-3 @md:grid-cols-2", className)}>
         {items.map((item) => (
           <PbiFeaturedCard
             key={item.id}

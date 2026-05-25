@@ -2,6 +2,7 @@
 
 import { Search } from "lucide-react";
 
+import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -123,14 +124,18 @@ export function WorkItemFiltersPanel({
           >
             <SelectTrigger id="work-item-state" className="w-full">
               <SelectValue placeholder="Todos los estados">
-                {filters.state || "Todos los estados"}
+                {filters.state ? (
+                  <WorkItemStateLabel state={filters.state} />
+                ) : (
+                  "Todos los estados"
+                )}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Todos los estados</SelectItem>
               {states.map((state) => (
                 <SelectItem key={state} value={state}>
-                  {state}
+                  <WorkItemStateLabel state={state} />
                 </SelectItem>
               ))}
             </SelectContent>

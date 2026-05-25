@@ -81,6 +81,67 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Estados HU — tema claro */
+  --pbi-state-new-bg: oklch(0.96 0.008 265);
+  --pbi-state-new-border: oklch(0.82 0.015 265);
+  --pbi-state-new-text: oklch(0.42 0.02 265);
+  --pbi-state-new-dot: oklch(0.58 0.02 265);
+  --pbi-state-new-chart: oklch(0.62 0.02 265);
+
+  --pbi-state-approved-bg: oklch(0.995 0 0);
+  --pbi-state-approved-border: oklch(0.86 0 0);
+  --pbi-state-approved-text: oklch(0.28 0 0);
+  --pbi-state-approved-dot: oklch(0.78 0 0);
+  --pbi-state-approved-chart: oklch(0.9 0 0);
+
+  --pbi-state-committed-bg: oklch(0.94 0.045 255);
+  --pbi-state-committed-border: oklch(0.52 0.19 255);
+  --pbi-state-committed-text: oklch(0.32 0.14 255);
+  --pbi-state-committed-dot: oklch(0.48 0.21 255);
+  --pbi-state-committed-chart: oklch(0.52 0.2 255);
+
+  --pbi-state-impediment-bg: oklch(0.96 0.04 25);
+  --pbi-state-impediment-border: oklch(0.55 0.22 25);
+  --pbi-state-impediment-text: oklch(0.38 0.17 25);
+  --pbi-state-impediment-dot: oklch(0.52 0.24 25);
+  --pbi-state-impediment-chart: oklch(0.55 0.22 25);
+
+  --pbi-state-reopened-bg: oklch(0.96 0.06 55);
+  --pbi-state-reopened-border: oklch(0.68 0.17 55);
+  --pbi-state-reopened-text: oklch(0.38 0.12 50);
+  --pbi-state-reopened-dot: oklch(0.68 0.18 55);
+  --pbi-state-reopened-chart: oklch(0.7 0.17 55);
+
+  --pbi-state-qa-bg: oklch(0.97 0.07 95);
+  --pbi-state-qa-border: oklch(0.72 0.16 90);
+  --pbi-state-qa-text: oklch(0.4 0.12 85);
+  --pbi-state-qa-dot: oklch(0.7 0.17 90);
+  --pbi-state-qa-chart: oklch(0.74 0.16 90);
+
+  --pbi-state-review-po-bg: oklch(0.97 0.04 350);
+  --pbi-state-review-po-border: oklch(0.62 0.19 350);
+  --pbi-state-review-po-text: oklch(0.4 0.14 350);
+  --pbi-state-review-po-dot: oklch(0.62 0.2 350);
+  --pbi-state-review-po-chart: oklch(0.64 0.18 350);
+
+  --pbi-state-in-stage-bg: oklch(0.95 0.05 220);
+  --pbi-state-in-stage-border: oklch(0.58 0.14 220);
+  --pbi-state-in-stage-text: oklch(0.34 0.1 220);
+  --pbi-state-in-stage-dot: oklch(0.62 0.14 220);
+  --pbi-state-in-stage-chart: oklch(0.64 0.14 220);
+
+  --pbi-state-done-bg: oklch(0.95 0.05 155);
+  --pbi-state-done-border: oklch(0.48 0.14 155);
+  --pbi-state-done-text: oklch(0.32 0.1 155);
+  --pbi-state-done-dot: oklch(0.52 0.17 155);
+  --pbi-state-done-chart: oklch(0.55 0.17 155);
+
+  --pbi-state-unknown-bg: oklch(0.97 0 0);
+  --pbi-state-unknown-border: oklch(0.88 0 0);
+  --pbi-state-unknown-text: oklch(0.5 0 0);
+  --pbi-state-unknown-dot: oklch(0.6 0 0);
+  --pbi-state-unknown-chart: oklch(0.65 0 0);
 }
 
 .dark {
@@ -115,6 +176,67 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* Estados HU — tema oscuro */
+  --pbi-state-new-bg: oklch(0.26 0.015 265);
+  --pbi-state-new-border: oklch(0.42 0.02 265);
+  --pbi-state-new-text: oklch(0.82 0.02 265);
+  --pbi-state-new-dot: oklch(0.58 0.02 265);
+  --pbi-state-new-chart: oklch(0.55 0.02 265);
+
+  --pbi-state-approved-bg: oklch(0.92 0.004 265);
+  --pbi-state-approved-border: oklch(0.78 0.01 265);
+  --pbi-state-approved-text: oklch(0.22 0.02 265);
+  --pbi-state-approved-dot: oklch(0.75 0 0);
+  --pbi-state-approved-chart: oklch(0.88 0.01 265);
+
+  --pbi-state-committed-bg: oklch(0.26 0.07 255);
+  --pbi-state-committed-border: oklch(0.55 0.18 255);
+  --pbi-state-committed-text: oklch(0.88 0.06 255);
+  --pbi-state-committed-dot: oklch(0.6 0.19 255);
+  --pbi-state-committed-chart: oklch(0.6 0.19 255);
+
+  --pbi-state-impediment-bg: oklch(0.26 0.06 25);
+  --pbi-state-impediment-border: oklch(0.58 0.2 25);
+  --pbi-state-impediment-text: oklch(0.9 0.04 25);
+  --pbi-state-impediment-dot: oklch(0.62 0.22 25);
+  --pbi-state-impediment-chart: oklch(0.62 0.2 25);
+
+  --pbi-state-reopened-bg: oklch(0.28 0.07 55);
+  --pbi-state-reopened-border: oklch(0.7 0.16 55);
+  --pbi-state-reopened-text: oklch(0.92 0.08 55);
+  --pbi-state-reopened-dot: oklch(0.74 0.17 55);
+  --pbi-state-reopened-chart: oklch(0.74 0.16 55);
+
+  --pbi-state-qa-bg: oklch(0.28 0.07 90);
+  --pbi-state-qa-border: oklch(0.7 0.15 90);
+  --pbi-state-qa-text: oklch(0.92 0.08 90);
+  --pbi-state-qa-dot: oklch(0.76 0.16 90);
+  --pbi-state-qa-chart: oklch(0.76 0.16 90);
+
+  --pbi-state-review-po-bg: oklch(0.28 0.06 350);
+  --pbi-state-review-po-border: oklch(0.64 0.18 350);
+  --pbi-state-review-po-text: oklch(0.9 0.05 350);
+  --pbi-state-review-po-dot: oklch(0.66 0.19 350);
+  --pbi-state-review-po-chart: oklch(0.66 0.18 350);
+
+  --pbi-state-in-stage-bg: oklch(0.26 0.06 220);
+  --pbi-state-in-stage-border: oklch(0.58 0.14 220);
+  --pbi-state-in-stage-text: oklch(0.88 0.06 220);
+  --pbi-state-in-stage-dot: oklch(0.66 0.14 220);
+  --pbi-state-in-stage-chart: oklch(0.66 0.14 220);
+
+  --pbi-state-done-bg: oklch(0.26 0.06 155);
+  --pbi-state-done-border: oklch(0.52 0.14 155);
+  --pbi-state-done-text: oklch(0.88 0.06 155);
+  --pbi-state-done-dot: oklch(0.68 0.15 155);
+  --pbi-state-done-chart: oklch(0.68 0.15 155);
+
+  --pbi-state-unknown-bg: oklch(0.26 0 0);
+  --pbi-state-unknown-border: oklch(0.4 0 0);
+  --pbi-state-unknown-text: oklch(0.78 0 0);
+  --pbi-state-unknown-dot: oklch(0.55 0 0);
+  --pbi-state-unknown-chart: oklch(0.5 0 0);
 }
 
 @layer base {

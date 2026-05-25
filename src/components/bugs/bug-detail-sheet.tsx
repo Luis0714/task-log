@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { BugSummaryCard } from "@/components/bugs/bug-summary-card";
+import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
@@ -203,12 +204,14 @@ export function BugDetailSheet({
                           placeholder={
                             statesReady ? "Selecciona un estado" : "Estados no disponibles"
                           }
-                        />
+                        >
+                          {draftState ? <WorkItemStateLabel state={draftState} /> : null}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {stateOptions.map((state) => (
                           <SelectItem key={state} value={state}>
-                            {state}
+                            <WorkItemStateLabel state={state} />
                           </SelectItem>
                         ))}
                       </SelectContent>

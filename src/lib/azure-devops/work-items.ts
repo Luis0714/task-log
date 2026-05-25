@@ -27,6 +27,13 @@ import {
   resolveWorkingDateKeyFromFields,
   toWorkingDateKey,
 } from "@/lib/azure-devops/working-date-field";
+import {
+  getBacklogItemFetchFieldNames,
+  resolveBacklogResponsableFields,
+} from "@/lib/azure-devops/backlog-item-fields";
+import { parseIdentityDisplayName } from "@/lib/azure-devops/identity-field";
+import { mapBacklogItemFields } from "@/lib/azure-devops/map-backlog-item-fields";
+import type { WorkItemFieldPatchOp } from "@/lib/azure-devops/work-item-patch";
 import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
 import { pickDefaultOpenTaskState } from "@/lib/time-log/task-state-utils";
 
@@ -337,12 +344,7 @@ function parseEffortField(fields: Record<string, string | number | undefined> | 
 }
 
 function parseAssignedToField(value: unknown): string {
-  if (typeof value === "string") return value.trim();
-  if (value && typeof value === "object" && "displayName" in value) {
-    const displayName = (value as { displayName?: string }).displayName;
-    return typeof displayName === "string" ? displayName.trim() : "";
-  }
-  return "";
+  return parseIdentityDisplayName(value);
 }
 
 function adoListErrorMessage(res: Response, body: string, fallback: string): string {
@@ -360,6 +362,7 @@ async function fetchWorkItemDetails(
 ): Promise<AdoWorkItemOption[]> {
   if (ids.length === 0) return [];
 
+  const responsableFields = await resolveBacklogResponsableFields(auth);
   const fields = [
     TITLE,
     WORK_ITEM_TYPE,
@@ -372,6 +375,7 @@ async function fetchWorkItemDetails(
     WI_COMPLETED_WORK,
     WI_ORIGINAL_ESTIMATE,
     ...getWorkItemDateFieldNames(),
+    ...(await getBacklogItemFetchFieldNames(auth)),
   ].join(",");
   const chunkSize = 200;
   const items: AdoWorkItemOption[] = [];
@@ -401,6 +405,7 @@ async function fetchWorkItemDetails(
         loggedHours: parseNumericField(workItem.fields?.[WI_COMPLETED_WORK]),
         estimatedHours: parseNumericField(workItem.fields?.[WI_ORIGINAL_ESTIMATE]),
         workingDate: resolveWorkingDateKeyFromFields(workItem.fields),
+        ...mapBacklogItemFields(workItem.fields, responsableFields),
       });
     }
   }
@@ -470,12 +475,6 @@ const SYSTEM_STATE = "System.State";
 export type UpdateWorkItemStateResult =
   | { ok: true; state: string }
   | { ok: false; status: number; body: string };
-
-type WorkItemFieldPatchOp = {
-  op: "add" | "replace";
-  path: string;
-  value: string | number;
-};
 
 function buildWorkingDatePatchOps(
   fields: Record<string, string | number | undefined> | undefined,

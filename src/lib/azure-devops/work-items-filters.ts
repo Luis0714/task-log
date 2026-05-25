@@ -1,3 +1,7 @@
+import {
+  stateMatchesCompletedState,
+  USER_STORY_STATUS_MAPPING,
+} from "@/lib/dashboard/sprint-status-mapping";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 
@@ -80,9 +84,20 @@ export function isCommittedPbiState(state: string): boolean {
   return normalizeState(state) === normalizeState(IN_PROGRESS_PBI_STATE);
 }
 
+/** Pendientes del sprint que aún no están en Committed (próximo trabajo). */
+const UPCOMING_PENDING_NORMALIZED = USER_STORY_STATUS_MAPPING.pending
+  .map(normalizeState)
+  .filter((state) => state !== normalizeState(IN_PROGRESS_PBI_STATE));
+
+const UPCOMING_STATE_ALIASES = ["proposed", "to do", "todo", "pending", "ready"] as const;
+
 export function isUpcomingPbiState(state: string): boolean {
+  if (isCommittedPbiState(state)) return false;
+
   const normalized = normalizeState(state);
-  return ["new", "proposed", "to do", "todo", "pending", "ready"].includes(normalized);
+  if (UPCOMING_PENDING_NORMALIZED.includes(normalized)) return true;
+
+  return (UPCOMING_STATE_ALIASES as readonly string[]).includes(normalized);
 }
 
 export function selectInProgressWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
@@ -91,4 +106,12 @@ export function selectInProgressWorkItems(items: AdoWorkItemOption[]): AdoWorkIt
 
 export function selectUpcomingWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
   return items.filter((item) => isUpcomingPbiState(item.state)).sort(compareByPriority);
+}
+
+export function isDevelopedPbiState(state: string): boolean {
+  return stateMatchesCompletedState(state, USER_STORY_STATUS_MAPPING);
+}
+
+export function selectDevelopedWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
+  return items.filter((item) => isDevelopedPbiState(item.state)).sort(compareByPriority);
 }

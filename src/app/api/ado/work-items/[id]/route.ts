@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 
 import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
 import { withAdoProject } from "@/lib/azure-devops/projects";
+import { updateBacklogItemState } from "@/lib/azure-devops/update-backlog-item-state";
 import { updateWorkItemState } from "@/lib/azure-devops/work-items";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
-import { updateWorkItemBodySchema } from "@/lib/schemas/work-item-update";
+import {
+  isBacklogWorkItemUpdate,
+  updateWorkItemBodySchema,
+} from "@/lib/schemas/work-item-update";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -45,15 +49,29 @@ export async function PATCH(req: Request, context: RouteContext) {
 
   try {
     const scopedAuth = withAdoProject(auth, parsed.data.project);
-    const result = await updateWorkItemState(
-      {
-        workItemId,
-        state: parsed.data.state,
-        workingDate: parsed.data.workingDate,
-        completedWork: parsed.data.completedWork,
-      },
-      scopedAuth,
-    );
+    const result = isBacklogWorkItemUpdate(parsed.data)
+      ? await updateBacklogItemState(
+          {
+            workItemId,
+            state: parsed.data.state,
+            team: parsed.data.team,
+            startDate: parsed.data.startDate,
+            targetDate: parsed.data.targetDate,
+            responsableMaquetacion: parsed.data.responsableMaquetacion,
+            responsableIntegrador: parsed.data.responsableIntegrador,
+            responsableQA: parsed.data.responsableQA,
+          },
+          scopedAuth,
+        )
+      : await updateWorkItemState(
+          {
+            workItemId,
+            state: parsed.data.state,
+            workingDate: parsed.data.workingDate,
+            completedWork: parsed.data.completedWork,
+          },
+          scopedAuth,
+        );
 
     if (!result.ok) {
       const detail = result.body;
@@ -61,6 +79,12 @@ export async function PATCH(req: Request, context: RouteContext) {
         detail.includes("Working Date") || detail.includes("Custom.WorkingDate");
       const needsCompletedWork =
         detail.includes("Completed Work") || detail.includes("CompletedWork");
+      const needsStartDate =
+        detail.includes("Start Date") || detail.includes("StartDate");
+      const needsTargetDate =
+        detail.includes("Target Date") || detail.includes("TargetDate");
+      const needsResponsable =
+        detail.includes("Responsable") || detail.includes("Maquetacion");
       const message =
         result.status === 403
           ? "Permisos insuficientes para actualizar este work item."
@@ -68,7 +92,15 @@ export async function PATCH(req: Request, context: RouteContext) {
             ? "Azure DevOps exige la fecha de trabajo (Working Date) para cambiar el estado."
             : needsCompletedWork
               ? "Azure DevOps exige Completed Work para cambiar el estado."
-              : "No se pudo actualizar el estado.";
+              : needsStartDate
+                ? "Azure DevOps exige Start Date para este cambio de estado."
+                : needsTargetDate
+                  ? "Azure DevOps exige Target Date para este cambio de estado."
+                  : needsResponsable
+                    ? "Azure DevOps exige completar los responsables para este cambio de estado."
+                    : result.status === 400 && detail.length < 200
+                      ? detail
+                      : "No se pudo actualizar el estado.";
       return NextResponse.json(
         { error: message, detail: result.body },
         { status: result.status >= 400 && result.status < 600 ? result.status : 502 },

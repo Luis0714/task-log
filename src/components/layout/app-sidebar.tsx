@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 
 export type AppSidebarProps = {
   connection: AdoConnectionDisplay;
+  connectionFooter?: React.ReactNode;
   activePath: string;
 };
 
@@ -38,7 +39,7 @@ function SidebarHeaderContent() {
   );
 }
 
-export function AppSidebar({ connection, activePath }: AppSidebarProps) {
+export function AppSidebar({ connection, connectionFooter, activePath }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" variant="sidebar">
       <SidebarHeader className="border-sidebar-border border-b px-3 py-3">
@@ -50,7 +51,7 @@ export function AppSidebar({ connection, activePath }: AppSidebarProps) {
       </SidebarContent>
 
       <SidebarFooter className="border-sidebar-border border-t p-2">
-        <AdoConnectionBadge {...connection} />
+        {connectionFooter ?? <AdoConnectionBadge {...connection} />}
       </SidebarFooter>
 
       <SidebarRail />
