@@ -1,10 +1,17 @@
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import type { WorkItemsByStateGroup } from "@/lib/time-log/filter-work-items";
+
+export type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 
 export type DashboardWorkItem = AdoWorkItemOptionDto & {
   priority?: number | string;
   loggedHours?: number;
   estimatedHours?: number;
+  /** Bugs hijos vinculados a esta historia en el sprint. */
+  bugCount?: number;
+  /** Bugs en estado atendido (QA, Stage, Done, etc.). */
+  attendedBugCount?: number;
 };
 
 export type DashboardPbiStateGroup = WorkItemsByStateGroup;
@@ -30,15 +37,15 @@ export type SprintStatusOverview = {
 
 export type SprintWeekMetrics = {
   label: string;
-  hoursCurrent: number;
+  hours: HoursBreakdown;
   hoursTarget: number;
   workingDaysCount: number;
   dateRangeLabel: string;
 };
 
 export type DashboardMetrics = {
-  hoursToday: number;
-  hoursSprintCurrent: number;
+  hoursToday: HoursBreakdown;
+  hoursSprintCurrent: HoursBreakdown;
   hoursSprintTarget: number;
   hoursRemaining: number;
   sprintWorkingDaysCount: number;

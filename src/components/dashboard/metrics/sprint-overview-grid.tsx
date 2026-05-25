@@ -4,6 +4,7 @@ import { MetricProgressCard } from "@/components/dashboard/metrics/metric-progre
 import { PbiStatusBreakdown } from "@/components/dashboard/metrics/pbi-status-breakdown";
 import { SprintWeekHoursPanel } from "@/components/dashboard/metrics/sprint-week-hours-panel";
 import { formatHours } from "@/lib/dashboard/format-hours";
+import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
 import { formatWorkingDaysHint } from "@/lib/dashboard/sprint-weeks";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
@@ -29,8 +30,9 @@ export function SprintOverviewGrid({
       <div className="flex flex-col gap-3">
         <MetricProgressCard
           label={hoursDayLabel}
-          current={metrics.hoursToday}
+          current={totalHoursBreakdown(metrics.hoursToday)}
           target={HOURS_PER_SPRINT_WORKING_DAY}
+          hoursBreakdown={metrics.hoursToday}
           icon={Clock}
           loading={loading}
         />
@@ -38,18 +40,21 @@ export function SprintOverviewGrid({
       </div>
       <MetricProgressCard
         label="Horas sprint"
-        current={metrics.hoursSprintCurrent}
+        current={totalHoursBreakdown(metrics.hoursSprintCurrent)}
         target={metrics.hoursSprintTarget}
+        hoursBreakdown={metrics.hoursSprintCurrent}
         icon={Timer}
         hint={sprintDaysHint}
         footer={
           loading ? null : (
-            <p className="text-muted-foreground text-xs">
-              <span className="text-foreground font-heading font-semibold tabular-nums">
-                {formatHours(metrics.hoursRemaining)}
-              </span>{" "}
-              pendientes
-            </p>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-muted-foreground text-xs">
+                <span className="text-foreground font-heading font-semibold tabular-nums">
+                  {formatHours(metrics.hoursRemaining)}
+                </span>{" "}
+                pendientes
+              </p>
+            </div>
           )
         }
         loading={loading}

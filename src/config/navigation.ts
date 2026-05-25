@@ -1,7 +1,8 @@
 import {
   Bot,
+  Bug,
+  CheckSquare,
   Clock,
-  Kanban,
   LayoutDashboard,
   ListTodo,
   Settings,
@@ -32,7 +33,8 @@ export const MAIN_NAVIGATION: NavGroupConfig[] = [
     items: [
       { href: "/time-log", label: "Registro de tiempo", icon: Clock },
       { href: "/work-items", label: "Work Items", icon: ListTodo },
-      { href: "/sprint", label: "Sprint / Kanban", icon: Kanban },
+      { href: "/tasks", label: "Tasks", icon: CheckSquare },
+      { href: "/bugs", label: "Bugs", icon: Bug },
     ],
   },
   {

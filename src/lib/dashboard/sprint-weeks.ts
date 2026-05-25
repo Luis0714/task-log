@@ -1,6 +1,7 @@
-import { sumDoneTaskHoursForDayKeys } from "@/lib/dashboard/task-hours";
+import { sumHoursBreakdownForDayKeys } from "@/lib/dashboard/hours-breakdown";
 import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
+import type { SprintBugHoursSource } from "@/lib/dashboard/bug-hours";
 import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
 import type { SprintWeekMetrics } from "@/lib/dashboard/types";
 
@@ -28,26 +29,23 @@ export function formatSprintWeekDateRange(days: SprintWorkingDay[]): string {
   return `${first} – ${last}`;
 }
 
-function roundHours(value: number): number {
-  return Math.round(value * 10) / 10;
-}
-
 function buildWeekMetrics(
   days: SprintWorkingDay[],
   label: string,
   tasks: SprintTaskHoursSource[],
+  bugs: SprintBugHoursSource[],
   selectedDayKey: string,
 ): SprintWeekMetrics | null {
   if (days.length === 0) return null;
 
   const dayKeys = days.map((day) => day.value);
-  const hoursCurrent = selectedDayKey
-    ? sumDoneTaskHoursForDayKeys(tasks, dayKeys, selectedDayKey)
-    : 0;
+  const hours = selectedDayKey
+    ? sumHoursBreakdownForDayKeys(tasks, bugs, dayKeys, selectedDayKey)
+    : { taskHours: 0, bugHours: 0 };
 
   return {
     label,
-    hoursCurrent: roundHours(hoursCurrent),
+    hours,
     hoursTarget: days.length * HOURS_PER_SPRINT_WORKING_DAY,
     workingDaysCount: days.length,
     dateRangeLabel: formatSprintWeekDateRange(days),
@@ -57,13 +55,14 @@ function buildWeekMetrics(
 export function computeSprintWeekMetrics(
   workingDays: SprintWorkingDay[],
   tasks: SprintTaskHoursSource[],
+  bugs: SprintBugHoursSource[],
   selectedDayKey: string,
 ): SprintWeekMetrics[] {
   const [firstWeekDays, secondWeekDays] = splitSprintIntoWeeks(workingDays);
 
   const weeks = [
-    buildWeekMetrics(firstWeekDays, "1ª semana", tasks, selectedDayKey),
-    buildWeekMetrics(secondWeekDays, "2ª semana", tasks, selectedDayKey),
+    buildWeekMetrics(firstWeekDays, "1ª semana", tasks, bugs, selectedDayKey),
+    buildWeekMetrics(secondWeekDays, "2ª semana", tasks, bugs, selectedDayKey),
   ].filter((week): week is SprintWeekMetrics => week !== null);
 
   return weeks;

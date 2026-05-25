@@ -21,8 +21,9 @@ import {
 } from "@/lib/schemas/work-item-filters";
 import type { TaskActivity } from "@/lib/time-log/task-constants";
 import {
+  getWorkItemDateFieldNames,
   resolveWorkingDateFieldName,
-  toWorkingDateKey,
+  resolveWorkingDateKeyFromFields,
 } from "@/lib/azure-devops/working-date-field";
 import { pickDefaultOpenTaskState } from "@/lib/time-log/task-state-utils";
 
@@ -312,10 +313,9 @@ const WORK_ITEM_TYPE = "System.WorkItemType";
 const STATE = "System.State";
 const ASSIGNED_TO = "System.AssignedTo";
 const PRIORITY = "Microsoft.VSTS.Common.Priority";
+const PARENT = "System.Parent";
 const WI_COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
 const WI_ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
-const WI_WORKING_DATE = resolveWorkingDateFieldName();
-
 function parseNumericField(value: string | number | undefined): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
@@ -355,9 +355,10 @@ async function fetchWorkItemDetails(
     STATE,
     ASSIGNED_TO,
     PRIORITY,
+    PARENT,
     WI_COMPLETED_WORK,
     WI_ORIGINAL_ESTIMATE,
-    WI_WORKING_DATE,
+    ...getWorkItemDateFieldNames(),
   ].join(",");
   const chunkSize = 200;
   const items: AdoWorkItemOption[] = [];
@@ -382,9 +383,10 @@ async function fetchWorkItemDetails(
         state: String(workItem.fields?.[STATE] ?? ""),
         assignedTo: parseAssignedToField(workItem.fields?.[ASSIGNED_TO]),
         priority: parseNumericField(workItem.fields?.[PRIORITY]),
+        parentId: parseNumericField(workItem.fields?.[PARENT]),
         loggedHours: parseNumericField(workItem.fields?.[WI_COMPLETED_WORK]),
         estimatedHours: parseNumericField(workItem.fields?.[WI_ORIGINAL_ESTIMATE]),
-        workingDate: toWorkingDateKey(workItem.fields?.[WI_WORKING_DATE]),
+        workingDate: resolveWorkingDateKeyFromFields(workItem.fields),
       });
     }
   }

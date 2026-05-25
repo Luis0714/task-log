@@ -1,12 +1,14 @@
+import { HoursBreakdownLine } from "@/components/dashboard/metrics/hours-breakdown-line";
 import { ProgressBar } from "@/components/dashboard/metrics/progress-bar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatHours } from "@/lib/dashboard/format-hours";
+import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import type { SprintWeekMetrics } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils";
 
-function formatWeekValue(current: number, target: number): string {
-  return `${formatHours(current)} / ${formatHours(target)}`;
+function formatWeekValue(breakdown: SprintWeekMetrics["hours"], target: number): string {
+  return `${formatHours(totalHoursBreakdown(breakdown))} / ${formatHours(target)}`;
 }
 
 type SprintWeekCellProps = {
@@ -34,9 +36,15 @@ function SprintWeekCell({ week, loading = false }: SprintWeekCellProps) {
       ) : (
         <>
           <p className="font-heading text-2xl font-semibold tracking-tight tabular-nums">
-            {formatWeekValue(week.hoursCurrent, week.hoursTarget)}
+            {formatWeekValue(week.hours, week.hoursTarget)}
           </p>
-          <ProgressBar value={week.hoursCurrent} max={week.hoursTarget} />
+          {totalHoursBreakdown(week.hours) > 0 ? (
+            <HoursBreakdownLine breakdown={week.hours} />
+          ) : null}
+          <ProgressBar
+            value={totalHoursBreakdown(week.hours)}
+            max={week.hoursTarget}
+          />
           {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
         </>
       )}
@@ -62,14 +70,14 @@ export function SprintWeekHoursPanel({
       ? [
           {
             label: "1ª semana",
-            hoursCurrent: 0,
+            hours: { taskHours: 0, bugHours: 0 },
             hoursTarget: 0,
             workingDaysCount: 0,
             dateRangeLabel: "",
           },
           {
             label: "2ª semana",
-            hoursCurrent: 0,
+            hours: { taskHours: 0, bugHours: 0 },
             hoursTarget: 0,
             workingDaysCount: 0,
             dateRangeLabel: "",

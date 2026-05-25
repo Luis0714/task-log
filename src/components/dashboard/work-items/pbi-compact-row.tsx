@@ -1,5 +1,6 @@
 import { WorkItemHoursLabel } from "@/components/work-items/work-item-hours-label";
 import { WorkItemId } from "@/components/work-items/work-item-id";
+import { WorkItemBugCountBadge } from "@/components/work-items/work-item-bug-count-badge";
 import { WorkItemPriorityBadge } from "@/components/work-items/work-item-priority-badge";
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import { WorkItemTypeAvatar } from "@/components/work-items/work-item-type-avatar";
@@ -28,6 +29,12 @@ export function PbiCompactRow({
           <WorkItemId id={item.id} />
           {item.priority !== undefined ? (
             <WorkItemPriorityBadge priority={item.priority} />
+          ) : null}
+          {item.bugCount !== undefined && item.bugCount > 0 ? (
+            <WorkItemBugCountBadge count={item.bugCount} variant="total" />
+          ) : null}
+          {item.attendedBugCount !== undefined && item.attendedBugCount > 0 ? (
+            <WorkItemBugCountBadge count={item.attendedBugCount} variant="attended" />
           ) : null}
         </div>
         <p className="text-foreground mt-0.5 truncate text-sm font-medium" title={item.title}>

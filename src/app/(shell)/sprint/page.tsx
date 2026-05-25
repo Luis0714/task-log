@@ -1,5 +1,5 @@
-import { ViewPlaceholder } from "@/components/layout/view-placeholder";
+import { redirect } from "next/navigation";
 
 export default function SprintPage() {
-  return <ViewPlaceholder title="Sprint / Kanban" />;
+  redirect("/bugs");
 }

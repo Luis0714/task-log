@@ -17,9 +17,9 @@ import {
   type SprintWorkingDay,
 } from "@/lib/dashboard/sprint-days";
 import {
-  sumDoneTaskHoursForDay,
-  sumDoneTaskHoursThroughDay,
-} from "@/lib/dashboard/task-hours";
+  sumHoursBreakdownForDay,
+  sumHoursBreakdownThroughDay,
+} from "@/lib/dashboard/hours-breakdown";
 import {
   BUG_STATUS_MAPPING,
   USER_STORY_STATUS_MAPPING,
@@ -179,18 +179,19 @@ export function useDashboardData({
     const todayKey = toLocalDateKey(new Date());
     const hoursDayKey = selectedSprintDayKey || todayKey;
 
-    const hoursToday = sumDoneTaskHoursForDay(sprintTasks, hoursDayKey);
+    const hoursToday = sumHoursBreakdownForDay(sprintTasks, sprintBugs, hoursDayKey);
 
     const hoursSprintTarget = computeSprintCapacityHours(
       currentSprint?.startDate,
       currentSprint?.finishDate,
       workingDayOptions,
     );
-    const hoursSprintCurrent = sumDoneTaskHoursThroughDay(sprintTasks, todayKey);
+    const hoursSprintCurrent = sumHoursBreakdownThroughDay(sprintTasks, sprintBugs, hoursDayKey);
     const sprintWeeks = computeSprintWeekMetrics(
       sprintWorkingDays,
       sprintTasks,
-      todayKey,
+      sprintBugs,
+      hoursDayKey,
     );
 
     return computeDashboardMetrics(hoursToday, {
@@ -209,6 +210,7 @@ export function useDashboardData({
     pbiStateGroups,
     selectedSprintDayKey,
     sprintStatusOverview,
+    sprintBugs,
     sprintTasks,
     sprintWorkingDays,
   ]);

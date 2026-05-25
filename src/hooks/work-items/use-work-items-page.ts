@@ -4,7 +4,9 @@ import { useEffect, useMemo } from "react";
 
 import { useAdoBacklogStates } from "@/hooks/use-ado-backlog-states";
 import { useAdoContextSelection } from "@/hooks/use-ado-context-selection";
+import { useAdoSprintBugs } from "@/hooks/use-ado-sprint-bugs";
 import { useAdoSprintWorkItems } from "@/hooks/use-ado-sprint-work-items";
+import { attachBugCounts, buildBugCountsByParentId } from "@/lib/dashboard/bug-counts";
 import { useAdoTeamMembers } from "@/hooks/use-ado-team-members";
 import { useWorkItemFilters } from "@/hooks/use-work-item-filters";
 import {
@@ -14,6 +16,7 @@ import {
   selectUpcomingWorkItems,
 } from "@/lib/azure-devops/work-items-filters";
 import {
+  WORK_ITEM_ASSIGNEE_ALL,
   WORK_ITEM_ASSIGNEE_ME,
   isWorkItemAssigneeAll,
   isWorkItemAssigneeMe,
@@ -65,6 +68,22 @@ export function useWorkItemsPage({
     adoExecutionReady,
   );
 
+  const {
+    bugs: sprintBugs,
+    loading: bugsLoading,
+    error: bugsError,
+  } = useAdoSprintBugs(
+    project || undefined,
+    sprintPath || undefined,
+    WORK_ITEM_ASSIGNEE_ALL,
+    adoExecutionReady,
+  );
+
+  const bugCountsByParentId = useMemo(
+    () => buildBugCountsByParentId(sprintBugs),
+    [sprintBugs],
+  );
+
   const workItemStates = useMemo(
     () => backlogStates.map((state) => state.name),
     [backlogStates],
@@ -76,14 +95,13 @@ export function useWorkItemsPage({
     [sprintWorkItems, workItemStates],
   );
 
-  const filteredItems = useMemo(
-    () =>
-      filterWorkItemsByClientCriteria(sprintWorkItems, {
-        search: filters.search,
-        state: filters.state,
-      }),
-    [filters.search, filters.state, sprintWorkItems],
-  );
+  const filteredItems = useMemo(() => {
+    const items = filterWorkItemsByClientCriteria(sprintWorkItems, {
+      search: filters.search,
+      state: filters.state,
+    });
+    return attachBugCounts(items, bugCountsByParentId);
+  }, [bugCountsByParentId, filters.search, filters.state, sprintWorkItems]);
 
   const inProgress = useMemo(
     () => selectInProgressWorkItems(filteredItems),
@@ -121,13 +139,14 @@ export function useWorkItemsPage({
 
   const { contextLoading, ...contextFields } = context;
 
-  const loading = adoExecutionReady && (contextLoading || workItemsLoading);
+  const loading = adoExecutionReady && (contextLoading || workItemsLoading || bugsLoading);
 
   const error =
     context.projectsError ??
     context.teamsError ??
     context.sprintsError ??
     workItemsError ??
+    bugsError ??
     null;
 
   return {

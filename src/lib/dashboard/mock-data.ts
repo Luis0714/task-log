@@ -80,22 +80,22 @@ export const MOCK_ASSIGNED_PBIS: DashboardWorkItem[] = [
 ];
 
 export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
-  hoursToday: 5,
-  hoursSprintCurrent: 32,
+  hoursToday: { taskHours: 4, bugHours: 1 },
+  hoursSprintCurrent: { taskHours: 28, bugHours: 4 },
   hoursSprintTarget: 40,
   hoursRemaining: 8,
   sprintWorkingDaysCount: 10,
   sprintWeeks: [
     {
       label: "1ª semana",
-      hoursCurrent: 20,
+      hours: { taskHours: 16, bugHours: 4 },
       hoursTarget: 40,
       workingDaysCount: 5,
       dateRangeLabel: "3 mar – 7 mar",
     },
     {
       label: "2ª semana",
-      hoursCurrent: 12,
+      hours: { taskHours: 12, bugHours: 0 },
       hoursTarget: 40,
       workingDaysCount: 5,
       dateRangeLabel: "10 mar – 14 mar",

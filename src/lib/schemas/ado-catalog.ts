@@ -38,6 +38,8 @@ export const adoWorkItemOptionSchema = z.object({
   state: z.string(),
   assignedTo: z.string().optional(),
   priority: z.number().optional(),
+  /** ID del work item padre (p. ej. HU de un Bug). */
+  parentId: z.number().int().positive().optional(),
   loggedHours: z.number().optional(),
   estimatedHours: z.number().optional(),
   /** Fecha de trabajo (YYYY-MM-DD), desde el campo configurado en ADO. */

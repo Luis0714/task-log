@@ -8,6 +8,11 @@ import {
   type SprintStatusMapping,
 } from "@/lib/dashboard/sprint-status-mapping";
 import { EMPTY_SPRINT_STATUS_OVERVIEW } from "@/lib/dashboard/sprint-status-overview";
+import {
+  EMPTY_HOURS_BREAKDOWN,
+  totalHoursBreakdown,
+  type HoursBreakdown,
+} from "@/lib/dashboard/hours-breakdown";
 import type {
   DashboardMetrics,
   DashboardWorkItem,
@@ -138,12 +143,12 @@ export function selectUpcomingItems(items: DashboardWorkItem[]): DashboardWorkIt
 }
 
 export type SprintHoursInput = {
-  hoursSprintCurrent: number;
+  hoursSprintCurrent: HoursBreakdown;
   hoursSprintTarget: number;
 };
 
 const DEFAULT_SPRINT_HOURS: SprintHoursInput = {
-  hoursSprintCurrent: 0,
+  hoursSprintCurrent: EMPTY_HOURS_BREAKDOWN,
   hoursSprintTarget: DEFAULT_SPRINT_HOURS_TARGET,
 };
 
@@ -165,17 +170,17 @@ export type DashboardMetricsInput = {
 };
 
 export function computeDashboardMetrics(
-  hoursToday: number,
+  hoursToday: HoursBreakdown,
   input: DashboardMetricsInput = {},
 ): DashboardMetrics {
   const sprintHours = input.sprintHours ?? DEFAULT_SPRINT_HOURS;
-  const hoursSprintCurrent = Math.round((sprintHours.hoursSprintCurrent ?? 0) * 10) / 10;
+  const hoursSprintCurrent = sprintHours.hoursSprintCurrent ?? EMPTY_HOURS_BREAKDOWN;
   const hoursSprintTarget = Math.round(
     (sprintHours.hoursSprintTarget ?? DEFAULT_SPRINT_HOURS_TARGET) * 10,
   ) / 10;
   const hoursRemaining = Math.max(
     0,
-    Math.round((hoursSprintTarget - hoursSprintCurrent) * 10) / 10,
+    Math.round((hoursSprintTarget - totalHoursBreakdown(hoursSprintCurrent)) * 10) / 10,
   );
 
   return {
