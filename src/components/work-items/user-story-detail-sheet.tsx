@@ -48,7 +48,7 @@ function BugListItem({ bug }: { bug: AdoWorkItemOptionDto }) {
     <li
       className={cn(
         "flex min-w-0 items-center justify-between gap-3 rounded-lg border px-3 py-2.5",
-        presentation?.className ?? "border-border/60 bg-muted/20",
+        presentation?.surfaceClassName ?? "border-border/60 bg-muted/20",
       )}
     >
       <div className="min-w-0 flex-1">

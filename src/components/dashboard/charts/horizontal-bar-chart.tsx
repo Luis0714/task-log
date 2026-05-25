@@ -10,8 +10,7 @@ import {
   chartContainerClass,
   pbiStateChartConfig,
 } from "@/lib/dashboard/chart-config";
-
-const WORKFLOW_BAR_COLORS = ["var(--chart-3)", "var(--chart-2)", "var(--chart-1)"] as const;
+import { getPbiStateChartColor } from "@/lib/work-items/pbi-state-colors";
 
 const MARGIN = { top: 12, right: 28, left: 2, bottom: 0 } as const;
 
@@ -53,15 +52,15 @@ export function HorizontalBarChart({ bars, className }: HorizontalBarChartProps)
           }
         />
         <Bar dataKey="count" name="count" maxBarSize={14} radius={[0, 5, 5, 0]} animationDuration={700}>
-          {bars.map((bar, index) => {
+          {bars.map((bar) => {
             const isLead = bar.count === maxCount && maxCount > 0;
-            const fill = WORKFLOW_BAR_COLORS[index % WORKFLOW_BAR_COLORS.length];
+            const fill = getPbiStateChartColor(bar.state);
             return (
               <Cell
                 key={bar.state}
                 fill={fill}
-                fillOpacity={isLead ? 1 : 0.82}
-                stroke={isLead ? "var(--chart-1)" : "transparent"}
+                fillOpacity={isLead ? 1 : 0.88}
+                stroke={isLead ? fill : "transparent"}
                 strokeWidth={isLead ? 1.5 : 0}
               />
             );

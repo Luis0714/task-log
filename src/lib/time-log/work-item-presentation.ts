@@ -1,6 +1,7 @@
 import type { VariantProps } from "class-variance-authority";
 
 import { badgeVariants } from "@/components/ui/badge";
+import { getPbiStateColorPresentation } from "@/lib/work-items/pbi-state-colors";
 
 type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
 
@@ -8,42 +9,18 @@ export type WorkItemPresentation = {
   variant: BadgeVariant;
   className?: string;
   dotClassName?: string;
+  surfaceClassName?: string;
 };
 
 export function getWorkItemStatePresentation(state: string): WorkItemPresentation {
-  const normalized = state.trim().toLowerCase();
+  const colors = getPbiStateColorPresentation(state);
 
-  if (["done", "closed", "completed", "resolved"].includes(normalized)) {
-    return {
-      variant: "secondary",
-      className:
-        "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
-      dotClassName: "bg-emerald-500",
-    };
-  }
-
-  if (
-    ["active", "in progress", "committed", "doing", "approved", "in review"].includes(
-      normalized,
-    ) ||
-    normalized.includes("stage")
-  ) {
-    return {
-      variant: "default",
-      className: "border-sky-500/25 bg-sky-500/10 text-sky-800 dark:text-sky-300",
-      dotClassName: "bg-sky-500",
-    };
-  }
-
-  if (["new", "proposed", "to do", "todo", "pending", "ready"].includes(normalized)) {
-    return {
-      variant: "outline",
-      className: "text-muted-foreground",
-      dotClassName: "bg-muted-foreground/70",
-    };
-  }
-
-  return { variant: "outline", dotClassName: "bg-muted-foreground/70" };
+  return {
+    variant: "outline",
+    className: colors.className,
+    dotClassName: colors.dotClassName,
+    surfaceClassName: colors.surfaceClassName,
+  };
 }
 
 export function formatWorkItemTypeAvatarInitials(type: string): string {

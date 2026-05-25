@@ -62,7 +62,7 @@ export function SprintPbiProgressCard({
     >
       <CardContent className="flex flex-col gap-2 pt-0">
         <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
-          Progreso PBIs
+          Progreso historias de usuario
         </p>
 
         {loading ? (
@@ -75,7 +75,7 @@ export function SprintPbiProgressCard({
           </div>
         ) : !hasItems ? (
           <p className="text-muted-foreground text-sm">
-            Sin PBIs asignadas en este sprint.
+            Sin historias de usuario asignadas en este sprint.
           </p>
         ) : (
           <div className="flex items-center gap-4">
