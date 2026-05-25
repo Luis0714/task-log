@@ -9,14 +9,14 @@ export type TimeLogPageShellProps = {
   serverBaseline: TimeLogServerBaseline;
   adoExecutionReady: boolean;
   notReadyMessage: string;
-  children: ReactNode;
+  children?: ReactNode;
 };
 
 export function TimeLogPageShell({
   serverBaseline,
   adoExecutionReady,
   notReadyMessage,
-  children,
+  children = null,
 }: TimeLogPageShellProps) {
   const { catalog } = serverBaseline;
 

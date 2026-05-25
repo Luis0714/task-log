@@ -22,7 +22,7 @@ export type WorkItemsPageShellProps = {
   adoExecutionReady: boolean;
   urlAssignee: string;
   currentUserDisplayName?: string | null;
-  children: ReactNode;
+  children?: ReactNode;
 };
 
 function WorkItemsPageShellInner({
@@ -31,7 +31,7 @@ function WorkItemsPageShellInner({
   adoExecutionReady,
   urlAssignee,
   currentUserDisplayName = null,
-  children,
+  children = null,
 }: WorkItemsPageShellProps) {
   const router = useRouter();
   const pathname = usePathname();

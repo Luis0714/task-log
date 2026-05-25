@@ -1,5 +1,5 @@
-import { ShellContentSkeleton } from "@/components/skeletons/shell-content-skeleton";
+import { TimeLogShellSkeleton } from "@/components/skeletons/time-log-shell-skeleton";
 
 export default function TimeLogLoading() {
-  return <ShellContentSkeleton />;
+  return <TimeLogShellSkeleton />;
 }

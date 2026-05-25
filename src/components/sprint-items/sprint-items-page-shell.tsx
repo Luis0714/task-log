@@ -48,7 +48,7 @@ export type SprintItemsPageShellProps = {
   adoExecutionReady: boolean;
   urlAssignee: string;
   headerAction?: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
 };
 
 function SprintItemsPageShellInner({
@@ -58,7 +58,7 @@ function SprintItemsPageShellInner({
   nonWorkingDates,
   adoExecutionReady,
   headerAction,
-  children,
+  children = null,
 }: SprintItemsPageShellProps) {
   const router = useRouter();
   const pathname = usePathname();

@@ -22,7 +22,7 @@ export type DashboardPageShellProps = {
   adoExecutionReady: boolean;
   initialSprintDayKey: string;
   nonWorkingDates: readonly string[];
-  children: ReactNode;
+  children?: ReactNode;
 };
 
 export function DashboardPageShell({
@@ -31,7 +31,7 @@ export function DashboardPageShell({
   adoExecutionReady,
   initialSprintDayKey,
   nonWorkingDates,
-  children,
+  children = null,
 }: DashboardPageShellProps) {
   const router = useRouter();
   const pathname = usePathname();

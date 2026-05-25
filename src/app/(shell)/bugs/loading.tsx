@@ -1,5 +1,5 @@
-import { SprintItemsPageSkeleton } from "@/components/skeletons/sprint-items-page-skeleton";
+import { SprintItemsShellSkeleton } from "@/components/skeletons/sprint-items-shell-skeleton";
 
 export default function BugsLoading() {
-  return <SprintItemsPageSkeleton />;
+  return <SprintItemsShellSkeleton />;
 }

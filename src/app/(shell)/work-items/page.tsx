@@ -1,16 +1,18 @@
 import { Suspense } from "react";
 
-import { WorkItemsListsSectionsSkeleton } from "@/components/skeletons/work-items-lists-sections-skeleton";
-import { WorkItemsListsServer } from "@/components/work-items/work-items-lists-server";
-import { WorkItemsPageShell } from "@/components/work-items/work-items-page-shell";
-import { loadAdoCatalog } from "@/lib/ado/load-ado-catalog";
+import { WorkItemsShellServer } from "@/components/work-items/work-items-shell-server";
+import { WorkItemsStreamLoader } from "@/components/work-items/work-items-stream-loader";
+import {
+  WorkItemsAllSectionSkeleton,
+  WorkItemsDevelopedSectionSkeleton,
+  WorkItemsInProgressSectionSkeleton,
+  WorkItemsUpcomingSectionSkeleton,
+} from "@/components/skeletons/work-items-section-skeletons";
+import { WorkItemsShellSkeleton } from "@/components/skeletons/work-items-shell-skeleton";
 import { parseAdoContextSearchParams } from "@/lib/ado/parse-context-search-params";
 import { emptyServerProfileFields } from "@/lib/auth/profile-display";
 import { getServerAuthBootstrap, getServerAuthProfile } from "@/lib/auth/server-state";
-import { loadWorkItemsFilterMeta } from "@/lib/work-items/load-work-items-filter-meta";
-import {
-  DEFAULT_WORK_ITEM_FILTERS,
-} from "@/lib/schemas/work-item-filters";
+import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
 
 export const dynamic = "force-dynamic";
 
@@ -29,40 +31,37 @@ export default async function WorkItemsPage({ searchParams }: PageProps) {
     auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
-  const emptyCatalog = await loadAdoCatalog(null, {});
-  const catalog = auth.adoExecutionReady
-    ? await loadAdoCatalog(defaultProject, sp)
-    : emptyCatalog;
-
-  const filterMeta =
-    auth.adoExecutionReady && catalog.project && catalog.team
-      ? await loadWorkItemsFilterMeta(catalog.project, catalog.team)
-      : { members: [], states: [] };
-
-  const suspenseKey = [
-    catalog.project,
-    catalog.team,
-    catalog.sprintPath,
-    urlAssignee,
-  ].join("|");
-
   return (
-    <WorkItemsPageShell
-      catalog={catalog}
-      filterMeta={filterMeta}
-      adoExecutionReady={auth.adoExecutionReady}
-      urlAssignee={urlAssignee}
-      currentUserDisplayName={profileFields.profileDisplayName}
-    >
-      {auth.adoExecutionReady && catalog.sprintPath ? (
-        <Suspense key={suspenseKey} fallback={<WorkItemsListsSectionsSkeleton />}>
-          <WorkItemsListsServer
-            catalog={catalog}
+    <div className="flex w-full flex-col gap-8 pb-6">
+      <Suspense fallback={<WorkItemsShellSkeleton />}>
+        <WorkItemsShellServer
+          sp={sp}
+          defaultProject={defaultProject}
+          adoExecutionReady={auth.adoExecutionReady}
+          urlAssignee={urlAssignee}
+          currentUserDisplayName={profileFields.profileDisplayName}
+        />
+      </Suspense>
+
+      {auth.adoExecutionReady ? (
+        <Suspense
+          fallback={
+            <div className="flex flex-col gap-8">
+              <WorkItemsAllSectionSkeleton />
+              <WorkItemsInProgressSectionSkeleton />
+              <WorkItemsUpcomingSectionSkeleton />
+              <WorkItemsDevelopedSectionSkeleton />
+            </div>
+          }
+        >
+          <WorkItemsStreamLoader
+            sp={sp}
+            defaultProject={defaultProject}
             assignee={urlAssignee}
             currentUserDisplayName={profileFields.profileDisplayName}
           />
         </Suspense>
       ) : null}
-    </WorkItemsPageShell>
+    </div>
   );
 }

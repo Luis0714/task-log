@@ -1,13 +1,10 @@
 import { Suspense } from "react";
 
-import { SprintItemsPageShell } from "@/components/sprint-items/sprint-items-page-shell";
-import { SprintItemsListsServer } from "@/components/sprint-items/sprint-items-lists-server";
-import { SprintItemsListSkeleton } from "@/components/skeletons/sprint-items-list-skeleton";
-import { loadAdoCatalog } from "@/lib/ado/load-ado-catalog";
-import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
+import { SprintItemsShellServer } from "@/components/sprint-items/sprint-items-shell-server";
+import { SprintItemsListStreamLoader } from "@/components/sprint-items/sprint-items-list-stream-loader";
+import { SprintItemsShellSkeleton } from "@/components/skeletons/sprint-items-shell-skeleton";
 import { parseAdoContextSearchParams } from "@/lib/ado/parse-context-search-params";
 import { getServerAuthBootstrap } from "@/lib/auth/server-state";
-import { loadSprintItemsFilterMeta } from "@/lib/sprint-items/load-sprint-items-filter-meta";
 import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
 
 export const dynamic = "force-dynamic";
@@ -23,42 +20,26 @@ export default async function BugsPage({ searchParams }: PageProps) {
     auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
-  const emptyCatalog = await loadAdoCatalog(null, {});
-  const catalog = auth.adoExecutionReady
-    ? await loadAdoCatalog(defaultProject, sp)
-    : emptyCatalog;
-
-  const filterMeta =
-    auth.adoExecutionReady && catalog.project && catalog.team
-      ? await loadSprintItemsFilterMeta("bugs", catalog.project, catalog.team)
-      : { members: [], states: [] };
-
-  const nonWorkingDates =
-    auth.adoExecutionReady && catalog.project && catalog.team
-      ? await loadNonWorkingDates(catalog.project, catalog.team)
-      : [];
-
-  const suspenseKey = [
-    catalog.project,
-    catalog.team,
-    catalog.sprintPath,
-    urlAssignee,
-  ].join("|");
-
   return (
-    <SprintItemsPageShell
-      kind="bugs"
-      catalog={catalog}
-      filterMeta={filterMeta}
-      nonWorkingDates={nonWorkingDates}
-      adoExecutionReady={auth.adoExecutionReady}
-      urlAssignee={urlAssignee}
-    >
-      {auth.adoExecutionReady && catalog.sprintPath ? (
-        <Suspense key={suspenseKey} fallback={<SprintItemsListSkeleton />}>
-          <SprintItemsListsServer kind="bugs" catalog={catalog} assignee={urlAssignee} />
-        </Suspense>
+    <div className="flex w-full flex-col gap-8 pb-6">
+      <Suspense fallback={<SprintItemsShellSkeleton />}>
+        <SprintItemsShellServer
+          kind="bugs"
+          sp={sp}
+          defaultProject={defaultProject}
+          adoExecutionReady={auth.adoExecutionReady}
+          urlAssignee={urlAssignee}
+        />
+      </Suspense>
+
+      {auth.adoExecutionReady ? (
+        <SprintItemsListStreamLoader
+          kind="bugs"
+          sp={sp}
+          defaultProject={defaultProject}
+          assignee={urlAssignee}
+        />
       ) : null}
-    </SprintItemsPageShell>
+    </div>
   );
 }

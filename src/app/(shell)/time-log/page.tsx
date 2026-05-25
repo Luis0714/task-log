@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 
-import { TimeLogBodyServer } from "@/components/time-log/time-log-body-server";
-import { TimeLogPageShell } from "@/components/time-log/time-log-page-shell";
-import { ShellContentSkeleton } from "@/components/skeletons/shell-content-skeleton";
+import { TimeLogBodyStreamLoader } from "@/components/time-log/time-log-body-stream-loader";
+import { TimeLogShellServer } from "@/components/time-log/time-log-shell-server";
+import { TimeLogFormSkeleton } from "@/components/skeletons/time-log-form-skeleton";
+import { TimeLogShellSkeleton } from "@/components/skeletons/time-log-shell-skeleton";
 import { parseAdoContextSearchParams } from "@/lib/ado/parse-context-search-params";
 import { getServerAuthBootstrap } from "@/lib/auth/server-state";
-import { loadTimeLogBaseline } from "@/lib/time-log/load-time-log-baseline";
 import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
 
 export const dynamic = "force-dynamic";
@@ -21,34 +21,27 @@ export default async function TimeLogPage({ searchParams }: PageProps) {
     auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
-  const serverBaseline = auth.adoExecutionReady
-    ? await loadTimeLogBaseline(defaultProject, sp)
-    : await loadTimeLogBaseline(null, {});
-
-  const suspenseKey = [
-    serverBaseline.catalog.project,
-    serverBaseline.catalog.team,
-    serverBaseline.catalog.sprintPath,
-    urlAssignee,
-  ].join("|");
-
   return (
-    <TimeLogPageShell
-      serverBaseline={serverBaseline}
-      adoExecutionReady={auth.adoExecutionReady}
-      notReadyMessage="Conecta Azure DevOps para registrar tiempo en Azure DevOps."
-    >
-      {auth.adoExecutionReady && serverBaseline.catalog.sprintPath ? (
-        <Suspense key={suspenseKey} fallback={<ShellContentSkeleton />}>
-          <TimeLogBodyServer
+    <div className="flex w-full flex-col gap-5 pb-6">
+      <Suspense fallback={<TimeLogShellSkeleton />}>
+        <TimeLogShellServer
+          sp={sp}
+          defaultProject={defaultProject}
+          adoExecutionReady={auth.adoExecutionReady}
+        />
+      </Suspense>
+
+      {auth.adoExecutionReady ? (
+        <Suspense fallback={<TimeLogFormSkeleton />}>
+          <TimeLogBodyStreamLoader
+            sp={sp}
+            defaultProject={defaultProject}
             adoExecutionReady={auth.adoExecutionReady}
             authMethod={auth.authMethod}
-            defaultProject={defaultProject}
-            serverBaseline={serverBaseline}
             urlAssignee={urlAssignee}
           />
         </Suspense>
       ) : null}
-    </TimeLogPageShell>
+    </div>
   );
 }

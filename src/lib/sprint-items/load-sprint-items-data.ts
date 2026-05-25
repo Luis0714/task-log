@@ -2,33 +2,15 @@ import "server-only";
 
 import { cache } from "react";
 
-import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
 import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
+import type { SprintItemsDataSnapshot } from "@/lib/sprint-items/load-sprint-items-data-types";
+import { loadSprintItemsList } from "@/lib/sprint-items/load-sprint-items-list";
+import { loadSprintItemsListMeta } from "@/lib/sprint-items/load-sprint-items-list-meta";
+import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import type { SprintItemsKind } from "@/lib/sprint-items/types";
-import { withAdoProject } from "@/lib/azure-devops/projects";
-import {
-  listBugStates,
-  listTaskStates,
-  listTeamMembers,
-} from "@/lib/azure-devops/work-item-type-states";
-import { listTasksInSprint, listWorkItemsInSprint } from "@/lib/azure-devops/work-items";
-import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
 
-export type SprintItemsDataSnapshot = {
-  items: AdoWorkItemOptionDto[];
-  itemStates: AdoTaskStateDto[];
-  teamMembers: Awaited<ReturnType<typeof listTeamMembers>>;
-  nonWorkingDates: string[];
-  error: string | null;
-};
-
-const emptySnapshot: SprintItemsDataSnapshot = {
-  items: [],
-  itemStates: [],
-  teamMembers: [],
-  nonWorkingDates: [],
-  error: null,
-};
+export type { SprintItemsDataSnapshot } from "@/lib/sprint-items/load-sprint-items-data-types";
 
 export type LoadSprintItemsDataInput = {
   kind: SprintItemsKind;
@@ -41,39 +23,31 @@ export type LoadSprintItemsDataInput = {
 export const loadSprintItemsData = cache(async function loadSprintItemsData(
   input: LoadSprintItemsDataInput,
 ): Promise<SprintItemsDataSnapshot> {
-  const { kind, project, team, sprintPath, assignee } = input;
-  if (!project || !team || !sprintPath) return emptySnapshot;
+  const catalog: AdoCatalogSnapshot = {
+    project: input.project,
+    team: input.team,
+    sprintPath: input.sprintPath,
+    projects: [],
+    teams: [],
+    sprints: [],
+    defaultProject: null,
+    defaultTeam: null,
+    suggestedTeam: null,
+    errors: { projects: null, teams: null, sprints: null },
+  };
 
-  const caller = await requireAdoCaller();
-  if (!caller.ok) return emptySnapshot;
+  const assignee = input.assignee || DEFAULT_WORK_ITEM_FILTERS.assignee;
+  const [list, meta, nonWorkingDates] = await Promise.all([
+    loadSprintItemsList(input.kind, catalog, assignee),
+    loadSprintItemsListMeta(input.kind, input.project, input.team),
+    loadNonWorkingDates(input.project, input.team),
+  ]);
 
-  try {
-    const scopedAuth = withAdoProject(caller.auth, project);
-    const [items, itemStates, teamMembers, nonWorkingDates] = await Promise.all([
-      kind === "tasks"
-        ? listTasksInSprint(scopedAuth, sprintPath, { assignee })
-        : listWorkItemsInSprint(scopedAuth, sprintPath, {
-            assignee,
-            workItemType: "Bug",
-          }),
-      kind === "tasks" ? listTaskStates(scopedAuth) : listBugStates(scopedAuth),
-      listTeamMembers(scopedAuth, team),
-      loadNonWorkingDates(project, team),
-    ]);
-
-    return {
-      items,
-      itemStates,
-      teamMembers,
-      nonWorkingDates,
-      error: null,
-    };
-  } catch (cause) {
-    const detail = cause instanceof Error ? cause.message : "Error desconocido";
-    const label = kind === "tasks" ? "tasks" : "bugs";
-    return {
-      ...emptySnapshot,
-      error: `No se pudieron cargar las ${label} del sprint. — ${detail}`,
-    };
-  }
+  return {
+    items: list.items,
+    itemStates: meta.itemStates,
+    teamMembers: meta.teamMembers,
+    nonWorkingDates,
+    error: list.error,
+  };
 });

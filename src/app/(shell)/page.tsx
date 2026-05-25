@@ -1,7 +1,8 @@
-import { DashboardPageShell } from "@/components/dashboard/dashboard-page-shell";
-import { DashboardSectionsStream } from "@/components/dashboard/dashboard-sections-stream";
-import { loadAdoCatalog } from "@/lib/ado/load-ado-catalog";
-import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
+import { Suspense } from "react";
+
+import { DashboardShellServer } from "@/components/dashboard/dashboard-shell-server";
+import { DashboardSectionsStreamLoader } from "@/components/dashboard/dashboard-sections-stream-loader";
+import { DashboardShellSkeleton } from "@/components/skeletons/dashboard-shell-skeleton";
 import { parseAdoContextSearchParams } from "@/lib/ado/parse-context-search-params";
 import { mapAuthStateToConnectionDisplay } from "@/lib/auth/connection-display";
 import { mergeServerAuthState } from "@/lib/auth/merge-auth-state";
@@ -27,6 +28,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const connection = mapAuthStateToConnectionDisplay(auth);
   const defaultProject =
     auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
+  const sprintDayKey = sp.sprintDay ?? "";
 
   const header: DashboardHeaderData = {
     displayName: connection.userDisplayName ?? "Usuario",
@@ -36,28 +38,25 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     sprintName: "Sprint actual",
   };
 
-  const emptyCatalog = await loadAdoCatalog(null, {});
-  const catalog = auth.adoExecutionReady
-    ? await loadAdoCatalog(defaultProject, sp)
-    : emptyCatalog;
-
-  const sprintDayKey = sp.sprintDay ?? "";
-  const nonWorkingDates =
-    auth.adoExecutionReady && catalog.project && catalog.team
-      ? await loadNonWorkingDates(catalog.project, catalog.team)
-      : [];
-
   return (
-    <DashboardPageShell
-      header={header}
-      catalog={catalog}
-      adoExecutionReady={auth.adoExecutionReady}
-      initialSprintDayKey={sprintDayKey}
-      nonWorkingDates={nonWorkingDates}
-    >
-      {auth.adoExecutionReady && catalog.sprintPath ? (
-        <DashboardSectionsStream catalog={catalog} sprintDayKey={sprintDayKey} />
+    <div className="flex w-full flex-col gap-6 pb-6">
+      <Suspense fallback={<DashboardShellSkeleton />}>
+        <DashboardShellServer
+          sp={sp}
+          defaultProject={defaultProject}
+          adoExecutionReady={auth.adoExecutionReady}
+          header={header}
+          initialSprintDayKey={sprintDayKey}
+        />
+      </Suspense>
+
+      {auth.adoExecutionReady ? (
+        <DashboardSectionsStreamLoader
+          sp={sp}
+          defaultProject={defaultProject}
+          sprintDayKey={sprintDayKey}
+        />
       ) : null}
-    </DashboardPageShell>
+    </div>
   );
 }

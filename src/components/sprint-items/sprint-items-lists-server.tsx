@@ -1,7 +1,9 @@
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { SprintItemsListsBridge } from "@/components/sprint-items/sprint-items-lists-bridge";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
-import { loadSprintItemsData } from "@/lib/sprint-items/load-sprint-items-data";
+import type { SprintItemsDataSnapshot } from "@/lib/sprint-items/load-sprint-items-data-types";
+import { loadSprintItemsList } from "@/lib/sprint-items/load-sprint-items-list";
+import { loadSprintItemsListMeta } from "@/lib/sprint-items/load-sprint-items-list-meta";
 import type { SprintItemsKind } from "@/lib/sprint-items/types";
 import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
 
@@ -16,13 +18,19 @@ export async function SprintItemsListsServer({
   catalog,
   assignee,
 }: SprintItemsListsServerProps) {
-  const snapshot = await loadSprintItemsData({
-    kind,
-    project: catalog.project,
-    team: catalog.team,
-    sprintPath: catalog.sprintPath,
-    assignee: assignee || DEFAULT_WORK_ITEM_FILTERS.assignee,
-  });
+  const urlAssignee = assignee || DEFAULT_WORK_ITEM_FILTERS.assignee;
+  const [list, meta] = await Promise.all([
+    loadSprintItemsList(kind, catalog, urlAssignee),
+    loadSprintItemsListMeta(kind, catalog.project, catalog.team),
+  ]);
+
+  const snapshot: SprintItemsDataSnapshot = {
+    items: list.items,
+    itemStates: meta.itemStates,
+    teamMembers: meta.teamMembers,
+    nonWorkingDates: [],
+    error: list.error,
+  };
 
   if (snapshot.error) {
     return <CopilotErrorAlert message={snapshot.error} />;
