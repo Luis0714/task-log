@@ -8,9 +8,9 @@ export function DashboardPageSkeleton({ className }: { className?: string }) {
     <div className={cn("flex w-full flex-col gap-6 pb-6", className)}>
       <PageHeaderSkeleton />
       <Skeleton className="h-11 w-full max-w-3xl rounded-lg" />
-      <SectionBlockSkeleton content="chart" />
-      <SectionBlockSkeleton content="chart" />
-      <SectionBlockSkeleton content="list-compact" />
+      <SectionBlockSkeleton content="chart-delivery" />
+      <SectionBlockSkeleton content="chart-hours" />
+      <SectionBlockSkeleton content="chart-workflow" />
       <SectionBlockSkeleton content="card" />
     </div>
   );
