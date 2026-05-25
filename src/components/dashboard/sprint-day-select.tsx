@@ -35,7 +35,6 @@ export function SprintDaySelect({
         value={value}
         placeholder="Selecciona un día"
         disabled={disabled || workingDays.length <= 1}
-        triggerClassName="min-w-[12rem]"
         displayValue={selectedDay ? formatSprintDayOptionLabel(selectedDay) : undefined}
         options={workingDays.map((day) => ({
           value: day.value,

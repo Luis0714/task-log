@@ -40,7 +40,6 @@ export function SprintDaySelect({
         value={value || SPRINT_DAY_ALL}
         placeholder="Selecciona un día"
         disabled={disabled}
-        triggerClassName="min-w-[12rem]"
         displayValue={displayValue}
         options={[
           { value: SPRINT_DAY_ALL, label: "Todos los días" },

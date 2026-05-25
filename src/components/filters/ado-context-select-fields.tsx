@@ -33,8 +33,9 @@ export function AdoContextSelectFields({
   return (
     <div
       className={cn(
-        "grid gap-4 sm:grid-cols-2",
+        "grid w-full min-w-0 gap-4 sm:grid-cols-2",
         sprintDayFilter ? "lg:grid-cols-4" : "lg:grid-cols-3",
+        "[&>*]:min-w-0",
         className,
       )}
     >
@@ -66,7 +67,7 @@ export function AdoContextSelectFields({
         options={sprintSelectOptions(sprints)}
         onValueChange={onSprintChange}
       />
-      {sprintDayFilter ? <div className="min-w-0">{sprintDayFilter}</div> : null}
+      {sprintDayFilter ? sprintDayFilter : null}
     </div>
   );
 }

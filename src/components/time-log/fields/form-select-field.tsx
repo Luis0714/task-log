@@ -53,7 +53,7 @@ export function ControlledSelectField({
   onValueChange,
 }: ControlledSelectFieldProps) {
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 w-full space-y-2">
       <Label>{label}</Label>
       <Select
         value={value || null}
