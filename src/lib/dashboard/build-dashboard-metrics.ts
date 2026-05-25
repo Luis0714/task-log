@@ -1,0 +1,119 @@
+import { computeSprintCapacityHours } from "@/lib/dashboard/sprint-hours";
+import { computeSprintHoursSeries } from "@/lib/dashboard/sprint-hours-series";
+import { computeSprintWeekMetrics } from "@/lib/dashboard/sprint-weeks";
+import {
+  sumHoursBreakdownForDay,
+  sumHoursBreakdownThroughDay,
+} from "@/lib/dashboard/hours-breakdown";
+import {
+  BUG_STATUS_MAPPING,
+  USER_STORY_STATUS_MAPPING,
+} from "@/lib/dashboard/sprint-status-mapping";
+import { computeSprintStatusOverview } from "@/lib/dashboard/sprint-status-overview";
+import {
+  computeAssignedStoryPoints,
+  computeDashboardMetrics,
+  computeSprintPbiProgress,
+  mapToDashboardWorkItems,
+  selectInProgressItems,
+} from "@/lib/dashboard/work-item-selectors";
+import {
+  collectWorkItemStates,
+  groupWorkItemsByStates,
+} from "@/lib/time-log/filter-work-items";
+import {
+  listSprintWorkingDays,
+  toLocalDateKey,
+  type SprintWorkingDay,
+} from "@/lib/dashboard/sprint-days";
+import type { AdoCatalogSnapshot, DashboardSprintBundle } from "@/lib/ado/types";
+import type { DashboardMetrics } from "@/lib/dashboard/types";
+import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
+
+export type BuildDashboardMetricsInput = {
+  bundle: DashboardSprintBundle;
+  catalog: AdoCatalogSnapshot;
+  selectedSprintDayKey: string;
+};
+
+export function resolveCurrentSprint(catalog: AdoCatalogSnapshot): AdoSprintDto | null {
+  return catalog.sprints.find((sprint) => sprint.path === catalog.sprintPath) ?? null;
+}
+
+export function buildDashboardMetrics({
+  bundle,
+  catalog,
+  selectedSprintDayKey,
+}: BuildDashboardMetricsInput): {
+  metrics: DashboardMetrics;
+  sprintWorkingDays: SprintWorkingDay[];
+  assigned: ReturnType<typeof mapToDashboardWorkItems>;
+  inProgress: ReturnType<typeof mapToDashboardWorkItems>;
+} {
+  const currentSprint = resolveCurrentSprint(catalog);
+  const workingDayOptions = {
+    nonWorkingDates: new Set(bundle.nonWorkingDates),
+  };
+  const assigned = mapToDashboardWorkItems(bundle.workItems);
+  const assignedBugs = mapToDashboardWorkItems(bundle.bugs);
+  const workItemStates = bundle.backlogStates.map((state) => state.name);
+
+  const pbiStateGroups = (() => {
+    const stateOrder =
+      workItemStates.length > 0 ? workItemStates : collectWorkItemStates(bundle.workItems);
+    return groupWorkItemsByStates(assigned, stateOrder);
+  })();
+
+  const sprintWorkingDays = listSprintWorkingDays(
+    currentSprint?.startDate,
+    currentSprint?.finishDate,
+    workingDayOptions,
+  );
+
+  const pbiProgress = computeSprintPbiProgress(assigned, workItemStates);
+  const storyPointsAssigned = computeAssignedStoryPoints(assigned);
+  const sprintStatusOverview = computeSprintStatusOverview(assigned, assignedBugs, {
+    userStories: USER_STORY_STATUS_MAPPING,
+    bugs: BUG_STATUS_MAPPING,
+  });
+
+  const todayKey = toLocalDateKey(new Date());
+  const hoursDayKey = selectedSprintDayKey || todayKey;
+  const sprintEndKey = sprintWorkingDays[sprintWorkingDays.length - 1]?.value ?? "";
+
+  const hoursToday = sumHoursBreakdownForDay(bundle.tasks, bundle.bugs, hoursDayKey);
+  const hoursSprintTarget = computeSprintCapacityHours(
+    currentSprint?.startDate,
+    currentSprint?.finishDate,
+    workingDayOptions,
+  );
+  const hoursSprintCurrent =
+    sprintEndKey !== ""
+      ? sumHoursBreakdownThroughDay(bundle.tasks, bundle.bugs, sprintEndKey)
+      : { taskHours: 0, bugHours: 0 };
+  const hoursByDay = computeSprintHoursSeries(
+    sprintWorkingDays,
+    bundle.tasks,
+    bundle.bugs,
+  );
+  const sprintWeeks = computeSprintWeekMetrics(
+    sprintWorkingDays,
+    bundle.tasks,
+    bundle.bugs,
+  );
+
+  const metrics = computeDashboardMetrics(hoursToday, {
+    sprintHours: { hoursSprintCurrent, hoursSprintTarget },
+    storyPointsAssigned,
+    pbiStateGroups,
+    pbiProgress,
+    sprintStatusOverview,
+    sprintWorkingDaysCount: sprintWorkingDays.length,
+    hoursByDay,
+    sprintWeeks,
+  });
+
+  const inProgress = selectInProgressItems(assigned);
+
+  return { metrics, sprintWorkingDays, assigned, inProgress };
+}

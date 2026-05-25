@@ -39,7 +39,7 @@ export function PbiList({
 
   if (variant === "featured") {
     return (
-      <div className={cn("grid gap-3 sm:grid-cols-2", className)}>
+      <div className={cn("@container grid grid-cols-1 gap-3 @md:grid-cols-2", className)}>
         {items.map((item) => (
           <PbiFeaturedCard
             key={item.id}

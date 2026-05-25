@@ -7,8 +7,11 @@ import {
   type WorkItemFilters,
 } from "@/lib/schemas/work-item-filters";
 
-export function useWorkItemFilters() {
-  const [filters, setFilters] = useState<WorkItemFilters>(DEFAULT_WORK_ITEM_FILTERS);
+export function useWorkItemFilters(initial?: Partial<WorkItemFilters>) {
+  const [filters, setFilters] = useState<WorkItemFilters>({
+    ...DEFAULT_WORK_ITEM_FILTERS,
+    ...initial,
+  });
 
   const setSearch = useCallback((search: string) => {
     setFilters((current) => ({ ...current, search }));

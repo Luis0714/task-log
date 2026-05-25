@@ -9,7 +9,7 @@ export type PbiListSkeletonProps = {
 export function PbiListSkeleton({ variant = "compact", className }: PbiListSkeletonProps) {
   if (variant === "featured") {
     return (
-      <div className={cn("grid gap-3 sm:grid-cols-2", className)}>
+      <div className={cn("@container grid grid-cols-1 gap-3 @md:grid-cols-2", className)}>
         <Skeleton className="h-40 w-full rounded-xl" />
         <Skeleton className="h-40 w-full rounded-xl" />
       </div>

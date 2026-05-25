@@ -2,46 +2,9 @@ import { NextResponse } from "next/server";
 
 import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
 import { withAdoProject } from "@/lib/azure-devops/projects";
-import { listTeamIterations } from "@/lib/azure-devops/sprints";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
-import { listProjectTeams, type AdoTeam } from "@/lib/azure-devops/teams";
-
-async function resolveSuggestedTeam(
-  auth: ReturnType<typeof withAdoProject>,
-  teams: AdoTeam[],
-): Promise<string | null> {
-  if (teams.length === 0) return null;
-
-  let fallbackWithSprints: string | null = null;
-
-  for (const team of teams) {
-    try {
-      const sprints = await listTeamIterations(auth, team.name);
-      if (sprints.length === 0) continue;
-
-      if (!fallbackWithSprints) fallbackWithSprints = team.name;
-
-      if (sprints.some((sprint) => sprint.timeFrame === "current")) {
-        return team.name;
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  for (const team of teams) {
-    try {
-      const sprints = await listTeamIterations(auth, team.name);
-      if (sprints.some((sprint) => sprint.timeFrame === "future")) {
-        return team.name;
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  return fallbackWithSprints ?? teams[0]?.name ?? null;
-}
+import { resolveSuggestedTeam } from "@/lib/azure-devops/suggested-team";
+import { listProjectTeams } from "@/lib/azure-devops/teams";
 
 export async function GET(req: Request) {
   const project = new URL(req.url).searchParams.get("project")?.trim();
