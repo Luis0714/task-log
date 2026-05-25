@@ -5,7 +5,10 @@ import {
   totalHoursBreakdown,
 } from "@/lib/dashboard/hours-breakdown";
 import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
-import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
+import {
+  formatSprintDayChartLabel,
+  type SprintWorkingDay,
+} from "@/lib/dashboard/sprint-days";
 import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
 
 export type SprintDayHoursPoint = {
@@ -18,22 +21,36 @@ export type SprintDayHoursPoint = {
   idealCumulativeHours: number;
 };
 
-function formatDayChartLabel(date: Date): string {
-  return new Intl.DateTimeFormat("es", { weekday: "short", day: "numeric" }).format(date);
+/** Props del eje X cuando hay un punto por día laborable del sprint. */
+export function sprintDayAxisProps(dayCount: number) {
+  const dense = dayCount > 4;
+  return {
+    interval: 0 as const,
+    angle: dense ? -48 : -18,
+    textAnchor: dense ? ("end" as const) : ("end" as const),
+    height: dense ? 72 : 56,
+    tick: { fontSize: dense ? 8 : 9 },
+  };
 }
 
+export function sprintDayChartMargin(dayCount: number) {
+  return {
+    top: 12,
+    right: 8,
+    left: -18,
+    bottom: dayCount > 4 ? 20 : 12,
+  } as const;
+}
+
+/** Un punto por cada día laborable del sprint (incluye días con 0 h). */
 export function computeSprintHoursSeries(
   workingDays: readonly SprintWorkingDay[],
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
-  maxDayKey: string,
 ): SprintDayHoursPoint[] {
-  if (!maxDayKey.trim()) return [];
+  if (workingDays.length === 0) return [];
 
-  const visibleDays = workingDays.filter((day) => day.value <= maxDayKey);
-  if (visibleDays.length === 0) return [];
-
-  return visibleDays.map((day, index) => {
+  return workingDays.map((day, index) => {
     const breakdown = sumHoursBreakdownForDay(tasks, bugs, day.value);
     const cumulative = totalHoursBreakdown(
       sumHoursBreakdownThroughDay(tasks, bugs, day.value),
@@ -41,7 +58,7 @@ export function computeSprintHoursSeries(
 
     return {
       dayKey: day.value,
-      label: formatDayChartLabel(day.date),
+      label: formatSprintDayChartLabel(day),
       taskHours: breakdown.taskHours,
       bugHours: breakdown.bugHours,
       totalHours: totalHoursBreakdown(breakdown),

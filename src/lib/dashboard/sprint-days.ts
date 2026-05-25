@@ -117,3 +117,13 @@ export function formatSprintDayShortLabel(day: SprintWorkingDay): string {
   if (isSameLocalDay(day.date, new Date())) return "hoy";
   return `día ${day.dayIndex}`;
 }
+
+/** Etiqueta de eje para gráficas por día (mismo estilo que el selector de día). */
+export function formatSprintDayChartLabel(day: SprintWorkingDay): string {
+  const dateLabel = new Intl.DateTimeFormat("es", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(day.date);
+  return `Día ${day.dayIndex} · ${dateLabel}`;
+}

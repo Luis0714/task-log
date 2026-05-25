@@ -7,9 +7,12 @@ import { ConfigChartTooltip } from "@/components/dashboard/charts/config-chart-t
 import { ChartContainer, ChartLegend, ChartTooltip } from "@/components/ui/chart";
 import type { SprintDayHoursPoint } from "@/lib/dashboard/sprint-hours-series";
 import {
-  CHART_HEIGHT_COMPACT,
+  sprintDayAxisProps,
+  sprintDayChartMargin,
+} from "@/lib/dashboard/sprint-hours-series";
+import {
+  CHART_HEIGHT_DAILY,
   CHART_INITIAL_DIMENSION,
-  CHART_MARGIN,
   CHART_TOOLTIP_CURSOR,
   chartContainerClass,
   hoursTrendChartConfig,
@@ -30,14 +33,16 @@ export function LineSeriesChart({ points, className }: LineSeriesChartProps) {
   const pace = getHoursPaceStatus(points);
   const last = points[points.length - 1];
   const behind = pace === "behind";
+  const xAxis = sprintDayAxisProps(points.length);
+  const margin = sprintDayChartMargin(points.length);
 
   return (
     <ChartContainer
       config={hoursTrendChartConfig}
       initialDimension={CHART_INITIAL_DIMENSION}
-      className={chartContainerClass(CHART_HEIGHT_COMPACT, className)}
+      className={chartContainerClass(CHART_HEIGHT_DAILY, className)}
     >
-      <AreaChart data={[...points]} margin={CHART_MARGIN}>
+      <AreaChart data={[...points]} margin={margin}>
         <defs>
           <linearGradient id="hoursActualFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--color-cumulativeHours)" stopOpacity={0.35} />
@@ -49,9 +54,8 @@ export function LineSeriesChart({ points, className }: LineSeriesChartProps) {
           dataKey="label"
           tickLine={false}
           axisLine={false}
-          tickMargin={6}
-          interval="preserveStartEnd"
-          tick={{ fontSize: 11 }}
+          tickMargin={points.length > 6 ? 4 : 6}
+          {...xAxis}
         />
         <YAxis
           allowDecimals={false}

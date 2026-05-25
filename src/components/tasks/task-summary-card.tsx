@@ -1,4 +1,4 @@
-import { UserRound } from "lucide-react";
+import { Clock, UserRound } from "lucide-react";
 
 import { TaskDateBadge } from "@/components/tasks/task-date-badge";
 import { WorkItemEffortBadge } from "@/components/work-items/work-item-effort-badge";
@@ -13,16 +13,26 @@ export type TaskSummaryCardProps = {
   className?: string;
 };
 
-function TaskLoggedHoursBadge({ hours }: { hours: number }) {
+function TaskLoggedHoursHighlight({ hours }: { hours: number }) {
   if (!Number.isFinite(hours) || hours < 0) return null;
 
   return (
-    <span
-      className="inline-flex shrink-0 items-center rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-900 tabular-nums dark:text-amber-300"
+    <div
+      className="mt-3 flex items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/12 px-3 py-2.5 shadow-sm ring-1 ring-amber-500/25 dark:bg-amber-500/15"
       title={`Horas registradas: ${formatHours(hours)}`}
     >
-      {formatHours(hours)}
-    </span>
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/35 bg-amber-500/20 text-amber-800 dark:text-amber-300">
+        <Clock className="size-4" aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-muted-foreground text-[10px] leading-none font-semibold tracking-widest uppercase">
+          Horas registradas
+        </p>
+        <p className="font-heading mt-1 text-xl font-semibold leading-none tracking-tight text-amber-900 tabular-nums dark:text-amber-200">
+          {formatHours(hours)}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -40,9 +50,6 @@ export function TaskSummaryCard({ item, className }: TaskSummaryCardProps) {
           <WorkItemId id={item.id} />
           {item.workingDate ? <TaskDateBadge dateKey={item.workingDate} /> : null}
           {item.effort !== undefined ? <WorkItemEffortBadge effort={item.effort} /> : null}
-          {item.loggedHours !== undefined ? (
-            <TaskLoggedHoursBadge hours={item.loggedHours} />
-          ) : null}
         </div>
         {item.state ? <StatusBadge state={item.state} className="max-w-[50%] shrink-0" /> : null}
       </div>
@@ -64,6 +71,10 @@ export function TaskSummaryCard({ item, className }: TaskSummaryCardProps) {
             </p>
           </div>
         </div>
+      ) : null}
+
+      {item.loggedHours !== undefined ? (
+        <TaskLoggedHoursHighlight hours={item.loggedHours} />
       ) : null}
     </div>
   );

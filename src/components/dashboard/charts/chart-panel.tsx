@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export type ChartPanelSize = "compact" | "default" | "inline";
 
 const skeletonHeight: Record<ChartPanelSize, string> = {
-  compact: "h-[150px]",
+  compact: "h-[180px] sm:h-[200px]",
   default: "h-[180px]",
   inline: "h-[120px]",
 };

@@ -7,10 +7,13 @@ import { ConfigChartTooltip } from "@/components/dashboard/charts/config-chart-t
 import { ChartContainer, ChartLegend, ChartTooltip } from "@/components/ui/chart";
 import type { SprintDayHoursPoint } from "@/lib/dashboard/sprint-hours-series";
 import {
+  sprintDayAxisProps,
+  sprintDayChartMargin,
+} from "@/lib/dashboard/sprint-hours-series";
+import {
   CHART_INITIAL_DIMENSION,
-  CHART_MARGIN,
   CHART_TOOLTIP_CURSOR,
-  CHART_HEIGHT_COMPACT,
+  CHART_HEIGHT_DAILY,
   chartContainerClass,
   hoursDailyChartConfig,
 } from "@/lib/dashboard/chart-config";
@@ -32,22 +35,30 @@ export function StackedBarChart({
   if (points.length === 0) return null;
 
   const maxTotal = Math.max(...points.map((p) => p.totalHours), 1);
+  const dayCount = points.length;
+  const dense = dayCount > 6;
+  const xAxis = sprintDayAxisProps(dayCount);
+  const margin = sprintDayChartMargin(dayCount);
 
   return (
     <ChartContainer
       config={hoursDailyChartConfig}
       initialDimension={CHART_INITIAL_DIMENSION}
-      className={chartContainerClass(CHART_HEIGHT_COMPACT, className)}
+      className={chartContainerClass(CHART_HEIGHT_DAILY, className)}
     >
-      <BarChart data={[...points]} margin={CHART_MARGIN} barCategoryGap="24%">
+      <BarChart
+        data={[...points]}
+        margin={margin}
+        barCategoryGap={dense ? "12%" : "20%"}
+        barGap={2}
+      >
         <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
         <XAxis
           dataKey="label"
           tickLine={false}
           axisLine={false}
-          tickMargin={6}
-          interval="preserveStartEnd"
-          tick={{ fontSize: 11 }}
+          tickMargin={dense ? 4 : 6}
+          {...xAxis}
         />
         <YAxis
           tickLine={false}
@@ -75,7 +86,8 @@ export function StackedBarChart({
           name="taskHours"
           stackId="hours"
           fill="var(--color-taskHours)"
-          maxBarSize={32}
+          maxBarSize={dense ? 20 : 32}
+          minPointSize={3}
           animationDuration={650}
         >
           {points.map((point) => {
@@ -97,7 +109,8 @@ export function StackedBarChart({
           stackId="hours"
           fill="var(--color-bugHours)"
           radius={[5, 5, 0, 0]}
-          maxBarSize={32}
+          maxBarSize={dense ? 20 : 32}
+          minPointSize={3}
           animationDuration={750}
         >
           {points.map((point) => {

@@ -2,6 +2,8 @@ import type { ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 
 export const CHART_HEIGHT_COMPACT = "h-[150px]";
+/** Gráficas con etiquetas largas por día del sprint */
+export const CHART_HEIGHT_DAILY = "h-[180px] sm:h-[200px]";
 export const CHART_HEIGHT_DEFAULT = "h-[180px]";
 export const CHART_HEIGHT_INLINE = "h-[120px]";
 

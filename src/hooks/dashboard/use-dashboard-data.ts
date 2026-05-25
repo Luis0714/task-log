@@ -199,15 +199,11 @@ export function useDashboardData({
       sprintEndKey !== ""
         ? sumHoursBreakdownThroughDay(sprintTasks, sprintBugs, sprintEndKey)
         : { taskHours: 0, bugHours: 0 };
-    const hoursByDay =
-      sprintEndKey !== ""
-        ? computeSprintHoursSeries(
-            sprintWorkingDays,
-            sprintTasks,
-            sprintBugs,
-            sprintEndKey,
-          )
-        : [];
+    const hoursByDay = computeSprintHoursSeries(
+      sprintWorkingDays,
+      sprintTasks,
+      sprintBugs,
+    );
     const sprintWeeks = computeSprintWeekMetrics(
       sprintWorkingDays,
       sprintTasks,
