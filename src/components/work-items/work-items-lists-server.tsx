@@ -1,6 +1,7 @@
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { WorkItemsListsBridge } from "@/components/work-items/work-items-lists-bridge";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
+import { loadWorkItemsBacklogFields } from "@/lib/work-items/load-work-items-backlog-fields";
 import { loadWorkItemsLists } from "@/lib/work-items/load-work-items-lists";
 import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
 
@@ -15,12 +16,17 @@ export async function WorkItemsListsServer({
   assignee,
   currentUserDisplayName = null,
 }: WorkItemsListsServerProps) {
-  const lists = await loadWorkItemsLists({
-    project: catalog.project,
-    team: catalog.team,
-    sprintPath: catalog.sprintPath,
-    assignee: assignee || DEFAULT_WORK_ITEM_FILTERS.assignee,
-  });
+  const [lists, responsableFields] = await Promise.all([
+    loadWorkItemsLists({
+      project: catalog.project,
+      team: catalog.team,
+      sprintPath: catalog.sprintPath,
+      assignee: assignee || DEFAULT_WORK_ITEM_FILTERS.assignee,
+    }),
+    catalog.project
+      ? loadWorkItemsBacklogFields(catalog.project)
+      : Promise.resolve([]),
+  ]);
 
   if (lists.error) {
     return <CopilotErrorAlert message={lists.error} />;
@@ -32,6 +38,7 @@ export async function WorkItemsListsServer({
       project={catalog.project || null}
       team={catalog.team || null}
       currentUserDisplayName={currentUserDisplayName}
+      responsableFields={responsableFields}
     />
   );
 }

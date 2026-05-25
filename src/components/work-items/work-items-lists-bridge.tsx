@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { WorkItemsLists } from "@/components/work-items/work-items-lists";
 import { useWorkItemsFiltersContext } from "@/components/work-items/work-items-filters-context";
 import type { WorkItemsListsSnapshot } from "@/lib/ado/types";
+import type { BacklogResponsableFieldDto } from "@/lib/schemas/ado-backlog-fields";
 
 export type WorkItemsListsBridgeProps = {
   lists: WorkItemsListsSnapshot;
   project: string | null;
   team: string | null;
   currentUserDisplayName?: string | null;
+  responsableFields: readonly BacklogResponsableFieldDto[];
 };
 
 export function WorkItemsListsBridge({
@@ -18,6 +20,7 @@ export function WorkItemsListsBridge({
   project,
   team,
   currentUserDisplayName = null,
+  responsableFields,
 }: WorkItemsListsBridgeProps) {
   const router = useRouter();
   const { filters } = useWorkItemsFiltersContext();
@@ -34,6 +37,7 @@ export function WorkItemsListsBridge({
       team={team}
       currentUserDisplayName={currentUserDisplayName}
       members={lists.teamMembers}
+      responsableFields={responsableFields}
       onSaved={() => router.refresh()}
     />
   );

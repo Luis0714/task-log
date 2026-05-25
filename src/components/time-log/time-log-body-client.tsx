@@ -14,37 +14,37 @@ import {
 import { useCopilotHistory } from "@/hooks/use-copilot-history";
 import { useTimeLogForm } from "@/hooks/use-time-log-form";
 import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
+import type {
+  TimeLogPbisSnapshot,
+  TimeLogServerBaseline,
+} from "@/lib/time-log/load-time-log-baseline";
 
-export type TimeLogViewProps = {
+export type TimeLogBodyClientProps = {
   adoExecutionReady: boolean;
   authMethod: AzdoAuthMethod;
   defaultProject?: string | null;
+  serverBaseline: TimeLogServerBaseline;
+  pbisSnapshot: TimeLogPbisSnapshot;
 };
 
-export function TimeLogView({
+export function TimeLogBodyClient({
   adoExecutionReady,
   authMethod,
   defaultProject = null,
-}: TimeLogViewProps) {
+  serverBaseline,
+  pbisSnapshot,
+}: TimeLogBodyClientProps) {
   const { history, appendEntry } = useCopilotHistory();
   const form = useTimeLogForm({
     appendHistory: appendEntry,
     defaultProject,
     adoExecutionReady,
+    serverBaseline,
+    pbisSnapshot,
   });
 
   return (
-    <div className="flex w-full flex-col gap-5">
-      <header className="space-y-1">
-        <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
-          Registro de tiempo
-        </h1>
-        <p className="text-muted-foreground text-sm text-pretty">
-          Elige la historia del sprint, crea la tarea con tus horas y confirma antes de enviar a
-          Azure DevOps.
-        </p>
-      </header>
-
+    <>
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Formulario</CardTitle>
@@ -68,9 +68,10 @@ export function TimeLogView({
         </CardContent>
       </Card>
 
-      {form.error && <CopilotErrorAlert message={form.error} />}
+      {form.error ? <CopilotErrorAlert message={form.error} /> : null}
+      {pbisSnapshot.error ? <CopilotErrorAlert message={pbisSnapshot.error} /> : null}
 
-      {form.preview && (
+      {form.preview ? (
         <TimeLogPreviewCard
           preview={form.preview}
           adoExecutionReady={adoExecutionReady}
@@ -79,9 +80,9 @@ export function TimeLogView({
           onConfirm={() => form.preview && void form.execute(form.preview)}
           onCancel={form.dismissPreview}
         />
-      )}
+      ) : null}
 
       <CopilotHistoryList entries={history} />
-    </div>
+    </>
   );
 }

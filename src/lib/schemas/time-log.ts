@@ -69,11 +69,14 @@ export type CreateTaskPayload = {
   project: string;
 };
 
-export function createTimeLogFormDefaults(defaultProject = ""): TimeLogFormValues {
+export function createTimeLogFormDefaults(
+  defaultProject = "",
+  catalog?: { project?: string; team?: string; sprintPath?: string },
+): TimeLogFormValues {
   return {
-    project: defaultProject,
-    team: "",
-    sprintPath: "",
+    project: catalog?.project || defaultProject,
+    team: catalog?.team ?? "",
+    sprintPath: catalog?.sprintPath ?? "",
     pbiId: "",
     taskTitle: "",
     hours: "",

@@ -9,6 +9,7 @@ import { useWorkItemsLists } from "@/hooks/work-items/use-work-items-lists";
 import type { WorkItemsListsSnapshot } from "@/lib/ado/types";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
+import type { BacklogResponsableFieldDto } from "@/lib/schemas/ado-backlog-fields";
 
 export type WorkItemsListsProps = {
   lists: WorkItemsListsSnapshot;
@@ -17,6 +18,7 @@ export type WorkItemsListsProps = {
   team: string | null;
   currentUserDisplayName?: string | null;
   members: WorkItemsListsSnapshot["teamMembers"];
+  responsableFields: readonly BacklogResponsableFieldDto[];
   onSaved: () => void;
 };
 
@@ -27,6 +29,7 @@ export function WorkItemsLists({
   team,
   currentUserDisplayName = null,
   members,
+  responsableFields,
   onSaved,
 }: WorkItemsListsProps) {
   const { filteredItems, inProgress, upcoming, developed } = useWorkItemsLists(
@@ -104,6 +107,7 @@ export function WorkItemsLists({
         workItem={selectedWorkItem}
         bugs={lists.sprintBugs}
         backlogStates={lists.backlogStates}
+        responsableFields={responsableFields}
         project={project}
         team={team}
         currentUserDisplayName={currentUserDisplayName}

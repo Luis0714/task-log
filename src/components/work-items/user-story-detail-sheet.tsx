@@ -5,7 +5,6 @@ import { useMemo } from "react";
 import { UserStoryResponsableFields } from "@/components/work-items/user-story-responsable-fields";
 import { UserStorySchedulingFields } from "@/components/work-items/user-story-scheduling-fields";
 import { UserStorySummaryCard } from "@/components/work-items/user-story-summary-card";
-import { useAdoBacklogFields } from "@/hooks/use-ado-backlog-fields";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -30,6 +29,7 @@ import { WorkItemStateLabel } from "@/components/work-items/work-item-state-labe
 import { useUserStoryDetailForm } from "@/hooks/work-items/use-user-story-detail-form";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
 import { appToast } from "@/lib/toast";
+import type { BacklogResponsableFieldDto } from "@/lib/schemas/ado-backlog-fields";
 import type { AdoTaskStateDto, AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import { getWorkItemStatePresentation } from "@/lib/time-log/work-item-presentation";
 import { filterBugsForParent } from "@/lib/work-items/bugs-for-parent";
@@ -41,6 +41,7 @@ export type UserStoryDetailSheetProps = {
   workItem: DashboardWorkItem | null;
   bugs: readonly AdoWorkItemOptionDto[];
   backlogStates: readonly AdoTaskStateDto[];
+  responsableFields: readonly BacklogResponsableFieldDto[];
   statesLoading?: boolean;
   project: string | null;
   team: string | null;
@@ -80,6 +81,7 @@ export function UserStoryDetailSheet({
   workItem,
   bugs,
   backlogStates,
+  responsableFields,
   statesLoading = false,
   project,
   team,
@@ -88,18 +90,13 @@ export function UserStoryDetailSheet({
   membersLoading = false,
   onSaved,
 }: UserStoryDetailSheetProps) {
-  const { data: backlogFieldsMeta } = useAdoBacklogFields(
-    project ?? undefined,
-    open && Boolean(project),
-  );
-
   const form = useUserStoryDetailForm({
     workItem,
     project,
     team,
     currentUserDisplayName,
     members,
-    responsableFields: backlogFieldsMeta?.fields ?? [],
+    responsableFields,
     onSaved,
     onClose: () => onOpenChange(false),
   });
@@ -190,7 +187,7 @@ export function UserStoryDetailSheet({
                       Responsables
                     </h3>
                     <UserStoryResponsableFields
-                      fields={backlogFieldsMeta?.fields ?? []}
+                      fields={responsableFields}
                       values={{
                         maquetacion: form.draftMaquetacion,
                         integrador: form.draftIntegrador,
