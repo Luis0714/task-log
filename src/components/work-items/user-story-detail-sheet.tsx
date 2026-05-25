@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WorkItemId } from "@/components/work-items/work-item-id";
+import { PbiStateDot } from "@/components/work-items/pbi-state-dot";
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
 import { appToast } from "@/lib/toast";
@@ -48,8 +49,9 @@ function BugListItem({ bug }: { bug: AdoWorkItemOptionDto }) {
     <li
       className={cn(
         "flex min-w-0 items-center justify-between gap-3 rounded-lg border px-3 py-2.5",
-        presentation?.surfaceClassName ?? "border-border/60 bg-muted/20",
+        !presentation && "border-border/60 bg-muted/20",
       )}
+      style={presentation?.surfaceStyle}
     >
       <div className="min-w-0 flex-1">
         <WorkItemId id={bug.id} />
@@ -181,12 +183,22 @@ export function UserStoryDetailSheet({
                         placeholder={
                           statesReady ? "Selecciona un estado" : "Estados no disponibles"
                         }
-                      />
+                      >
+                        {draftState ? (
+                          <span className="flex min-w-0 items-center gap-2">
+                            <PbiStateDot state={draftState} />
+                            <span className="truncate">{draftState}</span>
+                          </span>
+                        ) : null}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {stateOptions.map((state) => (
                         <SelectItem key={state} value={state}>
-                          {state}
+                          <span className="flex items-center gap-2">
+                            <PbiStateDot state={state} />
+                            {state}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>

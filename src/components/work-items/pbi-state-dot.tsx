@@ -1,4 +1,6 @@
-import { getPbiStateColorPresentation } from "@/lib/work-items/pbi-state-colors";
+"use client";
+
+import { usePbiStateColors } from "@/hooks/use-pbi-state-colors";
 import { cn } from "@/lib/utils";
 
 export type PbiStateDotProps = {
@@ -8,11 +10,12 @@ export type PbiStateDotProps = {
 
 /** Indicador circular del color del estado (filtros, leyendas, listas). */
 export function PbiStateDot({ state, className }: PbiStateDotProps) {
-  const { dotClassName } = getPbiStateColorPresentation(state);
+  const { dotStyle } = usePbiStateColors(state);
 
   return (
     <span
-      className={cn("size-2 shrink-0 rounded-full", dotClassName, className)}
+      className={cn("size-2 shrink-0 rounded-full", className)}
+      style={dotStyle}
       aria-hidden
     />
   );

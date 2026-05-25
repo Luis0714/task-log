@@ -3,6 +3,8 @@
  * Los tokens CSS viven en globals.css (`--pbi-state-*`) con variantes :root y .dark.
  */
 
+import type { CSSProperties } from "react";
+
 export const PBI_STATE_SLUGS = [
   "new",
   "approved",
@@ -17,14 +19,17 @@ export const PBI_STATE_SLUGS = [
 
 export type PbiStateSlug = (typeof PBI_STATE_SLUGS)[number];
 
+export type PbiStateBadgeStyle = {
+  borderColor: string;
+  backgroundColor: string;
+  color: string;
+};
+
 export type PbiStateColorPresentation = {
   slug: PbiStateSlug;
-  /** Clases para badge / pill */
-  className: string;
-  dotClassName: string;
-  /** Fondo suave para filas o tarjetas */
-  surfaceClassName: string;
-  /** Color de relleno en gráficas (Recharts, leyendas) */
+  badgeStyle: PbiStateBadgeStyle;
+  dotStyle: Pick<CSSProperties, "backgroundColor">;
+  surfaceStyle: Pick<CSSProperties, "borderColor" | "backgroundColor">;
   chartColor: string;
 };
 
@@ -93,11 +98,20 @@ function cssVar(slug: PbiStateSlug, token: "bg" | "border" | "text" | "dot" | "c
 }
 
 function buildPresentation(slug: PbiStateSlug): PbiStateColorPresentation {
+  const badgeStyle: PbiStateBadgeStyle = {
+    borderColor: cssVar(slug, "border"),
+    backgroundColor: cssVar(slug, "bg"),
+    color: cssVar(slug, "text"),
+  };
+
   return {
     slug,
-    className: `border-[color:var(--pbi-state-${slug}-border)] bg-[color:var(--pbi-state-${slug}-bg)] text-[color:var(--pbi-state-${slug}-text)]`,
-    dotClassName: `bg-[color:var(--pbi-state-${slug}-dot)]`,
-    surfaceClassName: `border-[color:var(--pbi-state-${slug}-border)] bg-[color:var(--pbi-state-${slug}-bg)]`,
+    badgeStyle,
+    dotStyle: { backgroundColor: cssVar(slug, "dot") },
+    surfaceStyle: {
+      borderColor: cssVar(slug, "border"),
+      backgroundColor: cssVar(slug, "bg"),
+    },
     chartColor: cssVar(slug, "chart"),
   };
 }
@@ -106,6 +120,7 @@ const PRESENTATION_CACHE = new Map<PbiStateSlug, PbiStateColorPresentation>(
   PBI_STATE_SLUGS.map((slug) => [slug, buildPresentation(slug)]),
 );
 
+/** Fuente única de colores por estado (tags, gráficas, filtros, filas). */
 export function getPbiStateColorPresentation(state: string): PbiStateColorPresentation {
   const slug = resolvePbiStateSlug(state);
   return PRESENTATION_CACHE.get(slug) ?? PRESENTATION_CACHE.get("unknown")!;

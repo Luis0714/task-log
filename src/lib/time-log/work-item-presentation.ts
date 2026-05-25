@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { VariantProps } from "class-variance-authority";
 
 import { badgeVariants } from "@/components/ui/badge";
@@ -8,8 +9,7 @@ type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
 export type WorkItemPresentation = {
   variant: BadgeVariant;
   className?: string;
-  dotClassName?: string;
-  surfaceClassName?: string;
+  surfaceStyle?: Pick<CSSProperties, "borderColor" | "backgroundColor">;
 };
 
 export function getWorkItemStatePresentation(state: string): WorkItemPresentation {
@@ -17,9 +17,7 @@ export function getWorkItemStatePresentation(state: string): WorkItemPresentatio
 
   return {
     variant: "outline",
-    className: colors.className,
-    dotClassName: colors.dotClassName,
-    surfaceClassName: colors.surfaceClassName,
+    surfaceStyle: colors.surfaceStyle,
   };
 }
 
