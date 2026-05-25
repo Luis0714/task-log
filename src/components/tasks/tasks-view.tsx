@@ -91,7 +91,7 @@ export function TasksView({
                   value={sprintDay.value}
                   workingDays={sprintDay.workingDays}
                   disabled={loading}
-                  className="w-full sm:min-w-48 sm:flex-1"
+                  className="w-full"
                   onValueChange={sprintDay.onValueChange}
                 />
               ) : null,
