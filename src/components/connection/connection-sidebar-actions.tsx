@@ -75,24 +75,3 @@ export function LogoutButton({ className }: { className?: string }) {
   );
 }
 
-export type ConnectionSidebarActionsProps = {
-  showLogout?: boolean;
-  className?: string;
-};
-
-export function ConnectionSidebarActions({
-  showLogout = false,
-  className,
-}: ConnectionSidebarActionsProps) {
-  return (
-    <div
-      className={cn(
-        "border-sidebar-border flex items-center justify-end gap-0.5 border-t pt-2",
-        className,
-      )}
-    >
-      <ThemeToggleButton />
-      {showLogout ? <LogoutButton /> : null}
-    </div>
-  );
-}

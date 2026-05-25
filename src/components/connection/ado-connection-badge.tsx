@@ -2,7 +2,10 @@
 
 import { Cloud } from "lucide-react";
 
-import { ConnectionSidebarActions } from "@/components/connection/connection-sidebar-actions";
+import {
+  LogoutButton,
+  ThemeToggleButton,
+} from "@/components/connection/connection-sidebar-actions";
 import { ConnectionUserIdentity } from "@/components/connection/connection-user-identity";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -98,7 +101,6 @@ function CompactConnectionBadge({
 export function AdoConnectionBadge({
   authMethod,
   isConnected,
-  canLogout,
   userDisplayName,
   userInitials,
   userAvatarUrl,
@@ -111,7 +113,6 @@ export function AdoConnectionBadge({
   const displayProps: AdoConnectionDisplay = {
     authMethod,
     isConnected,
-    canLogout,
     userDisplayName,
     userInitials,
     userAvatarUrl,
@@ -123,7 +124,10 @@ export function AdoConnectionBadge({
     return (
       <div className={cn("flex flex-col items-center gap-2 py-1", className)}>
         <CompactConnectionBadge {...displayProps} />
-        <ConnectionSidebarActions showLogout={canLogout} className="justify-center border-t-0 pt-0" />
+        <div className="flex items-center gap-0.5">
+          <ThemeToggleButton />
+          <LogoutButton />
+        </div>
       </div>
     );
   }
@@ -136,32 +140,37 @@ export function AdoConnectionBadge({
         className,
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <div
-            className="bg-sidebar-primary/15 text-sidebar-primary flex size-9 shrink-0 items-center justify-center rounded-lg"
-            aria-hidden
-          >
-            <Cloud className="size-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sidebar-foreground text-sm font-medium">Azure DevOps</p>
-            <p className="text-muted-foreground text-xs">{getAuthMethodLabel(authMethod)}</p>
-          </div>
-        </div>
-        <ConnectionStatus isConnected={isConnected} />
-      </div>
-
       {showUser ? (
         <ConnectionUserIdentity
           displayName={userDisplayName!}
           initials={userInitials!}
           avatarUrl={userAvatarUrl}
-          className="border-sidebar-border border-t pt-2.5"
         />
       ) : null}
 
-      <ConnectionSidebarActions showLogout={canLogout} />
+      <div
+        className={cn(
+          "flex min-w-0 items-start gap-2.5",
+          showUser && "border-sidebar-border border-t pt-2.5",
+        )}
+      >
+        <div
+          className="bg-sidebar-primary/15 text-sidebar-primary flex size-9 shrink-0 items-center justify-center rounded-lg"
+          aria-hidden
+        >
+          <Cloud className="size-4" />
+        </div>
+        <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <ConnectionStatus isConnected={isConnected} />
+            <p className="text-muted-foreground text-xs">{getAuthMethodLabel(authMethod)}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-0.5">
+            {!showUser ? <ThemeToggleButton className="-mt-0.5" /> : null}
+            <LogoutButton className="-mt-0.5" />
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
