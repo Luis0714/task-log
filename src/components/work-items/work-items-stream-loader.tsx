@@ -1,12 +1,13 @@
+import { AdoCatalogGate } from "@/components/ado/ado-catalog-gate";
 import { WorkItemsSectionsStream } from "@/components/work-items/work-items-sections-stream";
 import { WorkItemsSheetMetaServer } from "@/components/work-items/work-items-sheet-meta-server";
-import { loadAdoCatalog } from "@/lib/ado/load-ado-catalog";
 import type { AdoContextSearchParams } from "@/lib/ado/types";
 import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
 
 export type WorkItemsStreamLoaderProps = {
   sp: AdoContextSearchParams;
   defaultProject: string | null;
+  adoExecutionReady: boolean;
   assignee: string;
   currentUserDisplayName?: string | null;
 };
@@ -14,21 +15,27 @@ export type WorkItemsStreamLoaderProps = {
 export async function WorkItemsStreamLoader({
   sp,
   defaultProject,
+  adoExecutionReady,
   assignee,
   currentUserDisplayName = null,
 }: WorkItemsStreamLoaderProps) {
-  const catalog = await loadAdoCatalog(defaultProject, sp);
-  if (!catalog.sprintPath) return null;
-
   const urlAssignee = assignee || DEFAULT_WORK_ITEM_FILTERS.assignee;
 
   return (
-    <WorkItemsSheetMetaServer
-      catalog={catalog}
-      assignee={urlAssignee}
-      currentUserDisplayName={currentUserDisplayName}
+    <AdoCatalogGate
+      adoExecutionReady={adoExecutionReady}
+      defaultProject={defaultProject}
+      searchParams={sp}
     >
-      <WorkItemsSectionsStream catalog={catalog} assignee={urlAssignee} />
-    </WorkItemsSheetMetaServer>
+      {(catalog) => (
+        <WorkItemsSheetMetaServer
+          catalog={catalog}
+          assignee={urlAssignee}
+          currentUserDisplayName={currentUserDisplayName}
+        >
+          <WorkItemsSectionsStream catalog={catalog} assignee={urlAssignee} />
+        </WorkItemsSheetMetaServer>
+      )}
+    </AdoCatalogGate>
   );
 }

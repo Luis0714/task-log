@@ -1,5 +1,5 @@
 import { TimeLogPageShell } from "@/components/time-log/time-log-page-shell";
-import { loadAdoCatalog } from "@/lib/ado/load-ado-catalog";
+import { resolvePageCatalog } from "@/lib/ado/resolve-page-catalog";
 import type { AdoContextSearchParams } from "@/lib/ado/types";
 import type { TimeLogServerBaseline } from "@/lib/time-log/load-time-log-baseline";
 
@@ -14,9 +14,7 @@ export async function TimeLogShellServer({
   defaultProject,
   adoExecutionReady,
 }: TimeLogShellServerProps) {
-  const catalog = adoExecutionReady
-    ? await loadAdoCatalog(defaultProject, sp)
-    : await loadAdoCatalog(null, {});
+  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp);
 
   const shellBaseline: TimeLogServerBaseline = {
     catalog,

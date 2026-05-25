@@ -13,6 +13,8 @@ export type SprintDaySelectProps = {
   workingDays: SprintWorkingDay[];
   disabled?: boolean;
   showLabel?: boolean;
+  includeAllDays?: boolean;
+  label?: string;
   onValueChange: (value: string) => void;
   className?: string;
 };
@@ -22,32 +24,44 @@ export function SprintDaySelect({
   workingDays,
   disabled = false,
   showLabel = false,
+  includeAllDays = false,
+  label = "Día del sprint",
   onValueChange,
   className,
 }: SprintDaySelectProps) {
   const selectedDay = workingDays.find((day) => day.value === value) ?? null;
+
+  if (!includeAllDays && workingDays.length === 0) return null;
+
   const displayValue =
-    value === SPRINT_DAY_ALL
+    includeAllDays && value === SPRINT_DAY_ALL
       ? "Todos los días"
       : selectedDay
         ? formatSprintDayOptionLabel(selectedDay)
         : undefined;
 
+  const options = includeAllDays
+    ? [
+        { value: SPRINT_DAY_ALL, label: "Todos los días" },
+        ...workingDays.map((day) => ({
+          value: day.value,
+          label: formatSprintDayOptionLabel(day),
+        })),
+      ]
+    : workingDays.map((day) => ({
+        value: day.value,
+        label: formatSprintDayOptionLabel(day),
+      }));
+
   return (
     <div className={cn(!showLabel && "[&_label]:sr-only", className)}>
       <ControlledSelectField
-        label="Día"
-        value={value || SPRINT_DAY_ALL}
+        label={label}
+        value={includeAllDays ? value || SPRINT_DAY_ALL : value}
         placeholder="Selecciona un día"
-        disabled={disabled}
+        disabled={disabled || (!includeAllDays && workingDays.length <= 1)}
         displayValue={displayValue}
-        options={[
-          { value: SPRINT_DAY_ALL, label: "Todos los días" },
-          ...workingDays.map((day) => ({
-            value: day.value,
-            label: formatSprintDayOptionLabel(day),
-          })),
-        ]}
+        options={options}
         onValueChange={onValueChange}
       />
     </div>

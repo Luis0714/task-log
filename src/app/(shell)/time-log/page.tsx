@@ -2,10 +2,10 @@ import { Suspense } from "react";
 
 import { TimeLogBodyStreamLoader } from "@/components/time-log/time-log-body-stream-loader";
 import { TimeLogShellServer } from "@/components/time-log/time-log-shell-server";
+import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
 import { TimeLogFormSkeleton } from "@/components/skeletons/time-log-form-skeleton";
 import { TimeLogShellSkeleton } from "@/components/skeletons/time-log-shell-skeleton";
-import { parseAdoContextSearchParams } from "@/lib/ado/parse-context-search-params";
-import { getServerAuthBootstrap } from "@/lib/auth/server-state";
+import { resolvePageAuth } from "@/lib/auth/resolve-page-auth";
 import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
 
 export const dynamic = "force-dynamic";
@@ -15,23 +15,22 @@ type PageProps = {
 };
 
 export default async function TimeLogPage({ searchParams }: PageProps) {
-  const sp = parseAdoContextSearchParams(await searchParams);
-  const auth = await getServerAuthBootstrap();
-  const defaultProject =
-    auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
+  const { searchParams: sp, auth, defaultProject } = await resolvePageAuth(searchParams);
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
   return (
-    <div className="flex w-full flex-col gap-5 pb-6">
-      <Suspense fallback={<TimeLogShellSkeleton />}>
+    <AdoContextPageLayout
+      gapClassName="gap-5"
+      shellFallback={<TimeLogShellSkeleton />}
+      adoExecutionReady={auth.adoExecutionReady}
+      shell={
         <TimeLogShellServer
           sp={sp}
           defaultProject={defaultProject}
           adoExecutionReady={auth.adoExecutionReady}
         />
-      </Suspense>
-
-      {auth.adoExecutionReady ? (
+      }
+      content={
         <Suspense fallback={<TimeLogFormSkeleton />}>
           <TimeLogBodyStreamLoader
             sp={sp}
@@ -41,7 +40,7 @@ export default async function TimeLogPage({ searchParams }: PageProps) {
             urlAssignee={urlAssignee}
           />
         </Suspense>
-      ) : null}
-    </div>
+      }
+    />
   );
 }

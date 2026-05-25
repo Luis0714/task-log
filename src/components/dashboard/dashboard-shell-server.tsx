@@ -1,6 +1,6 @@
 import { DashboardPageShell } from "@/components/dashboard/dashboard-page-shell";
-import { loadAdoCatalog } from "@/lib/ado/load-ado-catalog";
 import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
+import { resolvePageCatalog } from "@/lib/ado/resolve-page-catalog";
 import type { AdoContextSearchParams } from "@/lib/ado/types";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
 
@@ -19,10 +19,7 @@ export async function DashboardShellServer({
   header,
   initialSprintDayKey,
 }: DashboardShellServerProps) {
-  const emptyCatalog = await loadAdoCatalog(null, {});
-  const catalog = adoExecutionReady
-    ? await loadAdoCatalog(defaultProject, sp)
-    : emptyCatalog;
+  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp);
 
   const nonWorkingDates =
     adoExecutionReady && catalog.project && catalog.team

@@ -1,5 +1,5 @@
 import { WorkItemsPageShell } from "@/components/work-items/work-items-page-shell";
-import { loadAdoCatalog } from "@/lib/ado/load-ado-catalog";
+import { resolvePageCatalog } from "@/lib/ado/resolve-page-catalog";
 import type { AdoContextSearchParams } from "@/lib/ado/types";
 import { loadWorkItemsFilterMeta } from "@/lib/work-items/load-work-items-filter-meta";
 
@@ -18,10 +18,7 @@ export async function WorkItemsShellServer({
   urlAssignee,
   currentUserDisplayName = null,
 }: WorkItemsShellServerProps) {
-  const emptyCatalog = await loadAdoCatalog(null, {});
-  const catalog = adoExecutionReady
-    ? await loadAdoCatalog(defaultProject, sp)
-    : emptyCatalog;
+  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp);
 
   const filterMeta =
     adoExecutionReady && catalog.project && catalog.team

@@ -5,12 +5,8 @@ import { cache } from "react";
 import type { SprintDataContext } from "@/lib/ado/sprint-data-context";
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
 import { listBacklogItemStates } from "@/lib/azure-devops/work-item-type-states";
-import { listTeamNonWorkingDateKeys } from "@/lib/azure-devops/team-days-off";
 import { withAdoProject } from "@/lib/azure-devops/projects";
-import {
-  buildNonWorkingDateSet,
-  parseNonWorkingDatesFromEnv,
-} from "@/lib/dashboard/non-working-days";
+import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
 import { listTasksInSprint, listWorkItemsInSprint } from "@/lib/azure-devops/work-items";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import type {
@@ -109,15 +105,7 @@ export const loadSprintNonWorkingDates = cache(async function loadSprintNonWorki
   ctx: SprintDataContext,
 ): Promise<SprintDataPart<string[]>> {
   try {
-    const auth = await resolveScopedAuth(ctx.project);
-    if (!auth) {
-      return { data: [], error: null };
-    }
-    const envDates = [...parseNonWorkingDatesFromEnv()];
-    const teamDaysOff = await listTeamNonWorkingDateKeys(auth, ctx.team).catch(
-      () => [] as string[],
-    );
-    const data = [...buildNonWorkingDateSet([{ dates: envDates }, { dates: teamDaysOff }])];
+    const data = await loadNonWorkingDates(ctx.project, ctx.team);
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };

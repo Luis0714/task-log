@@ -2,13 +2,16 @@ import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { SprintWorkflowSection } from "@/components/dashboard/sections/sprint-workflow-section";
 import {
+  emptyDashboardBundle,
+  buildDashboardSectionMetrics,
+} from "@/lib/dashboard/build-dashboard-section-metrics";
+import {
   firstSprintDataError,
   loadSprintBacklogStates,
   loadSprintWorkItems,
 } from "@/lib/ado/load-sprint-data";
 import { catalogToSprintContext } from "@/lib/ado/sprint-data-context";
-import type { AdoCatalogSnapshot, DashboardSprintBundle } from "@/lib/ado/types";
-import { buildDashboardMetrics } from "@/lib/dashboard/build-dashboard-metrics";
+import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 
 export type DashboardWorkflowSectionServerProps = {
   catalog: AdoCatalogSnapshot;
@@ -30,19 +33,13 @@ export async function DashboardWorkflowSectionServer({
   const error = firstSprintDataError(workItems, backlogStates);
   if (error) return <CopilotErrorAlert message={error} />;
 
-  const bundle: DashboardSprintBundle = {
-    workItems: workItems.data,
-    bugs: [],
-    tasks: [],
-    backlogStates: backlogStates.data,
-    nonWorkingDates: [],
-    error: null,
-  };
-
-  const { metrics } = buildDashboardMetrics({
-    bundle,
+  const { metrics } = buildDashboardSectionMetrics({
+    bundle: emptyDashboardBundle({
+      workItems: workItems.data,
+      backlogStates: backlogStates.data,
+    }),
     catalog,
-    selectedSprintDayKey: sprintDayKey,
+    sprintDayKey,
   });
 
   return (

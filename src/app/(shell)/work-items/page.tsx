@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { WorkItemsShellServer } from "@/components/work-items/work-items-shell-server";
 import { WorkItemsStreamLoader } from "@/components/work-items/work-items-stream-loader";
+import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
 import {
   WorkItemsAllSectionSkeleton,
   WorkItemsDevelopedSectionSkeleton,
@@ -9,9 +10,8 @@ import {
   WorkItemsUpcomingSectionSkeleton,
 } from "@/components/skeletons/work-items-section-skeletons";
 import { WorkItemsShellSkeleton } from "@/components/skeletons/work-items-shell-skeleton";
-import { parseAdoContextSearchParams } from "@/lib/ado/parse-context-search-params";
 import { emptyServerProfileFields } from "@/lib/auth/profile-display";
-import { getServerAuthBootstrap, getServerAuthProfile } from "@/lib/auth/server-state";
+import { resolvePageAuthWithProfile } from "@/lib/auth/resolve-page-auth";
 import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
 
 export const dynamic = "force-dynamic";
@@ -21,19 +21,16 @@ type PageProps = {
 };
 
 export default async function WorkItemsPage({ searchParams }: PageProps) {
-  const sp = parseAdoContextSearchParams(await searchParams);
-  const [auth, profile] = await Promise.all([
-    getServerAuthBootstrap(),
-    getServerAuthProfile(),
-  ]);
+  const { searchParams: sp, auth, defaultProject, profile } =
+    await resolvePageAuthWithProfile(searchParams);
   const profileFields = auth.adoExecutionReady ? profile : emptyServerProfileFields;
-  const defaultProject =
-    auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
   return (
-    <div className="flex w-full flex-col gap-8 pb-6">
-      <Suspense fallback={<WorkItemsShellSkeleton />}>
+    <AdoContextPageLayout
+      shellFallback={<WorkItemsShellSkeleton />}
+      adoExecutionReady={auth.adoExecutionReady}
+      shell={
         <WorkItemsShellServer
           sp={sp}
           defaultProject={defaultProject}
@@ -41,9 +38,8 @@ export default async function WorkItemsPage({ searchParams }: PageProps) {
           urlAssignee={urlAssignee}
           currentUserDisplayName={profileFields.profileDisplayName}
         />
-      </Suspense>
-
-      {auth.adoExecutionReady ? (
+      }
+      content={
         <Suspense
           fallback={
             <div className="flex flex-col gap-8">
@@ -57,11 +53,12 @@ export default async function WorkItemsPage({ searchParams }: PageProps) {
           <WorkItemsStreamLoader
             sp={sp}
             defaultProject={defaultProject}
+            adoExecutionReady={auth.adoExecutionReady}
             assignee={urlAssignee}
             currentUserDisplayName={profileFields.profileDisplayName}
           />
         </Suspense>
-      ) : null}
-    </div>
+      }
+    />
   );
 }

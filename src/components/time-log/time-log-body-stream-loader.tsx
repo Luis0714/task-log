@@ -1,5 +1,5 @@
 import { TimeLogBodyServer } from "@/components/time-log/time-log-body-server";
-import { loadAdoCatalog } from "@/lib/ado/load-ado-catalog";
+import { resolvePageCatalog } from "@/lib/ado/resolve-page-catalog";
 import { loadTimeLogFormMeta } from "@/lib/time-log/load-time-log-form-meta";
 import type { AdoContextSearchParams } from "@/lib/ado/types";
 import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
@@ -19,7 +19,7 @@ export async function TimeLogBodyStreamLoader({
   authMethod,
   urlAssignee,
 }: TimeLogBodyStreamLoaderProps) {
-  const catalog = await loadAdoCatalog(defaultProject, sp);
+  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp);
   if (!catalog.sprintPath) return null;
 
   const formMeta = await loadTimeLogFormMeta(catalog);

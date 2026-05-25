@@ -1,5 +1,5 @@
 import { SprintItemsPageShell } from "@/components/sprint-items/sprint-items-page-shell";
-import { loadAdoCatalog } from "@/lib/ado/load-ado-catalog";
+import { resolvePageCatalog } from "@/lib/ado/resolve-page-catalog";
 import type { AdoContextSearchParams } from "@/lib/ado/types";
 import { loadSprintItemsPageMeta } from "@/lib/sprint-items/load-sprint-items-page-meta";
 import type { SprintItemsKind } from "@/lib/sprint-items/types";
@@ -22,10 +22,7 @@ export async function SprintItemsShellServer({
   urlAssignee,
   headerAction,
 }: SprintItemsShellServerProps) {
-  const emptyCatalog = await loadAdoCatalog(null, {});
-  const catalog = adoExecutionReady
-    ? await loadAdoCatalog(defaultProject, sp)
-    : emptyCatalog;
+  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp);
 
   const pageMeta =
     adoExecutionReady && catalog.project && catalog.team

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { DashboardHeader } from "@/components/dashboard/layout/dashboard-header";
 import { AdoFiltersSection } from "@/components/filters/ado-filters-section";
-import { SprintDaySelect } from "@/components/dashboard/sprint-day-select";
+import { SprintDaySelect } from "@/components/filters/sprint-day-select";
 import { useAdoContextUrl } from "@/hooks/use-ado-context-url";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { buildAdoContextQuery } from "@/lib/ado/parse-context-search-params";

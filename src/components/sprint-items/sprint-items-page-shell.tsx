@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { AdoFiltersSection } from "@/components/filters/ado-filters-section";
-import { SprintDaySelect } from "@/components/sprint-items/sprint-day-select";
+import { SprintDaySelect } from "@/components/filters/sprint-day-select";
 import { SprintItemsDayProvider } from "@/components/sprint-items/sprint-items-day-context";
 import { useAdoContextUrl } from "@/hooks/use-ado-context-url";
 import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-panel";
@@ -165,6 +165,7 @@ function SprintItemsPageShellInner({
               sprintWorkingDays.length > 0 ? (
                 <SprintDaySelect
                   showLabel
+                  includeAllDays
                   value={dayKey}
                   workingDays={sprintWorkingDays}
                   className="w-full"

@@ -1,10 +1,8 @@
-import { Suspense } from "react";
-
 import { SprintItemsShellServer } from "@/components/sprint-items/sprint-items-shell-server";
 import { SprintItemsListStreamLoader } from "@/components/sprint-items/sprint-items-list-stream-loader";
+import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
 import { SprintItemsShellSkeleton } from "@/components/skeletons/sprint-items-shell-skeleton";
-import { parseAdoContextSearchParams } from "@/lib/ado/parse-context-search-params";
-import { getServerAuthBootstrap } from "@/lib/auth/server-state";
+import { resolvePageAuth } from "@/lib/auth/resolve-page-auth";
 import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
 
 export const dynamic = "force-dynamic";
@@ -14,15 +12,14 @@ type PageProps = {
 };
 
 export default async function BugsPage({ searchParams }: PageProps) {
-  const sp = parseAdoContextSearchParams(await searchParams);
-  const auth = await getServerAuthBootstrap();
-  const defaultProject =
-    auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
+  const { searchParams: sp, auth, defaultProject } = await resolvePageAuth(searchParams);
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
   return (
-    <div className="flex w-full flex-col gap-8 pb-6">
-      <Suspense fallback={<SprintItemsShellSkeleton />}>
+    <AdoContextPageLayout
+      shellFallback={<SprintItemsShellSkeleton />}
+      adoExecutionReady={auth.adoExecutionReady}
+      shell={
         <SprintItemsShellServer
           kind="bugs"
           sp={sp}
@@ -30,16 +27,16 @@ export default async function BugsPage({ searchParams }: PageProps) {
           adoExecutionReady={auth.adoExecutionReady}
           urlAssignee={urlAssignee}
         />
-      </Suspense>
-
-      {auth.adoExecutionReady ? (
+      }
+      content={
         <SprintItemsListStreamLoader
           kind="bugs"
           sp={sp}
           defaultProject={defaultProject}
+          adoExecutionReady={auth.adoExecutionReady}
           assignee={urlAssignee}
         />
-      ) : null}
-    </div>
+      }
+    />
   );
 }
