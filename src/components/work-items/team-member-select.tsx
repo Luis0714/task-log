@@ -33,7 +33,7 @@ export function TeamMemberSelect({
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
       <Select
-        value={value || undefined}
+        value={value.trim() ? value : null}
         onValueChange={(next) => onChange(next ?? "")}
         disabled={disabled || membersLoading}
       >

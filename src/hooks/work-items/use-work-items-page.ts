@@ -12,6 +12,7 @@ import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-p
 import { useWorkItemFilters } from "@/hooks/use-work-item-filters";
 import {
   filterWorkItemsByClientCriteria,
+  selectDevelopedWorkItems,
   selectInProgressWorkItems,
   selectUpcomingWorkItems,
 } from "@/lib/azure-devops/work-items-filters";
@@ -103,6 +104,11 @@ export function useWorkItemsPage({
     [filteredItems],
   );
 
+  const developed = useMemo(
+    () => selectDevelopedWorkItems(filteredItems),
+    [filteredItems],
+  );
+
   const filtersPanel = useWorkItemFiltersPanel({
     filters,
     setSearch,
@@ -161,6 +167,7 @@ export function useWorkItemsPage({
     },
     inProgress,
     upcoming,
+    developed,
     assigned: filteredItems,
   };
 }

@@ -1,4 +1,7 @@
-import { USER_STORY_STATUS_MAPPING } from "@/lib/dashboard/sprint-status-mapping";
+import {
+  stateMatchesCompletedState,
+  USER_STORY_STATUS_MAPPING,
+} from "@/lib/dashboard/sprint-status-mapping";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 
@@ -103,4 +106,12 @@ export function selectInProgressWorkItems(items: AdoWorkItemOption[]): AdoWorkIt
 
 export function selectUpcomingWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
   return items.filter((item) => isUpcomingPbiState(item.state)).sort(compareByPriority);
+}
+
+export function isDevelopedPbiState(state: string): boolean {
+  return stateMatchesCompletedState(state, USER_STORY_STATUS_MAPPING);
+}
+
+export function selectDevelopedWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
+  return items.filter((item) => isDevelopedPbiState(item.state)).sort(compareByPriority);
 }

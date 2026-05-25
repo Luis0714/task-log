@@ -34,6 +34,7 @@ export function WorkItemsView({
     filters,
     inProgress,
     upcoming,
+    developed,
     assigned,
   } = useWorkItemsPage({ adoExecutionReady, defaultProject });
 
@@ -63,7 +64,7 @@ export function WorkItemsView({
       </header>
 
       {!adoExecutionReady ? (
-        <CopilotErrorAlert message="Conecta Azure DevOps para ver tus PBIs del sprint." />
+        <CopilotErrorAlert message="Conecta Azure DevOps para ver las historias de usuario del sprint." />
       ) : null}
 
       {error ? <CopilotErrorAlert message={error} /> : null}
@@ -98,33 +99,46 @@ export function WorkItemsView({
           variant="compact"
           showHours
           loading={loading}
-          emptyMessage="No hay PBIs que coincidan con los filtros."
+          emptyMessage="No hay historias de usuario que coincidan con los filtros."
           onItemClick={handleWorkItemClick}
         />
       </DashboardSection>
 
       <DashboardSection
-        title="PBIs en progreso"
-        description="Historias en estado Committed."
+        title="Historias en progreso"
+        description="Historias de usuario en estado Committed."
       >
         <PbiList
           items={inProgress}
           variant="featured"
           loading={loading}
-          emptyMessage="No hay PBIs en Committed con los filtros actuales."
+          emptyMessage="No hay historias en Committed con los filtros actuales."
           onItemClick={handleWorkItemClick}
         />
       </DashboardSection>
 
       <DashboardSection
-        title="Próximas PBIs"
+        title="Próximas historias de usuario"
         description="Qué deberías hacer después, ordenadas por prioridad."
       >
         <PbiList
           items={upcoming}
           variant="compact"
           loading={loading}
-          emptyMessage="No hay PBIs en New o Approved con los filtros actuales."
+          emptyMessage="No hay historias en New o Approved con los filtros actuales."
+          onItemClick={handleWorkItemClick}
+        />
+      </DashboardSection>
+
+      <DashboardSection
+        title="Historias desarrolladas"
+        description="En QA, Review PO, Stage o Done."
+      >
+        <PbiList
+          items={developed}
+          variant="compact"
+          loading={loading}
+          emptyMessage="No hay historias desarrolladas con los filtros actuales."
           onItemClick={handleWorkItemClick}
         />
       </DashboardSection>

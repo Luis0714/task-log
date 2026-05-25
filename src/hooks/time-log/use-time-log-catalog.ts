@@ -20,10 +20,7 @@ import {
   buildCatalogPlaceholders,
 } from "@/lib/time-log/catalog-placeholders";
 import type { TimeLogCatalog } from "@/lib/time-log/catalog-types";
-import {
-  filterWorkItemsByClientCriteria,
-  groupWorkItemsByStates,
-} from "@/lib/time-log/filter-work-items";
+import { filterWorkItemsByClientCriteria } from "@/lib/time-log/filter-work-items";
 import { formatSprintOptionLabel } from "@/lib/time-log/format-options";
 import {
   resetPbiSelection,
@@ -183,11 +180,6 @@ export function useTimeLogCatalog({
     filteredCount: pbis.length,
   });
 
-  const pbiGroups = useMemo(
-    () => groupWorkItemsByStates(pbis, workItemFiltersPanel.states),
-    [pbis, workItemFiltersPanel.states],
-  );
-
   useEffect(() => {
     if (!pbiId || pbisLoading) return;
     if (!pbis.some((item) => String(item.id) === pbiId)) {
@@ -227,7 +219,6 @@ export function useTimeLogCatalog({
     teams,
     sprints,
     pbis,
-    pbiGroups,
     workItemFilters,
     workItemStates,
     workItemsTotalCount: sprintPbis.length,
