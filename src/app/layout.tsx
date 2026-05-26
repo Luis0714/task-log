@@ -45,7 +45,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TaskPilot",
+  title: "NeosView",
   description:
     "Interfaz conversacional para registrar trabajo en Azure DevOps.",
 };

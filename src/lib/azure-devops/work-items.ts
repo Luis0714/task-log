@@ -282,7 +282,7 @@ export async function logWorkOnWorkItem(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        text: `[TaskPilot] +${params.hours}h — ${commentText}`,
+        text: `[NeosView] +${params.hours}h — ${commentText}`,
       }),
     }).catch(() => undefined);
   }

@@ -39,6 +39,7 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-brand-mark: var(--brand-mark);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -49,6 +50,13 @@
 }
 
 :root {
+  /* NeosView — paleta de marca */
+  --brand-mark: #8b5cf6;
+  --brand-periwinkle: #7f85ff;
+  --brand-goldenrod: #e0ae3b;
+  --brand-cobalt: #1741b1;
+  --brand-onyx: #0c0c0e;
+
   --background: #f1f1f3;
   --foreground: #101013;
   --card: #f8f8fa;
@@ -145,6 +153,8 @@
 }
 
 .dark {
+  --brand-mark: #a78bfa;
+
   --background: #101013;
   --foreground: #f1f1f3;
   --card: #17171c;

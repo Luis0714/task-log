@@ -1,7 +1,7 @@
 import type { PreviewResult } from "@/lib/schemas/agent";
 import { previewResultSchema } from "@/lib/schemas/agent";
 
-const SYSTEM_PROMPT = `Eres el intérprete de TaskPilot. El usuario describe trabajo en lenguaje natural.
+const SYSTEM_PROMPT = `Eres el intérprete de NeosView. El usuario describe trabajo en lenguaje natural.
 Tu salida es SOLO un JSON válido, sin markdown ni texto adicional.
 
 Acciones:
