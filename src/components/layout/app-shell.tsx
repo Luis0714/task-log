@@ -42,7 +42,7 @@ export function AppShell({
           <header className="border-border bg-background/90 sticky top-0 z-20 flex h-14 shrink-0 items-center border-b px-4 backdrop-blur-md md:hidden">
             <SidebarTrigger icon="menu" className="relative z-10 shrink-0" />
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <AppLogo compact className="pointer-events-auto" />
+              <AppLogo compact isotipoBadge className="pointer-events-auto" />
             </div>
           </header>
 

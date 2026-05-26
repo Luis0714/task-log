@@ -1,19 +1,23 @@
 import Link from "next/link";
 
 import { NeosViewIsotipo } from "@/components/brand/neosview-isotipo";
-import { NeosViewLogotipo } from "@/components/brand/neosview-logotipo";
+import { NeosViewIsotipoBadge } from "@/components/brand/neosview-isotipo-badge";
+import { NeosViewMarca } from "@/components/brand/neosview-marca";
 import { cn } from "@/lib/utils";
 
 export type AppLogoProps = {
   href?: string;
   /** Solo isotipo — sidebar colapsado o barra móvil compacta. */
   compact?: boolean;
+  /** Isotipo en pastilla con fondo de marca e icono blanco (p. ej. header móvil). */
+  isotipoBadge?: boolean;
   className?: string;
 };
 
 export function AppLogo({
   href = "/",
   compact = false,
+  isotipoBadge = false,
   className,
 }: AppLogoProps) {
   return (
@@ -27,9 +31,13 @@ export function AppLogo({
       aria-label="NeosView — inicio"
     >
       {compact ? (
-        <NeosViewIsotipo className="size-8" />
+        isotipoBadge ? (
+          <NeosViewIsotipoBadge />
+        ) : (
+          <NeosViewIsotipo className="size-8" />
+        )
       ) : (
-        <NeosViewLogotipo className="block h-7 w-auto max-w-full sm:h-8" />
+        <NeosViewMarca className="max-w-full" />
       )}
     </Link>
   );

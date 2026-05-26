@@ -1,35 +1,32 @@
 import {
-  NEOSVIEW_LOGOTIPO_MARK_PATH,
+  NEOSVIEW_LOGOTIPO_NEOS_PATH,
   NEOSVIEW_LOGOTIPO_VIEWBOX,
-  NEOSVIEW_LOGOTIPO_WORDMARK_PATH,
+  NEOSVIEW_LOGOTIPO_VIEW_PATH,
 } from "@/components/brand/brand-paths";
 import { NeosViewLogo, type NeosViewLogoProps } from "@/components/brand/neosview-logo";
 import { cn } from "@/lib/utils";
 
 export type NeosViewLogotipoProps = Omit<NeosViewLogoProps, "viewBox" | "children"> & {
-  markClassName?: string;
-  wordmarkClassName?: string;
+  neosClassName?: string;
+  viewClassName?: string;
 };
 
+/** Solo el wordmark tipográfico (neos + view). */
 export function NeosViewLogotipo({
   className,
-  markClassName,
-  wordmarkClassName,
+  neosClassName,
+  viewClassName,
   title = "NeosView",
 }: NeosViewLogotipoProps) {
   return (
-    <NeosViewLogo
-      viewBox={NEOSVIEW_LOGOTIPO_VIEWBOX}
-      className={className}
-      title={title}
-    >
+    <NeosViewLogo viewBox={NEOSVIEW_LOGOTIPO_VIEWBOX} className={className} title={title}>
       <path
-        d={NEOSVIEW_LOGOTIPO_MARK_PATH}
-        className={cn("fill-[var(--brand-mark)]", markClassName)}
+        d={NEOSVIEW_LOGOTIPO_NEOS_PATH}
+        className={cn("fill-(--brand-mark)", neosClassName)}
       />
       <path
-        d={NEOSVIEW_LOGOTIPO_WORDMARK_PATH}
-        className={cn("fill-current", wordmarkClassName)}
+        d={NEOSVIEW_LOGOTIPO_VIEW_PATH}
+        className={cn("fill-current", viewClassName)}
       />
     </NeosViewLogo>
   );
