@@ -20,7 +20,7 @@ export function PbiList({
   variant = "compact",
   showHours = false,
   loading = false,
-  emptyMessage = "No hay PBIs para mostrar.",
+  emptyMessage = "No hay historias de usuario para mostrar.",
   className,
   itemClassName,
   onItemClick,

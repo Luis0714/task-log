@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { AdoConnectionBadgeSkeleton } from "@/components/connection/ado-connection-badge-skeleton";
+import { buildShellLayoutMetadata } from "@/lib/seo/metadata";
 import { AppShell } from "@/components/layout/app-shell";
 import { ShellSidebarConnection } from "@/components/layout/shell-sidebar-connection";
 import { mapAuthStateToConnectionDisplay } from "@/lib/auth/connection-display";
@@ -8,6 +9,8 @@ import { mergeServerAuthState } from "@/lib/auth/merge-auth-state";
 import { emptyServerProfileFields } from "@/lib/auth/profile-display";
 import { getServerAuthBootstrap } from "@/lib/auth/server-state";
 import { getSidebarDefaultOpen } from "@/lib/layout/sidebar-state";
+
+export const metadata = buildShellLayoutMetadata();
 
 export const dynamic = "force-dynamic";
 

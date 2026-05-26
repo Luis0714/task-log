@@ -1,5 +1,7 @@
 export type SprintStatusMapping = {
   pending: readonly string[];
+  /** En curso (p. ej. Committed en historias). */
+  inProgress: readonly string[];
   completed: readonly string[];
 };
 
@@ -8,13 +10,15 @@ const DEVELOPED_STAGE_STATES = ["Stage", "In Stage", "Staging"] as const;
 
 /** Historias de usuario — sustituible por configuración futura. */
 export const USER_STORY_STATUS_MAPPING: SprintStatusMapping = {
-  pending: ["New", "Approved", "Committed"],
+  pending: ["New", "Approved"],
+  inProgress: ["Committed"],
   completed: ["QA", "Review PO", ...DEVELOPED_STAGE_STATES, "Done"],
 };
 
 /** Bugs — sustituible por configuración futura. */
 export const BUG_STATUS_MAPPING: SprintStatusMapping = {
-  pending: ["New", "Approved", "Impediment", "Reopened", "Committed"],
+  pending: ["New", "Approved", "Impediment", "Reopened"],
+  inProgress: ["Committed"],
   completed: ["QA", ...DEVELOPED_STAGE_STATES, "Done"],
 };
 

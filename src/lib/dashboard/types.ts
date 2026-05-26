@@ -28,6 +28,7 @@ export type SprintPbiProgress = {
 export type WorkItemStatusCounts = {
   assigned: number;
   pending: number;
+  inProgress: number;
   completed: number;
 };
 
@@ -61,6 +62,27 @@ export type DashboardMetrics = {
   pbiProgress: SprintPbiProgress;
   sprintStatusOverview: SprintStatusOverview;
 };
+
+export type DashboardDeliveryMetrics = Pick<
+  DashboardMetrics,
+  "sprintStatusOverview" | "storyPointsAssigned" | "pbiProgress"
+>;
+
+export type DashboardWorkflowMetrics = Pick<
+  DashboardMetrics,
+  "pbiStateGroups" | "pbiProgress"
+>;
+
+export type DashboardHoursMetrics = Pick<
+  DashboardMetrics,
+  | "hoursToday"
+  | "hoursSprintCurrent"
+  | "hoursSprintTarget"
+  | "hoursRemaining"
+  | "sprintWorkingDaysCount"
+  | "hoursByDay"
+  | "sprintWeeks"
+>;
 
 export type DashboardHeaderData = {
   displayName: string;

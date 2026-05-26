@@ -25,7 +25,7 @@ export function formatWorkItemTypeAvatarInitials(type: string): string {
   const normalized = type.trim().toLowerCase();
 
   if (normalized.includes("product backlog") || normalized === "pbi") {
-    return "PB";
+    return "HU";
   }
   if (normalized.includes("user story") || normalized.includes("historia")) {
     return "HU";
@@ -55,22 +55,22 @@ export function formatWorkItemTypeShortLabel(type: string): string {
   const normalized = type.trim().toLowerCase();
 
   if (normalized.includes("product backlog") || normalized === "pbi") {
-    return "PBI";
+    return "Historia";
   }
   if (normalized.includes("user story") || normalized.includes("historia")) {
-    return "Story";
+    return "Historia";
   }
   if (normalized.includes("bug")) {
-    return "Bug";
+    return "Defecto";
   }
   if (normalized.includes("task") || normalized.includes("tarea")) {
-    return "Task";
+    return "Tarea";
   }
   if (normalized.includes("feature")) {
-    return "Feature";
+    return "Característica";
   }
   if (normalized.includes("epic")) {
-    return "Epic";
+    return "Épica";
   }
 
   const words = type.trim().split(/\s+/).filter(Boolean);

@@ -1,16 +1,23 @@
 import { Suspense } from "react";
 
-import { WorkItemsListsSectionsSkeleton } from "@/components/skeletons/work-items-lists-sections-skeleton";
-import { WorkItemsListsServer } from "@/components/work-items/work-items-lists-server";
-import { WorkItemsPageShell } from "@/components/work-items/work-items-page-shell";
-import { loadAdoCatalog } from "@/lib/ado/load-ado-catalog";
-import { parseAdoContextSearchParams } from "@/lib/ado/parse-context-search-params";
-import { emptyServerProfileFields } from "@/lib/auth/profile-display";
-import { getServerAuthBootstrap, getServerAuthProfile } from "@/lib/auth/server-state";
-import { loadWorkItemsFilterMeta } from "@/lib/work-items/load-work-items-filter-meta";
+import { WorkItemsFiltersProvider } from "@/components/work-items/work-items-filters-context";
+import { WorkItemsShellServer } from "@/components/work-items/work-items-shell-server";
+import { WorkItemsStreamLoader } from "@/components/work-items/work-items-stream-loader";
+import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
 import {
-  DEFAULT_WORK_ITEM_FILTERS,
-} from "@/lib/schemas/work-item-filters";
+  WorkItemsAllSectionSkeleton,
+  WorkItemsDevelopedSectionSkeleton,
+  WorkItemsInProgressSectionSkeleton,
+  WorkItemsUpcomingSectionSkeleton,
+} from "@/components/skeletons/work-items-section-skeletons";
+import { WorkItemsShellSkeleton } from "@/components/skeletons/work-items-shell-skeleton";
+import { emptyServerProfileFields } from "@/lib/auth/profile-display";
+import { resolvePageAuthWithProfile } from "@/lib/auth/resolve-page-auth";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import { PAGE_SEO } from "@/lib/seo/pages";
+import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
+
+export const metadata = buildPageMetadata(PAGE_SEO.workItems);
 
 export const dynamic = "force-dynamic";
 
@@ -19,50 +26,44 @@ type PageProps = {
 };
 
 export default async function WorkItemsPage({ searchParams }: PageProps) {
-  const sp = parseAdoContextSearchParams(await searchParams);
-  const [auth, profile] = await Promise.all([
-    getServerAuthBootstrap(),
-    getServerAuthProfile(),
-  ]);
+  const { searchParams: sp, auth, defaultProject, profile } =
+    await resolvePageAuthWithProfile(searchParams);
   const profileFields = auth.adoExecutionReady ? profile : emptyServerProfileFields;
-  const defaultProject =
-    auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
-  const emptyCatalog = await loadAdoCatalog(null, {});
-  const catalog = auth.adoExecutionReady
-    ? await loadAdoCatalog(defaultProject, sp)
-    : emptyCatalog;
-
-  const filterMeta =
-    auth.adoExecutionReady && catalog.project && catalog.team
-      ? await loadWorkItemsFilterMeta(catalog.project, catalog.team)
-      : { members: [], states: [] };
-
-  const suspenseKey = [
-    catalog.project,
-    catalog.team,
-    catalog.sprintPath,
-    urlAssignee,
-  ].join("|");
-
   return (
-    <WorkItemsPageShell
-      catalog={catalog}
-      filterMeta={filterMeta}
-      adoExecutionReady={auth.adoExecutionReady}
-      urlAssignee={urlAssignee}
-      currentUserDisplayName={profileFields.profileDisplayName}
-    >
-      {auth.adoExecutionReady && catalog.sprintPath ? (
-        <Suspense key={suspenseKey} fallback={<WorkItemsListsSectionsSkeleton />}>
-          <WorkItemsListsServer
-            catalog={catalog}
-            assignee={urlAssignee}
-            currentUserDisplayName={profileFields.profileDisplayName}
+    <WorkItemsFiltersProvider initialAssignee={urlAssignee}>
+      <AdoContextPageLayout
+        shellFallback={<WorkItemsShellSkeleton />}
+        adoExecutionReady={auth.adoExecutionReady}
+        shell={
+          <WorkItemsShellServer
+            sp={sp}
+            defaultProject={defaultProject}
+            adoExecutionReady={auth.adoExecutionReady}
           />
-        </Suspense>
-      ) : null}
-    </WorkItemsPageShell>
+        }
+        content={
+          <Suspense
+            fallback={
+              <div className="flex flex-col gap-8">
+                <WorkItemsAllSectionSkeleton />
+                <WorkItemsInProgressSectionSkeleton />
+                <WorkItemsUpcomingSectionSkeleton />
+                <WorkItemsDevelopedSectionSkeleton />
+              </div>
+            }
+          >
+            <WorkItemsStreamLoader
+              sp={sp}
+              defaultProject={defaultProject}
+              adoExecutionReady={auth.adoExecutionReady}
+              assignee={urlAssignee}
+              currentUserDisplayName={profileFields.profileDisplayName}
+            />
+          </Suspense>
+        }
+      />
+    </WorkItemsFiltersProvider>
   );
 }

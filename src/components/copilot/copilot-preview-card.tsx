@@ -52,9 +52,9 @@ export function CopilotPreviewCard({
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary">log_work</Badge>
+          <Badge variant="secondary">Registrar trabajo</Badge>
           {project && <Badge variant="outline">{project}</Badge>}
-          <Badge variant="outline">WI #{preview.workItemId}</Badge>
+          <Badge variant="outline">Elemento #{preview.workItemId}</Badge>
           <Badge variant="outline">{preview.hours} h</Badge>
         </div>
         <p className="text-muted-foreground text-sm">

@@ -19,7 +19,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   const workItemId = Number.parseInt(idParam, 10);
 
   if (!Number.isFinite(workItemId) || workItemId <= 0) {
-    return NextResponse.json({ error: "ID de work item inválido." }, { status: 400 });
+    return NextResponse.json({ error: "ID de elemento de trabajo inválido." }, { status: 400 });
   }
 
   let body: unknown;
@@ -87,15 +87,15 @@ export async function PATCH(req: Request, context: RouteContext) {
         detail.includes("Responsable") || detail.includes("Maquetacion");
       const message =
         result.status === 403
-          ? "Permisos insuficientes para actualizar este work item."
+          ? "Permisos insuficientes para actualizar este elemento de trabajo."
           : needsWorkingDate
-            ? "Azure DevOps exige la fecha de trabajo (Working Date) para cambiar el estado."
+            ? "Azure DevOps exige la fecha de trabajo para cambiar el estado."
             : needsCompletedWork
-              ? "Azure DevOps exige Completed Work para cambiar el estado."
+              ? "Azure DevOps exige el trabajo completado para cambiar el estado."
               : needsStartDate
-                ? "Azure DevOps exige Start Date para este cambio de estado."
+                ? "Azure DevOps exige la fecha de inicio para este cambio de estado."
                 : needsTargetDate
-                  ? "Azure DevOps exige Target Date para este cambio de estado."
+                  ? "Azure DevOps exige la fecha objetivo para este cambio de estado."
                   : needsResponsable
                     ? "Azure DevOps exige completar los responsables para este cambio de estado."
                     : result.status === 400 && detail.length < 200
@@ -111,7 +111,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : "Error desconocido";
     return NextResponse.json(
-      { error: "No se pudo actualizar el work item.", detail },
+      { error: "No se pudo actualizar el elemento de trabajo.", detail },
       { status: 502 },
     );
   }

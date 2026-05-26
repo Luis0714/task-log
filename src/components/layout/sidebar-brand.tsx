@@ -10,7 +10,6 @@ export function SidebarBrand() {
   return (
     <AppLogo
       compact={collapsed}
-      showTagline={!collapsed}
       className={collapsed ? "mx-auto" : undefined}
     />
   );

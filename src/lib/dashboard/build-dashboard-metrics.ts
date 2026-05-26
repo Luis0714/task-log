@@ -23,22 +23,20 @@ import {
 } from "@/lib/time-log/filter-work-items";
 import {
   listSprintWorkingDays,
-  toLocalDateKey,
+  resolveEffectiveSprintDayKey,
   type SprintWorkingDay,
 } from "@/lib/dashboard/sprint-days";
 import type { AdoCatalogSnapshot, DashboardSprintBundle } from "@/lib/ado/types";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
-import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
+import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
+
+export { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
 
 export type BuildDashboardMetricsInput = {
   bundle: DashboardSprintBundle;
   catalog: AdoCatalogSnapshot;
   selectedSprintDayKey: string;
 };
-
-export function resolveCurrentSprint(catalog: AdoCatalogSnapshot): AdoSprintDto | null {
-  return catalog.sprints.find((sprint) => sprint.path === catalog.sprintPath) ?? null;
-}
 
 export function buildDashboardMetrics({
   bundle,
@@ -77,8 +75,10 @@ export function buildDashboardMetrics({
     bugs: BUG_STATUS_MAPPING,
   });
 
-  const todayKey = toLocalDateKey(new Date());
-  const hoursDayKey = selectedSprintDayKey || todayKey;
+  const hoursDayKey = resolveEffectiveSprintDayKey(
+    selectedSprintDayKey,
+    sprintWorkingDays,
+  );
   const sprintEndKey = sprintWorkingDays[sprintWorkingDays.length - 1]?.value ?? "";
 
   const hoursToday = sumHoursBreakdownForDay(bundle.tasks, bundle.bugs, hoursDayKey);

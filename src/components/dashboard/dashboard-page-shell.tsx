@@ -6,13 +6,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { DashboardHeader } from "@/components/dashboard/layout/dashboard-header";
 import { AdoFiltersSection } from "@/components/filters/ado-filters-section";
-import { SprintDaySelect } from "@/components/dashboard/sprint-day-select";
+import { SprintDaySelect } from "@/components/filters/sprint-day-select";
 import { useAdoContextUrl } from "@/hooks/use-ado-context-url";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { buildAdoContextQuery } from "@/lib/ado/parse-context-search-params";
 import {
   listSprintWorkingDays,
-  pickDefaultSprintDayKey,
+  resolveEffectiveSprintDayKey,
 } from "@/lib/dashboard/sprint-days";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
 
@@ -22,7 +22,7 @@ export type DashboardPageShellProps = {
   adoExecutionReady: boolean;
   initialSprintDayKey: string;
   nonWorkingDates: readonly string[];
-  children: ReactNode;
+  children?: ReactNode;
 };
 
 export function DashboardPageShell({
@@ -31,7 +31,7 @@ export function DashboardPageShell({
   adoExecutionReady,
   initialSprintDayKey,
   nonWorkingDates,
-  children,
+  children = null,
 }: DashboardPageShellProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -73,13 +73,27 @@ export function DashboardPageShell({
 
   useEffect(() => {
     if (sprintWorkingDays.length === 0) return;
-    const defaultKey = pickDefaultSprintDayKey(sprintWorkingDays);
-    if (!defaultKey) return;
-    setSprintDayKey((current) => {
-      const stillValid = sprintWorkingDays.some((day) => day.value === current);
-      return stillValid ? current : defaultKey;
-    });
-  }, [catalog.sprintPath, sprintWorkingDays]);
+    const resolved = resolveEffectiveSprintDayKey(sprintDayKey, sprintWorkingDays);
+    if (resolved === sprintDayKey) return;
+
+    setSprintDayKey(resolved);
+    router.replace(
+      `${pathname}${buildAdoContextQuery({
+        project: catalog.project,
+        team: catalog.team,
+        sprint: catalog.sprintPath,
+        sprintDay: resolved,
+      })}`,
+    );
+  }, [
+    catalog.project,
+    catalog.sprintPath,
+    catalog.team,
+    pathname,
+    router,
+    sprintDayKey,
+    sprintWorkingDays,
+  ]);
 
   const catalogError =
     catalog.errors.projects ??
@@ -104,7 +118,7 @@ export function DashboardPageShell({
       <DashboardHeader data={resolvedHeader} />
 
       {!adoExecutionReady ? (
-        <CopilotErrorAlert message="Conecta Azure DevOps para ver tu dashboard con datos reales." />
+        <CopilotErrorAlert message="Conecta Azure DevOps para ver tu panel con datos reales." />
       ) : null}
 
       {catalogError ? <CopilotErrorAlert message={catalogError} /> : null}

@@ -14,6 +14,18 @@ export const TASK_ACTIVITY_OPTIONS = [
 
 export type TaskActivity = (typeof TASK_ACTIVITY_OPTIONS)[number];
 
+/** Etiquetas en español para el selector de actividad (los valores enviados a ADO siguen en inglés). */
+export const TASK_ACTIVITY_LABELS: Record<TaskActivity, string> = {
+  Deployment: "Despliegue",
+  Design: "Diseño",
+  Development: "Desarrollo",
+  Documentation: "Documentación",
+  Management: "Gestión",
+  Requirements: "Requisitos",
+  Testing: "Pruebas",
+  Training: "Formación",
+};
+
 /** Fallback legacy — no usar en UI; los estados deben cargarse desde Azure DevOps. */
 export const FALLBACK_TASK_STATE_OPTIONS = ["To Do", "Closed"] as const;
 

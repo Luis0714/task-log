@@ -59,7 +59,7 @@ export function buildCatalogPlaceholders(input: BuildPlaceholdersInput): TimeLog
           ? "Sin historias en este sprint"
           : filteredPbisCount === 0
             ? "Sin resultados con estos filtros"
-            : "Selecciona una historia (PBI)",
+            : "Selecciona una historia de usuario",
   };
 }
 

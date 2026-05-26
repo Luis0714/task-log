@@ -14,7 +14,7 @@ export function buildDailySummary(
 
   const recentOk = history.find((entry) => entry.ok);
   if (recentOk) {
-    const cleaned = recentOk.summary.replace(/^TaskPilot:\s*/i, "").trim();
+    const cleaned = recentOk.summary.replace(/^(?:TaskPilot|NeosView):\s*/i, "").trim();
     return cleaned.length > 140 ? `${cleaned.slice(0, 137)}…` : cleaned;
   }
 

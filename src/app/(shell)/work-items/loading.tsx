@@ -1,5 +1,6 @@
-import { WorkItemsPageSkeleton } from "@/components/skeletons/work-items-page-skeleton";
+import { WorkItemsShellSkeleton } from "@/components/skeletons/work-items-shell-skeleton";
 
 export default function WorkItemsLoading() {
-  return <WorkItemsPageSkeleton />;
+  return <WorkItemsShellSkeleton />;
 }
+

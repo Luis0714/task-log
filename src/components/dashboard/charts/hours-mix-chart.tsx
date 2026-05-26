@@ -74,27 +74,27 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
             <span className={bugHeavy ? "text-amber-600 dark:text-amber-400" : "text-primary"}>
               {taskPercent}%
             </span>
-            <span className="text-muted-foreground text-sm font-normal"> tasks</span>
+            <span className="text-muted-foreground text-sm font-normal"> tareas</span>
           </span>
           <span aria-hidden className="text-muted-foreground text-sm font-normal">
             ·
           </span>
           <span>
             <span className="text-destructive">{bugPercent}%</span>
-            <span className="text-muted-foreground text-sm font-normal"> bugs</span>
+            <span className="text-muted-foreground text-sm font-normal"> defectos</span>
           </span>
         </p>
         <p className="text-muted-foreground text-xs leading-snug">
-          {formatHours(breakdown.taskHours)} dev · {formatHours(breakdown.bugHours)} bugs
+          {formatHours(breakdown.taskHours)} dev · {formatHours(breakdown.bugHours)} defectos
         </p>
         <div className="flex gap-3 text-[10px]">
           <span className="flex items-center gap-1">
             <span className="bg-chart-1 size-1.5 rounded-full" />
-            Tasks
+            Tareas
           </span>
           <span className="flex items-center gap-1">
             <span className="bg-chart-4 size-1.5 rounded-full" />
-            Bugs
+            Defectos
           </span>
         </div>
       </div>

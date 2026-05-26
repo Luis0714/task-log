@@ -2,16 +2,17 @@ import "server-only";
 
 import { cache } from "react";
 
-import type { DashboardSprintBundle } from "@/lib/ado/types";
-import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
-import { listBacklogItemStates } from "@/lib/azure-devops/work-item-type-states";
-import { listTeamNonWorkingDateKeys } from "@/lib/azure-devops/team-days-off";
-import { withAdoProject } from "@/lib/azure-devops/projects";
 import {
-  buildNonWorkingDateSet,
-  parseNonWorkingDatesFromEnv,
-} from "@/lib/dashboard/non-working-days";
-import { listTasksInSprint, listWorkItemsInSprint } from "@/lib/azure-devops/work-items";
+  firstSprintDataError,
+  loadSprintBacklogStates,
+  loadSprintBugs,
+  loadSprintNonWorkingDates,
+  loadSprintTasks,
+  loadSprintWorkItems,
+} from "@/lib/ado/load-sprint-data";
+import { catalogToSprintContext } from "@/lib/ado/sprint-data-context";
+import type { DashboardSprintBundle } from "@/lib/ado/types";
+import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { WORK_ITEM_ASSIGNEE_ME } from "@/lib/schemas/work-item-filters";
 
 const emptyBundle: DashboardSprintBundle = {
@@ -34,47 +35,47 @@ export type LoadSprintBundleInput = {
 export const loadSprintBundle = cache(async function loadSprintBundle(
   input: LoadSprintBundleInput,
 ): Promise<DashboardSprintBundle> {
-  const { project, team, sprintPath, assignee = WORK_ITEM_ASSIGNEE_ME, includeDaysOff = true } =
-    input;
+  if (!input.project || !input.team || !input.sprintPath) return emptyBundle;
 
-  if (!project || !team || !sprintPath) return emptyBundle;
+  const ctx = {
+    project: input.project,
+    team: input.team,
+    sprintPath: input.sprintPath,
+    assignee: input.assignee ?? WORK_ITEM_ASSIGNEE_ME,
+  };
 
-  const caller = await requireAdoCaller();
-  if (!caller.ok) return emptyBundle;
+  const includeDaysOff = input.includeDaysOff ?? true;
+  const [workItems, bugs, tasks, backlogStates, nonWorkingDates] = await Promise.all([
+    loadSprintWorkItems(ctx),
+    loadSprintBugs(ctx),
+    loadSprintTasks(ctx),
+    loadSprintBacklogStates(ctx.project),
+    includeDaysOff ? loadSprintNonWorkingDates(ctx) : Promise.resolve({ data: [], error: null }),
+  ]);
 
-  try {
-    const scopedAuth = withAdoProject(caller.auth, project);
-    const envDates = [...parseNonWorkingDatesFromEnv()];
-    const [workItems, bugs, tasks, backlogStates, teamDaysOff] = await Promise.all([
-      listWorkItemsInSprint(scopedAuth, sprintPath, { assignee }),
-      listWorkItemsInSprint(scopedAuth, sprintPath, {
-        assignee,
-        workItemType: "Bug",
-      }),
-      listTasksInSprint(scopedAuth, sprintPath, { assignee }),
-      listBacklogItemStates(scopedAuth),
-      includeDaysOff
-        ? listTeamNonWorkingDateKeys(scopedAuth, team).catch(() => [] as string[])
-        : Promise.resolve([] as string[]),
-    ]);
+  const error = firstSprintDataError(workItems, bugs, tasks, backlogStates, nonWorkingDates);
 
-    const nonWorkingDates = includeDaysOff
-      ? [...buildNonWorkingDateSet([{ dates: envDates }, { dates: teamDaysOff }])]
-      : [];
-
-    return {
-      workItems,
-      bugs,
-      tasks,
-      backlogStates,
-      nonWorkingDates,
-      error: null,
-    };
-  } catch (cause) {
-    const detail = cause instanceof Error ? cause.message : "Error desconocido";
-    return {
-      ...emptyBundle,
-      error: `No se pudieron cargar los datos del sprint. — ${detail}`,
-    };
-  }
+  return {
+    workItems: workItems.data,
+    bugs: bugs.data,
+    tasks: tasks.data,
+    backlogStates: backlogStates.data,
+    nonWorkingDates: nonWorkingDates.data,
+    error,
+  };
 });
+
+export function catalogToSprintBundleInput(
+  catalog: AdoCatalogSnapshot,
+  assignee = WORK_ITEM_ASSIGNEE_ME,
+): LoadSprintBundleInput | null {
+  const ctx = catalogToSprintContext(catalog, assignee);
+  if (!ctx) return null;
+  return {
+    project: ctx.project,
+    team: ctx.team,
+    sprintPath: ctx.sprintPath,
+    assignee: ctx.assignee,
+    includeDaysOff: true,
+  };
+}

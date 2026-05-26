@@ -8,16 +8,12 @@ export type DeliveryChartRow = {
   completed: number;
 };
 
-function inProgressCount(counts: WorkItemStatusCounts): number {
-  return Math.max(0, counts.assigned - counts.pending - counts.completed);
-}
-
 function toRow(key: string, label: string, counts: WorkItemStatusCounts): DeliveryChartRow {
   return {
     key,
     label,
     pending: counts.pending,
-    inProgress: inProgressCount(counts),
+    inProgress: counts.inProgress,
     completed: counts.completed,
   };
 }
@@ -25,7 +21,7 @@ function toRow(key: string, label: string, counts: WorkItemStatusCounts): Delive
 export function buildDeliveryChartRows(overview: SprintStatusOverview): DeliveryChartRow[] {
   return [
     toRow("userStories", "Historias", overview.userStories),
-    toRow("bugs", "Bugs", overview.bugs),
+    toRow("bugs", "Defectos", overview.bugs),
   ];
 }
 

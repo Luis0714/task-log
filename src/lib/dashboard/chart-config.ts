@@ -36,17 +36,17 @@ export const hoursTrendChartConfig = {
 export const CHART_EMPTY_SEGMENT_COLOR = "var(--muted-foreground)";
 
 export const hoursDailyChartConfig = {
-  taskHours: { label: "Tasks", color: "var(--chart-1)" },
-  bugHours: { label: "Bugs", color: "var(--chart-4)" },
+  taskHours: { label: "Tareas", color: "var(--chart-1)" },
+  bugHours: { label: "Defectos", color: "var(--chart-4)" },
 } satisfies ChartConfig;
 
 export const hoursMixChartConfig = {
-  taskHours: { label: "Tasks", color: "var(--chart-1)" },
-  bugHours: { label: "Bugs", color: "var(--chart-4)" },
+  taskHours: { label: "Tareas", color: "var(--chart-1)" },
+  bugHours: { label: "Defectos", color: "var(--chart-4)" },
 } satisfies ChartConfig;
 
 export const pbiStateChartConfig = {
-  count: { label: "PBIs", color: "var(--chart-1)" },
+  count: { label: "Historias", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
 export const pbiProgressChartConfig = {

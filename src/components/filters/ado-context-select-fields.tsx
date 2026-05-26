@@ -33,8 +33,8 @@ export function AdoContextSelectFields({
   return (
     <div
       className={cn(
-        "grid w-full min-w-0 gap-4 sm:grid-cols-2",
-        sprintDayFilter ? "lg:grid-cols-4" : "lg:grid-cols-3",
+        "grid w-full min-w-0 grid-cols-1 gap-4 sm:grid-cols-2",
+        sprintDayFilter ? "xl:grid-cols-4" : "xl:grid-cols-3",
         "[&>*]:min-w-0",
         className,
       )}

@@ -8,6 +8,7 @@ import type { DashboardWorkItem, SprintStatusOverview, WorkItemStatusCounts } fr
 export const EMPTY_WORK_ITEM_STATUS_COUNTS: WorkItemStatusCounts = {
   assigned: 0,
   pending: 0,
+  inProgress: 0,
   completed: 0,
 };
 
@@ -23,6 +24,7 @@ export function computeWorkItemStatusCounts(
   return {
     assigned: items.length,
     pending: countWorkItemsInCategory(items, mapping.pending),
+    inProgress: countWorkItemsInCategory(items, mapping.inProgress),
     completed: items.filter((item) => stateMatchesCompletedState(item.state, mapping)).length,
   };
 }

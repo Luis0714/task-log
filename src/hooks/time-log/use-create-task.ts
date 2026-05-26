@@ -52,7 +52,7 @@ export function useCreateTask({
   const preparePreview = useCallback(
     (values: TimeLogFormValues, selectedPbi: AdoWorkItemOptionDto | null) => {
       setError(null);
-      const pbiTitle = selectedPbi?.title ?? `PBI #${values.pbiId}`;
+      const pbiTitle = selectedPbi?.title ?? `Historia #${values.pbiId}`;
       setPreview(mapTimeLogFormToPayload(values, pbiTitle));
     },
     [],
@@ -74,7 +74,7 @@ export function useCreateTask({
           appendHistory({
             id: crypto.randomUUID(),
             at: new Date().toISOString(),
-            summary: `Task en PBI #${payload.pbiId} +${payload.hours}h (falló)`,
+            summary: `Tarea en historia #${payload.pbiId} +${payload.hours}h (falló)`,
             ok: false,
           });
           return;
@@ -84,12 +84,12 @@ export function useCreateTask({
         clearTaskFields(form, getDefaultTaskState, getDefaultWorkingDate);
         setStep(2);
         appToast.success(`Tarea creada: #${result.taskId}`, {
-          description: `${payload.title} · ${payload.hours}h · PBI #${payload.pbiId}`,
+          description: `${payload.title} · ${payload.hours}h · Historia #${payload.pbiId}`,
         });
         appendHistory({
           id: crypto.randomUUID(),
           at: new Date().toISOString(),
-          summary: `Task #${result.taskId} +${payload.hours}h · PBI #${payload.pbiId}`,
+          summary: `Tarea #${result.taskId} +${payload.hours}h · Historia #${payload.pbiId}`,
           ok: true,
         });
       } catch {

@@ -4,11 +4,11 @@ import { ChartPanel } from "@/components/dashboard/charts/chart-panel";
 import { HorizontalBarChart } from "@/components/dashboard/charts/horizontal-bar-chart";
 import { SprintPbiProgressCard } from "@/components/dashboard/metrics/sprint-pbi-progress-card";
 import { buildPbiStateBars } from "@/lib/dashboard/pbi-state-chart-data";
-import type { DashboardMetrics } from "@/lib/dashboard/types";
+import type { DashboardWorkflowMetrics } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils";
 
 export type SprintWorkflowSectionProps = {
-  metrics: DashboardMetrics;
+  metrics: DashboardWorkflowMetrics;
   loading?: boolean;
   className?: string;
 };

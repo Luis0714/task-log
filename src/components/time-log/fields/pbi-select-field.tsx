@@ -34,7 +34,7 @@ export function PbiSelectField({ form, catalog }: PbiSelectFieldProps) {
       name="pbiId"
       render={({ field }) => (
         <FormItem>
-          <FormLabel>Historia (PBI)</FormLabel>
+          <FormLabel>Historia de usuario</FormLabel>
           <Select
             value={field.value || null}
             onValueChange={(value) => {

@@ -45,7 +45,7 @@ export function CopilotView({ adoExecutionReady, authMethod }: CopilotViewProps)
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Tu mensaje</CardTitle>
           <CardDescription>
-            Incluye horas y el ID o referencia del work item (ej. US-123).
+            Incluye horas y el ID o referencia del elemento de trabajo (ej. US-123).
           </CardDescription>
         </CardHeader>
         <CardContent>

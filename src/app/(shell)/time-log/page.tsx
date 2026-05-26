@@ -1,12 +1,17 @@
 import { Suspense } from "react";
 
-import { TimeLogBodyServer } from "@/components/time-log/time-log-body-server";
-import { TimeLogPageShell } from "@/components/time-log/time-log-page-shell";
-import { ShellContentSkeleton } from "@/components/skeletons/shell-content-skeleton";
-import { parseAdoContextSearchParams } from "@/lib/ado/parse-context-search-params";
-import { getServerAuthBootstrap } from "@/lib/auth/server-state";
-import { loadTimeLogBaseline } from "@/lib/time-log/load-time-log-baseline";
+import { TimeLogBodyStreamLoader } from "@/components/time-log/time-log-body-stream-loader";
+import { TimeLogPageLayout } from "@/components/time-log/time-log-page-layout";
+import { TimeLogShellServer } from "@/components/time-log/time-log-shell-server";
+import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
+import { TimeLogFormSkeleton } from "@/components/skeletons/time-log-form-skeleton";
+import { TimeLogShellSkeleton } from "@/components/skeletons/time-log-shell-skeleton";
+import { resolvePageAuth } from "@/lib/auth/resolve-page-auth";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import { PAGE_SEO } from "@/lib/seo/pages";
 import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
+
+export const metadata = buildPageMetadata(PAGE_SEO.timeLog);
 
 export const dynamic = "force-dynamic";
 
@@ -15,40 +20,35 @@ type PageProps = {
 };
 
 export default async function TimeLogPage({ searchParams }: PageProps) {
-  const sp = parseAdoContextSearchParams(await searchParams);
-  const auth = await getServerAuthBootstrap();
-  const defaultProject =
-    auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
+  const { searchParams: sp, auth, defaultProject } = await resolvePageAuth(searchParams);
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
-  const serverBaseline = auth.adoExecutionReady
-    ? await loadTimeLogBaseline(defaultProject, sp)
-    : await loadTimeLogBaseline(null, {});
-
-  const suspenseKey = [
-    serverBaseline.catalog.project,
-    serverBaseline.catalog.team,
-    serverBaseline.catalog.sprintPath,
-    urlAssignee,
-  ].join("|");
-
   return (
-    <TimeLogPageShell
-      serverBaseline={serverBaseline}
-      adoExecutionReady={auth.adoExecutionReady}
-      notReadyMessage="Conecta Azure DevOps para registrar tiempo en Azure DevOps."
-    >
-      {auth.adoExecutionReady && serverBaseline.catalog.sprintPath ? (
-        <Suspense key={suspenseKey} fallback={<ShellContentSkeleton />}>
-          <TimeLogBodyServer
-            adoExecutionReady={auth.adoExecutionReady}
-            authMethod={auth.authMethod}
+    <TimeLogPageLayout>
+      <AdoContextPageLayout
+        className="min-w-0"
+        gapClassName="gap-5"
+        shellFallback={<TimeLogShellSkeleton />}
+        adoExecutionReady={auth.adoExecutionReady}
+        shell={
+          <TimeLogShellServer
+            sp={sp}
             defaultProject={defaultProject}
-            serverBaseline={serverBaseline}
-            urlAssignee={urlAssignee}
+            adoExecutionReady={auth.adoExecutionReady}
           />
-        </Suspense>
-      ) : null}
-    </TimeLogPageShell>
+        }
+        content={
+          <Suspense fallback={<TimeLogFormSkeleton />}>
+            <TimeLogBodyStreamLoader
+              sp={sp}
+              defaultProject={defaultProject}
+              adoExecutionReady={auth.adoExecutionReady}
+              authMethod={auth.authMethod}
+              urlAssignee={urlAssignee}
+            />
+          </Suspense>
+        }
+      />
+    </TimeLogPageLayout>
   );
 }

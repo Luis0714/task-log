@@ -1,18 +1,15 @@
-import { Suspense } from "react";
-
-import { DashboardBodyServer } from "@/components/dashboard/dashboard-body-server";
-import { DashboardPageShell } from "@/components/dashboard/dashboard-page-shell";
-import { DashboardPageSkeleton } from "@/components/skeletons/dashboard-page-skeleton";
-import { loadAdoCatalog } from "@/lib/ado/load-ado-catalog";
-import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
-import { parseAdoContextSearchParams } from "@/lib/ado/parse-context-search-params";
+import { DashboardShellServer } from "@/components/dashboard/dashboard-shell-server";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import { PAGE_SEO } from "@/lib/seo/pages";
+import { DashboardSectionsStreamLoader } from "@/components/dashboard/dashboard-sections-stream-loader";
+import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
+import { DashboardShellSkeleton } from "@/components/skeletons/dashboard-shell-skeleton";
 import { mapAuthStateToConnectionDisplay } from "@/lib/auth/connection-display";
 import { mergeServerAuthState } from "@/lib/auth/merge-auth-state";
-import {
-  getServerAuthBootstrap,
-  getServerAuthProfile,
-} from "@/lib/auth/server-state";
+import { resolvePageAuthWithProfile } from "@/lib/auth/resolve-page-auth";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
+
+export const metadata = buildPageMetadata(PAGE_SEO.dashboard);
 
 export const dynamic = "force-dynamic";
 
@@ -21,15 +18,12 @@ type PageProps = {
 };
 
 export default async function DashboardPage({ searchParams }: PageProps) {
-  const sp = parseAdoContextSearchParams(await searchParams);
-  const [bootstrap, profile] = await Promise.all([
-    getServerAuthBootstrap(),
-    getServerAuthProfile(),
-  ]);
-  const auth = mergeServerAuthState(bootstrap, profile);
-  const connection = mapAuthStateToConnectionDisplay(auth);
-  const defaultProject =
-    auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
+  const { searchParams: sp, auth, defaultProject, profile } =
+    await resolvePageAuthWithProfile(searchParams);
+  const connection = mapAuthStateToConnectionDisplay(
+    mergeServerAuthState(auth, profile),
+  );
+  const sprintDayKey = sp.sprintDay ?? "";
 
   const header: DashboardHeaderData = {
     displayName: connection.userDisplayName ?? "Usuario",
@@ -39,37 +33,28 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     sprintName: "Sprint actual",
   };
 
-  const emptyCatalog = await loadAdoCatalog(null, {});
-  const catalog = auth.adoExecutionReady
-    ? await loadAdoCatalog(defaultProject, sp)
-    : emptyCatalog;
-
-  const sprintDayKey = sp.sprintDay ?? "";
-  const nonWorkingDates =
-    auth.adoExecutionReady && catalog.project && catalog.team
-      ? await loadNonWorkingDates(catalog.project, catalog.team)
-      : [];
-
-  const suspenseKey = [
-    catalog.project,
-    catalog.team,
-    catalog.sprintPath,
-    sprintDayKey,
-  ].join("|");
-
   return (
-    <DashboardPageShell
-      header={header}
-      catalog={catalog}
+    <AdoContextPageLayout
+      gapClassName="gap-6"
+      shellFallback={<DashboardShellSkeleton />}
       adoExecutionReady={auth.adoExecutionReady}
-      initialSprintDayKey={sprintDayKey}
-      nonWorkingDates={nonWorkingDates}
-    >
-      {auth.adoExecutionReady && catalog.sprintPath ? (
-        <Suspense key={suspenseKey} fallback={<DashboardPageSkeleton />}>
-          <DashboardBodyServer catalog={catalog} sprintDayKey={sprintDayKey} />
-        </Suspense>
-      ) : null}
-    </DashboardPageShell>
+      shell={
+        <DashboardShellServer
+          sp={sp}
+          defaultProject={defaultProject}
+          adoExecutionReady={auth.adoExecutionReady}
+          header={header}
+          initialSprintDayKey={sprintDayKey}
+        />
+      }
+      content={
+        <DashboardSectionsStreamLoader
+          sp={sp}
+          defaultProject={defaultProject}
+          adoExecutionReady={auth.adoExecutionReady}
+          sprintDayKey={sprintDayKey}
+        />
+      }
+    />
   );
 }

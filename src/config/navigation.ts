@@ -24,7 +24,7 @@ export const MAIN_NAVIGATION: NavGroupConfig[] = [
   {
     title: "Principal",
     items: [
-      { href: "/", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/", label: "Panel", icon: LayoutDashboard },
       { href: "/copilot", label: "Copiloto IA", icon: Bot },
     ],
   },
@@ -32,9 +32,9 @@ export const MAIN_NAVIGATION: NavGroupConfig[] = [
     title: "Trabajo",
     items: [
       { href: "/time-log", label: "Registro de tiempo", icon: Clock },
-      { href: "/work-items", label: "Work Items", icon: ListTodo },
-      { href: "/tasks", label: "Tasks", icon: CheckSquare },
-      { href: "/bugs", label: "Bugs", icon: Bug },
+      { href: "/work-items", label: "Historias de usuario", icon: ListTodo },
+      { href: "/tasks", label: "Tareas", icon: CheckSquare },
+      { href: "/bugs", label: "Defectos", icon: Bug },
     ],
   },
   {
