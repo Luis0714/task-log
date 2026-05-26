@@ -3,9 +3,6 @@
 import type { ReactNode } from "react";
 
 import { AdoFilteredPageShell } from "@/components/filters/ado-filtered-page-shell";
-import {
-  WorkItemsFiltersProvider,
-} from "@/components/work-items/work-items-filters-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import type { AdoFilterMeta } from "@/lib/filters/ado-filter-meta";
 import type { SprintItemsKind } from "@/lib/sprint-items/types";
@@ -32,7 +29,6 @@ export type SprintItemsPageShellProps = {
   filterMeta: AdoFilterMeta;
   nonWorkingDates: readonly string[];
   adoExecutionReady: boolean;
-  urlAssignee: string;
   headerAction?: ReactNode;
   children?: ReactNode;
 };
@@ -43,27 +39,24 @@ export function SprintItemsPageShell({
   filterMeta,
   nonWorkingDates,
   adoExecutionReady,
-  urlAssignee,
   headerAction,
   children = null,
 }: SprintItemsPageShellProps) {
   const copy = PAGE_COPY[kind];
 
   return (
-    <WorkItemsFiltersProvider initialAssignee={urlAssignee}>
-      <AdoFilteredPageShell
-        title={copy.title}
-        description={copy.description}
-        notReadyMessage={copy.notReadyMessage}
-        catalog={catalog}
-        filterMeta={filterMeta}
-        adoExecutionReady={adoExecutionReady}
-        headerAction={headerAction}
-        sprintDayFilter
-        nonWorkingDates={nonWorkingDates}
-      >
-        {children}
-      </AdoFilteredPageShell>
-    </WorkItemsFiltersProvider>
+    <AdoFilteredPageShell
+      title={copy.title}
+      description={copy.description}
+      notReadyMessage={copy.notReadyMessage}
+      catalog={catalog}
+      filterMeta={filterMeta}
+      adoExecutionReady={adoExecutionReady}
+      headerAction={headerAction}
+      sprintDayFilter
+      nonWorkingDates={nonWorkingDates}
+    >
+      {children}
+    </AdoFilteredPageShell>
   );
 }

@@ -10,7 +10,6 @@ export type SprintItemsShellServerProps = {
   sp: AdoContextSearchParams;
   defaultProject: string | null;
   adoExecutionReady: boolean;
-  urlAssignee: string;
   headerAction?: ReactNode;
 };
 
@@ -19,7 +18,6 @@ export async function SprintItemsShellServer({
   sp,
   defaultProject,
   adoExecutionReady,
-  urlAssignee,
   headerAction,
 }: SprintItemsShellServerProps) {
   const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp);
@@ -36,7 +34,6 @@ export async function SprintItemsShellServer({
       filterMeta={pageMeta.filterMeta}
       nonWorkingDates={pageMeta.nonWorkingDates}
       adoExecutionReady={adoExecutionReady}
-      urlAssignee={urlAssignee}
       headerAction={headerAction}
     />
   );

@@ -8,6 +8,7 @@ type SprintItemsDayContextValue = {
   dayKey: string;
   setDayKey: (value: string) => void;
   sprintWorkingDays: SprintWorkingDay[];
+  setSprintWorkingDays: (days: SprintWorkingDay[]) => void;
 };
 
 const SprintItemsDayContext = createContext<SprintItemsDayContextValue | null>(null);
@@ -16,6 +17,7 @@ export type SprintItemsDayProviderProps = {
   dayKey: string;
   setDayKey: (value: string) => void;
   sprintWorkingDays: SprintWorkingDay[];
+  setSprintWorkingDays: (days: SprintWorkingDay[]) => void;
   children: ReactNode;
 };
 
@@ -23,13 +25,20 @@ export function SprintItemsDayProvider({
   dayKey,
   setDayKey,
   sprintWorkingDays,
+  setSprintWorkingDays,
   children,
 }: SprintItemsDayProviderProps) {
   return (
-    <SprintItemsDayContext.Provider value={{ dayKey, setDayKey, sprintWorkingDays }}>
+    <SprintItemsDayContext.Provider
+      value={{ dayKey, setDayKey, sprintWorkingDays, setSprintWorkingDays }}
+    >
       {children}
     </SprintItemsDayContext.Provider>
   );
+}
+
+export function useSprintItemsDayContext(): SprintItemsDayContextValue | null {
+  return useContext(SprintItemsDayContext);
 }
 
 export function useSprintItemsDay(): SprintItemsDayContextValue {

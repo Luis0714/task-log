@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { AdoFiltersSection } from "@/components/filters/ado-filters-section";
 import { SprintDaySelect } from "@/components/filters/sprint-day-select";
-import { SprintItemsDayProvider } from "@/components/sprint-items/sprint-items-day-context";
+import { useSprintItemsDayContext } from "@/components/sprint-items/sprint-items-day-context";
 import { useAdoFilteredPage } from "@/hooks/filters/use-ado-filtered-page";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import {
@@ -49,7 +49,8 @@ export function AdoFilteredPageShell({
     workItemsCount,
   });
 
-  const [dayKey, setDayKey] = useState(SPRINT_DAY_ALL);
+  const sprintDayContext = useSprintItemsDayContext();
+  const [fallbackDayKey, setFallbackDayKey] = useState(SPRINT_DAY_ALL);
 
   const sprintWorkingDays = useMemo(
     () =>
@@ -62,11 +63,22 @@ export function AdoFilteredPageShell({
   );
 
   const showSprintDayFilter = sprintDayFilter && adoExecutionReady;
+  const dayKey =
+    showSprintDayFilter && sprintDayContext ? sprintDayContext.dayKey : fallbackDayKey;
+  const setDayKey =
+    showSprintDayFilter && sprintDayContext
+      ? sprintDayContext.setDayKey
+      : setFallbackDayKey;
+
+  useEffect(() => {
+    if (!showSprintDayFilter || !sprintDayContext) return;
+    sprintDayContext.setSprintWorkingDays(sprintWorkingDays);
+  }, [showSprintDayFilter, sprintDayContext, sprintWorkingDays]);
 
   useEffect(() => {
     if (!showSprintDayFilter) return;
     setDayKey(SPRINT_DAY_ALL);
-  }, [catalog.sprintPath, showSprintDayFilter]);
+  }, [catalog.sprintPath, setDayKey, showSprintDayFilter]);
 
   useEffect(() => {
     if (!showSprintDayFilter) return;
@@ -78,7 +90,7 @@ export function AdoFilteredPageShell({
         sprintWorkingDays.some((day) => day.value === current);
       return stillValid ? current : defaultKey || SPRINT_DAY_ALL;
     });
-  }, [catalog.sprintPath, sprintWorkingDays, showSprintDayFilter]);
+  }, [catalog.sprintPath, setDayKey, sprintWorkingDays, showSprintDayFilter]);
 
   const filtersContext = showSprintDayFilter
     ? {
@@ -96,18 +108,6 @@ export function AdoFilteredPageShell({
           ) : null,
       }
     : context;
-
-  const body = showSprintDayFilter ? (
-    <SprintItemsDayProvider
-      dayKey={dayKey}
-      setDayKey={setDayKey}
-      sprintWorkingDays={sprintWorkingDays}
-    >
-      {children}
-    </SprintItemsDayProvider>
-  ) : (
-    children
-  );
 
   return (
     <div className="flex w-full flex-col gap-8 pb-6">
@@ -150,7 +150,7 @@ export function AdoFilteredPageShell({
         />
       ) : null}
 
-      {body}
+      {children}
     </div>
   );
 }

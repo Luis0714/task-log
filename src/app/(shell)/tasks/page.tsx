@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 
 import { SprintItemsShellServer } from "@/components/sprint-items/sprint-items-shell-server";
 import { SprintItemsListStreamLoader } from "@/components/sprint-items/sprint-items-list-stream-loader";
+import { SprintItemsSharedProviders } from "@/components/sprint-items/sprint-items-shared-providers";
 import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
 import { SprintItemsShellSkeleton } from "@/components/skeletons/sprint-items-shell-skeleton";
 import { Button } from "@/components/ui/button";
@@ -35,28 +36,29 @@ export default async function TasksPage({ searchParams }: PageProps) {
   ) : null;
 
   return (
-    <AdoContextPageLayout
-      shellFallback={<SprintItemsShellSkeleton />}
-      adoExecutionReady={auth.adoExecutionReady}
-      shell={
-        <SprintItemsShellServer
-          kind="tasks"
-          sp={sp}
-          defaultProject={defaultProject}
-          adoExecutionReady={auth.adoExecutionReady}
-          urlAssignee={urlAssignee}
-          headerAction={headerAction}
-        />
-      }
-      content={
-        <SprintItemsListStreamLoader
-          kind="tasks"
-          sp={sp}
-          defaultProject={defaultProject}
-          adoExecutionReady={auth.adoExecutionReady}
-          assignee={urlAssignee}
-        />
-      }
-    />
+    <SprintItemsSharedProviders initialAssignee={urlAssignee}>
+      <AdoContextPageLayout
+        shellFallback={<SprintItemsShellSkeleton />}
+        adoExecutionReady={auth.adoExecutionReady}
+        shell={
+          <SprintItemsShellServer
+            kind="tasks"
+            sp={sp}
+            defaultProject={defaultProject}
+            adoExecutionReady={auth.adoExecutionReady}
+            headerAction={headerAction}
+          />
+        }
+        content={
+          <SprintItemsListStreamLoader
+            kind="tasks"
+            sp={sp}
+            defaultProject={defaultProject}
+            adoExecutionReady={auth.adoExecutionReady}
+            assignee={urlAssignee}
+          />
+        }
+      />
+    </SprintItemsSharedProviders>
   );
 }
