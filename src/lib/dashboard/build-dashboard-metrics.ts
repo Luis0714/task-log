@@ -28,17 +28,15 @@ import {
 } from "@/lib/dashboard/sprint-days";
 import type { AdoCatalogSnapshot, DashboardSprintBundle } from "@/lib/ado/types";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
-import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
+import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
+
+export { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
 
 export type BuildDashboardMetricsInput = {
   bundle: DashboardSprintBundle;
   catalog: AdoCatalogSnapshot;
   selectedSprintDayKey: string;
 };
-
-export function resolveCurrentSprint(catalog: AdoCatalogSnapshot): AdoSprintDto | null {
-  return catalog.sprints.find((sprint) => sprint.path === catalog.sprintPath) ?? null;
-}
 
 export function buildDashboardMetrics({
   bundle,

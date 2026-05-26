@@ -7,13 +7,13 @@ import {
   buildDeliveryChartRows,
   completionPercent,
 } from "@/lib/dashboard/delivery-chart-data";
-import type { DashboardMetrics } from "@/lib/dashboard/types";
+import type { DashboardDeliveryMetrics } from "@/lib/dashboard/types";
 import { kpiProgressPercent, kpiVariantFromProgress } from "@/lib/dashboard/kpi-variant";
 import { formatStoryPoints } from "@/lib/dashboard/work-item-selectors";
 import { cn } from "@/lib/utils";
 
 export type SprintDeliverySectionProps = {
-  metrics: DashboardMetrics;
+  metrics: DashboardDeliveryMetrics;
   loading?: boolean;
   className?: string;
 };

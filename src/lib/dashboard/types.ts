@@ -62,6 +62,27 @@ export type DashboardMetrics = {
   sprintStatusOverview: SprintStatusOverview;
 };
 
+export type DashboardDeliveryMetrics = Pick<
+  DashboardMetrics,
+  "sprintStatusOverview" | "storyPointsAssigned" | "pbiProgress"
+>;
+
+export type DashboardWorkflowMetrics = Pick<
+  DashboardMetrics,
+  "pbiStateGroups" | "pbiProgress"
+>;
+
+export type DashboardHoursMetrics = Pick<
+  DashboardMetrics,
+  | "hoursToday"
+  | "hoursSprintCurrent"
+  | "hoursSprintTarget"
+  | "hoursRemaining"
+  | "sprintWorkingDaysCount"
+  | "hoursByDay"
+  | "sprintWeeks"
+>;
+
 export type DashboardHeaderData = {
   displayName: string;
   initials: string;
