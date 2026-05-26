@@ -1,4 +1,6 @@
 import { DashboardShellServer } from "@/components/dashboard/dashboard-shell-server";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import { PAGE_SEO } from "@/lib/seo/pages";
 import { DashboardSectionsStreamLoader } from "@/components/dashboard/dashboard-sections-stream-loader";
 import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
 import { DashboardShellSkeleton } from "@/components/skeletons/dashboard-shell-skeleton";
@@ -6,6 +8,8 @@ import { mapAuthStateToConnectionDisplay } from "@/lib/auth/connection-display";
 import { mergeServerAuthState } from "@/lib/auth/merge-auth-state";
 import { resolvePageAuthWithProfile } from "@/lib/auth/resolve-page-auth";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
+
+export const metadata = buildPageMetadata(PAGE_SEO.dashboard);
 
 export const dynamic = "force-dynamic";
 

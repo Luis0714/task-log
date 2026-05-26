@@ -18,7 +18,7 @@ export function NeosViewIsotipo({
   return (
     <NeosViewLogo
       viewBox={NEOSVIEW_ISOTIPO_VIEWBOX}
-      className={cn("aspect-square h-auto", className)}
+      className={className}
       title={title}
     >
       <path

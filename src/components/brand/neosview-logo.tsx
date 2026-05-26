@@ -18,7 +18,8 @@ export function NeosViewLogo({
     <svg
       viewBox={viewBox}
       xmlns="http://www.w3.org/2000/svg"
-      className={cn("h-8 w-auto shrink-0", className)}
+      preserveAspectRatio="xMidYMid meet"
+      className={cn("block h-8 w-auto max-w-full shrink-0", className)}
       role={title ? "img" : undefined}
       aria-hidden={title ? undefined : true}
       aria-label={title}

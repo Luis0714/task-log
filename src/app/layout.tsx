@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { buildSoftwareApplicationJsonLd } from "@/lib/seo/json-ld";
+import { buildRootMetadata } from "@/lib/seo/metadata";
 import "./globals.css";
 
 const satoshi = localFont({
@@ -44,11 +45,9 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "NeosView",
-  description:
-    "Interfaz conversacional para registrar trabajo en Azure DevOps.",
-};
+export const metadata = buildRootMetadata();
+
+const softwareApplicationJsonLd = buildSoftwareApplicationJsonLd();
 
 export default function RootLayout({
   children,
@@ -62,6 +61,12 @@ export default function RootLayout({
       className={`${satoshi.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-background text-foreground">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(softwareApplicationJsonLd),
+          }}
+        />
         <ThemeProvider>
           {children}
           <Toaster richColors closeButton position="top-right" />

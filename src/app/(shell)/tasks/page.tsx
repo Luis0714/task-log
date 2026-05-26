@@ -7,7 +7,11 @@ import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
 import { SprintItemsShellSkeleton } from "@/components/skeletons/sprint-items-shell-skeleton";
 import { Button } from "@/components/ui/button";
 import { resolvePageAuth } from "@/lib/auth/resolve-page-auth";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import { PAGE_SEO } from "@/lib/seo/pages";
 import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
+
+export const metadata = buildPageMetadata(PAGE_SEO.tasks);
 
 export const dynamic = "force-dynamic";
 
