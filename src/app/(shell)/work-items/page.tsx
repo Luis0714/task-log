@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 
+import { WorkItemsFiltersProvider } from "@/components/work-items/work-items-filters-context";
 import { WorkItemsShellServer } from "@/components/work-items/work-items-shell-server";
 import { WorkItemsStreamLoader } from "@/components/work-items/work-items-stream-loader";
 import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
@@ -31,38 +32,38 @@ export default async function WorkItemsPage({ searchParams }: PageProps) {
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
   return (
-    <AdoContextPageLayout
-      shellFallback={<WorkItemsShellSkeleton />}
-      adoExecutionReady={auth.adoExecutionReady}
-      shell={
-        <WorkItemsShellServer
-          sp={sp}
-          defaultProject={defaultProject}
-          adoExecutionReady={auth.adoExecutionReady}
-          urlAssignee={urlAssignee}
-          currentUserDisplayName={profileFields.profileDisplayName}
-        />
-      }
-      content={
-        <Suspense
-          fallback={
-            <div className="flex flex-col gap-8">
-              <WorkItemsAllSectionSkeleton />
-              <WorkItemsInProgressSectionSkeleton />
-              <WorkItemsUpcomingSectionSkeleton />
-              <WorkItemsDevelopedSectionSkeleton />
-            </div>
-          }
-        >
-          <WorkItemsStreamLoader
+    <WorkItemsFiltersProvider initialAssignee={urlAssignee}>
+      <AdoContextPageLayout
+        shellFallback={<WorkItemsShellSkeleton />}
+        adoExecutionReady={auth.adoExecutionReady}
+        shell={
+          <WorkItemsShellServer
             sp={sp}
             defaultProject={defaultProject}
             adoExecutionReady={auth.adoExecutionReady}
-            assignee={urlAssignee}
-            currentUserDisplayName={profileFields.profileDisplayName}
           />
-        </Suspense>
-      }
-    />
+        }
+        content={
+          <Suspense
+            fallback={
+              <div className="flex flex-col gap-8">
+                <WorkItemsAllSectionSkeleton />
+                <WorkItemsInProgressSectionSkeleton />
+                <WorkItemsUpcomingSectionSkeleton />
+                <WorkItemsDevelopedSectionSkeleton />
+              </div>
+            }
+          >
+            <WorkItemsStreamLoader
+              sp={sp}
+              defaultProject={defaultProject}
+              adoExecutionReady={auth.adoExecutionReady}
+              assignee={urlAssignee}
+              currentUserDisplayName={profileFields.profileDisplayName}
+            />
+          </Suspense>
+        }
+      />
+    </WorkItemsFiltersProvider>
   );
 }

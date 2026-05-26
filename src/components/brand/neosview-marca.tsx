@@ -24,7 +24,7 @@ export function NeosViewMarca({
     >
       <NeosViewIsotipoBadge className={isotipoBadgeClassName} />
       <NeosViewLogotipo
-        className={cn("block h-[1.375rem] w-auto max-w-full sm:h-6", logotipoClassName)}
+        className={cn("block h-5 w-auto max-w-full sm:h-5.5", logotipoClassName)}
         title={undefined}
       />
     </span>

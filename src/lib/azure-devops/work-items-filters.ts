@@ -1,4 +1,5 @@
 import {
+  stateMatchesCategory,
   stateMatchesCompletedState,
   USER_STORY_STATUS_MAPPING,
 } from "@/lib/dashboard/sprint-status-mapping";
@@ -11,8 +12,6 @@ export type WorkItemsByStateGroup = {
   state: string;
   items: AdoWorkItemOption[];
 };
-
-const IN_PROGRESS_PBI_STATE = "Committed";
 
 function normalizeState(state: string): string {
   return state.trim().toLowerCase();
@@ -81,13 +80,11 @@ export function groupWorkItemsByStates(
 }
 
 export function isCommittedPbiState(state: string): boolean {
-  return normalizeState(state) === normalizeState(IN_PROGRESS_PBI_STATE);
+  return stateMatchesCategory(state, USER_STORY_STATUS_MAPPING.inProgress);
 }
 
-/** Pendientes del sprint que aún no están en Committed (próximo trabajo). */
-const UPCOMING_PENDING_NORMALIZED = USER_STORY_STATUS_MAPPING.pending
-  .map(normalizeState)
-  .filter((state) => state !== normalizeState(IN_PROGRESS_PBI_STATE));
+/** Pendientes del sprint que aún no están en curso (próximo trabajo). */
+const UPCOMING_PENDING_NORMALIZED = USER_STORY_STATUS_MAPPING.pending.map(normalizeState);
 
 const UPCOMING_STATE_ALIASES = ["proposed", "to do", "todo", "pending", "ready"] as const;
 

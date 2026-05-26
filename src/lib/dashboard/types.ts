@@ -28,6 +28,7 @@ export type SprintPbiProgress = {
 export type WorkItemStatusCounts = {
   assigned: number;
   pending: number;
+  inProgress: number;
   completed: number;
 };
 

@@ -7,16 +7,12 @@ export type WorkItemsShellServerProps = {
   sp: AdoContextSearchParams;
   defaultProject: string | null;
   adoExecutionReady: boolean;
-  urlAssignee: string;
-  currentUserDisplayName?: string | null;
 };
 
 export async function WorkItemsShellServer({
   sp,
   defaultProject,
   adoExecutionReady,
-  urlAssignee,
-  currentUserDisplayName = null,
 }: WorkItemsShellServerProps) {
   const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp);
 
@@ -30,8 +26,6 @@ export async function WorkItemsShellServer({
       catalog={catalog}
       filterMeta={filterMeta}
       adoExecutionReady={adoExecutionReady}
-      urlAssignee={urlAssignee}
-      currentUserDisplayName={currentUserDisplayName}
     />
   );
 }

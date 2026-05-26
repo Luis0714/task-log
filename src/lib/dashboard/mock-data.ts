@@ -152,12 +152,14 @@ export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
   sprintStatusOverview: {
     userStories: {
       assigned: 5,
-      pending: 3,
+      pending: 2,
+      inProgress: 1,
       completed: 2,
     },
     bugs: {
       assigned: 1,
       pending: 1,
+      inProgress: 0,
       completed: 0,
     },
   },
