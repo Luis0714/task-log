@@ -1,12 +1,18 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 
 type SprintItemsDayContextValue = {
   dayKey: string;
-  setDayKey: (value: string) => void;
+  setDayKey: Dispatch<SetStateAction<string>>;
   sprintWorkingDays: SprintWorkingDay[];
   setSprintWorkingDays: (days: SprintWorkingDay[]) => void;
 };
@@ -15,7 +21,7 @@ const SprintItemsDayContext = createContext<SprintItemsDayContextValue | null>(n
 
 export type SprintItemsDayProviderProps = {
   dayKey: string;
-  setDayKey: (value: string) => void;
+  setDayKey: Dispatch<SetStateAction<string>>;
   sprintWorkingDays: SprintWorkingDay[];
   setSprintWorkingDays: (days: SprintWorkingDay[]) => void;
   children: ReactNode;

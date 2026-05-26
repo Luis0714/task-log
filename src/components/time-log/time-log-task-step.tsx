@@ -30,7 +30,7 @@ export function TimeLogTaskStep({
     !catalog.taskStatesLoading && catalog.taskStates.length > 0 && !catalog.taskStatesError;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       {catalog.selectedPbi ? <PbiSummaryCard pbi={catalog.selectedPbi} /> : null}
 
       <TaskFormFields

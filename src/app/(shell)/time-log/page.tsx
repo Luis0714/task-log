@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { TimeLogBodyStreamLoader } from "@/components/time-log/time-log-body-stream-loader";
+import { TimeLogPageLayout } from "@/components/time-log/time-log-page-layout";
 import { TimeLogShellServer } from "@/components/time-log/time-log-shell-server";
 import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
 import { TimeLogFormSkeleton } from "@/components/skeletons/time-log-form-skeleton";
@@ -23,28 +24,31 @@ export default async function TimeLogPage({ searchParams }: PageProps) {
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
   return (
-    <AdoContextPageLayout
-      gapClassName="gap-5"
-      shellFallback={<TimeLogShellSkeleton />}
-      adoExecutionReady={auth.adoExecutionReady}
-      shell={
-        <TimeLogShellServer
-          sp={sp}
-          defaultProject={defaultProject}
-          adoExecutionReady={auth.adoExecutionReady}
-        />
-      }
-      content={
-        <Suspense fallback={<TimeLogFormSkeleton />}>
-          <TimeLogBodyStreamLoader
+    <TimeLogPageLayout>
+      <AdoContextPageLayout
+        className="min-w-0"
+        gapClassName="gap-5"
+        shellFallback={<TimeLogShellSkeleton />}
+        adoExecutionReady={auth.adoExecutionReady}
+        shell={
+          <TimeLogShellServer
             sp={sp}
             defaultProject={defaultProject}
             adoExecutionReady={auth.adoExecutionReady}
-            authMethod={auth.authMethod}
-            urlAssignee={urlAssignee}
           />
-        </Suspense>
-      }
-    />
+        }
+        content={
+          <Suspense fallback={<TimeLogFormSkeleton />}>
+            <TimeLogBodyStreamLoader
+              sp={sp}
+              defaultProject={defaultProject}
+              adoExecutionReady={auth.adoExecutionReady}
+              authMethod={auth.authMethod}
+              urlAssignee={urlAssignee}
+            />
+          </Suspense>
+        }
+      />
+    </TimeLogPageLayout>
   );
 }

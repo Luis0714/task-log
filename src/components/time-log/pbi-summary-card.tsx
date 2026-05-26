@@ -9,7 +9,7 @@ export type PbiSummaryCardProps = {
 
 export function PbiSummaryCard({ pbi, title = "Historia seleccionada" }: PbiSummaryCardProps) {
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2 overflow-hidden">
       <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
         {title}
       </p>

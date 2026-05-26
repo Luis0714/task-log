@@ -45,7 +45,9 @@ export function AdoFiltersCollapsible({
       >
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-medium">{title}</span>
-          <span className="text-muted-foreground mt-0.5 block truncate text-xs">{summary}</span>
+          <span className="text-muted-foreground mt-0.5 block text-pretty text-xs leading-snug line-clamp-2">
+            {summary}
+          </span>
         </span>
         <ChevronDown
           className="size-4 shrink-0 transition-transform group-data-[open]/ado-filters:rotate-180"

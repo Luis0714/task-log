@@ -35,7 +35,7 @@ export function TimeLogForm({
   return (
     <Form {...form}>
       <form
-        className="flex flex-col gap-5"
+        className="flex min-w-0 flex-col gap-5"
         onSubmit={(event) => {
           event.preventDefault();
           if (step === 2) onSubmit();
@@ -62,7 +62,7 @@ export function TimeLogForm({
 
 export function TimeLogCopilotLink() {
   return (
-    <p className="text-muted-foreground text-sm">
+    <p className="text-muted-foreground text-pretty text-sm">
       ¿Prefieres lenguaje natural?{" "}
       <Link href="/copilot" className="text-primary font-medium hover:underline">
         Usa el Copiloto IA

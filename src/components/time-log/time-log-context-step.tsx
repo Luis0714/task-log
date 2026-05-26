@@ -29,7 +29,7 @@ export function TimeLogContextStep({ form, catalog, onContinue }: TimeLogContext
   });
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       <AdoFiltersCollapsible title="Contexto y filtros" summary={summary} defaultOpen={false}>
         <TimeLogContextFields form={form} catalog={catalog} />
 

@@ -44,16 +44,16 @@ export function TimeLogBodyClient({
   });
 
   return (
-    <>
-      <Card>
+    <div className="flex w-full min-w-0 flex-col gap-5">
+      <Card className="min-w-0">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Formulario</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-pretty">
             Paso 1: contexto (proyecto, sprint, historia de usuario). Paso 2: datos de la tarea (título, horas,
             actividad, fecha).
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="min-w-0 space-y-4">
           <TimeLogForm
             form={form.form}
             catalog={form.catalog}
@@ -73,6 +73,7 @@ export function TimeLogBodyClient({
 
       {form.preview ? (
         <TimeLogPreviewCard
+          className="min-w-0"
           preview={form.preview}
           adoExecutionReady={adoExecutionReady}
           authMethod={authMethod}
@@ -83,6 +84,6 @@ export function TimeLogBodyClient({
       ) : null}
 
       <CopilotHistoryList entries={history} />
-    </>
+    </div>
   );
 }

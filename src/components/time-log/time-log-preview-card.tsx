@@ -17,12 +17,14 @@ import {
 import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
 import type { CreateTaskPayload } from "@/lib/schemas/time-log";
 import { TASK_ACTIVITY_LABELS, type TaskActivity } from "@/lib/time-log/task-constants";
+import { cn } from "@/lib/utils";
 
 export type TimeLogPreviewCardProps = {
   preview: CreateTaskPayload;
   adoExecutionReady: boolean;
   authMethod: AzdoAuthMethod;
   loading?: boolean;
+  className?: string;
   onConfirm: (preview: CreateTaskPayload) => void;
   onCancel: () => void;
 };
@@ -39,14 +41,15 @@ export function TimeLogPreviewCard({
   adoExecutionReady,
   authMethod,
   loading = false,
+  className,
   onConfirm,
   onCancel,
 }: TimeLogPreviewCardProps) {
   return (
-    <Card className="border-primary/25 ring-primary/10">
+    <Card className={cn("min-w-0 border-primary/25 ring-primary/10", className)}>
       <CardHeader className="pb-2">
         <CardTitle>Confirmar creación de tarea</CardTitle>
-        <CardDescription>
+        <CardDescription className="text-pretty">
           Se creará una tarea hija de la historia de usuario en Azure DevOps con las horas indicadas. La tarea
           quedará en estado inicial Por hacer (o equivalente abierto del proceso).
         </CardDescription>
@@ -79,12 +82,12 @@ export function TimeLogPreviewCard({
         </div>
 
         <div className="space-y-1 text-sm">
-          <p>
+          <p className="break-words">
             <span className="text-foreground font-medium">Título: </span>
             {preview.title}
           </p>
           {preview.description ? (
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground break-words">
               <span className="text-foreground font-medium">Descripción: </span>
               {preview.description}
             </p>

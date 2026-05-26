@@ -27,7 +27,7 @@ export function TimeLogPageShell({
     null;
 
   return (
-    <div className="flex w-full flex-col gap-5">
+    <div className="flex w-full min-w-0 flex-col gap-5">
       <header className="space-y-1">
         <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
           Registro de tiempo
