@@ -18,7 +18,7 @@ type BreakdownRowProps = {
   icon: typeof CheckCircle2;
   label: string;
   count: number;
-  tone: "done" | "pending" | "other";
+  tone: "done" | "pending" | "inProgress";
 };
 
 function BreakdownRow({ icon: Icon, label, count, tone }: BreakdownRowProps) {
@@ -27,11 +27,16 @@ function BreakdownRow({ icon: Icon, label, count, tone }: BreakdownRowProps) {
       ? "text-emerald-600 dark:text-emerald-400"
       : tone === "pending"
         ? "text-amber-600 dark:text-amber-400"
-        : "text-muted-foreground";
+        : "text-[var(--chart-4)]";
 
   return (
     <li className="flex items-center justify-between gap-2 text-xs">
-      <span className="text-muted-foreground flex items-center gap-1.5">
+      <span
+        className={cn(
+          "flex items-center gap-1.5",
+          tone === "inProgress" ? toneClass : "text-muted-foreground",
+        )}
+      >
         <Icon className={cn("size-3.5 shrink-0", toneClass)} aria-hidden />
         {label}
       </span>
@@ -112,9 +117,9 @@ export function SprintPbiProgressCard({
               {progress.otherCount > 0 ? (
                 <BreakdownRow
                   icon={ListChecks}
-                  label="Otros"
+                  label="En progreso"
                   count={progress.otherCount}
-                  tone="other"
+                  tone="inProgress"
                 />
               ) : null}
             </ul>

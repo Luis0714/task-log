@@ -64,7 +64,11 @@ function WeekCard({ week, active, loading = false }: WeekCardProps) {
 
       <ProgressBar value={total} max={week.hoursTarget} className="h-2" />
 
-      <HoursBreakdownStrip breakdown={week.hours} className="gap-1.5" />
+      <HoursBreakdownStrip
+        breakdown={week.hours}
+        showWhenEmpty
+        className="gap-1.5"
+      />
     </div>
   );
 }

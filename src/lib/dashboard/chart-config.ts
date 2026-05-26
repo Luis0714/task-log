@@ -1,4 +1,8 @@
 import type { ChartConfig } from "@/components/ui/chart";
+import {
+  BUG_CHART_ATTENDED_COLOR,
+  BUG_CHART_OPEN_COLOR,
+} from "@/lib/brand/bug-colors";
 import { cn } from "@/lib/utils";
 
 export const CHART_HEIGHT_COMPACT = "h-[150px]";
@@ -23,8 +27,8 @@ export function chartContainerClass(heightClass?: string, className?: string): s
 
 export const deliveryChartConfig = {
   pending: { label: "Pendiente", color: "var(--chart-3)" },
-  inProgress: { label: "En curso", color: "var(--chart-1)" },
-  completed: { label: "Completado", color: "var(--chart-2)" },
+  inProgress: { label: "En progreso", color: "var(--chart-4)" },
+  completed: { label: "Completado", color: BUG_CHART_ATTENDED_COLOR },
 } satisfies ChartConfig;
 
 export const hoursTrendChartConfig = {
@@ -37,12 +41,12 @@ export const CHART_EMPTY_SEGMENT_COLOR = "var(--muted-foreground)";
 
 export const hoursDailyChartConfig = {
   taskHours: { label: "Tareas", color: "var(--chart-1)" },
-  bugHours: { label: "Defectos", color: "var(--chart-4)" },
+  bugHours: { label: "Defectos", color: BUG_CHART_OPEN_COLOR },
 } satisfies ChartConfig;
 
 export const hoursMixChartConfig = {
   taskHours: { label: "Tareas", color: "var(--chart-1)" },
-  bugHours: { label: "Defectos", color: "var(--chart-4)" },
+  bugHours: { label: "Defectos", color: BUG_CHART_OPEN_COLOR },
 } satisfies ChartConfig;
 
 export const pbiStateChartConfig = {
@@ -51,8 +55,5 @@ export const pbiStateChartConfig = {
 
 export const pbiProgressChartConfig = {
   completed: { label: "Completado", color: "var(--chart-1)" },
-  remaining: {
-    label: "Restante",
-    theme: { light: "hsl(var(--muted))", dark: "hsl(var(--muted))" },
-  },
+  remaining: { label: "Restante", color: "var(--muted)" },
 } satisfies ChartConfig;

@@ -1,3 +1,8 @@
+import {
+  BUG_CHART_ATTENDED_COLOR,
+  BUG_CHART_OPEN_COLOR,
+} from "@/lib/brand/bug-colors";
+
 /** IDs y stops reutilizables para barras con degradado vertical (más intenso arriba). */
 
 export type BarGradientStop = {
@@ -8,8 +13,12 @@ export type BarGradientStop = {
 
 export const DELIVERY_GRADIENTS: BarGradientStop[] = [
   { id: "grad-pending", top: "var(--chart-3)", bottom: "var(--chart-3)" },
-  { id: "grad-inProgress", top: "var(--chart-2)", bottom: "var(--chart-2)" },
-  { id: "grad-completed", top: "var(--chart-1)", bottom: "var(--chart-1)" },
+  { id: "grad-inProgress", top: "var(--chart-4)", bottom: "var(--chart-4)" },
+  {
+    id: "grad-completed",
+    top: BUG_CHART_ATTENDED_COLOR,
+    bottom: BUG_CHART_ATTENDED_COLOR,
+  },
 ];
 
 export const HOURS_TASK_GRADIENT: BarGradientStop = {
@@ -20,8 +29,8 @@ export const HOURS_TASK_GRADIENT: BarGradientStop = {
 
 export const HOURS_BUG_GRADIENT: BarGradientStop = {
   id: "grad-bugHours",
-  top: "var(--chart-4)",
-  bottom: "var(--chart-4)",
+  top: BUG_CHART_OPEN_COLOR,
+  bottom: BUG_CHART_OPEN_COLOR,
 };
 
 export function workflowBarGradient(index: number, total: number): BarGradientStop {

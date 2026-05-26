@@ -90,13 +90,30 @@ export function DashboardKpi({
   const clampedProgress =
     progress !== undefined ? Math.min(100, Math.max(0, progress)) : undefined;
 
+  const hasHoursBreakdown = Boolean(hoursBreakdown);
+  const progressBarHeight = hasHoursBreakdown
+    ? "h-2"
+    : compact || inline
+      ? "h-1"
+      : "h-2";
+
   const progressBar =
     clampedProgress !== undefined && !loading ? (
       <div
         className={cn(
           "bg-muted/80 w-full overflow-hidden rounded-full",
-          compact || inline ? "h-0.5" : "mt-1.5 h-1",
-          inline && !hint ? "mt-1" : inline && hint ? "mt-0.5" : compact ? "mt-0.5" : undefined,
+          progressBarHeight,
+          hasHoursBreakdown
+            ? compact
+              ? "mt-0.5"
+              : "mt-1.5"
+            : inline && !hint
+              ? "mt-1"
+              : inline && hint
+                ? "mt-0.5"
+                : compact
+                  ? "mt-0.5"
+                  : "mt-1.5",
         )}
       >
         <div

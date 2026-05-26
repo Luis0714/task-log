@@ -1,6 +1,6 @@
 export type SprintStatusMapping = {
   pending: readonly string[];
-  /** En curso (p. ej. Committed en historias). */
+  /** En progreso (p. ej. Committed en historias). */
   inProgress: readonly string[];
   completed: readonly string[];
 };

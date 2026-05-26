@@ -7,6 +7,7 @@ import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { formatHours } from "@/lib/dashboard/format-hours";
 import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import { BUG_BAR_OPEN_CLASS } from "@/lib/brand/bug-colors";
 import {
   CHART_HEIGHT_INLINE,
   chartContainerClass,
@@ -80,7 +81,12 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
             ·
           </span>
           <span>
-            <span className="text-destructive">{bugPercent}%</span>
+            <span
+              className="text-bug-open tabular-nums"
+              style={{ color: "var(--bug-open)" }}
+            >
+              {bugPercent}%
+            </span>
             <span className="text-muted-foreground text-sm font-normal"> defectos</span>
           </span>
         </p>
@@ -93,8 +99,12 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
             Tareas
           </span>
           <span className="flex items-center gap-1">
-            <span className="bg-chart-4 size-1.5 rounded-full" />
-            Defectos
+            <span
+              className={cn(BUG_BAR_OPEN_CLASS, "size-1.5 shrink-0 rounded-full")}
+              style={{ backgroundColor: "var(--bug-open)" }}
+              aria-hidden
+            />
+            {hoursMixChartConfig.bugHours.label}
           </span>
         </div>
       </div>
