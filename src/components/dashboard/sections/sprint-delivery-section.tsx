@@ -62,7 +62,7 @@ export function SprintDeliverySection({
         <DashboardKpi
           size="compact"
           layout="inline"
-          label="Bugs atendidos"
+          label="Defectos atendidos"
           value={`${bugPercent}%`}
           progress={
             bugs.assigned > 0 ? kpiProgressPercent(bugs.completed, bugs.assigned) : undefined
@@ -75,13 +75,13 @@ export function SprintDeliverySection({
               : "default"
           }
           highlight={bugs.assigned > 0 && bugs.pending === 0}
-          hint={bugs.assigned > 0 ? `${bugs.completed} de ${bugs.assigned}` : "Sin bugs"}
+          hint={bugs.assigned > 0 ? `${bugs.completed} de ${bugs.assigned}` : "Sin defectos"}
           loading={loading}
         />
         <DashboardKpi
           size="compact"
           layout="inline"
-          label="Story points"
+          label="Puntos de historia"
           value={formatStoryPoints(metrics.storyPointsAssigned)}
           variant="accent"
           highlight={metrics.storyPointsAssigned > 0}
@@ -99,7 +99,7 @@ export function SprintDeliverySection({
         size="compact"
         loading={loading}
         isEmpty={!hasData}
-        emptyMessage="Sin historias ni bugs asignados en este sprint."
+        emptyMessage="Sin historias ni defectos asignados en este sprint."
         highlight={huPercent >= 75 || bugPercent >= 75}
         className="min-w-0 lg:col-span-8"
       >

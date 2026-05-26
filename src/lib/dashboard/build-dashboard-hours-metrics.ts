@@ -12,8 +12,7 @@ import {
   formatSprintDayShortLabel,
   isSameLocalDay,
   listSprintWorkingDays,
-  pickDefaultSprintDayKey,
-  toLocalDateKey,
+  resolveEffectiveSprintDayKey,
 } from "@/lib/dashboard/sprint-days";
 import { computeDashboardMetrics } from "@/lib/dashboard/work-item-selectors";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
@@ -47,9 +46,11 @@ export function buildDashboardHoursMetrics({
     workingDayOptions,
   );
 
-  const effectiveSprintDayKey =
-    sprintDayKey || pickDefaultSprintDayKey(sprintWorkingDays) || "";
-  const hoursDayKey = effectiveSprintDayKey || toLocalDateKey(new Date());
+  const effectiveSprintDayKey = resolveEffectiveSprintDayKey(
+    sprintDayKey,
+    sprintWorkingDays,
+  );
+  const hoursDayKey = effectiveSprintDayKey;
   const sprintEndKey = sprintWorkingDays[sprintWorkingDays.length - 1]?.value ?? "";
 
   const hoursToday = sumHoursBreakdownForDay(tasks, bugs, hoursDayKey);

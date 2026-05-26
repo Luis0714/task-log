@@ -49,8 +49,8 @@ export function TimeLogBodyClient({
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Formulario</CardTitle>
           <CardDescription>
-            Paso 1: contexto (proyecto, sprint, PBI). Paso 2: datos de la Task (título, horas,
-            activity, fecha).
+            Paso 1: contexto (proyecto, sprint, historia de usuario). Paso 2: datos de la tarea (título, horas,
+            actividad, fecha).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

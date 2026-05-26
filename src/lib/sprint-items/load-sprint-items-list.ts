@@ -40,7 +40,7 @@ export const loadSprintItemsList = cache(async function loadSprintItemsList(
     return { items, error: null };
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : "Error desconocido";
-    const label = kind === "tasks" ? "tasks" : "bugs";
+    const label = kind === "tasks" ? "tareas" : "defectos";
     return {
       ...emptyList,
       error: `No se pudieron cargar las ${label} del sprint. — ${detail}`,

@@ -59,7 +59,7 @@ export const loadSprintBugs = cache(async function loadSprintBugs(
   try {
     const auth = await resolveScopedAuth(ctx.project);
     if (!auth) {
-      return { data: [], error: "Conecta Azure DevOps para cargar bugs del sprint." };
+      return { data: [], error: "Conecta Azure DevOps para cargar defectos del sprint." };
     }
     const data = await listWorkItemsInSprint(auth, ctx.sprintPath, {
       assignee: ctx.assignee,
@@ -77,7 +77,7 @@ export const loadSprintTasks = cache(async function loadSprintTasks(
   try {
     const auth = await resolveScopedAuth(ctx.project);
     if (!auth) {
-      return { data: [], error: "Conecta Azure DevOps para cargar tasks del sprint." };
+      return { data: [], error: "Conecta Azure DevOps para cargar tareas del sprint." };
     }
     const data = await listTasksInSprint(auth, ctx.sprintPath, { assignee: ctx.assignee });
     return { data, error: null };

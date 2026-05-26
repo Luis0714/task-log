@@ -7,7 +7,7 @@ import {
   formatSprintDayShortLabel,
   isSameLocalDay,
   listSprintWorkingDays,
-  pickDefaultSprintDayKey,
+  resolveEffectiveSprintDayKey,
 } from "@/lib/dashboard/sprint-days";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
 
@@ -35,8 +35,10 @@ export function buildDashboardSectionMetrics({
     { nonWorkingDates: new Set(bundle.nonWorkingDates) },
   );
 
-  const effectiveSprintDayKey =
-    sprintDayKey || pickDefaultSprintDayKey(sprintWorkingDays) || "";
+  const effectiveSprintDayKey = resolveEffectiveSprintDayKey(
+    sprintDayKey,
+    sprintWorkingDays,
+  );
 
   const { metrics } = buildDashboardMetrics({
     bundle,

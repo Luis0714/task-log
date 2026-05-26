@@ -28,19 +28,19 @@ const SECTION_COPY: Record<
   },
   inProgress: {
     title: "Historias en progreso",
-    description: "Historias de usuario en estado Committed.",
+    description: "Historias de usuario en estado Comprometido.",
     variant: "featured",
-    emptyMessage: "No hay historias en Committed con los filtros actuales.",
+    emptyMessage: "No hay historias en Comprometido con los filtros actuales.",
   },
   upcoming: {
     title: "Próximas historias de usuario",
     description: "Qué deberías hacer después, ordenadas por prioridad.",
     variant: "compact",
-    emptyMessage: "No hay historias en New o Approved con los filtros actuales.",
+    emptyMessage: "No hay historias en Nuevo o Aprobado con los filtros actuales.",
   },
   developed: {
     title: "Historias desarrolladas",
-    description: "En QA, Review PO, Stage o Done.",
+    description: "En QA, Revisión PO, Stage o Hecho.",
     variant: "compact",
     emptyMessage: "No hay historias desarrolladas con los filtros actuales.",
   },

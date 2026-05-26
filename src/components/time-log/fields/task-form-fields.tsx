@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
-import { TASK_ACTIVITY_OPTIONS } from "@/lib/time-log/task-constants";
+import { TASK_ACTIVITY_LABELS, TASK_ACTIVITY_OPTIONS } from "@/lib/time-log/task-constants";
 
 type TaskFormFieldsProps = {
   form: UseFormReturn<TimeLogFormValues>;
@@ -67,7 +67,7 @@ export function TaskFormFields({
           name="hours"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Horas (Completed Work)</FormLabel>
+              <FormLabel>Horas (trabajo completado)</FormLabel>
               <FormControl>
                 <Input inputMode="decimal" placeholder="1.5" disabled={disabled} {...field} />
               </FormControl>
@@ -99,12 +99,12 @@ export function TaskFormFields({
         <FormSelectField
           control={form.control}
           name="activity"
-          label="Activity"
+          label="Actividad"
           placeholder="Selecciona actividad"
           disabled={disabled}
           options={TASK_ACTIVITY_OPTIONS.map((activity) => ({
             value: activity,
-            label: activity,
+            label: TASK_ACTIVITY_LABELS[activity],
           }))}
         />
 

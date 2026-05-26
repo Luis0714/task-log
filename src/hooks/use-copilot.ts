@@ -70,7 +70,7 @@ export function useCopilot({ appendHistory }: UseCopilotOptions) {
           appendHistory({
             id: crypto.randomUUID(),
             at: new Date().toISOString(),
-            summary: `WI #${payload.workItemId} +${payload.hours}h (falló)`,
+            summary: `Elemento #${payload.workItemId} +${payload.hours}h (falló)`,
             ok: false,
           });
           return;
@@ -81,7 +81,7 @@ export function useCopilot({ appendHistory }: UseCopilotOptions) {
         appendHistory({
           id: crypto.randomUUID(),
           at: new Date().toISOString(),
-          summary: `WI #${payload.workItemId} +${payload.hours}h · Total: ${data.newCompletedWork ?? "—"}h`,
+          summary: `Elemento #${payload.workItemId} +${payload.hours}h · Total: ${data.newCompletedWork ?? "—"}h`,
           ok: true,
         });
       } catch {

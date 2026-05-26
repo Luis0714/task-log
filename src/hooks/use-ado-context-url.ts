@@ -44,7 +44,8 @@ export function useAdoContextUrl({
           team: next.team ?? catalog.team,
           sprint: next.sprint ?? catalog.sprintPath,
           assignee: next.assignee ?? assignee,
-          sprintDay: next.sprintDay ?? sprintDay,
+          sprintDay:
+            next.sprintDay !== undefined ? next.sprintDay : sprintDay,
         })}`,
       );
     },
@@ -66,21 +67,21 @@ export function useAdoContextUrl({
 
   const onProjectChange = useCallback(
     (value: string) => {
-      pushContext({ project: value, team: "", sprint: "" });
+      pushContext({ project: value, team: "", sprint: "", sprintDay: "" });
     },
     [pushContext],
   );
 
   const onTeamChange = useCallback(
     (value: string) => {
-      pushContext({ team: value, sprint: "" });
+      pushContext({ team: value, sprint: "", sprintDay: "" });
     },
     [pushContext],
   );
 
   const onSprintChange = useCallback(
     (value: string) => {
-      pushContext({ sprint: value });
+      pushContext({ sprint: value, sprintDay: "" });
     },
     [pushContext],
   );

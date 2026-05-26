@@ -117,7 +117,7 @@ async function fetchPbiContext(
     return {
       ok: false,
       status: 422,
-      body: "No se pudo leer el área o la iteración del PBI padre.",
+      body: "No se pudo leer el área o la iteración de la historia de usuario padre.",
     };
   }
 
@@ -149,7 +149,7 @@ export async function createTaskUnderPbi(
     return {
       ok: false,
       status: 422,
-      body: "No hay estados disponibles para Task en este proyecto.",
+      body: "No hay estados disponibles para Tarea en este proyecto.",
     };
   }
 
@@ -229,7 +229,7 @@ export async function logWorkOnWorkItem(
       status: getRes.status,
       body:
         getRes.status === 403
-          ? "Permisos insuficientes en este proyecto (se requiere acceso de escritura a work items)."
+          ? "Permisos insuficientes en este proyecto (se requiere acceso de escritura a elementos de trabajo)."
           : body.slice(0, 500),
     };
   }
@@ -387,7 +387,7 @@ async function fetchWorkItemDetails(
 
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(adoListErrorMessage(res, body, "No se pudieron cargar los work items."));
+      throw new Error(adoListErrorMessage(res, body, "No se pudieron cargar los elementos de trabajo."));
     }
 
     const data = (await res.json()) as WorkItemsBatchResponse;
@@ -395,7 +395,7 @@ async function fetchWorkItemDetails(
       const title = workItem.fields?.[TITLE];
       items.push({
         id: workItem.id,
-        title: typeof title === "string" ? title : `Work item ${workItem.id}`,
+        title: typeof title === "string" ? title : `Elemento de trabajo ${workItem.id}`,
         type: String(workItem.fields?.[WORK_ITEM_TYPE] ?? "Item"),
         state: String(workItem.fields?.[STATE] ?? ""),
         assignedTo: parseAssignedToField(workItem.fields?.[ASSIGNED_TO]),
@@ -450,7 +450,7 @@ export async function listWorkItemsInSprint(
   if (!res.ok) {
     const body = await res.text();
     throw new Error(
-      adoListErrorMessage(res, body, "No se pudieron consultar los work items del sprint."),
+      adoListErrorMessage(res, body, "No se pudieron consultar los elementos de trabajo del sprint."),
     );
   }
 

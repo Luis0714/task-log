@@ -6,39 +6,39 @@ export type PageSeoEntry = {
 
 export const PAGE_SEO = {
   dashboard: {
-    title: "Dashboard",
+    title: "Panel",
     description:
-      "Visibilidad del sprint en tiempo real: entrega, ritmo de horas, trabajo por estado y resumen daily conectado a Azure DevOps.",
+      "Visibilidad del sprint en tiempo real: entrega, ritmo de horas, trabajo por estado y resumen del daily conectado a Azure DevOps.",
     path: "/",
   },
   copilot: {
     title: "Copiloto IA",
     description:
-      "Gestiona y registra trabajo en Azure DevOps con lenguaje natural. Crea tasks, registra horas y opera el sprint con asistencia de IA.",
+      "Gestiona y registra trabajo en Azure DevOps con lenguaje natural. Crea tareas, registra horas y opera el sprint con asistencia de IA.",
     path: "/copilot",
   },
   timeLog: {
     title: "Registro de tiempo",
     description:
-      "Registra horas de trabajo en tasks del sprint con contexto de proyecto, equipo y fecha de trabajo en Azure DevOps.",
+      "Registra horas de trabajo en tareas del sprint con contexto de proyecto, equipo y fecha de trabajo en Azure DevOps.",
     path: "/time-log",
   },
   workItems: {
-    title: "Work Items",
+    title: "Historias de usuario",
     description:
       "Historias de usuario del sprint con filtros por estado, asignación y prioridad. Visibilidad clara del backlog activo.",
     path: "/work-items",
   },
   tasks: {
-    title: "Tasks",
+    title: "Tareas",
     description:
-      "Tasks del sprint con filtros por asignación, estado y día de trabajo. Seguimiento operativo del trabajo diario.",
+      "Tareas del sprint con filtros por asignación, estado y día de trabajo. Seguimiento operativo del trabajo diario.",
     path: "/tasks",
   },
   bugs: {
-    title: "Bugs",
+    title: "Defectos",
     description:
-      "Bugs del sprint con filtros por asignación, estado y fecha. Control de calidad integrado con tu flujo Agile.",
+      "Defectos del sprint con filtros por asignación, estado y fecha. Control de calidad integrado con tu flujo Agile.",
     path: "/bugs",
   },
   settings: {

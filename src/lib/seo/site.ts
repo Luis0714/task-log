@@ -14,7 +14,7 @@ export const SITE_KEYWORDS = [
   "inteligencia artificial",
   "copiloto IA",
   "sprint",
-  "work items",
+  "elementos de trabajo",
   "Scrum",
   "registro de tiempo",
   "visibilidad de equipo",

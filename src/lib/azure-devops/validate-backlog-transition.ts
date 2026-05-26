@@ -18,10 +18,10 @@ export function validateBacklogStateTransition(
 ): string | null {
   if (requiresCommittedDates(targetState)) {
     if (!input.startDate?.trim()) {
-      return "Indica la Start Date para pasar a Committed.";
+      return "Indica la fecha de inicio para pasar a Comprometido.";
     }
     if (!input.targetDate?.trim()) {
-      return "Indica la Target Date para pasar a Committed.";
+      return "Indica la fecha objetivo para pasar a Comprometido.";
     }
   }
 

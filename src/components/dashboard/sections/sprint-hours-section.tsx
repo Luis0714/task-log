@@ -85,7 +85,7 @@ export function SprintHoursSection({
           loading={loading}
         />
         <ChartPanel
-          title="Mix task / bug"
+          title="Mezcla tarea / defecto"
           size="inline"
           loading={loading}
           className="col-span-2 min-w-0 lg:col-span-4"

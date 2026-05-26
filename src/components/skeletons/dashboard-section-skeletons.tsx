@@ -29,8 +29,8 @@ export function DashboardWorkflowSectionSkeleton() {
 export function DashboardDailySectionSkeleton() {
   return (
     <DashboardSection
-      title="Resumen Daily"
-      description="Texto breve para compartir en tu daily."
+      title="Resumen del daily"
+      description="Texto breve para compartir en tu reunión diaria."
     >
       <div className="space-y-3 rounded-xl border border-border/60 p-4">
         <Skeleton className="h-4 w-full" />

@@ -44,7 +44,7 @@ export function WorkItemFiltersPanel({
   filteredCount,
   totalCount,
   disabled = false,
-  title = "Filtros de work items",
+  title = "Filtros de elementos de trabajo",
   onSearchChange,
   onAssigneeChange,
   onStateChange,

@@ -15,7 +15,7 @@ export const MOCK_IN_PROGRESS_PBIS: DashboardWorkItem[] = [
   {
     id: 123,
     title: "Implementar autenticación JWT",
-    type: "Product Backlog Item",
+    type: "User Story",
     state: "In Progress",
     assignedTo: "Luis Martínez",
     loggedHours: 6,
@@ -40,7 +40,7 @@ export const MOCK_UPCOMING_PBIS: DashboardWorkItem[] = [
   {
     id: 789,
     title: "Agregar validación de tokens en API",
-    type: "Product Backlog Item",
+    type: "User Story",
     state: "Ready",
     effort: 2,
     priority: 1,
@@ -67,7 +67,7 @@ export const MOCK_ASSIGNED_PBIS: DashboardWorkItem[] = [
   {
     id: 234,
     title: "Migrar endpoints legacy a App Router",
-    type: "Product Backlog Item",
+    type: "User Story",
     state: "QA",
     loggedHours: 10,
     effort: 8,

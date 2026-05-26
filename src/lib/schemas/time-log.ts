@@ -18,11 +18,11 @@ const hoursField = z
 const pbiIdField = z
   .string()
   .trim()
-  .min(1, "Selecciona una historia (PBI).")
+  .min(1, "Selecciona una historia de usuario.")
   .refine((value) => {
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) && parsed > 0;
-  }, "PBI inválido.");
+  }, "Historia de usuario inválida.");
 
 export const timeLogContextStepSchema = z.object({
   project: z.string().trim().min(1, "Selecciona un proyecto."),

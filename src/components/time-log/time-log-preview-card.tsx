@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
 import type { CreateTaskPayload } from "@/lib/schemas/time-log";
+import { TASK_ACTIVITY_LABELS, type TaskActivity } from "@/lib/time-log/task-constants";
 
 export type TimeLogPreviewCardProps = {
   preview: CreateTaskPayload;
@@ -46,20 +47,20 @@ export function TimeLogPreviewCard({
       <CardHeader className="pb-2">
         <CardTitle>Confirmar creación de tarea</CardTitle>
         <CardDescription>
-          Se creará una Task hija del PBI en Azure DevOps con las horas indicadas. La tarea
-          quedará en estado inicial To Do (o equivalente abierto del proceso).
+          Se creará una tarea hija de la historia de usuario en Azure DevOps con las horas indicadas. La tarea
+          quedará en estado inicial Por hacer (o equivalente abierto del proceso).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-lg border bg-muted/30 p-3">
           <p className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wide">
-            PBI padre
+            Historia de usuario padre
           </p>
           <WorkItemSelectOption
             item={{
               id: preview.pbiId,
               title: preview.pbiTitle,
-              type: "Product Backlog Item",
+              type: "User Story",
               state: "",
             }}
             variant="menu"
@@ -67,10 +68,12 @@ export function TimeLogPreviewCard({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary">create_task</Badge>
+          <Badge variant="secondary">Crear tarea</Badge>
           <Badge variant="outline">{preview.project}</Badge>
           <Badge variant="outline">{preview.hours} h</Badge>
-          <Badge variant="outline">{preview.activity}</Badge>
+          <Badge variant="outline">
+            {TASK_ACTIVITY_LABELS[preview.activity as TaskActivity] ?? preview.activity}
+          </Badge>
           <Badge variant="outline">{preview.workingDate}</Badge>
           <Badge variant="outline">{preview.state}</Badge>
         </div>

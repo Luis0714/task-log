@@ -208,11 +208,11 @@ export function UserStoryDetailSheet({
 
                 <section className="space-y-2">
                   <h3 className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-                    Bugs ({childBugs.length})
+                    Defectos ({childBugs.length})
                   </h3>
                   {childBugs.length === 0 ? (
                     <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-6 text-center text-sm">
-                      No hay bugs vinculados a esta historia.
+                      No hay defectos vinculados a esta historia.
                     </p>
                   ) : (
                     <ul className="space-y-2">

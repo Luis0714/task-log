@@ -21,10 +21,10 @@ export function UserStoryCommittedFields({
   return (
     <section className="space-y-4">
       <p className="text-muted-foreground text-xs">
-        Start Date y Target Date (requeridas al pasar a Committed).
+        Fecha de inicio y fecha objetivo (requeridas al pasar a Comprometido).
       </p>
       <div className="space-y-2">
-        <Label htmlFor="user-story-start-date">Start Date</Label>
+        <Label htmlFor="user-story-start-date">Fecha de inicio</Label>
         <DatePicker
           id="user-story-start-date"
           value={startDate}
@@ -33,7 +33,7 @@ export function UserStoryCommittedFields({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="user-story-target-date">Target Date</Label>
+        <Label htmlFor="user-story-target-date">Fecha objetivo</Label>
         <DatePicker
           id="user-story-target-date"
           value={targetDate}

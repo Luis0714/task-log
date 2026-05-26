@@ -103,7 +103,7 @@ export function TaskDetailSheet({
         return;
       }
 
-      appToast.success("Task actualizada.");
+      appToast.success("Tarea actualizada.");
       onSaved?.();
       onOpenChange(false);
     } catch {
@@ -117,12 +117,12 @@ export function TaskDetailSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Task</SheetTitle>
+          <SheetTitle>Tarea</SheetTitle>
           <SheetDescription
             className={cn(task && "line-clamp-2 text-pretty text-foreground/80")}
             title={task?.title}
           >
-            {task?.title ?? "Selecciona una task para ver el detalle."}
+            {task?.title ?? "Selecciona una tarea para ver el detalle."}
           </SheetDescription>
         </SheetHeader>
 
@@ -143,7 +143,7 @@ export function TaskDetailSheet({
                     onChange={setDraftWorkingDate}
                   />
                   <p className="text-muted-foreground text-xs">
-                    Working Date en Azure DevOps. Obligatoria al cambiar el estado.
+                    Fecha de trabajo en Azure DevOps. Obligatoria al cambiar el estado.
                   </p>
                 </section>
 
@@ -179,7 +179,7 @@ export function TaskDetailSheet({
               </>
             ) : (
               <p className="text-muted-foreground text-sm">
-                Selecciona una task para ver el detalle.
+                Selecciona una tarea para ver el detalle.
               </p>
             )}
           </div>

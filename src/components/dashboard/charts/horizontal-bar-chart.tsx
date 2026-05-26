@@ -47,7 +47,9 @@ export function HorizontalBarChart({ bars, className }: HorizontalBarChartProps)
           content={
             <ConfigChartTooltip
               config={pbiStateChartConfig}
-              formatValue={(value) => `${value} PBI${value === 1 ? "" : "s"}`}
+              formatValue={(value) =>
+                `${value} ${value === 1 ? "historia de usuario" : "historias de usuario"}`
+              }
             />
           }
         />

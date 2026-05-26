@@ -29,8 +29,8 @@ export async function DashboardDailySectionServer({
 
   return (
     <DashboardSection
-      title="Resumen Daily"
-      description="Texto breve para compartir en tu daily."
+      title="Resumen del daily"
+      description="Texto breve para compartir en tu reunión diaria."
     >
       <DashboardDailySection
         inProgress={inProgress}

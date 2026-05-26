@@ -25,9 +25,9 @@ export function buildSoftwareApplicationJsonLd(): Record<string, unknown> {
     featureList: [
       SITE_TAGLINE,
       "Integración con Azure DevOps",
-      "Dashboard de sprint y métricas Agile",
+      "Panel de sprint y métricas Agile",
       "Copiloto con inteligencia artificial",
-      "Registro de tiempo y gestión de work items",
+      "Registro de tiempo y gestión de elementos de trabajo",
     ],
   };
 }

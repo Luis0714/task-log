@@ -124,11 +124,11 @@ export function BugDetailSheet({
 
       if (!res.ok) {
         const message = [payload.error, payload.detail].filter(Boolean).join(" — ");
-        appToast.error(message || "No se pudo guardar el bug.");
+        appToast.error(message || "No se pudo guardar el defecto.");
         return;
       }
 
-      appToast.success("Bug actualizado.");
+      appToast.success("Defecto actualizado.");
       onSaved?.();
       onOpenChange(false);
     } catch {
@@ -142,12 +142,12 @@ export function BugDetailSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Bug</SheetTitle>
+          <SheetTitle>Defecto</SheetTitle>
           <SheetDescription
             className={cn(bug && "line-clamp-2 text-pretty text-foreground/80")}
             title={bug?.title}
           >
-            {bug?.title ?? "Selecciona un bug para ver el detalle."}
+            {bug?.title ?? "Selecciona un defecto para ver el detalle."}
           </SheetDescription>
         </SheetHeader>
 
@@ -168,12 +168,12 @@ export function BugDetailSheet({
                     onChange={setDraftWorkingDate}
                   />
                   <p className="text-muted-foreground text-xs">
-                    Working Date en Azure DevOps. Obligatoria al cambiar el estado.
+                    Fecha de trabajo en Azure DevOps. Obligatoria al cambiar el estado.
                   </p>
                 </section>
 
                 <section className="space-y-2">
-                  <Label htmlFor="bug-completed-work">Completed Work (horas)</Label>
+                  <Label htmlFor="bug-completed-work">Trabajo completado (horas)</Label>
                   <Input
                     id="bug-completed-work"
                     type="number"
@@ -185,7 +185,7 @@ export function BugDetailSheet({
                     onChange={(event) => setDraftCompletedWork(event.target.value)}
                   />
                   <p className="text-muted-foreground text-xs">
-                    Horas registradas en el bug. Obligatorias al cambiar el estado.
+                    Horas registradas en el defecto. Obligatorias al cambiar el estado.
                   </p>
                 </section>
 
@@ -221,7 +221,7 @@ export function BugDetailSheet({
               </>
             ) : (
               <p className="text-muted-foreground text-sm">
-                Selecciona un bug para ver el detalle.
+                Selecciona un defecto para ver el detalle.
               </p>
             )}
           </div>

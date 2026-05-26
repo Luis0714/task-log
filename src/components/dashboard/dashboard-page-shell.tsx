@@ -12,7 +12,7 @@ import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { buildAdoContextQuery } from "@/lib/ado/parse-context-search-params";
 import {
   listSprintWorkingDays,
-  pickDefaultSprintDayKey,
+  resolveEffectiveSprintDayKey,
 } from "@/lib/dashboard/sprint-days";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
 
@@ -73,13 +73,27 @@ export function DashboardPageShell({
 
   useEffect(() => {
     if (sprintWorkingDays.length === 0) return;
-    const defaultKey = pickDefaultSprintDayKey(sprintWorkingDays);
-    if (!defaultKey) return;
-    setSprintDayKey((current) => {
-      const stillValid = sprintWorkingDays.some((day) => day.value === current);
-      return stillValid ? current : defaultKey;
-    });
-  }, [catalog.sprintPath, sprintWorkingDays]);
+    const resolved = resolveEffectiveSprintDayKey(sprintDayKey, sprintWorkingDays);
+    if (resolved === sprintDayKey) return;
+
+    setSprintDayKey(resolved);
+    router.replace(
+      `${pathname}${buildAdoContextQuery({
+        project: catalog.project,
+        team: catalog.team,
+        sprint: catalog.sprintPath,
+        sprintDay: resolved,
+      })}`,
+    );
+  }, [
+    catalog.project,
+    catalog.sprintPath,
+    catalog.team,
+    pathname,
+    router,
+    sprintDayKey,
+    sprintWorkingDays,
+  ]);
 
   const catalogError =
     catalog.errors.projects ??
@@ -104,7 +118,7 @@ export function DashboardPageShell({
       <DashboardHeader data={resolvedHeader} />
 
       {!adoExecutionReady ? (
-        <CopilotErrorAlert message="Conecta Azure DevOps para ver tu dashboard con datos reales." />
+        <CopilotErrorAlert message="Conecta Azure DevOps para ver tu panel con datos reales." />
       ) : null}
 
       {catalogError ? <CopilotErrorAlert message={catalogError} /> : null}

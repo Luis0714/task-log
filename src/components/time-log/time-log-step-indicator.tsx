@@ -6,7 +6,7 @@ export type TimeLogStepIndicatorProps = {
 };
 
 const STEPS = [
-  { id: 1, label: "Contexto", description: "Proyecto, sprint y PBI" },
+  { id: 1, label: "Contexto", description: "Proyecto, sprint e historia de usuario" },
   { id: 2, label: "Tarea", description: "Detalle y horas" },
 ] as const;
 

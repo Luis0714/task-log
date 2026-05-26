@@ -46,7 +46,7 @@ export function TimeLogContextStep({ form, catalog, onContinue }: TimeLogContext
             onSearchChange={catalog.onWorkItemSearchChange}
             onAssigneeChange={catalog.onWorkItemAssigneeChange}
             onStateChange={catalog.onWorkItemStateChange}
-            title="Filtros de historias (PBI)"
+            title="Filtros de historias de usuario"
           />
         ) : null}
       </AdoFiltersCollapsible>

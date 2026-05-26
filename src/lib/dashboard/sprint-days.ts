@@ -98,6 +98,25 @@ export function pickDefaultSprintDayKey(workingDays: SprintWorkingDay[]): string
   return lastPast?.value ?? workingDays[0]?.value ?? null;
 }
 
+export function isSprintWorkingDayKey(
+  sprintDayKey: string,
+  workingDays: readonly SprintWorkingDay[],
+): boolean {
+  const key = sprintDayKey.trim();
+  if (!key) return false;
+  return workingDays.some((day) => day.value === key);
+}
+
+/** Día del sprint en URL o, si no es válido para el sprint, el default laborable. */
+export function resolveEffectiveSprintDayKey(
+  sprintDayKey: string | undefined | null,
+  workingDays: readonly SprintWorkingDay[],
+): string {
+  const key = sprintDayKey?.trim() ?? "";
+  if (isSprintWorkingDayKey(key, workingDays)) return key;
+  return pickDefaultSprintDayKey([...workingDays]) ?? "";
+}
+
 export function formatSprintDayOptionLabel(day: SprintWorkingDay): string {
   const dateLabel = formatSprintDayDateLabel(day);
 

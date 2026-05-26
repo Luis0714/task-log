@@ -30,7 +30,7 @@ export default async function TasksPage({ searchParams }: PageProps) {
       className="shrink-0"
     >
       <Plus data-icon="inline-start" aria-hidden />
-      Nueva task
+      Nueva tarea
     </Button>
   ) : null;
 
