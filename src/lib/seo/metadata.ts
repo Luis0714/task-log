@@ -88,7 +88,9 @@ export function buildRootMetadata(): Metadata {
     twitter: buildTwitter(SITE_NAME, SITE_DESCRIPTION),
     icons: {
       icon: [{ url: DEFAULT_ICON_PATH, type: "image/svg+xml" }],
-      apple: [{ url: APPLE_TOUCH_ICON_PATH, sizes: "180x180" }],
+      apple: [
+        { url: APPLE_TOUCH_ICON_PATH, sizes: "180x180", type: "image/png" },
+      ],
     },
     appleWebApp: {
       capable: true,

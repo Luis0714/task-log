@@ -23,7 +23,7 @@ export function NeosViewIsotipo({
     >
       <path
         d={NEOSVIEW_ISOTIPO_PATH}
-        className={cn("fill-(--brand-mark)", markClassName)}
+        className={markClassName ?? "fill-brand-mark"}
       />
     </NeosViewLogo>
   );

@@ -60,7 +60,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${satoshi.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-background text-foreground">
+      <body className="min-h-full bg-background font-sans text-foreground">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

@@ -68,7 +68,8 @@
   --secondary: #e5e7ff;
   --secondary-foreground: #123187;
   --muted: #e3e3e8;
-  --muted-foreground: #5e5e6e;
+  /* Más oscuro que antes (#5e5e6e) — mejor contraste en textos xs/sm sobre fondo claro. */
+  --muted-foreground: #45455a;
   --accent: #e3b74f;
   --accent-foreground: #17171c;
   --destructive: #b91c1c;
@@ -254,9 +255,28 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background font-sans text-foreground;
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Utilidades de marca — aseguran el morado y el fondo de la pastilla del isotipo. */
+@layer utilities {
+  .bg-brand-mark {
+    background-color: var(--brand-mark);
+  }
+
+  .fill-brand-mark {
+    fill: var(--brand-mark);
+  }
+
+  .fill-sidebar-foreground {
+    fill: var(--sidebar-foreground);
+  }
+
+  .fill-white {
+    fill: #ffffff;
   }
 }

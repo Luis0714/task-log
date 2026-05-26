@@ -28,7 +28,7 @@ export default function manifest(): MetadataRoute.Manifest {
         src: APPLE_TOUCH_ICON_PATH,
         sizes: "180x180",
         type: "image/png",
-        purpose: "maskable",
+        purpose: "any",
       },
     ],
   };
