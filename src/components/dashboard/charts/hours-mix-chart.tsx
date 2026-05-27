@@ -1,9 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { Bug, ListChecks } from "lucide-react";
 import { Cell, Pie, PieChart } from "recharts";
 
+import { HoursMixMetricColumn } from "@/components/dashboard/charts/hours-mix-metric-column";
 import { ConfigChartTooltip } from "@/components/dashboard/charts/config-chart-tooltip";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { formatHours } from "@/lib/dashboard/format-hours";
@@ -23,24 +23,6 @@ export type HoursMixChartProps = {
   breakdown: HoursBreakdown;
   className?: string;
 };
-
-type MixMetricColumnProps = {
-  children: ReactNode;
-  className?: string;
-};
-
-function MixMetricColumn({ children, className }: MixMetricColumnProps) {
-  return (
-    <div
-      className={cn(
-        "flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-md border border-border/50 bg-muted/20 px-2.5 py-2 sm:min-w-20 sm:px-3 sm:py-2.5",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-}
 
 export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
   const total = totalHoursBreakdown(breakdown);
@@ -93,7 +75,7 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
       </div>
 
       <div className="flex w-full max-w-44 items-stretch justify-center gap-2 lg:max-w-none lg:min-w-0 lg:flex-1">
-        <MixMetricColumn>
+        <HoursMixMetricColumn>
           <span className="inline-flex items-center justify-center gap-1">
             <span
               className={cn(
@@ -113,9 +95,9 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
             <ListChecks className="text-chart-1 size-3 shrink-0" aria-hidden />
             Desarrollo
           </span>
-        </MixMetricColumn>
+        </HoursMixMetricColumn>
 
-        <MixMetricColumn>
+        <HoursMixMetricColumn>
           <span className="inline-flex items-center justify-center gap-1">
             <span
               className="font-heading text-lg font-semibold leading-none tabular-nums"
@@ -133,7 +115,7 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
             <Bug className={bugIconClass} style={{ color: "var(--bug-open)" }} aria-hidden />
             Bugs
           </span>
-        </MixMetricColumn>
+        </HoursMixMetricColumn>
       </div>
     </div>
   );

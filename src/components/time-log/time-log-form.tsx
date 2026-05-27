@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Loader2, Save } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 
@@ -55,14 +54,4 @@ export function TimeLogForm({
     </form>
   );
 }
-
-export function TimeLogCopilotLink() {
-  return (
-    <p className="text-muted-foreground text-pretty text-sm">
-      ¿Prefieres lenguaje natural?{" "}
-      <Link href="/copilot" className="text-primary font-medium hover:underline">
-        Usa el Copiloto IA
-      </Link>
-    </p>
-  );
-}
+export { TimeLogCopilotLink } from "@/components/time-log/time-log-copilot-link";

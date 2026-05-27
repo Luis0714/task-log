@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import { WorkItemDescriptionBlock } from "@/components/work-items/work-item-description-block";
+import { UserStoryBugListItem } from "@/components/work-items/user-story-bug-list-item";
 import { UserStoryResponsableFields } from "@/components/work-items/user-story-responsable-fields";
 import { UserStorySchedulingFields } from "@/components/work-items/user-story-scheduling-fields";
 import { UserStorySummaryCard } from "@/components/work-items/user-story-summary-card";
@@ -24,15 +25,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { WorkItemId } from "@/components/work-items/work-item-id";
-import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { useUserStoryDetailForm } from "@/hooks/work-items/use-user-story-detail-form";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
 import { appToast } from "@/lib/toast";
 import type { BacklogResponsableFieldDto } from "@/lib/schemas/ado-backlog-fields";
 import type { AdoTaskStateDto, AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
-import { getWorkItemStatePresentation } from "@/lib/time-log/work-item-presentation";
 import { filterBugsForParent } from "@/lib/work-items/bugs-for-parent";
 import { cn } from "@/lib/utils";
 
@@ -52,40 +50,6 @@ export type UserStoryDetailSheetProps = {
   onBugClick?: (bug: AdoWorkItemOptionDto) => void;
   onSaved?: () => void;
 };
-
-function BugListItem({
-  bug,
-  onClick,
-}: {
-  bug: AdoWorkItemOptionDto;
-  onClick?: (bug: AdoWorkItemOptionDto) => void;
-}) {
-  const presentation = bug.state ? getWorkItemStatePresentation(bug.state) : null;
-
-  return (
-    <button
-      type="button"
-      className={cn(
-        "flex w-full min-w-0 items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
-        onClick && "cursor-pointer hover:bg-muted/30",
-        !presentation && "border-border/60 bg-muted/20",
-      )}
-      onClick={() => onClick?.(bug)}
-      disabled={!onClick}
-      style={presentation?.surfaceStyle}
-    >
-      <div className="min-w-0 flex-1">
-        <WorkItemId id={bug.id} />
-        <p className="text-foreground mt-1.5 text-sm leading-snug" title={bug.title}>
-          {bug.title}
-        </p>
-      </div>
-      {bug.state ? (
-        <WorkItemStateBadge state={bug.state} className="max-w-[42%] shrink-0" />
-      ) : null}
-    </button>
-  );
-}
 
 export function UserStoryDetailSheet({
   open,
@@ -243,7 +207,7 @@ export function UserStoryDetailSheet({
                   ) : (
                     <ul className="space-y-2">
                       {childBugs.map((bug) => (
-                        <BugListItem key={bug.id} bug={bug} onClick={onBugClick} />
+                        <UserStoryBugListItem key={bug.id} bug={bug} onClick={onBugClick} />
                       ))}
                     </ul>
                   )}
