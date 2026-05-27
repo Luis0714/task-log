@@ -10,15 +10,50 @@ import { cn } from "@/lib/utils";
 
 export type TaskSummaryCardProps = {
   item: AdoWorkItemOptionDto;
+  showLoggedHoursHighlight?: boolean;
   className?: string;
 };
 
-function TaskLoggedHoursHighlight({ hours }: { hours: number }) {
+type TaskSummaryViewModel = {
+  hasWorkingDate: boolean;
+  hasEffort: boolean;
+  hasState: boolean;
+  hasAssignee: boolean;
+  shouldShowLoggedHoursHighlight: boolean;
+};
+
+function isValidLoggedHours(hours: number | undefined): hours is number {
+  return hours !== undefined && Number.isFinite(hours) && hours >= 0;
+}
+
+function buildTaskSummaryViewModel(
+  item: AdoWorkItemOptionDto,
+  showLoggedHoursHighlight: boolean,
+): TaskSummaryViewModel {
+  return {
+    hasWorkingDate: Boolean(item.workingDate),
+    hasEffort: item.effort !== undefined,
+    hasState: Boolean(item.state),
+    hasAssignee: Boolean(item.assignedTo),
+    shouldShowLoggedHoursHighlight: showLoggedHoursHighlight && isValidLoggedHours(item.loggedHours),
+  };
+}
+
+export function TaskLoggedHoursHighlight({
+  hours,
+  className,
+}: {
+  hours: number;
+  className?: string;
+}) {
   if (!Number.isFinite(hours) || hours < 0) return null;
 
   return (
     <div
-      className="mt-3 flex items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/12 px-3 py-2.5 shadow-sm ring-1 ring-amber-500/25 dark:bg-amber-500/15"
+      className={cn(
+        "flex items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/12 px-3 py-2.5 shadow-sm ring-1 ring-amber-500/25 dark:bg-amber-500/15",
+        className,
+      )}
       title={`Horas registradas: ${formatHours(hours)}`}
     >
       <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/35 bg-amber-500/20 text-amber-800 dark:text-amber-300">
@@ -36,7 +71,13 @@ function TaskLoggedHoursHighlight({ hours }: { hours: number }) {
   );
 }
 
-export function TaskSummaryCard({ item, className }: TaskSummaryCardProps) {
+export function TaskSummaryCard({
+  item,
+  showLoggedHoursHighlight = true,
+  className,
+}: TaskSummaryCardProps) {
+  const viewModel = buildTaskSummaryViewModel(item, showLoggedHoursHighlight);
+
   return (
     <div
       className={cn(
@@ -48,13 +89,15 @@ export function TaskSummaryCard({ item, className }: TaskSummaryCardProps) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <WorkItemId id={item.id} />
-          {item.workingDate ? <TaskDateBadge dateKey={item.workingDate} /> : null}
-          {item.effort !== undefined ? <WorkItemEffortBadge effort={item.effort} /> : null}
+          {viewModel.hasWorkingDate ? <TaskDateBadge dateKey={item.workingDate!} /> : null}
+          {viewModel.hasEffort ? <WorkItemEffortBadge effort={item.effort!} /> : null}
         </div>
-        {item.state ? <StatusBadge state={item.state} className="max-w-[50%] shrink-0" /> : null}
+        {viewModel.hasState ? (
+          <StatusBadge state={item.state!} className="max-w-[50%] shrink-0" />
+        ) : null}
       </div>
 
-      {item.assignedTo ? (
+      {viewModel.hasAssignee ? (
         <div className="mt-3 flex min-w-0 items-center gap-2.5">
           <span className="bg-primary/15 text-primary flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/25">
             <UserRound className="size-4" aria-hidden />
@@ -73,8 +116,8 @@ export function TaskSummaryCard({ item, className }: TaskSummaryCardProps) {
         </div>
       ) : null}
 
-      {item.loggedHours !== undefined ? (
-        <TaskLoggedHoursHighlight hours={item.loggedHours} />
+      {viewModel.shouldShowLoggedHoursHighlight ? (
+        <TaskLoggedHoursHighlight hours={item.loggedHours!} className="mt-3" />
       ) : null}
     </div>
   );

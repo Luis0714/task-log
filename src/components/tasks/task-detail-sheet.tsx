@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { TaskSummaryCard } from "@/components/tasks/task-summary-card";
+import {
+  TaskLoggedHoursHighlight,
+  TaskSummaryCard,
+} from "@/components/tasks/task-summary-card";
 import { WorkItemDescriptionBlock } from "@/components/work-items/work-item-description-block";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { Button } from "@/components/ui/button";
@@ -42,6 +45,103 @@ export type TaskDetailSheetProps = {
   onSaved?: () => void;
 };
 
+type SprintDateBounds = {
+  min: string | undefined;
+  max: string | undefined;
+};
+
+type TaskUpdatePayload = {
+  project: string;
+  state: string;
+  workingDate: string;
+};
+
+type TaskUpdateResponse = {
+  ok: boolean;
+  errorMessage?: string;
+};
+
+function buildSprintDateBounds(sprintWorkingDays: readonly SprintWorkingDay[]): SprintDateBounds {
+  if (sprintWorkingDays.length === 0) {
+    return { min: undefined, max: undefined };
+  }
+
+  return {
+    min: sprintWorkingDays[0]?.value,
+    max: sprintWorkingDays[sprintWorkingDays.length - 1]?.value,
+  };
+}
+
+async function patchTaskWorkItem(taskId: number, payload: TaskUpdatePayload): Promise<TaskUpdateResponse> {
+  const res = await fetch(`/api/ado/work-items/${taskId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const body = (await res.json()) as { error?: string; detail?: string };
+
+  if (res.ok) return { ok: true };
+
+  const errorMessage = [body.error, body.detail].filter(Boolean).join(" — ");
+  return { ok: false, errorMessage: errorMessage || "No se pudo guardar el estado." };
+}
+
+function useTaskDetailDraftController({
+  task,
+  taskStates,
+  statesLoading,
+  project,
+  sprintWorkingDays,
+  saving,
+}: {
+  task: AdoWorkItemOptionDto | null;
+  taskStates: readonly AdoTaskStateDto[];
+  statesLoading: boolean;
+  project: string | null;
+  sprintWorkingDays: readonly SprintWorkingDay[];
+  saving: boolean;
+}) {
+  const [draftState, setDraftState] = useState("");
+  const [draftWorkingDate, setDraftWorkingDate] = useState("");
+
+  const stateOptions = useMemo(() => taskStates.map((state) => state.name), [taskStates]);
+  const statesReady = !statesLoading && stateOptions.length > 0;
+  const sprintDateBounds = useMemo(
+    () => buildSprintDateBounds(sprintWorkingDays),
+    [sprintWorkingDays],
+  );
+
+  useEffect(() => {
+    if (!task) return;
+
+    setDraftState(task.state);
+    setDraftWorkingDate(task.workingDate?.trim() || getDefaultWorkingDate());
+  }, [task?.id, task?.state, task?.workingDate]);
+
+  const initialWorkingDate = task?.workingDate?.trim() ?? "";
+  const isStateDirty = Boolean(task && draftState !== task.state);
+  const isDateDirty = Boolean(task && draftWorkingDate !== initialWorkingDate);
+  const isDirty = isStateDirty || isDateDirty;
+
+  const canSave = computeDraftCanSave({
+    isDirty,
+    isValid: isDateKeyValid(draftWorkingDate),
+    externalReady: statesReady && Boolean(project),
+    isSubmitting: saving,
+  });
+
+  return {
+    draftState,
+    setDraftState,
+    draftWorkingDate,
+    setDraftWorkingDate,
+    stateOptions,
+    statesReady,
+    sprintDateBounds,
+    canSave,
+  };
+}
+
 export function TaskDetailSheet({
   open,
   onOpenChange,
@@ -52,37 +152,23 @@ export function TaskDetailSheet({
   sprintWorkingDays = [],
   onSaved,
 }: TaskDetailSheetProps) {
-  const [draftState, setDraftState] = useState("");
-  const [draftWorkingDate, setDraftWorkingDate] = useState("");
   const [saving, setSaving] = useState(false);
-
-  const stateOptions = useMemo(() => taskStates.map((state) => state.name), [taskStates]);
-  const statesReady = !statesLoading && stateOptions.length > 0;
-
-  const sprintDateBounds = useMemo(() => {
-    if (sprintWorkingDays.length === 0) return { min: undefined, max: undefined };
-    return {
-      min: sprintWorkingDays[0]?.value,
-      max: sprintWorkingDays[sprintWorkingDays.length - 1]?.value,
-    };
-  }, [sprintWorkingDays]);
-
-  useEffect(() => {
-    if (task) {
-      setDraftState(task.state);
-      setDraftWorkingDate(task.workingDate?.trim() || getDefaultWorkingDate());
-    }
-  }, [task?.id, task?.state, task?.workingDate]);
-
-  const initialWorkingDate = task?.workingDate?.trim() ?? "";
-  const isStateDirty = Boolean(task && draftState !== task.state);
-  const isDateDirty = Boolean(task && draftWorkingDate !== initialWorkingDate);
-  const isDirty = isStateDirty || isDateDirty;
-  const canSave = computeDraftCanSave({
-    isDirty,
-    isValid: isDateKeyValid(draftWorkingDate),
-    externalReady: statesReady && Boolean(project),
-    isSubmitting: saving,
+  const {
+    draftState,
+    setDraftState,
+    draftWorkingDate,
+    setDraftWorkingDate,
+    stateOptions,
+    statesReady,
+    sprintDateBounds,
+    canSave,
+  } = useTaskDetailDraftController({
+    task,
+    taskStates,
+    statesLoading,
+    project,
+    sprintWorkingDays,
+    saving,
   });
 
   async function handleSave() {
@@ -90,20 +176,14 @@ export function TaskDetailSheet({
 
     setSaving(true);
     try {
-      const res = await fetch(`/api/ado/work-items/${task.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          project,
-          state: draftState,
-          workingDate: draftWorkingDate,
-        }),
+      const response = await patchTaskWorkItem(task.id, {
+        project,
+        state: draftState,
+        workingDate: draftWorkingDate,
       });
-      const payload = (await res.json()) as { error?: string; detail?: string };
 
-      if (!res.ok) {
-        const message = [payload.error, payload.detail].filter(Boolean).join(" — ");
-        appToast.error(message || "No se pudo guardar el estado.");
+      if (!response.ok) {
+        appToast.error(response.errorMessage || "No se pudo guardar el estado.");
         return;
       }
 
@@ -137,6 +217,9 @@ export function TaskDetailSheet({
                     <WorkItemDescriptionBlock html={task.description} />
                   ) : null}
                 </section>
+                {task.loggedHours !== undefined ? (
+                  <TaskLoggedHoursHighlight hours={task.loggedHours} />
+                ) : null}
 
                 <section className="space-y-2">
                   <Label htmlFor="task-working-date">Fecha de trabajo</Label>
@@ -183,7 +266,7 @@ export function TaskDetailSheet({
                   )}
                 </section>
 
-                <TaskSummaryCard item={task} />
+                <TaskSummaryCard item={task} showLoggedHoursHighlight={false} />
 
               </>
             ) : (

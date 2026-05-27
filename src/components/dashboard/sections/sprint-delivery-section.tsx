@@ -42,25 +42,30 @@ export type SprintDeliverySectionProps = {
   className?: string;
 };
 
-export function SprintDeliverySection({
-  metrics,
+type SprintDeliveryViewModel = {
+  rows: ReturnType<typeof buildDeliveryChartRows>;
+  hasData: boolean;
+  huPercent: number;
+  bugPercent: number;
+  huVariant: ReturnType<typeof resolveUserStoriesMetricVariant>;
+  storyPointsVariant: ReturnType<typeof resolveStoryPointsMetricVariant>;
+  storyPointsAssigned: number;
+  storyPointsDeveloped: number;
+  spPercent: number;
+  bugsCardVariant: ReturnType<typeof resolveBugsMetricVariant> | "success";
+  isBugsEmptySprint: boolean;
+  bugsIconClassName?: string;
+};
 
-  loading = false,
-
-  className,
-}: SprintDeliverySectionProps) {
+function buildSprintDeliveryViewModel(metrics: DashboardDeliveryMetrics): SprintDeliveryViewModel {
+  const { userStories, bugs } = metrics.sprintStatusOverview;
   const rows = buildDeliveryChartRows(metrics.sprintStatusOverview);
-
   const hasData = rows.some(
     (row) => row.pending > 0 || row.inProgress > 0 || row.completed > 0,
   );
 
-  const { userStories, bugs } = metrics.sprintStatusOverview;
-
   const huPercent = completionPercent(userStories);
-
   const bugPercent = completionPercent(bugs);
-
   const storyPointsAssigned = metrics.storyPointsAssigned;
   const storyPointsDeveloped = metrics.storyPointsDeveloped;
   const spPercent = storyPointsCompletionPercent(
@@ -69,14 +74,47 @@ export function SprintDeliverySection({
   );
 
   const huVariant = resolveUserStoriesMetricVariant(userStories, huPercent);
-
   const bugsVariant = resolveBugsMetricVariant(bugs, bugPercent);
-
+  const isBugsEmptySprint = bugs.assigned <= 0;
+  const bugsCardVariant = isBugsEmptySprint ? "success" : bugsVariant;
   const storyPointsVariant = resolveStoryPointsMetricVariant(
     storyPointsDeveloped,
     storyPointsAssigned,
     spPercent,
   );
+
+  const bugsIconClassName =
+    bugsCardVariant === "success"
+      ? BUG_ICON_ATTENDED_CLASS
+      : bugsCardVariant === "bugOpen" || bugsCardVariant === "default"
+        ? BUG_ICON_OPEN_CLASS
+        : undefined;
+
+  return {
+    rows,
+    hasData,
+    huPercent,
+    bugPercent,
+    huVariant,
+    storyPointsVariant,
+    storyPointsAssigned,
+    storyPointsDeveloped,
+    spPercent,
+    bugsCardVariant,
+    isBugsEmptySprint,
+    bugsIconClassName,
+  };
+}
+
+export function SprintDeliverySection({
+  metrics,
+
+  loading = false,
+
+  className,
+}: SprintDeliverySectionProps) {
+  const viewModel = buildSprintDeliveryViewModel(metrics);
+  const { userStories, bugs } = metrics.sprintStatusOverview;
 
   return (
     <div className={cn("grid gap-3 lg:grid-cols-12", className)}>
@@ -84,14 +122,14 @@ export function SprintDeliverySection({
         <DeliveryMetricCard
           title="Desarrolladas"
           icon={ListChecks}
-          value={huVariant === "empty" ? "—" : `${huPercent}%`}
+          value={viewModel.huVariant === "empty" ? "—" : `${viewModel.huPercent}%`}
           progress={
             userStories.assigned > 0
               ? kpiProgressPercent(userStories.completed, userStories.assigned)
               : undefined
           }
-          variant={huVariant}
-          highlight={huVariant === "success" || huVariant === "primary"}
+          variant={viewModel.huVariant}
+          highlight={viewModel.huVariant === "success" || viewModel.huVariant === "primary"}
           hint={
             userStories.assigned > 0
               ? formatMetricRatio(userStories.completed, userStories.assigned)
@@ -103,23 +141,17 @@ export function SprintDeliverySection({
         <DeliveryMetricCard
           title="Bugs atendidos"
           icon={Bug}
-          iconClassName={
-            bugsVariant === "success"
-              ? BUG_ICON_ATTENDED_CLASS
-              : bugsVariant === "bugOpen" || bugsVariant === "default"
-                ? BUG_ICON_OPEN_CLASS
-                : undefined
-          }
-          value={bugs.assigned === 0 ? "0 Bugs" : `${bugPercent}%`}
+          iconClassName={viewModel.bugsIconClassName}
+          value={viewModel.isBugsEmptySprint ? "0 Bugs" : `${viewModel.bugPercent}%`}
           progress={
-            bugs.assigned > 0
+            !viewModel.isBugsEmptySprint
               ? kpiProgressPercent(bugs.completed, bugs.assigned)
               : undefined
           }
-          variant={bugsVariant}
-          highlight={bugsVariant === "success" || bugsVariant === "bugOpen"}
+          variant={viewModel.bugsCardVariant}
+          highlight={viewModel.isBugsEmptySprint || viewModel.bugsCardVariant === "bugOpen"}
           hint={
-            bugs.assigned > 0
+            !viewModel.isBugsEmptySprint
               ? formatMetricRatio(bugs.completed, bugs.assigned)
               : "Sin bugs en el sprint"
           }
@@ -129,21 +161,22 @@ export function SprintDeliverySection({
         <DeliveryMetricCard
           title="Puntos Historia"
           icon={Gauge}
-          value={storyPointsVariant === "empty" ? "—" : `${spPercent}%`}
+          value={viewModel.storyPointsVariant === "empty" ? "—" : `${viewModel.spPercent}%`}
           progress={
-            storyPointsAssigned > 0
-              ? kpiProgressPercent(storyPointsDeveloped, storyPointsAssigned)
+            viewModel.storyPointsAssigned > 0
+              ? kpiProgressPercent(viewModel.storyPointsDeveloped, viewModel.storyPointsAssigned)
               : undefined
           }
-          variant={storyPointsVariant}
+          variant={viewModel.storyPointsVariant}
           highlight={
-            storyPointsVariant === "success" || storyPointsVariant === "primary"
+            viewModel.storyPointsVariant === "success" ||
+            viewModel.storyPointsVariant === "primary"
           }
           hint={
-            storyPointsAssigned > 0
+            viewModel.storyPointsAssigned > 0
               ? formatMetricRatio(
-                  storyPointsDeveloped,
-                  storyPointsAssigned,
+                  viewModel.storyPointsDeveloped,
+                  viewModel.storyPointsAssigned,
                   formatStoryPoints,
                 )
               : "Sin puntos asignados"
@@ -156,12 +189,12 @@ export function SprintDeliverySection({
         title="Estado de entrega"
         size="compact"
         loading={loading}
-        isEmpty={!hasData}
+        isEmpty={!viewModel.hasData}
         emptyMessage="Sin historias ni Bugs asignados en este sprint."
-        highlight={huPercent >= 75 || bugPercent >= 75}
+        highlight={viewModel.huPercent >= 75 || viewModel.bugPercent >= 75}
         className="min-w-0 lg:col-span-8"
       >
-        <GroupedBarChart rows={rows} className="h-[140px] sm:h-[150px]" />
+        <GroupedBarChart rows={viewModel.rows} className="h-[140px] sm:h-[150px]" />
       </ChartPanel>
     </div>
   );

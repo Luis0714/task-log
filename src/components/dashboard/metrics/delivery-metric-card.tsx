@@ -37,6 +37,15 @@ type VariantStyles = {
   ring: string;
 };
 
+type DeliveryMetricCardViewModel = {
+  styles: VariantStyles;
+  isEmpty: boolean;
+  showProgress: boolean;
+  showEmptyDash: boolean;
+  primaryLabel: string;
+  secondaryLabel?: string;
+};
+
 const variantStyles: Record<DeliveryMetricVariant, VariantStyles> = {
   default: {
     border: "border-border/70",
@@ -123,7 +132,7 @@ function ProgressTrack({
   );
 }
 
-function EmptyProgressDash({ variant }: { variant: DeliveryMetricVariant }) {
+function EmptyProgressDash() {
   return (
     <div
       className={cn(
@@ -133,6 +142,26 @@ function EmptyProgressDash({ variant }: { variant: DeliveryMetricVariant }) {
       aria-hidden
     />
   );
+}
+
+function buildDeliveryMetricCardViewModel({
+  value,
+  hint,
+  progress,
+  variant,
+  loading,
+}: Pick<DeliveryMetricCardProps, "value" | "hint" | "progress" | "variant" | "loading">): DeliveryMetricCardViewModel {
+  const resolvedVariant = variant ?? "default";
+  const isEmpty = resolvedVariant === "empty";
+
+  return {
+    styles: variantStyles[resolvedVariant],
+    isEmpty,
+    showProgress: progress !== undefined && !loading,
+    showEmptyDash: isEmpty && progress === undefined && !loading,
+    primaryLabel: value,
+    secondaryLabel: hint,
+  };
 }
 
 function DeliveryMetricCardSkeleton() {
@@ -165,21 +194,22 @@ export function DeliveryMetricCard({
   iconClassName,
   className,
 }: DeliveryMetricCardProps) {
-  const styles = variantStyles[variant];
-  const isEmpty = variant === "empty";
-  const showProgress = progress !== undefined && !loading;
-  const showEmptyDash = isEmpty && progress === undefined && !loading;
-  const primaryLabel = hint ?? value;
-  const secondaryLabel = hint && value.endsWith("%") ? value : undefined;
+  const viewModel = buildDeliveryMetricCardViewModel({
+    value,
+    hint,
+    progress,
+    variant,
+    loading,
+  });
 
   return (
     <article
       className={cn(
         "flex h-full min-w-0 flex-col rounded-lg border transition-colors",
         "gap-1.5 p-2.5 lg:gap-2 lg:p-3",
-        styles.border,
-        styles.bg,
-        highlight && ["shadow-sm ring-1", styles.ring],
+        viewModel.styles.border,
+        viewModel.styles.bg,
+        highlight && ["shadow-sm ring-1", viewModel.styles.ring],
         className,
       )}
     >
@@ -188,7 +218,10 @@ export function DeliveryMetricCard({
       ) : (
         <>
           <div className="flex min-w-0 items-center gap-1.5">
-            <Icon className={cn("size-3.5 shrink-0", styles.icon, iconClassName)} aria-hidden />
+            <Icon
+              className={cn("size-3.5 shrink-0", viewModel.styles.icon, iconClassName)}
+              aria-hidden
+            />
             <h3 className="text-foreground min-w-0 flex-1 text-[10px] font-medium leading-none sm:text-[11px]">
               {title}
             </h3>
@@ -198,21 +231,21 @@ export function DeliveryMetricCard({
             className={cn(
               "font-heading text-xl font-semibold leading-none tracking-tight tabular-nums",
               "lg:text-2xl",
-              isEmpty && !hint ? "text-muted-foreground" : styles.value,
+              viewModel.isEmpty && !hint ? "text-muted-foreground" : viewModel.styles.value,
             )}
           >
-            {primaryLabel}
+            {viewModel.primaryLabel}
           </p>
 
-          {showProgress || showEmptyDash || secondaryLabel ? (
+          {viewModel.showProgress || viewModel.showEmptyDash || viewModel.secondaryLabel ? (
             <div className="mt-auto flex flex-col gap-1 pt-0.5">
-              {showProgress ? (
-                <ProgressTrack progress={progress} barClassName={styles.bar} />
+              {viewModel.showProgress ? (
+                <ProgressTrack progress={progress} barClassName={viewModel.styles.bar} />
               ) : null}
-              {showEmptyDash ? <EmptyProgressDash variant={variant} /> : null}
-              {secondaryLabel ? (
+              {viewModel.showEmptyDash ? <EmptyProgressDash /> : null}
+              {viewModel.secondaryLabel ? (
                 <p className="text-muted-foreground text-[10px] leading-tight tabular-nums">
-                  {secondaryLabel}
+                  {viewModel.secondaryLabel}
                 </p>
               ) : null}
             </div>
