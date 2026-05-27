@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { AdoProfileSync } from "@/components/connection/ado-profile-sync";
 import { AppLogo } from "@/components/brand/app-logo";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { AdoWorkItemLinksProvider } from "@/components/work-items/ado-work-item-links-context";
 import {
   SidebarInset,
   SidebarProvider,
@@ -30,8 +31,9 @@ export function AppShell({
 
   return (
     <TooltipProvider delay={0}>
-      <AdoProfileSync isConnected={connection.isConnected} />
-      <SidebarProvider defaultOpen={defaultSidebarOpen}>
+      <AdoWorkItemLinksProvider organization={connection.organization}>
+        <AdoProfileSync isConnected={connection.isConnected} />
+        <SidebarProvider defaultOpen={defaultSidebarOpen}>
         <AppSidebar
           connection={connection}
           connectionFooter={sidebarConnection}
@@ -55,7 +57,8 @@ export function AppShell({
             {children}
           </div>
         </SidebarInset>
-      </SidebarProvider>
+        </SidebarProvider>
+      </AdoWorkItemLinksProvider>
     </TooltipProvider>
   );
 }

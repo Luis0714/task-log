@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { TaskSummaryCard } from "@/components/tasks/task-summary-card";
 import { TaskLoggedHoursHighlight } from "@/components/tasks/task-logged-hours-highlight";
+import { WorkItemAdoQuickLinks } from "@/components/work-items/work-item-ado-quick-links";
 import { WorkItemDescriptionBlock } from "@/components/work-items/work-item-description-block";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { Button } from "@/components/ui/button";
@@ -117,6 +118,15 @@ export function TaskDetailSheet({
                     <WorkItemDescriptionBlock html={task.description} />
                   ) : null}
                 </section>
+                <WorkItemAdoQuickLinks
+                  project={project}
+                  links={[
+                    { workItemId: task.id, label: `Tarea #${task.id}` },
+                    ...(task.parentId
+                      ? [{ workItemId: task.parentId, label: `HU #${task.parentId}` }]
+                      : []),
+                  ]}
+                />
                 {task.loggedHours !== undefined ? (
                   <TaskLoggedHoursHighlight hours={task.loggedHours} />
                 ) : null}
@@ -166,7 +176,7 @@ export function TaskDetailSheet({
                   )}
                 </section>
 
-                <TaskSummaryCard item={task} showLoggedHoursHighlight={false} />
+                <TaskSummaryCard item={task} project={project} showLoggedHoursHighlight={false} />
 
               </>
             ) : (

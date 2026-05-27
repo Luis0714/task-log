@@ -66,6 +66,7 @@ export function BugDetailSheet({
           <div className="flex flex-col gap-6 pb-4">
             <BugDetailSheetBody
               bug={bug}
+              project={project}
               draftState={form.draftState}
               onDraftStateChange={form.setDraftState}
               draftWorkingDate={form.draftWorkingDate}

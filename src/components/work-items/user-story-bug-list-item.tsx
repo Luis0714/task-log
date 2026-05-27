@@ -1,6 +1,6 @@
 "use client";
 
-import { WorkItemId } from "@/components/work-items/work-item-id";
+import { AdoWorkItemLink } from "@/components/work-items/ado-work-item-link";
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import { getWorkItemStatePresentation } from "@/lib/time-log/work-item-presentation";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
@@ -8,10 +8,11 @@ import { cn } from "@/lib/utils";
 
 export type UserStoryBugListItemProps = {
   bug: AdoWorkItemOptionDto;
+  project: string | null;
   onClick?: (bug: AdoWorkItemOptionDto) => void;
 };
 
-export function UserStoryBugListItem({ bug, onClick }: UserStoryBugListItemProps) {
+export function UserStoryBugListItem({ bug, project, onClick }: UserStoryBugListItemProps) {
   const presentation = bug.state ? getWorkItemStatePresentation(bug.state) : null;
 
   return (
@@ -27,7 +28,7 @@ export function UserStoryBugListItem({ bug, onClick }: UserStoryBugListItemProps
       style={presentation?.surfaceStyle}
     >
       <div className="min-w-0 flex-1">
-        <WorkItemId id={bug.id} />
+        <AdoWorkItemLink workItemId={bug.id} project={project} label={`Bug #${bug.id}`} />
         <p className="text-foreground mt-1.5 text-sm leading-snug" title={bug.title}>
           {bug.title}
         </p>

@@ -7,6 +7,7 @@ import { UserStoryBugListItem } from "@/components/work-items/user-story-bug-lis
 import { UserStoryResponsableFields } from "@/components/work-items/user-story-responsable-fields";
 import { UserStorySchedulingFields } from "@/components/work-items/user-story-scheduling-fields";
 import { UserStorySummaryCard } from "@/components/work-items/user-story-summary-card";
+import { WorkItemAdoQuickLinks } from "@/components/work-items/work-item-ado-quick-links";
 import { UserStoryWorkflowTagField } from "@/components/work-items/user-story-workflow-tag-field";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -120,7 +121,11 @@ export function UserStoryDetailSheet({
                     <WorkItemDescriptionBlock html={workItem.description} />
                   ) : null}
                 </section>
-                <UserStorySummaryCard item={workItem} />
+                <WorkItemAdoQuickLinks
+                  project={project}
+                  links={[{ workItemId: workItem.id, label: `HU #${workItem.id}` }]}
+                />
+                <UserStorySummaryCard item={workItem} project={project} />
 
                 <section className="space-y-2">
                   <Label htmlFor="user-story-state" required>
@@ -207,7 +212,12 @@ export function UserStoryDetailSheet({
                   ) : (
                     <ul className="space-y-2">
                       {childBugs.map((bug) => (
-                        <UserStoryBugListItem key={bug.id} bug={bug} onClick={onBugClick} />
+                        <UserStoryBugListItem
+                          key={bug.id}
+                          bug={bug}
+                          project={project}
+                          onClick={onBugClick}
+                        />
                       ))}
                     </ul>
                   )}

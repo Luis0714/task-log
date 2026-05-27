@@ -1,6 +1,7 @@
 "use client";
 
 import { BugSummaryCard } from "@/components/bugs/bug-summary-card";
+import { WorkItemAdoQuickLinks } from "@/components/work-items/work-item-ado-quick-links";
 import { WorkItemDescriptionBlock } from "@/components/work-items/work-item-description-block";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -19,6 +20,7 @@ import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
 export type BugDetailSheetBodyProps = {
   bug: AdoWorkItemOptionDto | null;
+  project: string | null;
   draftState: string;
   onDraftStateChange: (value: string) => void;
   draftWorkingDate: string;
@@ -34,6 +36,7 @@ export type BugDetailSheetBodyProps = {
 
 export function BugDetailSheetBody({
   bug,
+  project,
   draftState,
   onDraftStateChange,
   draftWorkingDate,
@@ -64,7 +67,17 @@ export function BugDetailSheetBody({
         ) : null}
       </section>
 
-      <BugSummaryCard item={bug} />
+      <WorkItemAdoQuickLinks
+        project={project}
+        links={[
+          { workItemId: bug.id, label: `Bug #${bug.id}` },
+          ...(bug.parentId
+            ? [{ workItemId: bug.parentId, label: `HU #${bug.parentId}` }]
+            : []),
+        ]}
+      />
+
+      <BugSummaryCard item={bug} project={project} />
 
       <section className="space-y-2">
         <Label htmlFor="bug-working-date" required>

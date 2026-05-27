@@ -4,19 +4,21 @@ import { TaskDateBadge } from "@/components/tasks/task-date-badge";
 import { TaskLoggedHoursHighlight } from "@/components/tasks/task-logged-hours-highlight";
 import { buildTaskSummaryViewModel } from "@/components/tasks/task-summary-card.viewmodel";
 import { WorkItemEffortBadge } from "@/components/work-items/work-item-effort-badge";
-import { WorkItemId } from "@/components/work-items/work-item-id";
+import { AdoWorkItemLink } from "@/components/work-items/ado-work-item-link";
 import { StatusBadge } from "@/components/tasks/status-badge";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import { cn } from "@/lib/utils";
 
 export type TaskSummaryCardProps = {
   item: AdoWorkItemOptionDto;
+  project: string | null;
   showLoggedHoursHighlight?: boolean;
   className?: string;
 };
 
 export function TaskSummaryCard({
   item,
+  project,
   showLoggedHoursHighlight = true,
   className,
 }: TaskSummaryCardProps) {
@@ -32,7 +34,7 @@ export function TaskSummaryCard({
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <WorkItemId id={item.id} />
+          <AdoWorkItemLink workItemId={item.id} project={project} label={`#${item.id}`} />
           {viewModel.hasWorkingDate ? <TaskDateBadge dateKey={item.workingDate!} /> : null}
           {viewModel.hasEffort ? <WorkItemEffortBadge effort={item.effort!} /> : null}
         </div>
