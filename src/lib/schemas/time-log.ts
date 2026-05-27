@@ -38,7 +38,11 @@ export const timeLogTaskStepSchema = z.object({
     .min(1, "Ingresa el título de la tarea.")
     .max(256, "Máximo 256 caracteres."),
   hours: hoursField,
-  description: z.string().trim().max(2000, "Máximo 2000 caracteres."),
+  description: z
+    .string()
+    .trim()
+    .min(1, "Ingresa la descripción de lo realizado.")
+    .max(2000, "Máximo 2000 caracteres."),
   activity: z.enum(TASK_ACTIVITY_OPTIONS, {
     message: "Selecciona una actividad.",
   }),

@@ -28,6 +28,7 @@ export function AdoContextSelectFields({
   onTeamChange,
   onSprintChange,
   sprintDayFilter,
+  markRequiredFields = false,
   className,
 }: AdoContextSelectFieldsProps) {
   return (
@@ -41,6 +42,7 @@ export function AdoContextSelectFields({
     >
       <ControlledSelectField
         label="Proyecto"
+        required={markRequiredFields}
         value={project}
         placeholder={placeholders.project}
         disabled={projectSelectDisabled}
@@ -50,6 +52,7 @@ export function AdoContextSelectFields({
       />
       <ControlledSelectField
         label="Equipo"
+        required={markRequiredFields}
         value={team}
         placeholder={placeholders.team}
         disabled={teamSelectDisabled}
@@ -59,6 +62,7 @@ export function AdoContextSelectFields({
       />
       <ControlledSelectField
         label="Sprint"
+        required={markRequiredFields}
         value={sprintPath}
         placeholder={placeholders.sprint}
         disabled={sprintSelectDisabled}

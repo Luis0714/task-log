@@ -12,6 +12,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,7 +52,7 @@ export function TaskFormFields({
         name="taskTitle"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Título de la tarea</FormLabel>
+            <FormLabel required>Título de la tarea</FormLabel>
             <FormControl>
               <Input
                 placeholder="Ej. Reunión equipo, desarrollo endpoint..."
@@ -70,7 +71,7 @@ export function TaskFormFields({
           name="hours"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Horas (trabajo completado)</FormLabel>
+              <FormLabel required>Horas (trabajo completado)</FormLabel>
               <FormControl>
                 <Input inputMode="decimal" placeholder="1.5" disabled={disabled} {...field} />
               </FormControl>
@@ -84,7 +85,7 @@ export function TaskFormFields({
           name="workingDate"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Fecha de trabajo</FormLabel>
+              <FormLabel required>Fecha de trabajo</FormLabel>
               <FormControl>
                 <DatePicker
                   value={field.value}
@@ -103,6 +104,7 @@ export function TaskFormFields({
           control={form.control}
           name="activity"
           label="Actividad"
+          required
           placeholder="Selecciona actividad"
           disabled={disabled}
           options={TASK_ACTIVITY_OPTIONS.map((activity) => ({
@@ -116,6 +118,7 @@ export function TaskFormFields({
             control={form.control}
             name="taskState"
             label="Estado inicial"
+            required={!autoMarkAsDone}
             placeholder={
               taskStatesLoading
                 ? "Cargando estados..."
@@ -138,10 +141,10 @@ export function TaskFormFields({
         name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Descripción</FormLabel>
+            <FormLabel required>Descripción</FormLabel>
             <FormControl>
               <Textarea
-                placeholder="Detalle opcional de lo realizado"
+                placeholder="Describe lo realizado en esta tarea"
                 rows={3}
                 disabled={disabled}
                 className="resize-none"
@@ -159,15 +162,14 @@ export function TaskFormFields({
         render={({ field }) => (
           <FormItem className="flex flex-row items-start gap-3 rounded-lg border bg-muted/30 p-3">
             <FormControl>
-              <input
-                type="checkbox"
-                className="border-input mt-0.5 size-4 shrink-0 rounded border accent-primary"
+              <Checkbox
+                className="mt-0.5"
                 checked={field.value}
                 disabled={disabled}
-                onChange={(event) => field.onChange(event.target.checked)}
+                onCheckedChange={field.onChange}
                 onBlur={field.onBlur}
-                ref={field.ref}
                 name={field.name}
+                ref={field.ref}
               />
             </FormControl>
             <div className="min-w-0 space-y-1 leading-none">

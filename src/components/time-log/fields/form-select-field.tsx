@@ -31,6 +31,7 @@ export type FormSelectOption = {
 
 export type ControlledSelectFieldProps = {
   label: string;
+  required?: boolean;
   value: string;
   placeholder: string;
   options: FormSelectOption[];
@@ -43,6 +44,7 @@ export type ControlledSelectFieldProps = {
 
 export function ControlledSelectField({
   label,
+  required = false,
   value,
   placeholder,
   options,
@@ -54,7 +56,7 @@ export function ControlledSelectField({
 }: ControlledSelectFieldProps) {
   return (
     <div className="min-w-0 w-full space-y-2">
-      <Label>{label}</Label>
+      <Label required={required}>{label}</Label>
       <Select
         value={value || null}
         onValueChange={(next) => {
@@ -83,6 +85,7 @@ type FormSelectFieldProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues>;
   name: FieldPath<TFieldValues>;
   label: string;
+  required?: boolean;
   placeholder: string;
   options: FormSelectOption[];
   disabled?: boolean;
@@ -96,6 +99,7 @@ export function FormSelectField<TFieldValues extends FieldValues>({
   control,
   name,
   label,
+  required = false,
   placeholder,
   options,
   disabled,
@@ -110,7 +114,7 @@ export function FormSelectField<TFieldValues extends FieldValues>({
       name={name}
       render={({ field }) => (
         <FormItem>
-          <FormLabel>{label}</FormLabel>
+          <FormLabel required={required}>{label}</FormLabel>
           <Select
             value={field.value || null}
             onValueChange={(value) => {

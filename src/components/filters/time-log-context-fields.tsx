@@ -14,6 +14,7 @@ export type TimeLogContextFieldsProps = {
 export function TimeLogContextFields({ form, catalog }: TimeLogContextFieldsProps) {
   return (
     <AdoContextSelectFields
+      markRequiredFields
       project={catalog.project}
       team={catalog.team}
       sprintPath={catalog.sprintPath}

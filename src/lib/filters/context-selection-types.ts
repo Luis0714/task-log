@@ -22,5 +22,7 @@ export type AdoContextSelectFieldsProps = {
   onSprintChange: (value: string) => void;
   /** Filtro opcional (p. ej. día del sprint) junto al select de sprint. */
   sprintDayFilter?: React.ReactNode;
+  /** Muestra asterisco rojo en las etiquetas de proyecto, equipo y sprint. */
+  markRequiredFields?: boolean;
   className?: string;
 };
