@@ -21,8 +21,8 @@ export function useWorkItemFilters(initial?: Partial<WorkItemFilters>) {
     setFilters((current) => ({ ...current, assignee }));
   }, []);
 
-  const setState = useCallback((state: string) => {
-    setFilters((current) => ({ ...current, state }));
+  const setStates = useCallback((states: string[]) => {
+    setFilters((current) => ({ ...current, states }));
   }, []);
 
   const resetFilters = useCallback(() => {
@@ -37,7 +37,7 @@ export function useWorkItemFilters(initial?: Partial<WorkItemFilters>) {
     filters,
     setSearch,
     setAssignee,
-    setState,
+    setStates,
     resetFilters,
     replaceFilters,
   };

@@ -14,7 +14,7 @@ export function useTimeLogWorkItemFilters(workItemStates: readonly string[]) {
     filters,
     setSearch,
     setAssignee,
-    setState,
+    setStates,
     replaceFilters,
   } = useWorkItemFilters();
 
@@ -28,7 +28,7 @@ export function useTimeLogWorkItemFilters(workItemStates: readonly string[]) {
   const buildDefaultFilters = useCallback((): WorkItemFilters => {
     return {
       ...DEFAULT_WORK_ITEM_FILTERS,
-      state: committedState,
+      states: committedState ? [committedState] : [],
     };
   }, [committedState]);
 
@@ -37,29 +37,27 @@ export function useTimeLogWorkItemFilters(workItemStates: readonly string[]) {
     replaceFilters(buildDefaultFilters());
   }, [buildDefaultFilters, replaceFilters]);
 
-  const onStateChange = useCallback(
-    (value: string) => {
-      userClearedStateFilterRef.current = value === "";
-      setState(value);
+  const onStatesChange = useCallback(
+    (value: string[]) => {
+      userClearedStateFilterRef.current = value.length === 0;
+      setStates(value);
     },
-    [setState],
+    [setStates],
   );
 
   useEffect(() => {
     if (userClearedStateFilterRef.current) return;
-    if (!committedState || filters.state === committedState) return;
-    if (filters.state !== "") return;
-    setState(committedState);
-  }, [committedState, filters.state, setState]);
+    if (!committedState) return;
+    if (filters.states.length > 0) return;
+    setStates([committedState]);
+  }, [committedState, filters.states.length, setStates]);
 
   return {
     filters,
     setSearch,
     setAssignee,
-    /** Actualización directa (p. ej. sincronización del panel al cambiar estados disponibles). */
-    setState,
-    /** Cambio iniciado por el usuario en el selector de estado. */
-    onStateChange,
+    setStates,
+    onStatesChange,
     resetFilters,
   };
 }

@@ -1,13 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
-import { usePathname, useRouter } from "next/navigation";
 
 import { useAdoContextUrl } from "@/hooks/use-ado-context-url";
+import { usePushWorkItemAssigneeUrl } from "@/hooks/filters/use-push-work-item-assignee-url";
 import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-panel";
 import { useWorkItemsFiltersContext } from "@/components/work-items/work-items-filters-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
-import { buildAdoContextQuery } from "@/lib/ado/parse-context-search-params";
 import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
 import type { AdoFilterMeta } from "@/lib/filters/ado-filter-meta";
 
@@ -24,9 +23,8 @@ export function useAdoFilteredPage({
   adoExecutionReady,
   workItemsCount = 0,
 }: UseAdoFilteredPageOptions) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { filters, setSearch, setAssignee, setState, resetFilters } =
+  const { pushAssignee } = usePushWorkItemAssigneeUrl();
+  const { filters, setSearch, setAssignee, setStates, resetFilters } =
     useWorkItemsFiltersContext();
 
   const context = useAdoContextUrl({
@@ -48,16 +46,13 @@ export function useAdoFilteredPage({
     setSearch,
     setAssignee: (value) => {
       setAssignee(value);
-      router.push(
-        `${pathname}${buildAdoContextQuery({
-          project: catalog.project,
-          team: catalog.team,
-          sprint: catalog.sprintPath,
-          assignee: value,
-        })}`,
-      );
+      pushAssignee(value, {
+        project: catalog.project,
+        team: catalog.team,
+        sprint: catalog.sprintPath,
+      });
     },
-    setState,
+    setStates,
     resetFilters,
     sprintPath: catalog.sprintPath,
     items: [],

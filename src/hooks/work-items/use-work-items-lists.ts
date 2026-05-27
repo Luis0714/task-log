@@ -24,10 +24,10 @@ export function useWorkItemsLists(
   const filteredItems = useMemo(() => {
     const items = filterWorkItemsByClientCriteria(snapshot.sprintWorkItems, {
       search: filters.search,
-      state: filters.state,
+      states: filters.states,
     });
     return attachBugCounts(items, bugCountsByParentId);
-  }, [bugCountsByParentId, filters.search, filters.state, snapshot.sprintWorkItems]);
+  }, [bugCountsByParentId, filters.search, filters.states, snapshot.sprintWorkItems]);
 
   const inProgress = useMemo(
     () => selectInProgressWorkItems(filteredItems),

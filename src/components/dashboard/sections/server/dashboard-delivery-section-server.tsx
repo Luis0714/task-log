@@ -24,8 +24,8 @@ export async function DashboardDeliverySectionServer({
   if (!ctx) return null;
 
   const [workItems, bugs, backlogStates] = await Promise.all([
-    loadSprintWorkItems(ctx),
-    loadSprintBugs(ctx),
+    loadSprintWorkItems(ctx.project, ctx.sprintPath, ctx.assignee),
+    loadSprintBugs(ctx.project, ctx.sprintPath, ctx.assignee),
     loadSprintBacklogStates(ctx.project),
   ]);
 

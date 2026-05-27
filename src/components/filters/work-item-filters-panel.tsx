@@ -2,23 +2,14 @@
 
 import { Search } from "lucide-react";
 
+import { MultiCheckboxFilter } from "@/components/filters/multi-checkbox-filter";
+import { WorkItemAssigneeFilter } from "@/components/filters/work-item-assignee-filter";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
-import {
-  WORK_ITEM_ASSIGNEE_ALL,
-  WORK_ITEM_ASSIGNEE_ME,
-  resolveWorkItemAssigneeLabel,
-} from "@/lib/schemas/work-item-filters";
+import { resolveWorkItemStatesLabel } from "@/lib/schemas/work-item-filters";
 
 export type WorkItemFiltersPanelProps = {
   filters: WorkItemFilters;
@@ -32,7 +23,7 @@ export type WorkItemFiltersPanelProps = {
   title?: string;
   onSearchChange: (value: string) => void;
   onAssigneeChange: (value: string) => void;
-  onStateChange: (value: string) => void;
+  onStatesChange: (value: string[]) => void;
 };
 
 export function WorkItemFiltersPanel({
@@ -47,10 +38,15 @@ export function WorkItemFiltersPanel({
   title = "Filtros de elementos de trabajo",
   onSearchChange,
   onAssigneeChange,
-  onStateChange,
+  onStatesChange,
 }: WorkItemFiltersPanelProps) {
   const showCount = totalCount > 0 && !disabled;
-  const assigneeLabel = resolveWorkItemAssigneeLabel(filters.assignee, members);
+  const statesLabel = resolveWorkItemStatesLabel(filters.states, states.length);
+
+  const stateOptions = states.map((state) => ({
+    value: state,
+    label: <WorkItemStateLabel state={state} />,
+  }));
 
   return (
     <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
@@ -82,65 +78,32 @@ export function WorkItemFiltersPanel({
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="work-item-assigned">Asignación</Label>
-          <Select
-            value={filters.assignee || WORK_ITEM_ASSIGNEE_ALL}
-            onValueChange={(value) => {
-              if (!value) return;
-              onAssigneeChange(value);
-            }}
-            disabled={disabled || membersLoading}
-          >
-            <SelectTrigger id="work-item-assigned" className="w-full">
-              <SelectValue>
-                {membersLoading ? "Cargando miembros..." : assigneeLabel}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={WORK_ITEM_ASSIGNEE_ME}>Asignados a mí</SelectItem>
-              <SelectItem value={WORK_ITEM_ASSIGNEE_ALL}>Todos</SelectItem>
-              {members.map((member) => (
-                <SelectItem key={member.id} value={member.displayName}>
-                  {member.displayName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {membersError ? (
-            <p className="text-destructive text-xs">{membersError}</p>
-          ) : null}
-        </div>
+        <WorkItemAssigneeFilter
+          id="work-item-assigned"
+          assignee={filters.assignee}
+          members={members}
+          membersLoading={membersLoading}
+          membersError={membersError}
+          disabled={disabled}
+          onAssigneeChange={onAssigneeChange}
+        />
 
-        <div className="space-y-1.5">
-          <Label htmlFor="work-item-state">Estado</Label>
-          <Select
-            value={filters.state || "__all__"}
-            onValueChange={(value) => {
-              if (!value) return;
-              onStateChange(value === "__all__" ? "" : value);
-            }}
-            disabled={disabled || states.length === 0}
-          >
-            <SelectTrigger id="work-item-state" className="w-full">
-              <SelectValue placeholder="Todos los estados">
-                {filters.state ? (
-                  <WorkItemStateLabel state={filters.state} />
-                ) : (
-                  "Todos los estados"
-                )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Todos los estados</SelectItem>
-              {states.map((state) => (
-                <SelectItem key={state} value={state}>
-                  <WorkItemStateLabel state={state} />
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <MultiCheckboxFilter
+          id="work-item-state"
+          label="Estado"
+          options={stateOptions}
+          selected={filters.states}
+          onSelectedChange={onStatesChange}
+          triggerLabel={statesLabel}
+          presets={[
+            {
+              label: "Todos los estados",
+              active: filters.states.length === 0,
+              onSelect: () => onStatesChange([]),
+            },
+          ]}
+          disabled={disabled || states.length === 0}
+        />
       </div>
     </div>
   );

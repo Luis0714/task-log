@@ -29,8 +29,8 @@ export const loadWorkItemsBase = cache(async function loadWorkItemsBase(
 
   const bugsCtx = { ...ctx, assignee: WORK_ITEM_ASSIGNEE_ALL };
   const [workItems, bugs] = await Promise.all([
-    loadSprintWorkItems(ctx),
-    loadSprintBugs(bugsCtx),
+    loadSprintWorkItems(ctx.project, ctx.sprintPath, ctx.assignee),
+    loadSprintBugs(bugsCtx.project, bugsCtx.sprintPath, bugsCtx.assignee),
   ]);
 
   const error = firstSprintDataError(workItems, bugs);

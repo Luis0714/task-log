@@ -49,7 +49,7 @@ export function SprintHoursSection({
       ? "destructive"
       : todayStatus === "complete"
         ? "success"
-        : "primary";
+        : "default";
   const sprintStatus = resolveProgressStatus(hoursSprint, metrics.hoursSprintTarget);
   const sprintVariant: KpiVariant =
     sprintStatus === "over"
@@ -74,11 +74,7 @@ export function SprintHoursSection({
           hoursBreakdown={metrics.hoursToday}
           hoursPending={hoursDayPending}
           variant={todayVariant}
-          highlight={
-            todayVariant === "primary" ||
-            todayVariant === "success" ||
-            todayVariant === "destructive"
-          }
+          highlight={todayVariant === "success" || todayVariant === "destructive"}
           className="min-w-0 lg:col-span-4"
           loading={loading}
         />

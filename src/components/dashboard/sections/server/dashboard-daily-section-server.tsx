@@ -20,7 +20,7 @@ export async function DashboardDailySectionServer({
   const ctx = catalogToSprintContext(catalog);
   if (!ctx) return null;
 
-  const workItems = await loadSprintWorkItems(ctx);
+  const workItems = await loadSprintWorkItems(ctx.project, ctx.sprintPath, ctx.assignee);
   const error = firstSprintDataError(workItems);
   if (error) return <CopilotErrorAlert message={error} />;
 

@@ -9,7 +9,7 @@ export function countActiveWorkItemFilters(
 ): number {
   let count = 0;
   if (filters.search.trim().length > 0) count++;
-  if (filters.state) count++;
+  if (filters.states.length > 0) count++;
   if (!isWorkItemAssigneeMe(filters.assignee)) count++;
   return count;
 }

@@ -58,7 +58,7 @@ export function AdoFiltersSection({
           title={workItems.title}
           onSearchChange={workItems.onSearchChange}
           onAssigneeChange={workItems.onAssigneeChange}
-          onStateChange={workItems.onStateChange}
+          onStatesChange={workItems.onStatesChange}
         />
       ) : null}
     </AdoFiltersCollapsible>
@@ -89,7 +89,7 @@ export function AdoFiltersBlock({
           title={workItems.title}
           onSearchChange={workItems.onSearchChange}
           onAssigneeChange={workItems.onAssigneeChange}
-          onStateChange={workItems.onStateChange}
+          onStatesChange={workItems.onStatesChange}
         />
       ) : null}
     </div>

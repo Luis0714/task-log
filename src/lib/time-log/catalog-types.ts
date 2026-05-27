@@ -48,5 +48,5 @@ export type TimeLogCatalog = {
   onSprintChange: () => void;
   onWorkItemSearchChange: (value: string) => void;
   onWorkItemAssigneeChange: (value: string) => void;
-  onWorkItemStateChange: (value: string) => void;
+  onWorkItemStatesChange: (value: string[]) => void;
 };

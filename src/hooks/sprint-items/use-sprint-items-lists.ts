@@ -17,11 +17,11 @@ export function useSprintItemsLists(
   const filteredItems = useMemo(() => {
     const filtered = filterSprintItemsByCriteria(snapshot.items, {
       search: filters.search,
-      state: filters.state,
+      states: filters.states,
       dayKey,
     });
     return sortItemsByWorkingDateAsc(filtered);
-  }, [dayKey, filters.search, filters.state, snapshot.items]);
+  }, [dayKey, filters.search, filters.states, snapshot.items]);
 
   const stateNames = useMemo(
     () => snapshot.itemStates.map((state) => state.name),

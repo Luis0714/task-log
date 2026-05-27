@@ -46,11 +46,13 @@ export const loadSprintBundle = cache(async function loadSprintBundle(
 
   const includeDaysOff = input.includeDaysOff ?? true;
   const [workItems, bugs, tasks, backlogStates, nonWorkingDates] = await Promise.all([
-    loadSprintWorkItems(ctx),
-    loadSprintBugs(ctx),
-    loadSprintTasks(ctx),
+    loadSprintWorkItems(ctx.project, ctx.sprintPath, ctx.assignee),
+    loadSprintBugs(ctx.project, ctx.sprintPath, ctx.assignee),
+    loadSprintTasks(ctx.project, ctx.sprintPath, ctx.assignee),
     loadSprintBacklogStates(ctx.project),
-    includeDaysOff ? loadSprintNonWorkingDates(ctx) : Promise.resolve({ data: [], error: null }),
+    includeDaysOff
+      ? loadSprintNonWorkingDates(ctx.project, ctx.team)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   const error = firstSprintDataError(workItems, bugs, tasks, backlogStates, nonWorkingDates);

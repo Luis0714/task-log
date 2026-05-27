@@ -27,9 +27,9 @@ export async function DashboardHoursSectionServer({
   if (!ctx) return null;
 
   const [tasks, bugs, nonWorkingDates] = await Promise.all([
-    loadSprintTasks(ctx),
-    loadSprintBugs(ctx),
-    loadSprintNonWorkingDates(ctx),
+    loadSprintTasks(ctx.project, ctx.sprintPath, ctx.assignee),
+    loadSprintBugs(ctx.project, ctx.sprintPath, ctx.assignee),
+    loadSprintNonWorkingDates(ctx.project, ctx.team),
   ]);
 
   const error = firstSprintDataError(tasks, bugs, nonWorkingDates);

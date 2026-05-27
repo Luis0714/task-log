@@ -90,6 +90,11 @@ export function DatePicker({
             onChange(toLocalDateKey(day));
             setOpen(false);
           }}
+          onSelect={(date) => {
+            if (!date) {
+              setOpen(false);
+            }
+          }}
         />
       </PopoverContent>
     </Popover>

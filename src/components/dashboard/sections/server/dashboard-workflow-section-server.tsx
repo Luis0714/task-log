@@ -22,7 +22,7 @@ export async function DashboardWorkflowSectionServer({
   if (!ctx) return null;
 
   const [workItems, backlogStates] = await Promise.all([
-    loadSprintWorkItems(ctx),
+    loadSprintWorkItems(ctx.project, ctx.sprintPath, ctx.assignee),
     loadSprintBacklogStates(ctx.project),
   ]);
 

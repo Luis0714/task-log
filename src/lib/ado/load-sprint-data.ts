@@ -2,7 +2,6 @@ import "server-only";
 
 import { cache } from "react";
 
-import type { SprintDataContext } from "@/lib/ado/sprint-data-context";
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
 import { listBacklogItemStates } from "@/lib/azure-devops/work-item-type-states";
 import { withAdoProject } from "@/lib/azure-devops/projects";
@@ -37,16 +36,16 @@ export function firstSprintDataError(
 }
 
 export const loadSprintWorkItems = cache(async function loadSprintWorkItems(
-  ctx: SprintDataContext,
+  project: string,
+  sprintPath: string,
+  assignee: string,
 ): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
   try {
-    const auth = await resolveScopedAuth(ctx.project);
+    const auth = await resolveScopedAuth(project);
     if (!auth) {
       return { data: [], error: "Conecta Azure DevOps para cargar historias del sprint." };
     }
-    const data = await listWorkItemsInSprint(auth, ctx.sprintPath, {
-      assignee: ctx.assignee,
-    });
+    const data = await listWorkItemsInSprint(auth, sprintPath, { assignee });
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };
@@ -54,15 +53,17 @@ export const loadSprintWorkItems = cache(async function loadSprintWorkItems(
 });
 
 export const loadSprintBugs = cache(async function loadSprintBugs(
-  ctx: SprintDataContext,
+  project: string,
+  sprintPath: string,
+  assignee: string,
 ): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
   try {
-    const auth = await resolveScopedAuth(ctx.project);
+    const auth = await resolveScopedAuth(project);
     if (!auth) {
       return { data: [], error: "Conecta Azure DevOps para cargar Bugs del sprint." };
     }
-    const data = await listWorkItemsInSprint(auth, ctx.sprintPath, {
-      assignee: ctx.assignee,
+    const data = await listWorkItemsInSprint(auth, sprintPath, {
+      assignee,
       workItemType: "Bug",
     });
     return { data, error: null };
@@ -72,14 +73,16 @@ export const loadSprintBugs = cache(async function loadSprintBugs(
 });
 
 export const loadSprintTasks = cache(async function loadSprintTasks(
-  ctx: SprintDataContext,
+  project: string,
+  sprintPath: string,
+  assignee: string,
 ): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
   try {
-    const auth = await resolveScopedAuth(ctx.project);
+    const auth = await resolveScopedAuth(project);
     if (!auth) {
       return { data: [], error: "Conecta Azure DevOps para cargar tareas del sprint." };
     }
-    const data = await listTasksInSprint(auth, ctx.sprintPath, { assignee: ctx.assignee });
+    const data = await listTasksInSprint(auth, sprintPath, { assignee });
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };
@@ -102,10 +105,11 @@ export const loadSprintBacklogStates = cache(async function loadSprintBacklogSta
 });
 
 export const loadSprintNonWorkingDates = cache(async function loadSprintNonWorkingDates(
-  ctx: SprintDataContext,
+  project: string,
+  team: string,
 ): Promise<SprintDataPart<string[]>> {
   try {
-    const data = await loadNonWorkingDates(ctx.project, ctx.team);
+    const data = await loadNonWorkingDates(project, team);
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };

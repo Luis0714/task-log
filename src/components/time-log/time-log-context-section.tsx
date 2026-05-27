@@ -40,7 +40,7 @@ export function TimeLogContextSection({ form, catalog }: TimeLogContextSectionPr
           disabled={catalog.catalogDisabled || catalog.pbisLoading}
           onSearchChange={catalog.onWorkItemSearchChange}
           onAssigneeChange={catalog.onWorkItemAssigneeChange}
-          onStateChange={catalog.onWorkItemStateChange}
+          onStatesChange={catalog.onWorkItemStatesChange}
           title="Filtros de historias de usuario"
         />
       ) : null}

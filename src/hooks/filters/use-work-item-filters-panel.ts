@@ -4,9 +4,8 @@ import { useEffect, useMemo } from "react";
 
 import type { AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import {
-  WORK_ITEM_ASSIGNEE_ME,
-  isWorkItemAssigneeAll,
-  isWorkItemAssigneeMe,
+  parseAssigneeFilter,
+  serializeAssigneeFilter,
   type WorkItemFilters,
 } from "@/lib/schemas/work-item-filters";
 import { collectWorkItemStates } from "@/lib/azure-devops/work-items-filters";
@@ -21,14 +20,14 @@ export type WorkItemFiltersPanelBinding = {
   totalCount: number;
   onSearchChange: (value: string) => void;
   onAssigneeChange: (value: string) => void;
-  onStateChange: (value: string) => void;
+  onStatesChange: (value: string[]) => void;
 };
 
 export type UseWorkItemFiltersPanelOptions = {
   filters: WorkItemFilters;
   setSearch: (value: string) => void;
   setAssignee: (value: string) => void;
-  setState: (value: string) => void;
+  setStates: (value: string[]) => void;
   resetFilters: () => void;
   sprintPath: string;
   items: AdoWorkItemOptionDto[];
@@ -44,7 +43,7 @@ export function useWorkItemFiltersPanel({
   filters,
   setSearch,
   setAssignee,
-  setState,
+  setStates,
   resetFilters,
   sprintPath,
   items,
@@ -65,18 +64,24 @@ export function useWorkItemFiltersPanel({
   }, [resetFilters, sprintPath]);
 
   useEffect(() => {
-    if (filters.state && !states.includes(filters.state)) {
-      setState("");
+    const valid = filters.states.filter((state) => states.includes(state));
+    if (valid.length !== filters.states.length) {
+      setStates(valid);
     }
-  }, [filters.state, setState, states]);
+  }, [filters.states, setStates, states]);
 
   useEffect(() => {
-    const assignee = filters.assignee;
-    if (isWorkItemAssigneeMe(assignee) || isWorkItemAssigneeAll(assignee)) return;
-    if (membersLoading) return;
-    if (!members.some((member) => member.displayName === assignee)) {
-      setAssignee(WORK_ITEM_ASSIGNEE_ME);
-    }
+    const assigneeFilter = parseAssigneeFilter(filters.assignee);
+    if (assigneeFilter.kind !== "members") return;
+    if (membersLoading || members.length === 0) return;
+
+    const valid = assigneeFilter.names.filter((name) =>
+      members.some((member) => member.displayName === name),
+    );
+    if (valid.length === assigneeFilter.names.length) return;
+    if (valid.length === 0) return;
+
+    setAssignee(serializeAssigneeFilter({ kind: "members", names: valid }));
   }, [filters.assignee, members, membersLoading, setAssignee]);
 
   return {
@@ -89,6 +94,6 @@ export function useWorkItemFiltersPanel({
     filteredCount,
     onSearchChange: setSearch,
     onAssigneeChange: setAssignee,
-    onStateChange: setState,
+    onStatesChange: setStates,
   };
 }

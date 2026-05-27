@@ -143,7 +143,7 @@ export function AdoFilteredPageShell({
             title: "Filtros",
             onSearchChange: filtersPanel.onSearchChange,
             onAssigneeChange: filtersPanel.onAssigneeChange,
-            onStateChange: filtersPanel.onStateChange,
+            onStatesChange: filtersPanel.onStatesChange,
           }}
           defaultOpen={false}
         />

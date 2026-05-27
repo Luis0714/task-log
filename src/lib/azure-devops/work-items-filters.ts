@@ -4,7 +4,10 @@ import {
   USER_STORY_STATUS_MAPPING,
 } from "@/lib/dashboard/sprint-status-mapping";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
-import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
+import {
+  workItemMatchesStates,
+  type WorkItemFilters,
+} from "@/lib/schemas/work-item-filters";
 import { filterUserStoriesByWorkflowCategory } from "@/lib/work-items/user-story-workflow-status";
 
 export type AdoWorkItemOption = AdoWorkItemOptionDto;
@@ -27,12 +30,12 @@ function compareByPriority(a: AdoWorkItemOption, b: AdoWorkItemOption): number {
 
 export function filterWorkItemsByClientCriteria(
   items: AdoWorkItemOption[],
-  filters: Pick<WorkItemFilters, "search" | "state">,
+  filters: Pick<WorkItemFilters, "search" | "states">,
 ): AdoWorkItemOption[] {
   const search = filters.search.trim().toLowerCase();
 
   return items.filter((item) => {
-    if (filters.state && item.state !== filters.state) return false;
+    if (!workItemMatchesStates(item.state, filters.states)) return false;
 
     if (search) {
       const haystack = `#${item.id} ${item.title}`.toLowerCase();

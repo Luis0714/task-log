@@ -22,7 +22,7 @@ export function buildWorkItemsSectionLists(
   const bugCountsByParentId = buildBugCountsByParentId(base.sprintBugs);
   const filtered = filterWorkItemsByClientCriteria(base.sprintWorkItems, {
     search: filters.search,
-    state: filters.state,
+    states: filters.states,
   });
 
   const withBugCounts = (items: typeof filtered) =>

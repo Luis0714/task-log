@@ -14,11 +14,8 @@ import { listTaskStates, resolveTaskWorkItemTypeName } from "@/lib/azure-devops/
 import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
 import { isIronSessionConfigured } from "@/lib/auth/session";
 import { getTaskPilotSession } from "@/lib/auth/session";
-import {
-  isWorkItemAssigneeAll,
-  isWorkItemAssigneeMe,
-  WORK_ITEM_ASSIGNEE_ALL,
-} from "@/lib/schemas/work-item-filters";
+import { buildAssigneeWiqlCondition } from "@/lib/filters/assignee-wiql";
+import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 import type { TaskActivity } from "@/lib/time-log/task-constants";
 import {
   getWorkItemDateFieldNames,
@@ -466,10 +463,9 @@ export async function listWorkItemsInSprint(
     `[System.WorkItemType] = '${escapeWiqlString(workItemType)}'`,
   ];
 
-  if (isWorkItemAssigneeMe(assignee)) {
-    conditions.push("[System.AssignedTo] = @Me");
-  } else if (!isWorkItemAssigneeAll(assignee)) {
-    conditions.push(`[System.AssignedTo] = '${escapeWiqlString(assignee)}'`);
+  const assigneeCondition = buildAssigneeWiqlCondition(assignee);
+  if (assigneeCondition) {
+    conditions.push(assigneeCondition);
   }
 
   const wiql = {

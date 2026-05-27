@@ -6,7 +6,9 @@ import type { UseFormReturn } from "react-hook-form";
 
 import { buildAdoContextQuery } from "@/lib/ado/parse-context-search-params";
 
+import { useAssigneeFilterFromUrl } from "@/hooks/filters/use-assignee-filter-from-url";
 import { useCatalogAutoDefaults } from "@/hooks/time-log/use-catalog-auto-defaults";
+import { usePushWorkItemAssigneeUrl } from "@/hooks/filters/use-push-work-item-assignee-url";
 import { useSprintWorkingDate } from "@/hooks/time-log/use-sprint-working-date";
 import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-panel";
 import { useTimeLogWorkItemFilters } from "@/hooks/time-log/use-time-log-work-item-filters";
@@ -48,6 +50,7 @@ export function useTimeLogCatalog({
 }: UseTimeLogCatalogOptions): TimeLogCatalog {
   const router = useRouter();
   const pathname = usePathname();
+  const { pushAssignee } = usePushWorkItemAssigneeUrl();
   const { catalog } = serverBaseline;
   const project = form.watch("project");
   const team = form.watch("team");
@@ -89,10 +92,20 @@ export function useTimeLogCatalog({
     filters: workItemFilters,
     setSearch: setWorkItemSearch,
     setAssignee: setWorkItemAssignee,
-    setState: setWorkItemState,
-    onStateChange: onWorkItemStateChange,
+    setStates: setWorkItemStates,
+    onStatesChange: onWorkItemStatesChange,
     resetFilters: resetWorkItemFilters,
   } = useTimeLogWorkItemFilters(workItemStates);
+
+  const { assigneeForUi } = useAssigneeFilterFromUrl(
+    workItemFilters.assignee,
+    setWorkItemAssignee,
+  );
+
+  const workItemFiltersWithUrlAssignee = useMemo(
+    () => ({ ...workItemFilters, assignee: assigneeForUi }),
+    [assigneeForUi, workItemFilters],
+  );
 
   useEffect(() => {
     if (taskStates.length === 0) return;
@@ -130,16 +143,16 @@ export function useTimeLogCatalog({
     () =>
       filterWorkItemsByClientCriteria(sprintPbis, {
         search: workItemFilters.search,
-        state: workItemFilters.state,
+        states: workItemFilters.states,
       }),
-    [sprintPbis, workItemFilters.search, workItemFilters.state],
+    [sprintPbis, workItemFilters.search, workItemFilters.states],
   );
 
   const workItemFiltersPanel = useWorkItemFiltersPanel({
-    filters: workItemFilters,
+    filters: workItemFiltersWithUrlAssignee,
     setSearch: setWorkItemSearch,
     setAssignee: setWorkItemAssignee,
-    setState: setWorkItemState,
+    setStates: setWorkItemStates,
     resetFilters: resetWorkItemFilters,
     sprintPath,
     items: sprintPbis,
@@ -213,7 +226,7 @@ export function useTimeLogCatalog({
     teams,
     sprints,
     pbis,
-    workItemFilters,
+    workItemFilters: workItemFiltersWithUrlAssignee,
     workItemStates,
     workItemsTotalCount: sprintPbis.length,
     workItemsFilteredCount: pbis.length,
@@ -254,7 +267,14 @@ export function useTimeLogCatalog({
     onTeamChange,
     onSprintChange,
     onWorkItemSearchChange: setWorkItemSearch,
-    onWorkItemAssigneeChange: setWorkItemAssignee,
-    onWorkItemStateChange,
+    onWorkItemAssigneeChange: (value) => {
+      setWorkItemAssignee(value);
+      pushAssignee(value, {
+        project,
+        team,
+        sprint: sprintPath,
+      });
+    },
+    onWorkItemStatesChange,
   };
 }
