@@ -11,7 +11,8 @@
     "@tailwindcss/postcss",
     "tw-animate-css",
     "tailwindcss",
-    "shadcn"
+    "shadcn",
+    "server-only"
   ],
   "ignoreExportsUsedInFile": true
 }

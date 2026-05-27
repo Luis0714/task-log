@@ -4,7 +4,6 @@ import { WorkItemId } from "@/components/work-items/work-item-id";
 import { WorkItemTypeAvatar } from "@/components/work-items/work-item-type-avatar";
 import { WorkItemOptionHeader } from "@/components/time-log/work-item-option-header";
 import {
-  WORK_ITEM_SELECT_ITEM_CLASS,
   WORK_ITEM_SELECT_OPTION_CLASS,
 } from "@/components/time-log/work-item-select-item-classes";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";

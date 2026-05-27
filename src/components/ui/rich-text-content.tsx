@@ -27,7 +27,7 @@ export function RichTextContent({ html, className }: RichTextContentProps) {
         "[&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold",
         className,
       )}
-      // eslint-disable-next-line react/no-danger
+       
       dangerouslySetInnerHTML={{ __html: safeHtml }}
     />
   );

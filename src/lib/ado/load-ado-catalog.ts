@@ -33,7 +33,7 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
   const errors = { projects: null, teams: null, sprints: null } as AdoCatalogSnapshot["errors"];
 
   let projects = emptyCatalog.projects;
-  let defaultProject: string | null = caller.auth.project ?? null;
+  const defaultProject: string | null = caller.auth.project ?? null;
 
   try {
     projects = await listOrganizationProjects(caller.auth);

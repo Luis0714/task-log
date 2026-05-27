@@ -17,7 +17,6 @@ import {
 } from "@/lib/azure-devops/work-item-patch";
 import { listTeamMembers } from "@/lib/azure-devops/work-item-type-states";
 import { toWorkingDateKey } from "@/lib/azure-devops/working-date-field";
-import { requiresCommittedDates, requiresQaResponsables } from "@/lib/work-items/pbi-state-transition";
 import {
   buildWorkflowTagPatchOp,
   SYSTEM_TAGS_FIELD,

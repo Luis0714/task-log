@@ -39,7 +39,7 @@ export async function resolveBacklogResponsableFields(
 
   const fromEnv = buildBacklogResponsableFieldsFromEnv();
   const envKeys = new Set(fromEnv.map((field) => field.key));
-  let merged = [...fromEnv];
+  const merged = [...fromEnv];
 
   const discovered = await discoverBacklogResponsableFields(auth);
   for (const field of discovered) {

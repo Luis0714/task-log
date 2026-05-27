@@ -1,0 +1,14 @@
+{
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "typescript.tsdk": "node_modules/typescript/lib"
+}

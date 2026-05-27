@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import type { VariantProps } from "class-variance-authority";
 
-import { badgeVariants } from "@/components/ui/badge";
+import type { badgeVariants } from "@/components/ui/badge";
 import { getPbiStateColorPresentation } from "@/lib/work-items/pbi-state-colors";
 
 type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;

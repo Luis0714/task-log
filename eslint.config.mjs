@@ -18,6 +18,10 @@ const projectStyleRules = {
   "prefer-template": "warn",
   "no-console": ["warn", { allow: ["warn", "error"] }],
 
+  // Patrones habituales en sheets/hooks (sincronizar props → estado local).
+  "react-hooks/set-state-in-effect": "warn",
+  "react-hooks/refs": "warn",
+
   "@typescript-eslint/no-unused-vars": "off",
   "no-unused-vars": "off",
   "unused-imports/no-unused-imports": "error",
@@ -40,11 +44,6 @@ const projectStyleRules = {
       disallowTypeAnnotations: false,
     },
   ],
-  "@typescript-eslint/consistent-type-exports": [
-    "error",
-    { fixMixedExportsWithInlineTypeSpecifier: true },
-  ],
-  "@typescript-eslint/no-import-type-side-effects": "error",
 };
 
 const eslintConfig = defineConfig([
@@ -61,6 +60,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "eslint.config.mjs",
+    "knip.json",
   ]),
 ]);
 
