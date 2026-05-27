@@ -11,7 +11,7 @@ const ASSIGNEE_LIST_SEPARATOR_LEGACY = ",";
 
 export const workItemFiltersSchema = z.object({
   search: z.string(),
-  /** `all`, `me` o displayNames (varios unidos con `|`). */
+  /** `all`, `me`, `me|Nombre` o nombres unidos con `|`. */
   assignee: z.string(),
   /** Vacío = todos los estados. */
   states: z.array(z.string()),
@@ -21,8 +21,7 @@ export type WorkItemFilters = z.infer<typeof workItemFiltersSchema>;
 
 export type AssigneeFilter =
   | { kind: "all" }
-  | { kind: "me" }
-  | { kind: "members"; names: string[] };
+  | { kind: "selection"; includeMe: boolean; names: string[] };
 
 export const DEFAULT_WORK_ITEM_FILTERS: WorkItemFilters = {
   search: "",
@@ -31,7 +30,16 @@ export const DEFAULT_WORK_ITEM_FILTERS: WorkItemFilters = {
 };
 
 export function isWorkItemAssigneeMe(assignee: string): boolean {
-  return assignee === WORK_ITEM_ASSIGNEE_ME;
+  const filter = parseAssigneeFilter(assignee);
+  return (
+    filter.kind === "selection" &&
+    filter.includeMe &&
+    filter.names.length === 0
+  );
+}
+
+export function isWorkItemAssigneeDefault(assignee: string): boolean {
+  return assignee === DEFAULT_WORK_ITEM_FILTERS.assignee;
 }
 
 export function isWorkItemAssigneeAll(assignee: string): boolean {
@@ -40,16 +48,24 @@ export function isWorkItemAssigneeAll(assignee: string): boolean {
 
 export function parseAssigneeFilter(assignee: string): AssigneeFilter {
   const trimmed = assignee.trim();
-  if (!trimmed || isWorkItemAssigneeAll(trimmed)) return { kind: "all" };
-  if (isWorkItemAssigneeMe(trimmed)) return { kind: "me" };
+  if (!trimmed || trimmed === WORK_ITEM_ASSIGNEE_ALL) return { kind: "all" };
 
-  const names = splitAssigneeMemberNames(trimmed);
+  if (trimmed === WORK_ITEM_ASSIGNEE_ME) {
+    return { kind: "selection", includeMe: true, names: [] };
+  }
 
-  if (names.length === 0) return { kind: "me" };
-  return { kind: "members", names };
+  const tokens = splitAssigneeTokens(trimmed);
+  const includeMe = tokens.includes(WORK_ITEM_ASSIGNEE_ME);
+  const names = tokens.filter((token) => token !== WORK_ITEM_ASSIGNEE_ME);
+
+  if (!includeMe && names.length === 0) {
+    return { kind: "selection", includeMe: true, names: [] };
+  }
+
+  return { kind: "selection", includeMe, names };
 }
 
-function splitAssigneeMemberNames(value: string): string[] {
+function splitAssigneeTokens(value: string): string[] {
   const separator = value.includes(ASSIGNEE_LIST_SEPARATOR)
     ? ASSIGNEE_LIST_SEPARATOR
     : value.includes(ASSIGNEE_LIST_SEPARATOR_LEGACY)
@@ -62,25 +78,55 @@ function splitAssigneeMemberNames(value: string): string[] {
 
   return value
     .split(separator)
-    .map((name) => name.trim())
+    .map((token) => token.trim())
     .filter(Boolean);
 }
 
 export function parseAssigneeMembers(assignee: string): string[] {
   const filter = parseAssigneeFilter(assignee);
-  return filter.kind === "members" ? filter.names : [];
+  return filter.kind === "selection" ? filter.names : [];
+}
+
+export function serializeAssigneeSelection(selection: {
+  includeMe: boolean;
+  names: readonly string[];
+}): string {
+  const names = [
+    ...new Set(selection.names.map((name) => name.trim()).filter(Boolean)),
+  ];
+
+  if (!selection.includeMe && names.length === 0) {
+    return WORK_ITEM_ASSIGNEE_ME;
+  }
+
+  const tokens: string[] = [];
+  if (selection.includeMe) tokens.push(WORK_ITEM_ASSIGNEE_ME);
+  tokens.push(...names);
+
+  if (tokens.length === 1 && tokens[0] === WORK_ITEM_ASSIGNEE_ME) {
+    return WORK_ITEM_ASSIGNEE_ME;
+  }
+
+  return tokens.join(ASSIGNEE_LIST_SEPARATOR);
 }
 
 export function serializeAssigneeFilter(filter: AssigneeFilter): string {
   if (filter.kind === "all") return WORK_ITEM_ASSIGNEE_ALL;
-  if (filter.kind === "me") return WORK_ITEM_ASSIGNEE_ME;
-  return serializeAssigneeMembers(filter.names);
+  return serializeAssigneeSelection({
+    includeMe: filter.includeMe,
+    names: filter.names,
+  });
 }
 
-export function serializeAssigneeMembers(members: readonly string[]): string {
-  const unique = [...new Set(members.map((name) => name.trim()).filter(Boolean))];
-  if (unique.length === 0) return WORK_ITEM_ASSIGNEE_ME;
-  return unique.join(ASSIGNEE_LIST_SEPARATOR);
+/** @deprecated Usa serializeAssigneeSelection */
+export function serializeAssigneeMembers(
+  members: readonly string[],
+  options?: { includeMe?: boolean },
+): string {
+  return serializeAssigneeSelection({
+    includeMe: options?.includeMe ?? false,
+    names: members,
+  });
 }
 
 export function workItemMatchesStates(
@@ -98,13 +144,19 @@ export function resolveWorkItemAssigneeLabel(
   const filter = parseAssigneeFilter(assignee);
 
   if (filter.kind === "all") return "Todos";
-  if (filter.kind === "me") return "Asignados a mí";
-  if (filter.names.length === 1) {
-    const name = filter.names[0];
+
+  const parts: string[] = [];
+  if (filter.includeMe) parts.push("Asignados a mí");
+
+  for (const name of filter.names) {
     const member = findTeamMemberByAssigneeName(members, name);
-    return member?.displayName ?? name;
+    parts.push(member?.displayName ?? name);
   }
-  return `${filter.names.length} personas`;
+
+  if (parts.length === 0) return "Asignados a mí";
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return `${parts[0]} y ${parts[1]}`;
+  return `${parts[0]} y ${parts.length - 1} más`;
 }
 
 export function resolveWorkItemStatesLabel(

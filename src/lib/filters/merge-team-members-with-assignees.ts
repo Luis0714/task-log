@@ -1,8 +1,12 @@
-import { assigneeMatchesMember, normalizePersonName } from "@/lib/filters/person-name";
+import {
+  assigneeMatchesMember,
+  normalizePersonName,
+} from "@/lib/filters/person-name";
 import type { AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
 const SPRINT_ASSIGNEE_ID_PREFIX = "sprint-assignee:";
 
+/** Añade asignados del sprint que no están en el roster del equipo. */
 export function mergeTeamMembersWithWorkItemAssignees(
   members: readonly AdoTeamMemberDto[],
   items: readonly Pick<AdoWorkItemOptionDto, "assignedTo">[],

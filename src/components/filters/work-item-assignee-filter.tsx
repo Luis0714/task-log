@@ -13,7 +13,7 @@ import {
   WORK_ITEM_ASSIGNEE_ME,
   parseAssigneeFilter,
   resolveWorkItemAssigneeLabel,
-  serializeAssigneeMembers,
+  serializeAssigneeSelection,
 } from "@/lib/schemas/work-item-filters";
 
 export type WorkItemAssigneeFilterProps = {
@@ -36,26 +36,43 @@ export function WorkItemAssigneeFilter({
   onAssigneeChange,
 }: WorkItemAssigneeFilterProps) {
   const assigneeFilter = parseAssigneeFilter(assignee);
-  const selectedMembers = assigneeFilter.kind === "members" ? assigneeFilter.names : [];
+  const isAll = assigneeFilter.kind === "all";
+  const includeMe =
+    assigneeFilter.kind === "selection" && assigneeFilter.includeMe;
+  const selectedMembers =
+    assigneeFilter.kind === "selection" ? assigneeFilter.names : [];
   const selectedSet = new Set(selectedMembers);
+
   const triggerLabel = membersLoading
     ? "Cargando miembros..."
     : resolveWorkItemAssigneeLabel(assignee, members);
 
-  const selectPreset = (value: string) => {
-    onAssigneeChange(value);
+  const applySelection = (includeMeNext: boolean, names: readonly string[]) => {
+    if (names.length === 0 && !includeMeNext) {
+      onAssigneeChange(WORK_ITEM_ASSIGNEE_ME);
+      return;
+    }
+    onAssigneeChange(serializeAssigneeSelection({ includeMe: includeMeNext, names }));
+  };
+
+  const toggleMe = (checked: boolean) => {
+    if (isAll) {
+      applySelection(checked, []);
+      return;
+    }
+    applySelection(checked, selectedMembers);
   };
 
   const toggleMember = (displayName: string, checked: boolean) => {
-    if (checked) {
-      const next = [...selectedMembers, displayName];
-      onAssigneeChange(serializeAssigneeMembers(next));
+    if (isAll) {
+      applySelection(false, checked ? [displayName] : []);
       return;
     }
-    const next = selectedMembers.filter((name) => name !== displayName);
-    onAssigneeChange(
-      next.length > 0 ? serializeAssigneeMembers(next) : WORK_ITEM_ASSIGNEE_ME,
-    );
+
+    const next = checked
+      ? [...selectedMembers, displayName]
+      : selectedMembers.filter((name) => name !== displayName);
+    applySelection(includeMe, next);
   };
 
   return (
@@ -73,15 +90,22 @@ export function WorkItemAssigneeFilter({
         <PopoverContent className="w-[var(--anchor-width)] p-2" align="start">
           <div className="space-y-0.5">
             <FilterPresetRow
-              label="Asignados a mí"
-              active={assigneeFilter.kind === "me"}
-              onSelect={() => selectPreset(WORK_ITEM_ASSIGNEE_ME)}
-            />
-            <FilterPresetRow
               label="Todos"
-              active={assigneeFilter.kind === "all"}
-              onSelect={() => selectPreset(WORK_ITEM_ASSIGNEE_ALL)}
+              active={isAll}
+              onSelect={() => onAssigneeChange(WORK_ITEM_ASSIGNEE_ALL)}
             />
+            <label
+              htmlFor={`${id}-me`}
+              className="hover:bg-muted/60 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5"
+            >
+              <Checkbox
+                id={`${id}-me`}
+                checked={!isAll && includeMe}
+                disabled={isAll}
+                onCheckedChange={(next) => toggleMe(next === true)}
+              />
+              <span className="text-sm">Asignados a mí</span>
+            </label>
           </div>
           {members.length > 0 ? (
             <>
@@ -89,9 +113,7 @@ export function WorkItemAssigneeFilter({
               <div className="max-h-48 space-y-0.5 overflow-y-auto">
                 {members.map((member) => {
                   const optionId = `${id}-member-${member.id}`;
-                  const checked =
-                    assigneeFilter.kind === "members" &&
-                    selectedSet.has(member.displayName);
+                  const checked = !isAll && selectedSet.has(member.displayName);
                   return (
                     <label
                       key={member.id}
@@ -101,6 +123,7 @@ export function WorkItemAssigneeFilter({
                       <Checkbox
                         id={optionId}
                         checked={checked}
+                        disabled={isAll}
                         onCheckedChange={(next) =>
                           toggleMember(member.displayName, next === true)
                         }

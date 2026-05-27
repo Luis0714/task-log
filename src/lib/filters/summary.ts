@@ -1,6 +1,6 @@
 import {
   DEFAULT_WORK_ITEM_FILTERS,
-  isWorkItemAssigneeMe,
+  isWorkItemAssigneeDefault,
   type WorkItemFilters,
 } from "@/lib/schemas/work-item-filters";
 
@@ -10,7 +10,7 @@ export function countActiveWorkItemFilters(
   let count = 0;
   if (filters.search.trim().length > 0) count++;
   if (filters.states.length > 0) count++;
-  if (!isWorkItemAssigneeMe(filters.assignee)) count++;
+  if (!isWorkItemAssigneeDefault(filters.assignee)) count++;
   return count;
 }
 

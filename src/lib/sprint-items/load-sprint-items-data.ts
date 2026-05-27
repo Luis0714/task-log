@@ -39,7 +39,12 @@ export const loadSprintItemsData = cache(async function loadSprintItemsData(
   const assignee = input.assignee || DEFAULT_WORK_ITEM_FILTERS.assignee;
   const [list, meta, nonWorkingDates] = await Promise.all([
     loadSprintItemsList(input.kind, catalog, assignee),
-    loadSprintItemsListMeta(input.kind, input.project, input.team),
+    loadSprintItemsListMeta(
+      input.kind,
+      input.project,
+      input.team,
+      input.sprintPath,
+    ),
     loadNonWorkingDates(input.project, input.team),
   ]);
 

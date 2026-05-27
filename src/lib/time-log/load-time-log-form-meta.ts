@@ -4,12 +4,11 @@ import { cache } from "react";
 
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
-import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
-import { withAdoProject } from "@/lib/azure-devops/projects";
+import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
+import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
 import {
   listBacklogItemStates,
   listTaskStates,
-  listTeamMembers,
 } from "@/lib/azure-devops/work-item-type-states";
 import {
   pickDefaultCompletedTaskState,
@@ -38,16 +37,20 @@ const emptyMeta: TimeLogFormMeta = {
 export const loadTimeLogFormMeta = cache(async function loadTimeLogFormMeta(
   catalog: AdoCatalogSnapshot,
 ): Promise<TimeLogFormMeta> {
-  if (!catalog.project || !catalog.team) return emptyMeta;
+  if (!catalog.project?.trim() || !catalog.team?.trim()) return emptyMeta;
 
-  const caller = await requireAdoCaller();
-  if (!caller.ok) return emptyMeta;
+  const auth = await getScopedProjectAuth(catalog.project);
+  if (!auth) return emptyMeta;
 
-  const scopedAuth = withAdoProject(caller.auth, catalog.project);
   const [teamMembers, backlogStates, taskStates, nonWorkingDates] = await Promise.all([
-    listTeamMembers(scopedAuth, catalog.team),
-    listBacklogItemStates(scopedAuth),
-    listTaskStates(scopedAuth),
+    loadAssigneeFilterMembers(
+      catalog.project,
+      catalog.team,
+      catalog.sprintPath,
+      "workItems",
+    ),
+    listBacklogItemStates(auth),
+    listTaskStates(auth),
     loadNonWorkingDates(catalog.project, catalog.team),
   ]);
 

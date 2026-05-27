@@ -5,20 +5,15 @@ import { parseAssigneeFilter } from "@/lib/schemas/work-item-filters";
 export function buildAssigneeWiqlCondition(assignee: string): string | null {
   const filter = parseAssigneeFilter(assignee);
 
-  switch (filter.kind) {
-    case "me":
-      return "[System.AssignedTo] = @Me";
-    case "all":
-      return null;
-    case "members": {
-      if (filter.names.length === 0) return null;
-      if (filter.names.length === 1) {
-        return `[System.AssignedTo] = '${escapeWiqlString(filter.names[0])}'`;
-      }
-      const clauses = filter.names.map(
-        (name) => `[System.AssignedTo] = '${escapeWiqlString(name)}'`,
-      );
-      return `(${clauses.join(" OR ")})`;
-    }
+  if (filter.kind === "all") return null;
+
+  const clauses: string[] = [];
+  if (filter.includeMe) clauses.push("[System.AssignedTo] = @Me");
+  for (const name of filter.names) {
+    clauses.push(`[System.AssignedTo] = '${escapeWiqlString(name)}'`);
   }
+
+  if (clauses.length === 0) return "[System.AssignedTo] = @Me";
+  if (clauses.length === 1) return clauses[0];
+  return `(${clauses.join(" OR ")})`;
 }

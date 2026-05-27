@@ -3,6 +3,7 @@
 import { Search } from "lucide-react";
 
 import { MultiCheckboxFilter } from "@/components/filters/multi-checkbox-filter";
+import { allWorkItemStatesPreset } from "@/components/filters/work-item-filter-presets";
 import { WorkItemAssigneeFilter } from "@/components/filters/work-item-assignee-filter";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { Input } from "@/components/ui/input";
@@ -95,13 +96,7 @@ export function WorkItemFiltersPanel({
           selected={filters.states}
           onSelectedChange={onStatesChange}
           triggerLabel={statesLabel}
-          presets={[
-            {
-              label: "Todos los estados",
-              active: filters.states.length === 0,
-              onSelect: () => onStatesChange([]),
-            },
-          ]}
+          presets={[allWorkItemStatesPreset(filters.states, () => onStatesChange([]))]}
           disabled={disabled || states.length === 0}
         />
       </div>

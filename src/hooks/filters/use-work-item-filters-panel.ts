@@ -2,14 +2,9 @@
 
 import { useEffect, useMemo } from "react";
 
-import { assigneeMatchesMember } from "@/lib/filters/person-name";
-import { mergeTeamMembersWithWorkItemAssignees } from "@/lib/filters/merge-team-members-with-assignees";
+import { pruneAssigneeMemberSelection } from "@/lib/filters/prune-assignee-filter";
 import type { AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
-import {
-  parseAssigneeFilter,
-  serializeAssigneeFilter,
-  type WorkItemFilters,
-} from "@/lib/schemas/work-item-filters";
+import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 import { collectWorkItemStates } from "@/lib/azure-devops/work-items-filters";
 
 export type WorkItemFiltersPanelBinding = {
@@ -61,11 +56,6 @@ export function useWorkItemFiltersPanel({
     return collectWorkItemStates(items);
   }, [items, stateNames]);
 
-  const membersForFilter = useMemo(
-    () => mergeTeamMembersWithWorkItemAssignees(members, items),
-    [items, members],
-  );
-
   useEffect(() => {
     resetFilters();
   }, [resetFilters, sprintPath]);
@@ -78,23 +68,17 @@ export function useWorkItemFiltersPanel({
   }, [filters.states, setStates, states]);
 
   useEffect(() => {
-    const assigneeFilter = parseAssigneeFilter(filters.assignee);
-    if (assigneeFilter.kind !== "members") return;
-    if (membersLoading || membersForFilter.length === 0) return;
-
-    const valid = assigneeFilter.names.filter((name) =>
-      assigneeMatchesMember(membersForFilter, name),
-    );
-    if (valid.length === assigneeFilter.names.length) return;
-    if (valid.length === 0) return;
-
-    setAssignee(serializeAssigneeFilter({ kind: "members", names: valid }));
-  }, [filters.assignee, membersForFilter, membersLoading, setAssignee]);
+    if (membersLoading) return;
+    const nextAssignee = pruneAssigneeMemberSelection(filters.assignee, members);
+    if (nextAssignee !== filters.assignee) {
+      setAssignee(nextAssignee);
+    }
+  }, [filters.assignee, members, membersLoading, setAssignee]);
 
   return {
     values: filters,
     states,
-    members: membersForFilter,
+    members,
     membersLoading,
     membersError,
     totalCount,
