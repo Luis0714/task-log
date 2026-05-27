@@ -1,16 +1,11 @@
 "use client";
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
-import { CopilotHistoryList } from "@/components/copilot/copilot-history-list";
+import { TimeLogContextSection } from "@/components/time-log/time-log-context-section";
 import { TimeLogCopilotLink, TimeLogForm } from "@/components/time-log/time-log-form";
 import { TimeLogPreviewDialog } from "@/components/time-log/time-log-preview-dialog";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Form } from "@/components/ui/form";
 import { useCopilotHistory } from "@/hooks/use-copilot-history";
 import { useTimeLogForm } from "@/hooks/use-time-log-form";
 import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
@@ -34,7 +29,7 @@ export function TimeLogBodyClient({
   serverBaseline,
   pbisSnapshot,
 }: TimeLogBodyClientProps) {
-  const { history, appendEntry } = useCopilotHistory();
+  const { appendEntry } = useCopilotHistory();
   const form = useTimeLogForm({
     appendHistory: appendEntry,
     defaultProject,
@@ -45,29 +40,22 @@ export function TimeLogBodyClient({
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-5">
-      <Card className="min-w-0">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Formulario</CardTitle>
-          <CardDescription className="text-pretty">
-            Paso 1: contexto (proyecto, sprint, historia de usuario). Paso 2: datos de la tarea (título, horas,
-            actividad, fecha).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="min-w-0 space-y-4">
-          <TimeLogForm
-            form={form.form}
-            catalog={form.catalog}
-            step={form.step}
-            canContinueStep1={form.canContinueStep1}
-            canSubmitStep2={form.canSubmitStep2}
-            loading={form.loadingExecute}
-            onContinue={() => void form.goToStep2()}
-            onBack={form.goToStep1}
-            onSubmit={form.prepareSubmit}
-          />
-          <TimeLogCopilotLink />
-        </CardContent>
-      </Card>
+      <Form {...form.form}>
+        <TimeLogContextSection form={form.form} catalog={form.catalog} />
+
+        <Card className="min-w-0">
+          <CardContent className="min-w-0 space-y-4">
+            <TimeLogForm
+              form={form.form}
+              catalog={form.catalog}
+              canSubmit={form.canSubmit}
+              loading={form.loadingExecute}
+              onSubmit={form.prepareSubmit}
+            />
+            <TimeLogCopilotLink />
+          </CardContent>
+        </Card>
+      </Form>
 
       {form.error ? <CopilotErrorAlert message={form.error} /> : null}
       {pbisSnapshot.error ? <CopilotErrorAlert message={pbisSnapshot.error} /> : null}
@@ -83,8 +71,6 @@ export function TimeLogBodyClient({
           if (!open) form.dismissPreview();
         }}
       />
-
-      <CopilotHistoryList entries={history} />
     </div>
   );
 }

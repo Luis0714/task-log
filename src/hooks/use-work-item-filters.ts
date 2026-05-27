@@ -29,11 +29,16 @@ export function useWorkItemFilters(initial?: Partial<WorkItemFilters>) {
     setFilters(DEFAULT_WORK_ITEM_FILTERS);
   }, []);
 
+  const replaceFilters = useCallback((next: WorkItemFilters) => {
+    setFilters(next);
+  }, []);
+
   return {
     filters,
     setSearch,
     setAssignee,
     setState,
     resetFilters,
+    replaceFilters,
   };
 }

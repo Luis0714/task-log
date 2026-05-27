@@ -13,12 +13,12 @@ const PAGE_COPY: Record<
 > = {
   bugs: {
     title: "Bugs",
-    description: "Bugs del sprint con filtros por asignación, estado y fecha.",
+    description: "Bugs asignados al sprint actual, con filtros por asignación, estado y fecha.",
     notReadyMessage: "Conecta Azure DevOps para ver los Bugs del sprint.",
   },
   tasks: {
     title: "Tareas",
-    description: "Tareas del sprint con filtros por asignación, estado y día de trabajo.",
+    description: "Tareas asignadas al sprint actual, con filtros por asignación, estado y día de trabajo.",
     notReadyMessage: "Conecta Azure DevOps para ver tus tareas del sprint.",
   },
 };

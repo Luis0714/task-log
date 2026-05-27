@@ -5,6 +5,12 @@ const dateKeySchema = z
   .trim()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe tener formato YYYY-MM-DD.");
 
+export const userStoryWorkflowTagSchema = z.enum([
+  "none",
+  "en-desarrollo",
+  "desarrollada",
+]);
+
 export const updateWorkItemBodySchema = z.object({
   project: z.string().trim().min(1).max(200),
   state: z.string().trim().min(1).max(100),
@@ -23,6 +29,8 @@ export const updateWorkItemBodySchema = z.object({
   responsableMaquetacion: z.string().trim().min(1).max(200).optional(),
   responsableIntegrador: z.string().trim().min(1).max(200).optional(),
   responsableQA: z.string().trim().min(1).max(200).optional(),
+  /** Tag de flujo de la HU (EN DESARROLLO / DESARROLLADA). */
+  workflowTag: userStoryWorkflowTagSchema.optional(),
 });
 
 export function isBacklogWorkItemUpdate(body: UpdateWorkItemBody): boolean {

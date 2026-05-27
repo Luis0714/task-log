@@ -19,10 +19,6 @@ export function WorkItemsSectionsStream({ catalog, assignee }: WorkItemsSections
 
   return (
     <div className="flex flex-col gap-8">
-      <Suspense key={`all|${sectionKey}`} fallback={<WorkItemsAllSectionSkeleton />}>
-        <WorkItemsSectionServer catalog={catalog} assignee={assignee} section="filteredItems" />
-      </Suspense>
-
       <Suspense
         key={`inProgress|${sectionKey}`}
         fallback={<WorkItemsInProgressSectionSkeleton />}
@@ -39,6 +35,10 @@ export function WorkItemsSectionsStream({ catalog, assignee }: WorkItemsSections
         fallback={<WorkItemsDevelopedSectionSkeleton />}
       >
         <WorkItemsSectionServer catalog={catalog} assignee={assignee} section="developed" />
+      </Suspense>
+
+      <Suspense key={`all|${sectionKey}`} fallback={<WorkItemsAllSectionSkeleton />}>
+        <WorkItemsSectionServer catalog={catalog} assignee={assignee} section="filteredItems" />
       </Suspense>
     </div>
   );

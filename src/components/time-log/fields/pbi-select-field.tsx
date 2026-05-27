@@ -55,7 +55,7 @@ export function PbiSelectField({ form, catalog }: PbiSelectFieldProps) {
                 </SelectValue>
               </SelectTrigger>
             </FormControl>
-            <SelectContent className="max-h-80 w-(--anchor-width) max-w-(--anchor-width) gap-1 p-1.5">
+            <SelectContent className="max-h-80 w-(--anchor-width) max-w-(--anchor-width) p-1.5">
               {catalog.pbis.map((item) => (
                 <SelectItem
                   key={item.id}
@@ -63,7 +63,7 @@ export function PbiSelectField({ form, catalog }: PbiSelectFieldProps) {
                   textWrap
                   className={WORK_ITEM_SELECT_ITEM_CLASS}
                 >
-                  <WorkItemSelectOption item={item} variant="menu" />
+                  <WorkItemSelectOption item={item} variant="select" />
                 </SelectItem>
               ))}
             </SelectContent>

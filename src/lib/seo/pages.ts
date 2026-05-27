@@ -17,6 +17,12 @@ export const PAGE_SEO = {
       "Gestiona y registra trabajo en Azure DevOps con lenguaje natural. Crea tareas, registra horas y opera el sprint con asistencia de IA.",
     path: "/copilot",
   },
+  history: {
+    title: "Historial",
+    description:
+      "Consulta el historial reciente de ejecuciones del registro de tiempo guardado en este navegador.",
+    path: "/history",
+  },
   timeLog: {
     title: "Registro de tiempo",
     description:

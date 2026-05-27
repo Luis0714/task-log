@@ -13,24 +13,18 @@ import type {
   TimeLogServerBaseline,
 } from "@/lib/time-log/load-time-log-baseline";
 import { resolveWorkingDateForSprint } from "@/hooks/time-log/use-sprint-working-date";
-import { useTimeLogWizard } from "@/hooks/time-log/use-time-log-wizard";
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
 import {
   createTimeLogFormDefaults,
-  timeLogContextStepSchema,
   timeLogFormSchema,
-  timeLogTaskStepSchema,
   type TimeLogFormValues,
 } from "@/lib/schemas/time-log";
 
-const TIME_LOG_CONTEXT_FIELDS = [
+const TIME_LOG_FORM_FIELDS = [
   "project",
   "team",
   "sprintPath",
   "pbiId",
-] as const satisfies readonly (keyof TimeLogFormValues)[];
-
-const TIME_LOG_TASK_FIELDS = [
   "taskTitle",
   "hours",
   "description",
@@ -78,14 +72,12 @@ export function useTimeLogForm({
     }
   }, [catalogProject, catalogSprintPath, catalogTeam, form]);
 
-  const wizard = useTimeLogWizard(form);
   const defaultTaskStateRef = useRef("");
   const sprintsRef = useRef<AdoSprintDto[]>([]);
 
   const createTask = useCreateTask({
     form,
     appendHistory,
-    setStep: wizard.setStep,
     getDefaultTaskState: useCallback(
       () => defaultTaskStateRef.current || form.getValues("taskState"),
       [form],
@@ -115,19 +107,15 @@ export function useTimeLogForm({
   const taskStatesReady =
     !catalog.taskStatesLoading && catalog.taskStates.length > 0 && !catalog.taskStatesError;
 
-  const { canSubmit: canContinueStep1 } = useZodStepSubmit({
+  const { canSubmit } = useZodStepSubmit({
     form,
-    schema: timeLogContextStepSchema,
-    fields: TIME_LOG_CONTEXT_FIELDS,
-    externalReady: !catalog.catalogDisabled && !catalog.pbisLoading,
-    isSubmitting: createTask.loading,
-  });
-
-  const { canSubmit: canSubmitStep2 } = useZodStepSubmit({
-    form,
-    schema: timeLogTaskStepSchema,
-    fields: TIME_LOG_TASK_FIELDS,
-    externalReady: adoExecutionReady && taskStatesReady,
+    schema: timeLogFormSchema,
+    fields: TIME_LOG_FORM_FIELDS,
+    externalReady:
+      adoExecutionReady &&
+      taskStatesReady &&
+      !catalog.catalogDisabled &&
+      !catalog.pbisLoading,
     isSubmitting: createTask.loading,
   });
 
@@ -135,31 +123,15 @@ export function useTimeLogForm({
     createTask.preparePreview(values, catalog.selectedPbi);
   });
 
-  const goToStep2 = () => {
-    createTask.dismissPreview();
-    wizard.goToStep2();
-  };
-
-  const goToStep1 = () => {
-    createTask.dismissPreview();
-    wizard.goToStep1();
-  };
-
   return {
     form,
     catalog,
-    step: wizard.step,
-    canContinueStep1,
-    canSubmitStep2,
+    canSubmit,
     preview: createTask.preview,
     error: createTask.error,
     loadingExecute: createTask.loading,
-    goToStep1,
-    goToStep2,
     prepareSubmit,
     execute: createTask.execute,
     dismissPreview: createTask.dismissPreview,
   };
 }
-
-export type { TimeLogStep } from "@/lib/time-log/catalog-types";

@@ -33,6 +33,7 @@ import {
 } from "@/lib/azure-devops/backlog-item-fields";
 import { parseIdentityDisplayName } from "@/lib/azure-devops/identity-field";
 import { mapBacklogItemFields } from "@/lib/azure-devops/map-backlog-item-fields";
+import { parseAdoWorkItemTags } from "@/lib/work-items/ado-work-item-tags";
 import type { WorkItemFieldPatchOp } from "@/lib/azure-devops/work-item-patch";
 import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
 import { pickDefaultOpenTaskState } from "@/lib/time-log/task-state-utils";
@@ -326,6 +327,7 @@ const PRIORITY = "Microsoft.VSTS.Common.Priority";
 const EFFORT = "Microsoft.VSTS.Scheduling.Effort";
 const STORY_POINTS = "Microsoft.VSTS.Scheduling.StoryPoints";
 const PARENT = "System.Parent";
+const SYSTEM_TAGS = "System.Tags";
 const WI_COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
 const WI_ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
 function parseNumericField(value: string | number | undefined): number | undefined {
@@ -372,6 +374,7 @@ async function fetchWorkItemDetails(
     EFFORT,
     STORY_POINTS,
     PARENT,
+    SYSTEM_TAGS,
     WI_COMPLETED_WORK,
     WI_ORIGINAL_ESTIMATE,
     ...getWorkItemDateFieldNames(),
@@ -405,6 +408,11 @@ async function fetchWorkItemDetails(
         loggedHours: parseNumericField(workItem.fields?.[WI_COMPLETED_WORK]),
         estimatedHours: parseNumericField(workItem.fields?.[WI_ORIGINAL_ESTIMATE]),
         workingDate: resolveWorkingDateKeyFromFields(workItem.fields),
+        tags: parseAdoWorkItemTags(
+          typeof workItem.fields?.[SYSTEM_TAGS] === "string"
+            ? workItem.fields[SYSTEM_TAGS]
+            : undefined,
+        ),
         ...mapBacklogItemFields(workItem.fields, responsableFields),
       });
     }

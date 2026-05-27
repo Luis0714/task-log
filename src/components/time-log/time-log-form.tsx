@@ -1,70 +1,57 @@
 "use client";
 
 import Link from "next/link";
+import { Loader2, Save } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 
-import { TimeLogContextStep } from "@/components/time-log/time-log-context-step";
-import { TimeLogStepIndicator } from "@/components/time-log/time-log-step-indicator";
-import { TimeLogTaskStep } from "@/components/time-log/time-log-task-step";
-import { Form } from "@/components/ui/form";
+import { TaskFormFields } from "@/components/time-log/fields/task-form-fields";
+import { PbiSelectField } from "@/components/time-log/fields/pbi-select-field";
+import { Button } from "@/components/ui/button";
 import type { TimeLogCatalog } from "@/lib/time-log/catalog-types";
-import type { TimeLogStep } from "@/hooks/use-time-log-form";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 
 export type TimeLogFormProps = {
   form: UseFormReturn<TimeLogFormValues>;
   catalog: TimeLogCatalog;
-  step: TimeLogStep;
-  canContinueStep1: boolean;
-  canSubmitStep2: boolean;
+  canSubmit: boolean;
   loading?: boolean;
-  onContinue: () => void;
-  onBack: () => void;
   onSubmit: () => void;
 };
 
 export function TimeLogForm({
   form,
   catalog,
-  step,
-  canContinueStep1,
-  canSubmitStep2,
+  canSubmit,
   loading = false,
-  onContinue,
-  onBack,
   onSubmit,
 }: TimeLogFormProps) {
   return (
-    <Form {...form}>
-      <form
-        className="flex min-w-0 flex-col gap-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (step === 2) onSubmit();
-        }}
-      >
-        <TimeLogStepIndicator step={step} />
+    <form
+      className="flex min-w-0 flex-col gap-5"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit();
+      }}
+    >
+      <PbiSelectField form={form} catalog={catalog} />
 
-        {step === 1 ? (
-          <TimeLogContextStep
-            form={form}
-            catalog={catalog}
-            canContinue={canContinueStep1}
-            loading={loading}
-            onContinue={onContinue}
-          />
+      <TaskFormFields
+        form={form}
+        taskStates={catalog.taskStates}
+        taskStatesLoading={catalog.taskStatesLoading}
+        taskStatesError={catalog.taskStatesError}
+        disabled={loading}
+      />
+
+      <Button type="submit" disabled={loading || !canSubmit} className="min-h-10 w-full sm:w-auto">
+        {loading ? (
+          <Loader2 className="size-4 animate-spin" aria-hidden />
         ) : (
-          <TimeLogTaskStep
-            form={form}
-            catalog={catalog}
-            canSubmit={canSubmitStep2}
-            loading={loading}
-            onBack={onBack}
-            onSubmit={onSubmit}
-          />
+          <Save className="size-4" aria-hidden />
         )}
-      </form>
-    </Form>
+        Revisar y crear tarea
+      </Button>
+    </form>
   );
 }
 

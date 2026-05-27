@@ -14,6 +14,10 @@ import {
   requiresCommittedDates,
   requiresQaResponsables,
 } from "@/lib/work-items/pbi-state-transition";
+import {
+  resolveUserStoryWorkflowTagOption,
+  type UserStoryWorkflowTagOption,
+} from "@/lib/work-items/user-story-workflow-tags";
 
 export type UseUserStoryDetailFormOptions = {
   workItem: DashboardWorkItem | null;
@@ -55,6 +59,7 @@ export function useUserStoryDetailForm({
   const [draftMaquetacion, setDraftMaquetacion] = useState("");
   const [draftIntegrador, setDraftIntegrador] = useState("");
   const [draftQa, setDraftQa] = useState("");
+  const [draftWorkflowTag, setDraftWorkflowTag] = useState<UserStoryWorkflowTagOption>("none");
   const [saving, setSaving] = useState(false);
 
   const transitionKind = useMemo(
@@ -94,6 +99,7 @@ export function useUserStoryDetailForm({
         false,
       ),
     );
+    setDraftWorkflowTag(resolveUserStoryWorkflowTagOption(workItem.tags));
   }, [workItem, currentUserDisplayName, members]);
 
   useEffect(() => {
@@ -124,10 +130,13 @@ export function useUserStoryDetailForm({
         members,
         false,
       ),
+      workflowTag: resolveUserStoryWorkflowTagOption(workItem.tags),
     };
   }, [workItem, currentUserDisplayName, members]);
 
   const isStateDirty = Boolean(workItem && draftState !== workItem.state);
+  const isWorkflowTagDirty =
+    Boolean(workItem) && draftWorkflowTag !== initialSnapshot?.workflowTag;
   const isDatesDirty =
     Boolean(workItem) &&
     (draftStartDate !== initialSnapshot?.startDate ||
@@ -138,7 +147,7 @@ export function useUserStoryDetailForm({
       draftIntegrador !== initialSnapshot?.integrador ||
       draftQa !== initialSnapshot?.qa);
 
-  const isDirty = isStateDirty || isDatesDirty || isResponsablesDirty;
+  const isDirty = isStateDirty || isWorkflowTagDirty || isDatesDirty || isResponsablesDirty;
 
   const committedValid =
     !requiresCommittedDates(draftState) ||
@@ -184,6 +193,10 @@ export function useUserStoryDetailForm({
         body.responsableQA = draftQa.trim();
       }
 
+      if (isWorkflowTagDirty) {
+        body.workflowTag = draftWorkflowTag;
+      }
+
       const res = await fetch(`/api/ado/work-items/${workItem.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -217,6 +230,8 @@ export function useUserStoryDetailForm({
     draftQa,
     isDatesDirty,
     isResponsablesDirty,
+    isWorkflowTagDirty,
+    draftWorkflowTag,
     hasResponsableFields,
     onSaved,
     onClose,
@@ -235,6 +250,8 @@ export function useUserStoryDetailForm({
     setDraftIntegrador,
     draftQa,
     setDraftQa,
+    draftWorkflowTag,
+    setDraftWorkflowTag,
     transitionKind,
     hasResponsableFields,
     saving,

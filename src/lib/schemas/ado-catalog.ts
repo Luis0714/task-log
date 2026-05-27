@@ -53,6 +53,8 @@ export const adoWorkItemOptionSchema = z.object({
   responsableMaquetacion: z.string().optional(),
   responsableIntegrador: z.string().optional(),
   responsableQA: z.string().optional(),
+  /** Tags de Azure DevOps (`System.Tags`), parseados. */
+  tags: z.array(z.string()).optional(),
 });
 
 export const adoSprintsResponseSchema = z.object({

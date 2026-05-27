@@ -49,5 +49,3 @@ export type TimeLogCatalog = {
   onWorkItemAssigneeChange: (value: string) => void;
   onWorkItemStateChange: (value: string) => void;
 };
-
-export type TimeLogStep = 1 | 2;

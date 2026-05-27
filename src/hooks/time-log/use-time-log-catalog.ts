@@ -9,7 +9,7 @@ import { buildAdoContextQuery } from "@/lib/ado/parse-context-search-params";
 import { useCatalogAutoDefaults } from "@/hooks/time-log/use-catalog-auto-defaults";
 import { useSprintWorkingDate } from "@/hooks/time-log/use-sprint-working-date";
 import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-panel";
-import { useWorkItemFilters } from "@/hooks/use-work-item-filters";
+import { useTimeLogWorkItemFilters } from "@/hooks/time-log/use-time-log-work-item-filters";
 import {
   buildCatalogDisabledState,
   buildCatalogPlaceholders,
@@ -55,14 +55,6 @@ export function useTimeLogCatalog({
   const pbiId = form.watch("pbiId");
   const taskState = form.watch("taskState");
 
-  const {
-    filters: workItemFilters,
-    setSearch: setWorkItemSearch,
-    setAssignee: setWorkItemAssignee,
-    setState: setWorkItemState,
-    resetFilters: resetWorkItemFilters,
-  } = useWorkItemFilters();
-
   const projects = catalog.projects;
   const teams = project === catalog.project ? catalog.teams : [];
   const sprints =
@@ -91,6 +83,15 @@ export function useTimeLogCatalog({
     () => backlogStates.map((state) => state.name),
     [backlogStates],
   );
+
+  const {
+    filters: workItemFilters,
+    setSearch: setWorkItemSearch,
+    setAssignee: setWorkItemAssignee,
+    setState: setWorkItemState,
+    onStateChange: onWorkItemStateChange,
+    resetFilters: resetWorkItemFilters,
+  } = useTimeLogWorkItemFilters(workItemStates);
 
   useEffect(() => {
     if (taskStates.length === 0) return;
@@ -252,6 +253,6 @@ export function useTimeLogCatalog({
     onSprintChange,
     onWorkItemSearchChange: setWorkItemSearch,
     onWorkItemAssigneeChange: setWorkItemAssignee,
-    onWorkItemStateChange: setWorkItemState,
+    onWorkItemStateChange,
   };
 }

@@ -5,6 +5,7 @@ import {
 } from "@/lib/dashboard/sprint-status-mapping";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
+import { filterUserStoriesByWorkflowCategory } from "@/lib/work-items/user-story-workflow-status";
 
 export type AdoWorkItemOption = AdoWorkItemOptionDto;
 
@@ -83,6 +84,11 @@ export function isCommittedPbiState(state: string): boolean {
   return stateMatchesCategory(state, USER_STORY_STATUS_MAPPING.inProgress);
 }
 
+/** Nombre exacto del estado Committed en el catálogo ADO (p. ej. registro de tiempo). */
+export function resolveCommittedBacklogStateName(states: readonly string[]): string {
+  return states.find((state) => isCommittedPbiState(state)) ?? "";
+}
+
 /** Pendientes del sprint que aún no están en curso (próximo trabajo). */
 const UPCOMING_PENDING_NORMALIZED = USER_STORY_STATUS_MAPPING.pending.map(normalizeState);
 
@@ -98,11 +104,11 @@ export function isUpcomingPbiState(state: string): boolean {
 }
 
 export function selectInProgressWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
-  return items.filter((item) => isCommittedPbiState(item.state)).sort(compareByPriority);
+  return filterUserStoriesByWorkflowCategory(items, "inProgress").sort(compareByPriority);
 }
 
 export function selectUpcomingWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
-  return items.filter((item) => isUpcomingPbiState(item.state)).sort(compareByPriority);
+  return filterUserStoriesByWorkflowCategory(items, "pending").sort(compareByPriority);
 }
 
 export function isDevelopedPbiState(state: string): boolean {
@@ -110,5 +116,5 @@ export function isDevelopedPbiState(state: string): boolean {
 }
 
 export function selectDevelopedWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
-  return items.filter((item) => isDevelopedPbiState(item.state)).sort(compareByPriority);
+  return filterUserStoriesByWorkflowCategory(items, "developed").sort(compareByPriority);
 }

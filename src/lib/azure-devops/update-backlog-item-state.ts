@@ -18,6 +18,11 @@ import {
 import { listTeamMembers } from "@/lib/azure-devops/work-item-type-states";
 import { toWorkingDateKey } from "@/lib/azure-devops/working-date-field";
 import { requiresCommittedDates, requiresQaResponsables } from "@/lib/work-items/pbi-state-transition";
+import {
+  buildWorkflowTagPatchOp,
+  SYSTEM_TAGS_FIELD,
+} from "@/lib/work-items/patch-user-story-workflow-tag";
+import type { UserStoryWorkflowTagOption } from "@/lib/work-items/user-story-workflow-tags";
 
 const SYSTEM_STATE = "System.State";
 
@@ -30,6 +35,7 @@ export type UpdateBacklogItemStateParams = {
   responsableMaquetacion?: string;
   responsableIntegrador?: string;
   responsableQA?: string;
+  workflowTag?: UserStoryWorkflowTagOption;
 };
 
 export type UpdateBacklogItemStateResult =
@@ -134,7 +140,11 @@ export async function updateBacklogItemState(
     "Content-Type": "application/json-patch+json",
   };
 
-  const getFields = [SYSTEM_STATE, ...(await getBacklogItemFetchFieldNames(auth))].join(",");
+  const getFields = [
+    SYSTEM_STATE,
+    SYSTEM_TAGS_FIELD,
+    ...(await getBacklogItemFetchFieldNames(auth)),
+  ].join(",");
   const getUrl = `${base}/${params.workItemId}?${api}&$fields=${encodeURIComponent(getFields)}`;
   const getRes = await adoFetch(auth, getUrl);
 
@@ -157,6 +167,15 @@ export async function updateBacklogItemState(
     wi.fields,
     responsableFields,
   );
+
+  if (params.workflowTag !== undefined) {
+    const existingTags =
+      typeof wi.fields?.[SYSTEM_TAGS_FIELD] === "string"
+        ? wi.fields[SYSTEM_TAGS_FIELD]
+        : undefined;
+    patchOps.push(buildWorkflowTagPatchOp(existingTags, params.workflowTag));
+  }
+
   patchOps.push({ op: "replace", path: `/fields/${SYSTEM_STATE}`, value: state });
 
   const patchUrl = `${base}/${params.workItemId}?${api}`;

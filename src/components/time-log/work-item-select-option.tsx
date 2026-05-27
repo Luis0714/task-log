@@ -1,18 +1,21 @@
 import { UserRound } from "lucide-react";
 
 import { WorkItemId } from "@/components/work-items/work-item-id";
-import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import { WorkItemTypeAvatar } from "@/components/work-items/work-item-type-avatar";
+import { WorkItemOptionHeader } from "@/components/time-log/work-item-option-header";
+import {
+  WORK_ITEM_SELECT_ITEM_CLASS,
+  WORK_ITEM_SELECT_OPTION_CLASS,
+} from "@/components/time-log/work-item-select-item-classes";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import { cn } from "@/lib/utils";
 
-export const WORK_ITEM_SELECT_ITEM_CLASS =
-  "h-auto min-h-0 items-start overflow-hidden rounded-lg p-1 focus:bg-transparent data-highlighted:bg-transparent";
+export { WORK_ITEM_SELECT_ITEM_CLASS } from "@/components/time-log/work-item-select-item-classes";
 
 export type WorkItemSelectOptionProps = {
   item: AdoWorkItemOptionDto;
-  /** `menu` para ítems del dropdown; `trigger` para el valor seleccionado en el botón. */
-  variant?: "menu" | "trigger";
+  /** `select` para ítems del dropdown; `menu` para tarjeta completa; `trigger` para el valor seleccionado. */
+  variant?: "menu" | "select" | "trigger";
   className?: string;
 };
 
@@ -66,23 +69,35 @@ function WorkItemOptionCard({ item, className }: WorkItemOptionCardProps) {
     <div
       className={cn(
         "box-border flex w-full min-w-0 max-w-full flex-col overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 shadow-sm",
-        "dark:border-white/[0.06] dark:bg-card/90",
+        "dark:border-white/6 dark:bg-card/90",
         className,
       )}
     >
-      <div className="flex min-w-0 items-start justify-between gap-2">
-        <WorkItemId id={item.id} />
-        {item.state ? <WorkItemStateBadge state={item.state} /> : null}
+      <WorkItemOptionHeader item={item} />
+
+      <div className="mt-2 flex min-w-0 items-center gap-2.5">
+        <WorkItemTypeAvatar type={item.type} className="shrink-0" />
+        <TruncatedTitle
+          title={item.title}
+          className="text-foreground text-left text-[15px] leading-snug font-semibold"
+        />
       </div>
 
-      <WorkItemTypeAvatar type={item.type} className="mt-2.5" />
+      {item.assignedTo ? (
+        <WorkItemAssigneeRow assignedTo={item.assignedTo} className="mt-3.5" />
+      ) : null}
+    </div>
+  );
+}
 
+function WorkItemSelectMenuOption({ item }: { item: AdoWorkItemOptionDto }) {
+  return (
+    <div className={cn("flex w-full min-w-0 flex-col gap-1", WORK_ITEM_SELECT_OPTION_CLASS)}>
+      <WorkItemOptionHeader item={item} />
       <TruncatedTitle
         title={item.title}
-        className="text-foreground mt-2 text-left text-[15px] leading-snug font-semibold"
+        className="text-foreground text-left text-sm leading-snug font-medium"
       />
-
-      {item.assignedTo ? <WorkItemAssigneeRow assignedTo={item.assignedTo} className="mt-3.5" /> : null}
     </div>
   );
 }
@@ -102,6 +117,10 @@ export function WorkItemSelectOption({
         </span>
       </span>
     );
+  }
+
+  if (variant === "select") {
+    return <WorkItemSelectMenuOption item={item} />;
   }
 
   return <WorkItemOptionCard item={item} className={className} />;

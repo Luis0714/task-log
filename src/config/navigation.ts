@@ -3,6 +3,7 @@ import {
   Bug,
   CheckSquare,
   Clock,
+  History,
   LayoutDashboard,
   ListTodo,
   Settings,
@@ -26,6 +27,7 @@ export const MAIN_NAVIGATION: NavGroupConfig[] = [
     items: [
       { href: "/", label: "Panel", icon: LayoutDashboard },
       { href: "/copilot", label: "Copiloto IA", icon: Bot },
+      { href: "/history", label: "Historial", icon: History },
     ],
   },
   {

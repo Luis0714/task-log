@@ -7,7 +7,6 @@ import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import { createTaskInAdo } from "@/lib/time-log/create-task-client";
 import { resetTaskStepFields } from "@/lib/time-log/form-selection";
-import type { TimeLogStep } from "@/lib/time-log/catalog-types";
 import {
   TIME_LOG_TASK_STEP_DEFAULTS,
   mapTimeLogFormToPayload,
@@ -19,7 +18,6 @@ import { appToast } from "@/lib/toast";
 type UseCreateTaskOptions = {
   form: UseFormReturn<TimeLogFormValues>;
   appendHistory: (entry: CopilotHistoryEntry) => void;
-  setStep: (step: TimeLogStep) => void;
   getDefaultTaskState: () => string;
   getDefaultWorkingDate: () => string;
 };
@@ -41,7 +39,6 @@ function clearTaskFields(
 export function useCreateTask({
   form,
   appendHistory,
-  setStep,
   getDefaultTaskState,
   getDefaultWorkingDate,
 }: UseCreateTaskOptions) {
@@ -82,7 +79,6 @@ export function useCreateTask({
 
         setPreview(null);
         clearTaskFields(form, getDefaultTaskState, getDefaultWorkingDate);
-        setStep(2);
         appToast.success(`Tarea creada: #${result.taskId}`, {
           description: `${payload.title} · ${payload.hours}h · Historia #${payload.pbiId}`,
         });
@@ -100,7 +96,7 @@ export function useCreateTask({
         setLoading(false);
       }
     },
-    [appendHistory, form, getDefaultTaskState, getDefaultWorkingDate, setStep],
+    [appendHistory, form, getDefaultTaskState, getDefaultWorkingDate],
   );
 
   const dismissPreview = useCallback(() => {

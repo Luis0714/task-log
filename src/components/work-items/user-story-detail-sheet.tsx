@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { UserStoryResponsableFields } from "@/components/work-items/user-story-responsable-fields";
 import { UserStorySchedulingFields } from "@/components/work-items/user-story-scheduling-fields";
 import { UserStorySummaryCard } from "@/components/work-items/user-story-summary-card";
+import { UserStoryWorkflowTagField } from "@/components/work-items/user-story-workflow-tag-field";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -173,6 +174,12 @@ export function UserStoryDetailSheet({
                     </Select>
                   )}
                 </section>
+
+                <UserStoryWorkflowTagField
+                  value={form.draftWorkflowTag}
+                  onChange={form.setDraftWorkflowTag}
+                  disabled={form.saving}
+                />
 
                 <UserStorySchedulingFields
                   startDate={form.draftStartDate}

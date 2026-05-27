@@ -110,7 +110,7 @@ export function AdoFilteredPageShell({
     : context;
 
   return (
-    <div className="flex w-full flex-col gap-8 pb-6">
+    <div className="flex w-full flex-col gap-6 pb-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
           <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
@@ -118,7 +118,6 @@ export function AdoFilteredPageShell({
           </h1>
           <p className="text-muted-foreground text-sm text-pretty">
             {description}
-            {currentSprint?.name ? ` Sprint: ${currentSprint.name}.` : null}
           </p>
         </div>
         {headerAction ? (

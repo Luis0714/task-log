@@ -60,6 +60,7 @@ export async function PATCH(req: Request, context: RouteContext) {
             responsableMaquetacion: parsed.data.responsableMaquetacion,
             responsableIntegrador: parsed.data.responsableIntegrador,
             responsableQA: parsed.data.responsableQA,
+            workflowTag: parsed.data.workflowTag,
           },
           scopedAuth,
         )

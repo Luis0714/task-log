@@ -1,7 +1,6 @@
 "use client";
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
-import { CopilotHistoryList } from "@/components/copilot/copilot-history-list";
 import { CopilotInput } from "@/components/copilot/copilot-input";
 import { CopilotPreviewCard } from "@/components/copilot/copilot-preview-card";
 import { CopilotResultMessage } from "@/components/copilot/copilot-result-message";
@@ -22,7 +21,7 @@ export type CopilotViewProps = {
 };
 
 export function CopilotView({ adoExecutionReady, authMethod }: CopilotViewProps) {
-  const { history, appendEntry } = useCopilotHistory();
+  const { appendEntry } = useCopilotHistory();
   const copilot = useCopilot({ appendHistory: appendEntry });
 
   const showOtherPreview =
@@ -74,8 +73,6 @@ export function CopilotView({ adoExecutionReady, authMethod }: CopilotViewProps)
       {showOtherPreview && copilot.preview && (
         <CopilotResultMessage preview={copilot.preview} />
       )}
-
-      <CopilotHistoryList entries={history} />
     </div>
   );
 }

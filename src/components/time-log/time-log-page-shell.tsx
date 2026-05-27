@@ -33,8 +33,8 @@ export function TimeLogPageShell({
           Registro de tiempo
         </h1>
         <p className="text-muted-foreground text-sm text-pretty">
-          Elige la historia del sprint, crea la tarea con tus horas y confirma antes de enviar a
-          Azure DevOps.
+          Selecciona una historia del sprint, registra tus horas en una tarea y confirma antes de
+          enviarla a Azure DevOps.
         </p>
       </header>
 

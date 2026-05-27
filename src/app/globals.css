@@ -302,3 +302,50 @@
     color: var(--bug-attended);
   }
 }
+
+@layer components {
+  .work-item-select-item {
+    @apply mb-[4px] last:mb-0 h-auto min-h-0 items-start overflow-hidden rounded-md border border-border/50 bg-muted/30 py-1.5 pl-1.5 pr-8;
+  }
+
+  .dark .work-item-select-item {
+    @apply bg-muted/20;
+  }
+
+  .work-item-select-item[data-highlighted],
+  .work-item-select-item:focus {
+    @apply border-border bg-muted/55 text-foreground;
+  }
+
+  .work-item-select-item[data-highlighted] *,
+  .work-item-select-item:focus * {
+    color: inherit;
+  }
+
+  .dark .work-item-select-item[data-highlighted],
+  .dark .work-item-select-item:focus {
+    @apply bg-muted/70 text-white;
+  }
+
+  .dark .work-item-select-item[data-highlighted] .work-item-select-option,
+  .dark .work-item-select-item:focus .work-item-select-option {
+    @apply text-white;
+  }
+
+  .dark .work-item-select-item[data-highlighted] .work-item-select-option :is(p, span),
+  .dark .work-item-select-item:focus .work-item-select-option :is(p, span) {
+    @apply text-white;
+  }
+
+  .dark .work-item-select-item[data-highlighted] [data-pbi-state],
+  .dark .work-item-select-item:focus [data-pbi-state] {
+    border-color: rgb(255 255 255 / 0.3) !important;
+    background-color: rgb(255 255 255 / 0.1) !important;
+    color: white !important;
+  }
+
+  .dark .work-item-select-item[data-highlighted] [data-pbi-state] > span:first-child,
+  .dark .work-item-select-item:focus [data-pbi-state] > span:first-child {
+    background-color: white !important;
+  }
+}

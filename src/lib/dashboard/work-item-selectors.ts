@@ -7,6 +7,7 @@ import {
   USER_STORY_STATUS_MAPPING,
   type SprintStatusMapping,
 } from "@/lib/dashboard/sprint-status-mapping";
+import { classifyUserStoryWorkflow } from "@/lib/work-items/user-story-workflow-status";
 import { EMPTY_SPRINT_STATUS_OVERVIEW } from "@/lib/dashboard/sprint-status-overview";
 import {
   EMPTY_HOURS_BREAKDOWN,
@@ -112,9 +113,10 @@ export function computeSprintPbiProgress(
   let pendingCount = 0;
 
   for (const item of items) {
-    if (isWorkedSprintPbiState(item.state, mapping)) {
+    const category = classifyUserStoryWorkflow(item);
+    if (category === "developed") {
       completedCount += 1;
-    } else if (isPendingSprintPbiState(item.state, mapping)) {
+    } else if (category === "pending") {
       pendingCount += 1;
     }
   }
