@@ -1,9 +1,9 @@
 import { ProgressBar } from "@/components/dashboard/metrics/progress-bar";
+import { WorkItemAssigneeTag } from "@/components/work-items/work-item-assignee-tag";
 import { WorkItemBugCountBadge } from "@/components/work-items/work-item-bug-count-badge";
 import { WorkItemEffortBadge } from "@/components/work-items/work-item-effort-badge";
 import { WorkItemHoursLabel } from "@/components/work-items/work-item-hours-label";
 import { WorkItemId } from "@/components/work-items/work-item-id";
-import { WorkItemPriorityBadge } from "@/components/work-items/work-item-priority-badge";
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import { WorkItemTypeAvatar } from "@/components/work-items/work-item-type-avatar";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
@@ -26,9 +26,6 @@ export function PbiFeaturedCard({ item, className, onClick }: PbiFeaturedCardPro
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <WorkItemId id={item.id} className="shrink-0" />
-          {item.priority !== undefined ? (
-            <WorkItemPriorityBadge priority={item.priority} />
-          ) : null}
           {item.effort !== undefined ? <WorkItemEffortBadge effort={item.effort} /> : null}
           {item.bugCount !== undefined && item.bugCount > 0 ? (
             <WorkItemBugCountBadge count={item.bugCount} variant="total" />
@@ -37,7 +34,10 @@ export function PbiFeaturedCard({ item, className, onClick }: PbiFeaturedCardPro
             <WorkItemBugCountBadge count={item.attendedBugCount} variant="attended" />
           ) : null}
         </div>
-        {item.state ? <WorkItemStateBadge state={item.state} className="shrink" /> : null}
+        <div className="flex min-w-0 shrink items-center justify-end gap-1.5">
+          {item.assignedTo ? <WorkItemAssigneeTag name={item.assignedTo} /> : null}
+          {item.state ? <WorkItemStateBadge state={item.state} className="shrink" /> : null}
+        </div>
       </div>
 
       <div className="mt-3 flex min-w-0 items-start gap-2.5 sm:gap-3">

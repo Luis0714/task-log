@@ -1,8 +1,8 @@
+import { WorkItemAssigneeTag } from "@/components/work-items/work-item-assignee-tag";
 import { WorkItemHoursLabel } from "@/components/work-items/work-item-hours-label";
 import { WorkItemId } from "@/components/work-items/work-item-id";
 import { WorkItemBugCountBadge } from "@/components/work-items/work-item-bug-count-badge";
 import { WorkItemEffortBadge } from "@/components/work-items/work-item-effort-badge";
-import { WorkItemPriorityBadge } from "@/components/work-items/work-item-priority-badge";
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import { WorkItemTypeAvatar } from "@/components/work-items/work-item-type-avatar";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
@@ -26,30 +26,40 @@ export function PbiCompactRow({
       <WorkItemTypeAvatar type={item.type} size="sm" className="hidden sm:flex" />
 
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-center gap-2">
-          <WorkItemId id={item.id} />
-          {item.priority !== undefined ? (
-            <WorkItemPriorityBadge priority={item.priority} />
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+          <WorkItemId id={item.id} className="shrink-0" />
+          {item.effort !== undefined ? (
+            <WorkItemEffortBadge effort={item.effort} className="shrink-0" />
           ) : null}
-          {item.effort !== undefined ? <WorkItemEffortBadge effort={item.effort} /> : null}
           {item.bugCount !== undefined && item.bugCount > 0 ? (
-            <WorkItemBugCountBadge count={item.bugCount} variant="total" />
+            <WorkItemBugCountBadge count={item.bugCount} variant="total" className="shrink-0" />
           ) : null}
           {item.attendedBugCount !== undefined && item.attendedBugCount > 0 ? (
-            <WorkItemBugCountBadge count={item.attendedBugCount} variant="attended" />
+            <WorkItemBugCountBadge
+              count={item.attendedBugCount}
+              variant="attended"
+              className="shrink-0"
+            />
+          ) : null}
+          {item.assignedTo || item.state ? (
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 overflow-hidden">
+              {item.assignedTo ? (
+                <WorkItemAssigneeTag
+                  name={item.assignedTo}
+                  className="max-w-36 sm:max-w-44"
+                />
+              ) : null}
+              {item.state ? (
+                <WorkItemStateBadge state={item.state} className="max-w-30 shrink-0" />
+              ) : null}
+            </div>
           ) : null}
         </div>
         <p className="text-foreground mt-0.5 truncate text-sm font-medium" title={item.title}>
           {item.title}
         </p>
-      </div>
-
-      <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
         {showHours && item.loggedHours !== undefined ? (
-          <WorkItemHoursLabel hours={item.loggedHours} suffix="" className="text-xs" />
-        ) : null}
-        {item.state ? (
-          <WorkItemStateBadge state={item.state} className="max-w-[7.5rem]" />
+          <WorkItemHoursLabel hours={item.loggedHours} suffix="" className="mt-1 text-xs" />
         ) : null}
       </div>
     </>
