@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { BugSummaryCard } from "@/components/bugs/bug-summary-card";
+import { RichTextContent } from "@/components/ui/rich-text-content";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -18,7 +19,6 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -145,22 +145,30 @@ export function BugDetailSheet({
       <SheetContent side="right" className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
           <SheetTitle>Bug</SheetTitle>
-          <SheetDescription
-            className={cn(bug && "line-clamp-2 text-pretty text-foreground/80")}
-            title={bug?.title}
-          >
-            {bug?.title ?? "Selecciona un Bug para ver el detalle."}
-          </SheetDescription>
         </SheetHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4">
           <div className="flex flex-col gap-6 pb-4">
             {bug ? (
               <>
+                <section className="space-y-1">
+                  <Label>Título</Label>
+                  <p className="text-muted-foreground line-clamp-2 text-sm font-semibold" title={bug.title}>
+                    {bug.title}
+                  </p>
+                  {bug.acceptanceCriteria ? (
+                    <>
+                      <Label className="mt-2">Acceptance Criteria</Label>
+                      <RichTextContent html={bug.acceptanceCriteria} />
+                    </>
+                  ) : null}
+                </section>
                 <BugSummaryCard item={bug} />
 
                 <section className="space-y-2">
-                  <Label htmlFor="bug-working-date">Fecha de trabajo</Label>
+                  <Label htmlFor="bug-working-date" required>
+                    Fecha de trabajo
+                  </Label>
                   <DatePicker
                     id="bug-working-date"
                     value={draftWorkingDate}
@@ -175,7 +183,9 @@ export function BugDetailSheet({
                 </section>
 
                 <section className="space-y-2">
-                  <Label htmlFor="bug-completed-work">Trabajo completado (horas)</Label>
+                  <Label htmlFor="bug-completed-work" required>
+                    Trabajo completado (horas)
+                  </Label>
                   <Input
                     id="bug-completed-work"
                     type="number"
@@ -192,7 +202,9 @@ export function BugDetailSheet({
                 </section>
 
                 <section className="space-y-2">
-                  <Label htmlFor="bug-state">Estado</Label>
+                  <Label htmlFor="bug-state" required>
+                    Estado
+                  </Label>
                   {statesLoading ? (
                     <Skeleton className="h-9 w-full" />
                   ) : (

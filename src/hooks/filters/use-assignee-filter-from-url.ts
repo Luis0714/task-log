@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import {
   readAssigneeFromSearchParams,
@@ -19,10 +19,14 @@ export function useAssigneeFilterFromUrl(
     [searchParams],
   );
 
+  const lastAssigneeFromUrlRef = useRef(assigneeFromUrl);
+
   useEffect(() => {
-    if (assigneeFromUrl !== localAssignee) {
-      setLocalAssignee(assigneeFromUrl);
-    }
+    // Solo sincroniza cuando realmente cambia la URL; evita pisar
+    // selección local optimista mientras router.push está en curso.
+    if (lastAssigneeFromUrlRef.current === assigneeFromUrl) return;
+    lastAssigneeFromUrlRef.current = assigneeFromUrl;
+    if (assigneeFromUrl !== localAssignee) setLocalAssignee(assigneeFromUrl);
   }, [assigneeFromUrl, localAssignee, setLocalAssignee]);
 
   const assigneeForUi = useMemo(

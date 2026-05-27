@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { TaskSummaryCard } from "@/components/tasks/task-summary-card";
+import { WorkItemDescriptionBlock } from "@/components/work-items/work-item-description-block";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -17,7 +18,6 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -122,19 +122,21 @@ export function TaskDetailSheet({
       <SheetContent side="right" className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
           <SheetTitle>Tarea</SheetTitle>
-          <SheetDescription
-            className={cn(task && "line-clamp-2 text-pretty text-foreground/80")}
-            title={task?.title}
-          >
-            {task?.title ?? "Selecciona una tarea para ver el detalle."}
-          </SheetDescription>
         </SheetHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4">
           <div className="flex flex-col gap-6 pb-4">
             {task ? (
               <>
-                <TaskSummaryCard item={task} />
+                <section className="space-y-1">
+                  <Label>Titulo</Label>
+                  <p className="text-muted-foreground line-clamp-2 text-sm font-semibold" title={task.title}>
+                    {task.title}
+                  </p>
+                  {task.description?.trim() ? (
+                    <WorkItemDescriptionBlock html={task.description} />
+                  ) : null}
+                </section>
 
                 <section className="space-y-2">
                   <Label htmlFor="task-working-date">Fecha de trabajo</Label>
@@ -180,6 +182,9 @@ export function TaskDetailSheet({
                     </Select>
                   )}
                 </section>
+
+                <TaskSummaryCard item={task} />
+
               </>
             ) : (
               <p className="text-muted-foreground text-sm">

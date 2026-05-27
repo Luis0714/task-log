@@ -10,8 +10,7 @@ import { formatHours } from "@/lib/dashboard/format-hours";
 import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
 import { getHoursPaceStatus } from "@/lib/dashboard/hours-pace";
-import { kpiProgressPercent } from "@/lib/dashboard/kpi-variant";
-import { resolveProgressStatus } from "@/lib/dashboard/progress-status";
+import { kpiProgressPercent, resolveHoursKpiVariant } from "@/lib/dashboard/kpi-variant";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
 import type { DashboardKpiVariant } from "@/components/dashboard/charts/dashboard-kpi";
 import type { KpiVariant } from "@/lib/dashboard/kpi-variant";
@@ -40,27 +39,31 @@ export function SprintHoursSection({
   );
   const hasDaySeries = metrics.hoursByDay.length > 0;
   const pace = getHoursPaceStatus(metrics.hoursByDay);
-  const todayStatus = resolveProgressStatus(
+  const todayVariant: DashboardKpiVariant = resolveHoursKpiVariant(
     hoursToday,
     HOURS_PER_SPRINT_WORKING_DAY,
   );
-  const todayVariant: DashboardKpiVariant =
-    todayStatus === "over"
-      ? "destructive"
-      : todayStatus === "complete"
-        ? "success"
-        : "default";
-  const sprintStatus = resolveProgressStatus(hoursSprint, metrics.hoursSprintTarget);
-  const sprintVariant: KpiVariant =
-    sprintStatus === "over"
-      ? "destructive"
-      : sprintStatus === "complete"
-        ? "success"
-        : pace === "behind"
-          ? "warning"
-          : pace === "ahead"
-            ? "accent"
-            : "default";
+  const sprintVariant: KpiVariant = resolveHoursKpiVariant(
+    hoursSprint,
+    metrics.hoursSprintTarget,
+  );
+  if (sprintVariant === "primary" || sprintVariant === "warning") {
+    if (pace === "behind") {
+      // Mantener warning si el ritmo del sprint va retrasado.
+    } else if (pace === "ahead" && sprintVariant === "primary") {
+      // sprintVariant se sobrescribe abajo
+    }
+  }
+
+  const sprintVariantResolved: DashboardKpiVariant =
+    resolveHoursKpiVariant(hoursSprint, metrics.hoursSprintTarget) === "destructive" ||
+    resolveHoursKpiVariant(hoursSprint, metrics.hoursSprintTarget) === "success"
+      ? resolveHoursKpiVariant(hoursSprint, metrics.hoursSprintTarget)
+      : pace === "behind"
+        ? "warning"
+        : pace === "ahead"
+          ? "accent"
+          : resolveHoursKpiVariant(hoursSprint, metrics.hoursSprintTarget);
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>

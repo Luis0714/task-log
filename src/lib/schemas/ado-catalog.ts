@@ -34,6 +34,10 @@ export const adoSprintSchema = z.object({
 export const adoWorkItemOptionSchema = z.object({
   id: z.number().int().positive(),
   title: z.string(),
+  /** Description del work item en texto plano. */
+  description: z.string().optional(),
+  /** Acceptance Criteria del work item en texto plano. */
+  acceptanceCriteria: z.string().optional(),
   type: z.string(),
   state: z.string(),
   assignedTo: z.string().optional(),

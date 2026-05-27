@@ -353,6 +353,8 @@ const EFFORT = "Microsoft.VSTS.Scheduling.Effort";
 const STORY_POINTS = "Microsoft.VSTS.Scheduling.StoryPoints";
 const PARENT = "System.Parent";
 const SYSTEM_TAGS = "System.Tags";
+const DESCRIPTION_FIELD = "System.Description";
+const ACCEPTANCE_CRITERIA_FIELD = "Microsoft.VSTS.Common.AcceptanceCriteria";
 const WI_COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
 const WI_ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
 function parseNumericField(value: string | number | undefined): number | undefined {
@@ -372,6 +374,12 @@ function parseEffortField(fields: Record<string, string | number | undefined> | 
 
 function parseAssignedToField(value: unknown): string {
   return parseIdentityDisplayName(value);
+}
+
+function parseRichTextField(value: string | number | undefined): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed || undefined;
 }
 
 function adoListErrorMessage(res: Response, body: string, fallback: string): string {
@@ -400,6 +408,8 @@ async function fetchWorkItemDetails(
     STORY_POINTS,
     PARENT,
     SYSTEM_TAGS,
+    DESCRIPTION_FIELD,
+    ACCEPTANCE_CRITERIA_FIELD,
     WI_COMPLETED_WORK,
     WI_ORIGINAL_ESTIMATE,
     ...getWorkItemDateFieldNames(),
@@ -424,6 +434,8 @@ async function fetchWorkItemDetails(
       items.push({
         id: workItem.id,
         title: typeof title === "string" ? title : `Elemento de trabajo ${workItem.id}`,
+        description: parseRichTextField(workItem.fields?.[DESCRIPTION_FIELD]),
+        acceptanceCriteria: parseRichTextField(workItem.fields?.[ACCEPTANCE_CRITERIA_FIELD]),
         type: String(workItem.fields?.[WORK_ITEM_TYPE] ?? "Item"),
         state: String(workItem.fields?.[STATE] ?? ""),
         assignedTo: parseAssignedToField(workItem.fields?.[ASSIGNED_TO]),

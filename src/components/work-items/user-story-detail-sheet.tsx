@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import { WorkItemDescriptionBlock } from "@/components/work-items/work-item-description-block";
 import { UserStoryResponsableFields } from "@/components/work-items/user-story-responsable-fields";
 import { UserStorySchedulingFields } from "@/components/work-items/user-story-scheduling-fields";
 import { UserStorySummaryCard } from "@/components/work-items/user-story-summary-card";
@@ -18,7 +19,6 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -49,18 +49,29 @@ export type UserStoryDetailSheetProps = {
   currentUserDisplayName: string | null;
   members: readonly AdoTeamMemberDto[];
   membersLoading?: boolean;
+  onBugClick?: (bug: AdoWorkItemOptionDto) => void;
   onSaved?: () => void;
 };
 
-function BugListItem({ bug }: { bug: AdoWorkItemOptionDto }) {
+function BugListItem({
+  bug,
+  onClick,
+}: {
+  bug: AdoWorkItemOptionDto;
+  onClick?: (bug: AdoWorkItemOptionDto) => void;
+}) {
   const presentation = bug.state ? getWorkItemStatePresentation(bug.state) : null;
 
   return (
-    <li
+    <button
+      type="button"
       className={cn(
-        "flex min-w-0 items-center justify-between gap-3 rounded-lg border px-3 py-2.5",
+        "flex w-full min-w-0 items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
+        onClick && "cursor-pointer hover:bg-muted/30",
         !presentation && "border-border/60 bg-muted/20",
       )}
+      onClick={() => onClick?.(bug)}
+      disabled={!onClick}
       style={presentation?.surfaceStyle}
     >
       <div className="min-w-0 flex-1">
@@ -72,7 +83,7 @@ function BugListItem({ bug }: { bug: AdoWorkItemOptionDto }) {
       {bug.state ? (
         <WorkItemStateBadge state={bug.state} className="max-w-[42%] shrink-0" />
       ) : null}
-    </li>
+    </button>
   );
 }
 
@@ -89,6 +100,7 @@ export function UserStoryDetailSheet({
   currentUserDisplayName,
   members,
   membersLoading = false,
+  onBugClick,
   onSaved,
 }: UserStoryDetailSheetProps) {
   const stateOptions = useMemo(
@@ -129,22 +141,27 @@ export function UserStoryDetailSheet({
       <SheetContent side="right" className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
           <SheetTitle>Historia de usuario</SheetTitle>
-          <SheetDescription
-            className={cn(workItem && "line-clamp-2 text-pretty text-foreground/80")}
-            title={workItem?.title}
-          >
-            {workItem?.title ?? "Selecciona una historia para ver el detalle."}
-          </SheetDescription>
         </SheetHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4">
           <div className="flex flex-col gap-6 pb-4">
             {workItem ? (
               <>
+                <section className="space-y-1">
+                  <Label>Titulo</Label>
+                  <p className="text-muted-foreground line-clamp-2 text-sm font-semibold" title={workItem.title}>
+                    {workItem.title}
+                  </p>
+                  {workItem.description?.trim() ? (
+                    <WorkItemDescriptionBlock html={workItem.description} />
+                  ) : null}
+                </section>
                 <UserStorySummaryCard item={workItem} />
 
                 <section className="space-y-2">
-                  <Label htmlFor="user-story-state">Estado</Label>
+                  <Label htmlFor="user-story-state" required>
+                    Estado
+                  </Label>
                   {statesLoading ? (
                     <Skeleton className="h-9 w-full" />
                   ) : (
@@ -184,6 +201,7 @@ export function UserStoryDetailSheet({
                 <UserStorySchedulingFields
                   startDate={form.draftStartDate}
                   targetDate={form.draftTargetDate}
+                  required
                   disabled={form.saving}
                   onStartDateChange={form.setDraftStartDate}
                   onTargetDateChange={form.setDraftTargetDate}
@@ -225,7 +243,7 @@ export function UserStoryDetailSheet({
                   ) : (
                     <ul className="space-y-2">
                       {childBugs.map((bug) => (
-                        <BugListItem key={bug.id} bug={bug} />
+                        <BugListItem key={bug.id} bug={bug} onClick={onBugClick} />
                       ))}
                     </ul>
                   )}

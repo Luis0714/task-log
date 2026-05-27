@@ -49,6 +49,7 @@ export function UserStoryResponsableFields({
             key={field.key}
             id={`user-story-responsable-${field.key}`}
             label={field.label}
+            required={required}
             value={values[valueKey]}
             members={members}
             membersLoading={membersLoading}

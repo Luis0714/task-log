@@ -7,14 +7,9 @@ import { Label } from "@/components/ui/label";
 import { FilterPresetRow } from "@/components/filters/filter-preset-row";
 import { filterFieldTriggerClassName } from "@/components/filters/filter-field-trigger-classes";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useWorkItemAssigneeFilterState } from "@/hooks/filters/use-work-item-assignee-filter-state";
 import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
-import {
-  WORK_ITEM_ASSIGNEE_ALL,
-  WORK_ITEM_ASSIGNEE_ME,
-  parseAssigneeFilter,
-  resolveWorkItemAssigneeLabel,
-  serializeAssigneeSelection,
-} from "@/lib/schemas/work-item-filters";
+import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 
 export type WorkItemAssigneeFilterProps = {
   id: string;
@@ -35,45 +30,20 @@ export function WorkItemAssigneeFilter({
   disabled = false,
   onAssigneeChange,
 }: WorkItemAssigneeFilterProps) {
-  const assigneeFilter = parseAssigneeFilter(assignee);
-  const isAll = assigneeFilter.kind === "all";
-  const includeMe =
-    assigneeFilter.kind === "selection" && assigneeFilter.includeMe;
-  const selectedMembers =
-    assigneeFilter.kind === "selection" ? assigneeFilter.names : [];
-  const selectedSet = new Set(selectedMembers);
-
-  const triggerLabel = membersLoading
-    ? "Cargando miembros..."
-    : resolveWorkItemAssigneeLabel(assignee, members);
-
-  const applySelection = (includeMeNext: boolean, names: readonly string[]) => {
-    if (names.length === 0 && !includeMeNext) {
-      onAssigneeChange(WORK_ITEM_ASSIGNEE_ME);
-      return;
-    }
-    onAssigneeChange(serializeAssigneeSelection({ includeMe: includeMeNext, names }));
-  };
-
-  const toggleMe = (checked: boolean) => {
-    if (isAll) {
-      applySelection(checked, []);
-      return;
-    }
-    applySelection(checked, selectedMembers);
-  };
-
-  const toggleMember = (displayName: string, checked: boolean) => {
-    if (isAll) {
-      applySelection(false, checked ? [displayName] : []);
-      return;
-    }
-
-    const next = checked
-      ? [...selectedMembers, displayName]
-      : selectedMembers.filter((name) => name !== displayName);
-    applySelection(includeMe, next);
-  };
+  const {
+    includeMe,
+    isAll,
+    selectedSet,
+    triggerLabel,
+    commitAssignee,
+    toggleMe,
+    toggleMember,
+  } = useWorkItemAssigneeFilterState({
+    assignee,
+    members,
+    membersLoading,
+    onAssigneeChange,
+  });
 
   return (
     <div className="space-y-1.5">
@@ -87,12 +57,12 @@ export function WorkItemAssigneeFilter({
           <span className="truncate text-left">{triggerLabel}</span>
           <ChevronDown className="text-muted-foreground size-4 shrink-0" aria-hidden />
         </PopoverTrigger>
-        <PopoverContent className="w-[var(--anchor-width)] p-2" align="start">
+        <PopoverContent className="w-(--anchor-width) p-2" align="start">
           <div className="space-y-0.5">
             <FilterPresetRow
               label="Todos"
               active={isAll}
-              onSelect={() => onAssigneeChange(WORK_ITEM_ASSIGNEE_ALL)}
+              onSelect={() => commitAssignee(WORK_ITEM_ASSIGNEE_ALL)}
             />
             <label
               htmlFor={`${id}-me`}

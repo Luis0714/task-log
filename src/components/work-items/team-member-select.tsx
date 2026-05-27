@@ -13,6 +13,7 @@ import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 export type TeamMemberSelectProps = {
   id: string;
   label: string;
+  required?: boolean;
   value: string;
   members: readonly AdoTeamMemberDto[];
   membersLoading?: boolean;
@@ -23,6 +24,7 @@ export type TeamMemberSelectProps = {
 export function TeamMemberSelect({
   id,
   label,
+  required = false,
   value,
   members,
   membersLoading = false,
@@ -31,7 +33,9 @@ export function TeamMemberSelect({
 }: TeamMemberSelectProps) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} required={required}>
+        {label}
+      </Label>
       <Select
         value={value.trim() ? value : null}
         onValueChange={(next) => onChange(next ?? "")}

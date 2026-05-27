@@ -27,6 +27,7 @@ export async function WorkItemsSheetMetaServer({
     <WorkItemsSelectionHost
       sprintBugs={base.sprintBugs}
       backlogStates={meta.backlogStates}
+      bugStates={meta.bugStates}
       responsableFields={meta.responsableFields}
       project={catalog.project || null}
       team={catalog.team || null}

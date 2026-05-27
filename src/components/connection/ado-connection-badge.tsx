@@ -24,6 +24,15 @@ export type AdoConnectionBadgeProps = AdoConnectionDisplay & {
   className?: string;
 };
 
+const TOOLTIP_TRIGGER_CLASS =
+  "hover:bg-sidebar-accent flex size-9 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring";
+
+function buildConnectionMetaLine(organization: string | null, authMethod: AdoConnectionDisplay["authMethod"]): string {
+  const label = getAuthMethodLabel(authMethod).toLowerCase();
+  if (!organization) return label;
+  return `${organization.toLowerCase()} · ${label}`;
+}
+
 function ConnectionStatus({ isConnected }: { isConnected: boolean }) {
   if (isConnected) {
     return (
@@ -45,41 +54,37 @@ function ConnectionStatus({ isConnected }: { isConnected: boolean }) {
   );
 }
 
-function CompactConnectionBadge({
-  isConnected,
-  authMethod,
+function CompactUserBadge({
   userDisplayName,
   userInitials,
   userAvatarUrl,
-}: AdoConnectionDisplay) {
-  const status = isConnected ? "Conectado" : "Sin conectar";
-  const tooltip = userDisplayName
-    ? `${userDisplayName} · ${status}`
-    : `${status} · ${getAuthMethodLabel(authMethod)}`;
+  tooltip,
+}: Pick<AdoConnectionDisplay, "userDisplayName" | "userInitials" | "userAvatarUrl"> & {
+  tooltip: string;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger className={TOOLTIP_TRIGGER_CLASS} aria-label={tooltip}>
+        <ConnectionUserIdentity
+          displayName={userDisplayName!}
+          initials={userInitials!}
+          avatarUrl={userAvatarUrl}
+          compact
+        />
+      </TooltipTrigger>
+      <TooltipContent side="right">{tooltip}</TooltipContent>
+    </Tooltip>
+  );
+}
 
-  if (isConnected && userDisplayName && userInitials) {
-    return (
-      <Tooltip>
-        <TooltipTrigger
-          className="hover:bg-sidebar-accent flex size-9 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-          aria-label={tooltip}
-        >
-          <ConnectionUserIdentity
-            displayName={userDisplayName}
-            initials={userInitials}
-            avatarUrl={userAvatarUrl}
-            compact
-          />
-        </TooltipTrigger>
-        <TooltipContent side="right">{tooltip}</TooltipContent>
-      </Tooltip>
-    );
-  }
-
+function CompactCloudBadge({
+  isConnected,
+  tooltip,
+}: Pick<AdoConnectionDisplay, "isConnected"> & { tooltip: string }) {
   return (
     <Tooltip>
       <TooltipTrigger
-        className="hover:bg-sidebar-accent flex size-9 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        className={TOOLTIP_TRIGGER_CLASS}
         aria-label={`Azure DevOps · ${tooltip}`}
       >
         <span className="relative">
@@ -98,32 +103,59 @@ function CompactConnectionBadge({
   );
 }
 
+function CompactConnectionBadge({
+  isConnected,
+  authMethod,
+  userDisplayName,
+  userInitials,
+  userAvatarUrl,
+}: AdoConnectionDisplay) {
+  const status = isConnected ? "Conectado" : "Sin conectar";
+  const tooltip = userDisplayName
+    ? `${userDisplayName} · ${status}`
+    : `${status} · ${getAuthMethodLabel(authMethod)}`;
+
+  if (isConnected && userDisplayName && userInitials) {
+    return (
+      <CompactUserBadge
+        userDisplayName={userDisplayName}
+        userInitials={userInitials}
+        userAvatarUrl={userAvatarUrl}
+        tooltip={tooltip}
+      />
+    );
+  }
+
+  return <CompactCloudBadge isConnected={isConnected} tooltip={tooltip} />;
+}
+
 export function AdoConnectionBadge({
   authMethod,
   isConnected,
+  organization,
+  project,
   userDisplayName,
   userInitials,
   userAvatarUrl,
   className,
-  ...rest
 }: AdoConnectionBadgeProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const showUser = Boolean(isConnected && userDisplayName && userInitials);
-  const displayProps: AdoConnectionDisplay = {
-    authMethod,
-    isConnected,
-    userDisplayName,
-    userInitials,
-    userAvatarUrl,
-    organization: rest.organization,
-    project: rest.project,
-  };
+  const metaLine = buildConnectionMetaLine(organization, authMethod);
 
   if (collapsed) {
     return (
       <div className={cn("flex flex-col items-center gap-2 py-1", className)}>
-        <CompactConnectionBadge {...displayProps} />
+        <CompactConnectionBadge
+          authMethod={authMethod}
+          isConnected={isConnected}
+          organization={organization}
+          project={project}
+          userDisplayName={userDisplayName}
+          userInitials={userInitials}
+          userAvatarUrl={userAvatarUrl}
+        />
         <div className="flex items-center gap-0.5">
           <ThemeToggleButton />
           <LogoutButton />
@@ -140,13 +172,13 @@ export function AdoConnectionBadge({
         className,
       )}
     >
-      {showUser ? (
+      {showUser && (
         <ConnectionUserIdentity
           displayName={userDisplayName!}
           initials={userInitials!}
           avatarUrl={userAvatarUrl}
         />
-      ) : null}
+      )}
 
       <div
         className={cn(
@@ -163,10 +195,10 @@ export function AdoConnectionBadge({
         <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
           <div className="flex min-w-0 flex-col gap-0.5">
             <ConnectionStatus isConnected={isConnected} />
-            <p className="text-muted-foreground text-xs">{getAuthMethodLabel(authMethod)}</p>
+            <p className="text-muted-foreground text-xs">{metaLine}</p>
           </div>
           <div className="flex shrink-0 items-center gap-0.5">
-            {!showUser ? <ThemeToggleButton className="-mt-0.5" /> : null}
+            {!showUser && <ThemeToggleButton className="-mt-0.5" />}
             <LogoutButton className="-mt-0.5" />
           </div>
         </div>

@@ -14,6 +14,7 @@ export type TimeLogFormProps = {
   form: UseFormReturn<TimeLogFormValues>;
   catalog: TimeLogCatalog;
   loading?: boolean;
+  canSubmit?: boolean;
   onSubmit: () => void;
 };
 
@@ -21,6 +22,7 @@ export function TimeLogForm({
   form,
   catalog,
   loading = false,
+  canSubmit = true,
   onSubmit,
 }: TimeLogFormProps) {
   return (
@@ -42,7 +44,7 @@ export function TimeLogForm({
         disabled={loading}
       />
 
-      <Button type="submit" disabled={loading} className="min-h-10 w-full sm:w-auto">
+      <Button type="submit" disabled={loading || !canSubmit} className="min-h-10 w-full sm:w-auto">
         {loading ? (
           <Loader2 className="size-4 animate-spin" aria-hidden />
         ) : (

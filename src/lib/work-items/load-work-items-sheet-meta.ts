@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
 import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
-import { listBacklogItemStates } from "@/lib/azure-devops/work-item-type-states";
+import { listBacklogItemStates, listBugStates } from "@/lib/azure-devops/work-item-type-states";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import type { AdoTaskStateDto, AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 import type { BacklogResponsableFieldDto } from "@/lib/schemas/ado-backlog-fields";
@@ -12,12 +12,14 @@ import { loadWorkItemsBacklogFields } from "@/lib/work-items/load-work-items-bac
 
 export type WorkItemsSheetMeta = {
   backlogStates: AdoTaskStateDto[];
+  bugStates: AdoTaskStateDto[];
   teamMembers: AdoTeamMemberDto[];
   responsableFields: BacklogResponsableFieldDto[];
 };
 
 const emptyMeta: WorkItemsSheetMeta = {
   backlogStates: [],
+  bugStates: [],
   teamMembers: [],
   responsableFields: [],
 };
@@ -31,7 +33,7 @@ export const loadWorkItemsSheetMeta = cache(async function loadWorkItemsSheetMet
   if (!auth) return emptyMeta;
 
   try {
-    const [teamMembers, backlogStates, responsableFields] = await Promise.all([
+    const [teamMembers, backlogStates, bugStates, responsableFields] = await Promise.all([
       loadAssigneeFilterMembers(
         catalog.project,
         catalog.team,
@@ -39,9 +41,10 @@ export const loadWorkItemsSheetMeta = cache(async function loadWorkItemsSheetMet
         "workItems",
       ),
       listBacklogItemStates(auth),
+      listBugStates(auth),
       loadWorkItemsBacklogFields(catalog.project),
     ]);
-    return { teamMembers, backlogStates, responsableFields };
+    return { teamMembers, backlogStates, bugStates, responsableFields };
   } catch {
     return emptyMeta;
   }

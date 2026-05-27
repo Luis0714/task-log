@@ -9,10 +9,16 @@ export type NavMenuProps = {
 };
 
 export function NavMenu({ groups, activePath }: NavMenuProps) {
+  const lastGroupIndex = groups.length - 1;
+
   return (
-    <NavGroupList>
-      {groups.map((group) => (
-        <NavGroup key={group.title} title={group.title}>
+    <NavGroupList className="h-full">
+      {groups.map((group, index) => (
+        <NavGroup
+          key={group.title}
+          title={group.title}
+          className={index === lastGroupIndex ? "mt-auto" : undefined}
+        >
           <NavItemList aria-label={group.title}>
             {group.items.map((item) => (
               <NavItem

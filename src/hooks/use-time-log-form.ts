@@ -17,7 +17,9 @@ import { appToast } from "@/lib/toast";
 import {
   createTimeLogFormDefaults,
   timeLogFormSchema,
+  type TimeLogFormValues,
 } from "@/lib/schemas/time-log";
+import { computeCanSubmit } from "@/lib/forms/can-submit";
 
 type UseTimeLogFormOptions = {
   appendHistory: (entry: CopilotHistoryEntry) => void;
@@ -40,7 +42,7 @@ export function useTimeLogForm({
       defaultProject ?? "",
       serverBaseline.catalog,
     ),
-    mode: "onSubmit",
+    mode: "onTouched",
   });
 
   const { project: catalogProject, team: catalogTeam, sprintPath: catalogSprintPath } =
@@ -100,11 +102,20 @@ export function useTimeLogForm({
     void createTask.submit(values, catalog.selectedPbi);
   });
 
+  const { isValid, isSubmitting } = form.formState;
+
+  const canSubmit = computeCanSubmit({
+    isValid,
+    isSubmitting,
+    externalReady: adoExecutionReady,
+  });
+
   return {
     form,
     catalog,
     error: createTask.error,
     loadingExecute: createTask.loading,
+    canSubmit,
     submit,
   };
 }
