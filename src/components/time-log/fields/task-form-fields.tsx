@@ -3,8 +3,8 @@
 import type { UseFormReturn } from "react-hook-form";
 
 import { FormSelectField } from "@/components/time-log/fields/form-select-field";
-import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
-import { FormInlineError } from "@/components/time-log/fields/form-select-field";
+import { TaskAutoMarkAsDoneField } from "@/components/time-log/fields/task-auto-mark-as-done-field";
+import { TaskStateSelectField } from "@/components/time-log/fields/task-state-select-field";
 import {
   FormControl,
   FormField,
@@ -12,7 +12,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,14 +36,6 @@ export function TaskFormFields({
   defaultCompletedTaskState = null,
   disabled = false,
 }: TaskFormFieldsProps) {
-  const taskState = form.watch("taskState");
-  const autoMarkAsDone = form.watch("autoMarkAsDone");
-  const stateOptions = taskStates.map((state) => ({
-    value: state.name,
-    label: <WorkItemStateLabel state={state.name} />,
-  }));
-  const statesReady = !taskStatesLoading && taskStates.length > 0;
-
   return (
     <>
       <FormField
@@ -113,27 +104,13 @@ export function TaskFormFields({
           }))}
         />
 
-        <div className="space-y-1">
-          <FormSelectField
-            control={form.control}
-            name="taskState"
-            label="Estado inicial"
-            required={!autoMarkAsDone}
-            placeholder={
-              taskStatesLoading
-                ? "Cargando estados..."
-                : statesReady
-                  ? "Estado de la tarea"
-                  : "Estados no disponibles"
-            }
-            disabled={disabled || autoMarkAsDone || taskStatesLoading || !statesReady}
-            options={stateOptions}
-            displayValue={
-              taskState ? <WorkItemStateLabel state={taskState} /> : undefined
-            }
-          />
-          <FormInlineError message={taskStatesError} />
-        </div>
+        <TaskStateSelectField
+          form={form}
+          taskStates={taskStates}
+          taskStatesLoading={taskStatesLoading}
+          taskStatesError={taskStatesError}
+          disabled={disabled}
+        />
       </div>
 
       <FormField
@@ -156,36 +133,10 @@ export function TaskFormFields({
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="autoMarkAsDone"
-        render={({ field }) => (
-          <FormItem className="flex flex-row items-start gap-3 rounded-lg border bg-muted/30 p-3">
-            <FormControl>
-              <Checkbox
-                className="mt-0.5"
-                checked={field.value}
-                disabled={disabled}
-                onCheckedChange={field.onChange}
-                onBlur={field.onBlur}
-                name={field.name}
-                ref={field.ref}
-              />
-            </FormControl>
-            <div className="min-w-0 space-y-1 leading-none">
-              <FormLabel className="cursor-pointer font-medium">
-                Marcar como Done al crear
-              </FormLabel>
-              <p className="text-muted-foreground text-sm text-pretty">
-                {autoMarkAsDone
-                  ? defaultCompletedTaskState
-                    ? `La tarea pasará a «${defaultCompletedTaskState}» y contará de inmediato en las horas del día.`
-                    : "La tarea pasará a Done y contará de inmediato en las horas del día."
-                  : "La tarea se creará en estado abierto; deberás cambiarla a Done manualmente para que sume en el dashboard."}
-              </p>
-            </div>
-          </FormItem>
-        )}
+      <TaskAutoMarkAsDoneField
+        form={form}
+        defaultCompletedTaskState={defaultCompletedTaskState}
+        disabled={disabled}
       />
     </>
   );
