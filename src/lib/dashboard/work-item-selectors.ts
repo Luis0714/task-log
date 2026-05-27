@@ -99,7 +99,7 @@ export function isSprintPbiCompletedByWorkflow(
 export function computeSprintPbiProgress(
   items: DashboardWorkItem[],
   _stateOrder: readonly string[] = [],
-  mapping: SprintStatusMapping = USER_STORY_STATUS_MAPPING,
+  _mapping: SprintStatusMapping = USER_STORY_STATUS_MAPPING,
 ): SprintPbiProgress {
   const totalCount = items.length;
   if (totalCount === 0) {

@@ -4,6 +4,7 @@ import {
   SidebarGroupLabel,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+export { NavGroupList, type NavGroupListProps } from "@/components/navigation/nav-group-list";
 
 export type NavGroupProps = {
   title: string;
@@ -20,13 +21,4 @@ export function NavGroup({ title, children, className }: NavGroupProps) {
       <SidebarGroupContent>{children}</SidebarGroupContent>
     </SidebarGroup>
   );
-}
-
-export type NavGroupListProps = {
-  children: React.ReactNode;
-  className?: string;
-};
-
-export function NavGroupList({ children, className }: NavGroupListProps) {
-  return <div className={cn("flex flex-col gap-2", className)}>{children}</div>;
 }
