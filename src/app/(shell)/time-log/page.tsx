@@ -43,7 +43,6 @@ export default async function TimeLogPage({ searchParams }: PageProps) {
               sp={sp}
               defaultProject={defaultProject}
               adoExecutionReady={auth.adoExecutionReady}
-              authMethod={auth.authMethod}
               urlAssignee={urlAssignee}
             />
           </Suspense>

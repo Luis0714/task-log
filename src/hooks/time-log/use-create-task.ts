@@ -10,7 +10,6 @@ import { resetTaskStepFields } from "@/lib/time-log/form-selection";
 import {
   TIME_LOG_TASK_STEP_DEFAULTS,
   mapTimeLogFormToPayload,
-  type CreateTaskPayload,
   type TimeLogFormValues,
 } from "@/lib/schemas/time-log";
 import { appToast } from "@/lib/toast";
@@ -43,23 +42,16 @@ export function useCreateTask({
   getDefaultTaskState,
   getDefaultWorkingDate,
 }: UseCreateTaskOptions) {
-  const [preview, setPreview] = useState<CreateTaskPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const preparePreview = useCallback(
-    (values: TimeLogFormValues, selectedPbi: AdoWorkItemOptionDto | null) => {
-      setError(null);
-      const pbiTitle = selectedPbi?.title ?? `Historia #${values.pbiId}`;
-      setPreview(mapTimeLogFormToPayload(values, pbiTitle));
-    },
-    [],
-  );
-
-  const execute = useCallback(
-    async (payload: CreateTaskPayload) => {
+  const submit = useCallback(
+    async (values: TimeLogFormValues, selectedPbi: AdoWorkItemOptionDto | null) => {
       setError(null);
       setLoading(true);
+
+      const pbiTitle = selectedPbi?.title ?? `Historia #${values.pbiId}`;
+      const payload = mapTimeLogFormToPayload(values, pbiTitle);
 
       try {
         const result = await createTaskInAdo(payload);
@@ -78,7 +70,6 @@ export function useCreateTask({
           return;
         }
 
-        setPreview(null);
         clearTaskFields(form, getDefaultTaskState, getDefaultWorkingDate);
         const doneNote = result.markedAsDone ? " · marcada como Done" : "";
         appToast.success(`Tarea creada: #${result.taskId}`, {
@@ -101,9 +92,5 @@ export function useCreateTask({
     [appendHistory, form, getDefaultTaskState, getDefaultWorkingDate],
   );
 
-  const dismissPreview = useCallback(() => {
-    setPreview(null);
-  }, []);
-
-  return { preview, error, loading, preparePreview, execute, dismissPreview };
+  return { error, loading, submit };
 }

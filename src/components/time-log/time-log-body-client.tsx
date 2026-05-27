@@ -3,12 +3,10 @@
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { TimeLogContextSection } from "@/components/time-log/time-log-context-section";
 import { TimeLogCopilotLink, TimeLogForm } from "@/components/time-log/time-log-form";
-import { TimeLogPreviewDialog } from "@/components/time-log/time-log-preview-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { useCopilotHistory } from "@/hooks/use-copilot-history";
 import { useTimeLogForm } from "@/hooks/use-time-log-form";
-import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
 import type {
   TimeLogPbisSnapshot,
   TimeLogServerBaseline,
@@ -16,7 +14,6 @@ import type {
 
 export type TimeLogBodyClientProps = {
   adoExecutionReady: boolean;
-  authMethod: AzdoAuthMethod;
   defaultProject?: string | null;
   serverBaseline: TimeLogServerBaseline;
   pbisSnapshot: TimeLogPbisSnapshot;
@@ -24,7 +21,6 @@ export type TimeLogBodyClientProps = {
 
 export function TimeLogBodyClient({
   adoExecutionReady,
-  authMethod,
   defaultProject = null,
   serverBaseline,
   pbisSnapshot,
@@ -49,7 +45,7 @@ export function TimeLogBodyClient({
               form={form.form}
               catalog={form.catalog}
               loading={form.loadingExecute}
-              onSubmit={form.prepareSubmit}
+              onSubmit={form.submit}
             />
             <TimeLogCopilotLink />
           </CardContent>
@@ -58,19 +54,6 @@ export function TimeLogBodyClient({
 
       {form.error ? <CopilotErrorAlert message={form.error} /> : null}
       {pbisSnapshot.error ? <CopilotErrorAlert message={pbisSnapshot.error} /> : null}
-
-      <TimeLogPreviewDialog
-        open={Boolean(form.preview)}
-        preview={form.preview}
-        defaultCompletedTaskState={form.catalog.defaultCompletedTaskState}
-        adoExecutionReady={adoExecutionReady}
-        authMethod={authMethod}
-        loading={form.loadingExecute}
-        onConfirm={(payload) => void form.execute(payload)}
-        onOpenChange={(open) => {
-          if (!open) form.dismissPreview();
-        }}
-      />
     </div>
   );
 }

@@ -48,7 +48,7 @@ export function TimeLogForm({
         ) : (
           <Save className="size-4" aria-hidden />
         )}
-        Revisar y crear tarea
+        Crear tarea
       </Button>
     </form>
   );

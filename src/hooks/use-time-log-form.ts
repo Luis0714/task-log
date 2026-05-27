@@ -13,10 +13,10 @@ import type {
 } from "@/lib/time-log/load-time-log-baseline";
 import { resolveWorkingDateForSprint } from "@/hooks/time-log/use-sprint-working-date";
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
+import { appToast } from "@/lib/toast";
 import {
   createTimeLogFormDefaults,
   timeLogFormSchema,
-  type TimeLogFormValues,
 } from "@/lib/schemas/time-log";
 
 type UseTimeLogFormOptions = {
@@ -90,18 +90,21 @@ export function useTimeLogForm({
     }
   }, [catalog.defaultOpenTaskState]);
 
-  const prepareSubmit = form.handleSubmit((values) => {
-    createTask.preparePreview(values, catalog.selectedPbi);
+  const submit = form.handleSubmit((values) => {
+    if (!adoExecutionReady) {
+      appToast.error("Sin acceso a Azure DevOps.", {
+        description: "Conecta tu cuenta o configura el PAT en el servidor.",
+      });
+      return;
+    }
+    void createTask.submit(values, catalog.selectedPbi);
   });
 
   return {
     form,
     catalog,
-    preview: createTask.preview,
     error: createTask.error,
     loadingExecute: createTask.loading,
-    prepareSubmit,
-    execute: createTask.execute,
-    dismissPreview: createTask.dismissPreview,
+    submit,
   };
 }
