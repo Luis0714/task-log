@@ -4,6 +4,7 @@ import { Loader2, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { computeCanSubmit } from "@/lib/forms/can-submit";
 
 export type CopilotInputProps = {
   value: string;
@@ -21,6 +22,11 @@ export function CopilotInput({
   disabled = false,
 }: CopilotInputProps) {
   const isDisabled = disabled || loading;
+  const canSubmit = computeCanSubmit({
+    isValid: value.trim().length > 0,
+    externalReady: !disabled,
+    isSubmitting: loading,
+  });
 
   return (
     <div className="flex flex-col gap-3">
@@ -42,7 +48,7 @@ export function CopilotInput({
         <Button
           type="button"
           onClick={onSubmit}
-          disabled={isDisabled || !value.trim()}
+          disabled={!canSubmit}
           className="min-h-10 flex-1 sm:flex-none"
         >
           {loading ? (

@@ -61,7 +61,7 @@ export function formatWorkItemTypeShortLabel(type: string): string {
     return "Historia";
   }
   if (normalized.includes("bug")) {
-    return "Defecto";
+    return "Bug";
   }
   if (normalized.includes("task") || normalized.includes("tarea")) {
     return "Tarea";

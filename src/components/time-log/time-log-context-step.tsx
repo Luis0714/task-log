@@ -15,10 +15,18 @@ import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 export type TimeLogContextStepProps = {
   form: UseFormReturn<TimeLogFormValues>;
   catalog: TimeLogCatalog;
+  canContinue: boolean;
+  loading?: boolean;
   onContinue: () => void;
 };
 
-export function TimeLogContextStep({ form, catalog, onContinue }: TimeLogContextStepProps) {
+export function TimeLogContextStep({
+  form,
+  catalog,
+  canContinue,
+  loading = false,
+  onContinue,
+}: TimeLogContextStepProps) {
   const summary = buildAdoFiltersSummary({
     project: catalog.project || undefined,
     team: catalog.team || undefined,
@@ -53,7 +61,12 @@ export function TimeLogContextStep({ form, catalog, onContinue }: TimeLogContext
 
       <PbiSelectField form={form} catalog={catalog} />
 
-      <Button type="button" className="min-h-10 w-full sm:w-auto" onClick={onContinue}>
+      <Button
+        type="button"
+        className="min-h-10 w-full sm:w-auto"
+        disabled={loading || !canContinue}
+        onClick={onContinue}
+      >
         Continuar a la tarea
         <ArrowRight className="size-4" aria-hidden />
       </Button>

@@ -13,6 +13,7 @@ import { getHoursPaceStatus } from "@/lib/dashboard/hours-pace";
 import { kpiProgressPercent, kpiVariantFromProgress } from "@/lib/dashboard/kpi-variant";
 import { resolveProgressStatus } from "@/lib/dashboard/progress-status";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
+import type { DashboardKpiVariant } from "@/components/dashboard/charts/dashboard-kpi";
 import type { KpiVariant } from "@/lib/dashboard/kpi-variant";
 import { cn } from "@/lib/utils";
 
@@ -40,9 +41,11 @@ export function SprintHoursSection({
   const hasDaySeries = metrics.hoursByDay.length > 0;
   const pace = getHoursPaceStatus(metrics.hoursByDay);
   const todayLow = hoursToday > 0 && hoursToday < HOURS_PER_SPRINT_WORKING_DAY * 0.5;
-  const todayVariant = kpiVariantFromProgress(hoursToday, HOURS_PER_SPRINT_WORKING_DAY, {
+  const todayVariantBase = kpiVariantFromProgress(hoursToday, HOURS_PER_SPRINT_WORKING_DAY, {
     lowProgress: todayLow,
   });
+  const todayVariant: DashboardKpiVariant =
+    todayVariantBase === "default" ? "primary" : todayVariantBase;
   const sprintStatus = resolveProgressStatus(hoursSprint, metrics.hoursSprintTarget);
   const sprintVariant: KpiVariant =
     sprintStatus === "over"
@@ -67,7 +70,12 @@ export function SprintHoursSection({
           hoursBreakdown={metrics.hoursToday}
           hoursPending={hoursDayPending}
           variant={todayVariant}
-          highlight={todayVariant !== "default"}
+          highlight={
+            todayVariant === "primary" ||
+            todayVariant === "success" ||
+            todayVariant === "warning" ||
+            todayVariant === "destructive"
+          }
           className="min-w-0 lg:col-span-4"
           loading={loading}
         />
@@ -85,7 +93,7 @@ export function SprintHoursSection({
           loading={loading}
         />
         <ChartPanel
-          title="Mezcla tarea / defecto"
+          title="Mezcla tarea / Bug"
           size="inline"
           loading={loading}
           className="col-span-2 min-w-0 lg:col-span-4"

@@ -90,6 +90,13 @@ export function UserStoryDetailSheet({
   membersLoading = false,
   onSaved,
 }: UserStoryDetailSheetProps) {
+  const stateOptions = useMemo(
+    () => backlogStates.map((state) => state.name),
+    [backlogStates],
+  );
+
+  const statesReady = !statesLoading && stateOptions.length > 0;
+
   const form = useUserStoryDetailForm({
     workItem,
     project,
@@ -97,6 +104,7 @@ export function UserStoryDetailSheet({
     currentUserDisplayName,
     members,
     responsableFields,
+    statesReady,
     onSaved,
     onClose: () => onOpenChange(false),
   });
@@ -105,13 +113,6 @@ export function UserStoryDetailSheet({
     () => (workItem ? filterBugsForParent(bugs, workItem.id) : []),
     [bugs, workItem],
   );
-
-  const stateOptions = useMemo(
-    () => backlogStates.map((state) => state.name),
-    [backlogStates],
-  );
-
-  const statesReady = !statesLoading && stateOptions.length > 0;
 
   async function handleSave() {
     const result = await form.save();
@@ -208,11 +209,11 @@ export function UserStoryDetailSheet({
 
                 <section className="space-y-2">
                   <h3 className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-                    Defectos ({childBugs.length})
+                    Bugs ({childBugs.length})
                   </h3>
                   {childBugs.length === 0 ? (
                     <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-6 text-center text-sm">
-                      No hay defectos vinculados a esta historia.
+                      No hay Bugs vinculados a esta historia.
                     </p>
                   ) : (
                     <ul className="space-y-2">
@@ -235,7 +236,7 @@ export function UserStoryDetailSheet({
           <Button
             type="button"
             className="w-full"
-            disabled={!form.canSave || !statesReady}
+            disabled={!form.canSave}
             onClick={() => void handleSave()}
           >
             {form.saving ? "Guardando…" : "Guardar"}

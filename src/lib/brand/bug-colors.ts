@@ -1,7 +1,7 @@
-/** Defecto abierto / pendiente — rojo (`--bug-open` en globals.css). */
+/** Bug abierto / pendiente — rojo (`--bug-open` en globals.css). */
 export const BUG_ICON_OPEN_CLASS = "text-bug-open";
 
-/** Defecto atendido — verde (`--bug-attended` en globals.css). */
+/** Bug atendido — verde (`--bug-attended` en globals.css). */
 export const BUG_ICON_ATTENDED_CLASS = "text-bug-attended";
 
 export const BUG_BAR_OPEN_CLASS = "bg-bug-open";

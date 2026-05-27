@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
+import { useZodStepSubmit } from "@/hooks/use-zod-step-submit";
 import { useCreateTask } from "@/hooks/time-log/use-create-task";
 import { useTimeLogCatalog } from "@/hooks/time-log/use-time-log-catalog";
 import type {
@@ -16,9 +17,27 @@ import { useTimeLogWizard } from "@/hooks/time-log/use-time-log-wizard";
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
 import {
   createTimeLogFormDefaults,
+  timeLogContextStepSchema,
   timeLogFormSchema,
+  timeLogTaskStepSchema,
   type TimeLogFormValues,
 } from "@/lib/schemas/time-log";
+
+const TIME_LOG_CONTEXT_FIELDS = [
+  "project",
+  "team",
+  "sprintPath",
+  "pbiId",
+] as const satisfies readonly (keyof TimeLogFormValues)[];
+
+const TIME_LOG_TASK_FIELDS = [
+  "taskTitle",
+  "hours",
+  "description",
+  "activity",
+  "workingDate",
+  "taskState",
+] as const satisfies readonly (keyof TimeLogFormValues)[];
 
 type UseTimeLogFormOptions = {
   appendHistory: (entry: CopilotHistoryEntry) => void;
@@ -93,6 +112,25 @@ export function useTimeLogForm({
     }
   }, [catalog.defaultOpenTaskState]);
 
+  const taskStatesReady =
+    !catalog.taskStatesLoading && catalog.taskStates.length > 0 && !catalog.taskStatesError;
+
+  const { canSubmit: canContinueStep1 } = useZodStepSubmit({
+    form,
+    schema: timeLogContextStepSchema,
+    fields: TIME_LOG_CONTEXT_FIELDS,
+    externalReady: !catalog.catalogDisabled && !catalog.pbisLoading,
+    isSubmitting: createTask.loading,
+  });
+
+  const { canSubmit: canSubmitStep2 } = useZodStepSubmit({
+    form,
+    schema: timeLogTaskStepSchema,
+    fields: TIME_LOG_TASK_FIELDS,
+    externalReady: adoExecutionReady && taskStatesReady,
+    isSubmitting: createTask.loading,
+  });
+
   const prepareSubmit = form.handleSubmit((values) => {
     createTask.preparePreview(values, catalog.selectedPbi);
   });
@@ -111,6 +149,8 @@ export function useTimeLogForm({
     form,
     catalog,
     step: wizard.step,
+    canContinueStep1,
+    canSubmitStep2,
     preview: createTask.preview,
     error: createTask.error,
     loadingExecute: createTask.loading,

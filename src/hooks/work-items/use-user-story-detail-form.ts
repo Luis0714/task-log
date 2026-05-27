@@ -7,13 +7,13 @@ import type { BacklogResponsableFieldDto } from "@/lib/schemas/ado-backlog-field
 import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 import { getTodayDateKey } from "@/lib/time-log/working-date-default";
 import { resolveResponsableDraftValue } from "@/lib/work-items/resolve-default-assignee";
+import { computeDraftCanSave } from "@/lib/forms/can-submit";
+import { isDateKeyValid } from "@/lib/validation/date-key";
 import {
   getPbiTransitionKind,
   requiresCommittedDates,
   requiresQaResponsables,
 } from "@/lib/work-items/pbi-state-transition";
-
-const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export type UseUserStoryDetailFormOptions = {
   workItem: DashboardWorkItem | null;
@@ -22,13 +22,14 @@ export type UseUserStoryDetailFormOptions = {
   currentUserDisplayName: string | null;
   members: readonly AdoTeamMemberDto[];
   responsableFields: readonly BacklogResponsableFieldDto[];
+  statesReady?: boolean;
   onSaved?: () => void;
   onClose?: () => void;
 };
 
 function readStoredSchedulingDate(value: string | undefined): string {
   const trimmed = value?.trim();
-  if (trimmed && DATE_KEY_PATTERN.test(trimmed)) return trimmed;
+  if (trimmed && isDateKeyValid(trimmed)) return trimmed;
   return "";
 }
 
@@ -44,6 +45,7 @@ export function useUserStoryDetailForm({
   currentUserDisplayName,
   members,
   responsableFields,
+  statesReady = true,
   onSaved,
   onClose,
 }: UseUserStoryDetailFormOptions) {
@@ -140,7 +142,7 @@ export function useUserStoryDetailForm({
 
   const committedValid =
     !requiresCommittedDates(draftState) ||
-    (DATE_KEY_PATTERN.test(draftStartDate) && DATE_KEY_PATTERN.test(draftTargetDate));
+    (isDateKeyValid(draftStartDate) && isDateKeyValid(draftTargetDate));
 
   const qaValid =
     !requiresQaResponsables(draftState) ||
@@ -148,9 +150,12 @@ export function useUserStoryDetailForm({
       Boolean(draftIntegrador.trim()) &&
       Boolean(draftQa.trim()));
 
-  const canSave = Boolean(
-    workItem && project && isDirty && committedValid && qaValid && !saving,
-  );
+  const canSave = computeDraftCanSave({
+    isDirty,
+    isValid: committedValid && qaValid,
+    externalReady: Boolean(workItem && project) && statesReady,
+    isSubmitting: saving,
+  });
 
   const save = useCallback(async (): Promise<
     { ok: true } | { ok: false; message: string }

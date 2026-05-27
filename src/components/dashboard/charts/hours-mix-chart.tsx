@@ -10,6 +10,8 @@ import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import { BUG_BAR_OPEN_CLASS } from "@/lib/brand/bug-colors";
 import {
   CHART_HEIGHT_INLINE,
+  CHART_WIDTH_INLINE_RING,
+  INLINE_PIE_RING,
   chartContainerClass,
   hoursMixChartConfig,
 } from "@/lib/dashboard/chart-config";
@@ -39,7 +41,10 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
     <div className={cn("flex items-center gap-4", className)}>
       <ChartContainer
         config={hoursMixChartConfig}
-        className={chartContainerClass(CHART_HEIGHT_INLINE, "w-[100px] shrink-0")}
+        className={chartContainerClass(
+          CHART_HEIGHT_INLINE,
+          cn(CHART_WIDTH_INLINE_RING, "shrink-0"),
+        )}
       >
         <PieChart>
           <ChartTooltip
@@ -50,18 +55,7 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
               />
             }
           />
-          <Pie
-            data={slices}
-            dataKey="value"
-            nameKey="key"
-            innerRadius={34}
-            outerRadius={48}
-            paddingAngle={4}
-            cornerRadius={5}
-            strokeWidth={2}
-            stroke="hsl(var(--background))"
-            animationDuration={700}
-          >
+          <Pie data={slices} dataKey="value" nameKey="key" {...INLINE_PIE_RING}>
             {slices.map((slice) => (
               <Cell key={slice.key} fill={`var(--color-${slice.key})`} />
             ))}
@@ -87,11 +81,11 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
             >
               {bugPercent}%
             </span>
-            <span className="text-muted-foreground text-sm font-normal"> defectos</span>
+            <span className="text-muted-foreground text-sm font-normal"> Bugs</span>
           </span>
         </p>
         <p className="text-muted-foreground text-xs leading-snug">
-          {formatHours(breakdown.taskHours)} dev · {formatHours(breakdown.bugHours)} defectos
+          {formatHours(breakdown.taskHours)} dev · {formatHours(breakdown.bugHours)} Bugs
         </p>
         <div className="flex gap-3 text-[10px]">
           <span className="flex items-center gap-1">

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 export type DashboardKpiVariant =
   | "default"
+  | "primary"
   | "success"
   | "warning"
   | "accent"
@@ -41,6 +42,12 @@ const variantStyles: Record<
   default: {
     border: "border-border/60",
     bg: "bg-card",
+    value: "text-foreground",
+    bar: "bg-primary",
+  },
+  primary: {
+    border: "border-primary/40",
+    bg: "bg-primary/10 dark:bg-primary/12",
     value: "text-foreground",
     bar: "bg-primary",
   },
@@ -159,7 +166,9 @@ export function DashboardKpi({
         highlight &&
           (variant === "destructive"
             ? "shadow-sm ring-1 ring-destructive/25"
-            : "shadow-sm ring-1 ring-primary/20"),
+            : variant === "primary"
+              ? "shadow-sm ring-1 ring-primary/30"
+              : "shadow-sm ring-1 ring-primary/20"),
         className,
       )}
     >

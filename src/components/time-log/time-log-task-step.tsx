@@ -12,7 +12,7 @@ import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 export type TimeLogTaskStepProps = {
   form: UseFormReturn<TimeLogFormValues>;
   catalog: TimeLogCatalog;
-  adoExecutionReady: boolean;
+  canSubmit: boolean;
   loading?: boolean;
   onBack: () => void;
   onSubmit: () => void;
@@ -21,14 +21,11 @@ export type TimeLogTaskStepProps = {
 export function TimeLogTaskStep({
   form,
   catalog,
-  adoExecutionReady,
+  canSubmit,
   loading = false,
   onBack,
   onSubmit,
 }: TimeLogTaskStepProps) {
-  const taskStatesReady =
-    !catalog.taskStatesLoading && catalog.taskStates.length > 0 && !catalog.taskStatesError;
-
   return (
     <div className="flex min-w-0 flex-col gap-4">
       {catalog.selectedPbi ? <PbiSummaryCard pbi={catalog.selectedPbi} /> : null}
@@ -54,7 +51,7 @@ export function TimeLogTaskStep({
         </Button>
         <Button
           type="button"
-          disabled={loading || !adoExecutionReady || !taskStatesReady}
+          disabled={loading || !canSubmit}
           className="min-h-10 w-full sm:w-auto"
           onClick={onSubmit}
         >

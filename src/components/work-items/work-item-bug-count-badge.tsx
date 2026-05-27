@@ -26,7 +26,7 @@ const VARIANT_STYLES: Record<WorkItemBugCountBadgeVariant, string> = {
 };
 
 function formatTitle(count: number, variant: WorkItemBugCountBadgeVariant): string {
-  const label = count === 1 ? "defecto" : "defectos";
+  const label = count === 1 ? "Bug" : "Bugs";
   if (variant === "attended") {
     return `${count} ${label} atendido${count === 1 ? "" : "s"}`;
   }

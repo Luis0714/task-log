@@ -32,8 +32,10 @@ export const PUBLIC_APP_PATHS = [
   "/settings",
 ] as const;
 
-/** Generada en `app/opengraph-image.tsx` (mismo isotipo en pastilla que el header móvil). */
-export const DEFAULT_OG_IMAGE_PATH = "/opengraph-image";
+/** Imagen estática para vistas previa en redes y chats (Open Graph / Twitter). */
+export const DEFAULT_OG_IMAGE_PATH = "/images/isotipo-purple.png";
+export const DEFAULT_OG_IMAGE_WIDTH = 1536;
+export const DEFAULT_OG_IMAGE_HEIGHT = 1024;
 export const DEFAULT_ICON_PATH = "/svgs/isotipo-badge.svg";
 /** Generada en `app/apple-icon.tsx`. */
 export const APPLE_TOUCH_ICON_PATH = "/apple-icon";

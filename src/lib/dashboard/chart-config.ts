@@ -10,6 +10,18 @@ export const CHART_HEIGHT_COMPACT = "h-[150px]";
 export const CHART_HEIGHT_DAILY = "h-[180px] sm:h-[200px]";
 export const CHART_HEIGHT_DEFAULT = "h-[180px]";
 export const CHART_HEIGHT_INLINE = "h-[120px]";
+export const CHART_WIDTH_INLINE_RING = "w-[100px]";
+
+/** Anillo compacto compartido (mezcla horas, progreso PBI, etc.) */
+export const INLINE_PIE_RING = {
+  innerRadius: 34,
+  outerRadius: 48,
+  paddingAngle: 4,
+  cornerRadius: 5,
+  strokeWidth: 2,
+  stroke: "hsl(var(--background))",
+  animationDuration: 700,
+} as const;
 
 export const CHART_MARGIN = { top: 12, right: 8, left: -18, bottom: 0 } as const;
 
@@ -41,12 +53,12 @@ export const CHART_EMPTY_SEGMENT_COLOR = "var(--muted-foreground)";
 
 export const hoursDailyChartConfig = {
   taskHours: { label: "Tareas", color: "var(--chart-1)" },
-  bugHours: { label: "Defectos", color: BUG_CHART_OPEN_COLOR },
+  bugHours: { label: "Bugs", color: BUG_CHART_OPEN_COLOR },
 } satisfies ChartConfig;
 
 export const hoursMixChartConfig = {
   taskHours: { label: "Tareas", color: "var(--chart-1)" },
-  bugHours: { label: "Defectos", color: BUG_CHART_OPEN_COLOR },
+  bugHours: { label: "Bugs", color: BUG_CHART_OPEN_COLOR },
 } satisfies ChartConfig;
 
 export const pbiStateChartConfig = {

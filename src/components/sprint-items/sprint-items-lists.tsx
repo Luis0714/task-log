@@ -18,9 +18,9 @@ const COPY: Record<
   { sectionTitle: string; sectionDescription: string; emptyMessage: string }
 > = {
   bugs: {
-    sectionTitle: "Defectos del sprint",
-    sectionDescription: "Todos los defectos que coinciden con los filtros.",
-    emptyMessage: "No hay defectos que coincidan con los filtros.",
+    sectionTitle: "Bugs del sprint",
+    sectionDescription: "Todos los Bugs que coinciden con los filtros.",
+    emptyMessage: "No hay Bugs que coincidan con los filtros.",
   },
   tasks: {
     sectionTitle: "Tareas del sprint",

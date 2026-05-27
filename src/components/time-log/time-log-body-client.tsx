@@ -3,7 +3,7 @@
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { CopilotHistoryList } from "@/components/copilot/copilot-history-list";
 import { TimeLogCopilotLink, TimeLogForm } from "@/components/time-log/time-log-form";
-import { TimeLogPreviewCard } from "@/components/time-log/time-log-preview-card";
+import { TimeLogPreviewDialog } from "@/components/time-log/time-log-preview-dialog";
 import {
   Card,
   CardContent,
@@ -58,7 +58,8 @@ export function TimeLogBodyClient({
             form={form.form}
             catalog={form.catalog}
             step={form.step}
-            adoExecutionReady={adoExecutionReady}
+            canContinueStep1={form.canContinueStep1}
+            canSubmitStep2={form.canSubmitStep2}
             loading={form.loadingExecute}
             onContinue={() => void form.goToStep2()}
             onBack={form.goToStep1}
@@ -71,17 +72,17 @@ export function TimeLogBodyClient({
       {form.error ? <CopilotErrorAlert message={form.error} /> : null}
       {pbisSnapshot.error ? <CopilotErrorAlert message={pbisSnapshot.error} /> : null}
 
-      {form.preview ? (
-        <TimeLogPreviewCard
-          className="min-w-0"
-          preview={form.preview}
-          adoExecutionReady={adoExecutionReady}
-          authMethod={authMethod}
-          loading={form.loadingExecute}
-          onConfirm={() => form.preview && void form.execute(form.preview)}
-          onCancel={form.dismissPreview}
-        />
-      ) : null}
+      <TimeLogPreviewDialog
+        open={Boolean(form.preview)}
+        preview={form.preview}
+        adoExecutionReady={adoExecutionReady}
+        authMethod={authMethod}
+        loading={form.loadingExecute}
+        onConfirm={(payload) => void form.execute(payload)}
+        onOpenChange={(open) => {
+          if (!open) form.dismissPreview();
+        }}
+      />
 
       <CopilotHistoryList entries={history} />
     </div>

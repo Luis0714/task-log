@@ -21,7 +21,7 @@ function toRow(key: string, label: string, counts: WorkItemStatusCounts): Delive
 export function buildDeliveryChartRows(overview: SprintStatusOverview): DeliveryChartRow[] {
   return [
     toRow("userStories", "Historias", overview.userStories),
-    toRow("bugs", "Defectos", overview.bugs),
+    toRow("bugs", "Bugs", overview.bugs),
   ];
 }
 

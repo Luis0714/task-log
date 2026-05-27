@@ -36,9 +36,9 @@ export const PAGE_SEO = {
     path: "/tasks",
   },
   bugs: {
-    title: "Defectos",
+    title: "Bugs",
     description:
-      "Defectos del sprint con filtros por asignación, estado y fecha. Control de calidad integrado con tu flujo Agile.",
+      "Bugs del sprint con filtros por asignación, estado y fecha. Control de calidad integrado con tu flujo Agile.",
     path: "/bugs",
   },
   settings: {

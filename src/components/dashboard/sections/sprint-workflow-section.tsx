@@ -26,7 +26,6 @@ export function SprintWorkflowSection({
       <SprintPbiProgressCard
         progress={metrics.pbiProgress}
         loading={loading}
-        compact
         highlight={pbiDone}
         className="lg:col-span-4"
       />

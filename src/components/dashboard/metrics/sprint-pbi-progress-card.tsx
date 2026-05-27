@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 export type SprintPbiProgressCardProps = {
   progress: SprintPbiProgress;
   loading?: boolean;
-  compact?: boolean;
   highlight?: boolean;
   className?: string;
 };
@@ -31,12 +30,7 @@ function BreakdownRow({ icon: Icon, label, count, tone }: BreakdownRowProps) {
 
   return (
     <li className="flex items-center justify-between gap-2 text-xs">
-      <span
-        className={cn(
-          "flex items-center gap-1.5",
-          tone === "inProgress" ? toneClass : "text-muted-foreground",
-        )}
-      >
+      <span className="text-muted-foreground flex items-center gap-1.5">
         <Icon className={cn("size-3.5 shrink-0", toneClass)} aria-hidden />
         {label}
       </span>
@@ -48,7 +42,6 @@ function BreakdownRow({ icon: Icon, label, count, tone }: BreakdownRowProps) {
 export function SprintPbiProgressCard({
   progress,
   loading = false,
-  compact = false,
   highlight = false,
   className,
 }: SprintPbiProgressCardProps) {
@@ -72,7 +65,7 @@ export function SprintPbiProgressCard({
 
         {loading ? (
           <div className="flex items-center gap-4">
-            <Skeleton className="size-24 shrink-0 rounded-full" />
+            <Skeleton className="h-[120px] w-[100px] shrink-0 rounded-full" />
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-4/5" />
@@ -85,14 +78,9 @@ export function SprintPbiProgressCard({
         ) : (
           <div className="flex items-center gap-4">
             <div className="relative flex shrink-0 items-center justify-center">
-              <PbiProgressRingChart percent={progress.percent} compact={compact} />
+              <PbiProgressRingChart percent={progress.percent} />
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span
-                  className={cn(
-                    "font-heading font-semibold tracking-tight tabular-nums",
-                    compact ? "text-2xl" : "text-3xl",
-                  )}
-                >
+                <span className="font-heading text-2xl font-semibold tracking-tight tabular-nums">
                   {progress.percent}%
                 </span>
                 <span className="text-muted-foreground text-[10px]">

@@ -12,10 +12,10 @@ export type SectionBlockSkeletonProps = {
 function DeliveryChartSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn("grid gap-3 lg:grid-cols-12", className)}>
-      <div className="grid grid-cols-3 gap-2 sm:max-w-md lg:col-span-4 lg:max-w-none lg:grid-cols-1 lg:gap-1.5">
-        <Skeleton className="h-16 rounded-xl lg:h-20" />
-        <Skeleton className="h-16 rounded-xl lg:h-20" />
-        <Skeleton className="h-16 rounded-xl lg:h-20" />
+      <div className="grid min-w-0 grid-cols-3 gap-2 lg:col-span-4 lg:grid-cols-1 lg:gap-2">
+        <Skeleton className="h-[5.5rem] rounded-lg lg:h-28" />
+        <Skeleton className="h-[5.5rem] rounded-lg lg:h-28" />
+        <Skeleton className="h-[5.5rem] rounded-lg lg:h-28" />
       </div>
       <Skeleton className="h-52 rounded-xl lg:col-span-8" />
     </div>

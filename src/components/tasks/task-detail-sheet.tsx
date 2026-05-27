@@ -26,10 +26,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import { appToast } from "@/lib/toast";
 import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import { computeDraftCanSave } from "@/lib/forms/can-submit";
 import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
+import { isDateKeyValid } from "@/lib/validation/date-key";
 import { cn } from "@/lib/utils";
-
-const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export type TaskDetailSheetProps = {
   open: boolean;
@@ -78,8 +78,12 @@ export function TaskDetailSheet({
   const isStateDirty = Boolean(task && draftState !== task.state);
   const isDateDirty = Boolean(task && draftWorkingDate !== initialWorkingDate);
   const isDirty = isStateDirty || isDateDirty;
-  const hasValidDate = DATE_KEY_PATTERN.test(draftWorkingDate);
-  const canSave = isDirty && hasValidDate && statesReady && Boolean(project) && !saving;
+  const canSave = computeDraftCanSave({
+    isDirty,
+    isValid: isDateKeyValid(draftWorkingDate),
+    externalReady: statesReady && Boolean(project),
+    isSubmitting: saving,
+  });
 
   async function handleSave() {
     if (!task || !project || !canSave) return;

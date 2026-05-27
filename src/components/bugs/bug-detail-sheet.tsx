@@ -27,10 +27,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import { appToast } from "@/lib/toast";
 import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import { computeDraftCanSave } from "@/lib/forms/can-submit";
 import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
+import { isDateKeyValid } from "@/lib/validation/date-key";
 import { cn } from "@/lib/utils";
-
-const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function formatInitialCompletedWork(hours: number | undefined): string {
   if (hours === undefined || !Number.isFinite(hours)) return "0";
@@ -100,10 +100,12 @@ export function BugDetailSheet({
     bug && parsedCompletedWork !== null && parsedCompletedWork !== initialCompletedWork,
   );
   const isDirty = isStateDirty || isDateDirty || isHoursDirty;
-  const hasValidDate = DATE_KEY_PATTERN.test(draftWorkingDate);
-  const hasValidHours = parsedCompletedWork !== null;
-  const canSave =
-    isDirty && hasValidDate && hasValidHours && statesReady && Boolean(project) && !saving;
+  const canSave = computeDraftCanSave({
+    isDirty,
+    isValid: isDateKeyValid(draftWorkingDate) && parsedCompletedWork !== null,
+    externalReady: statesReady && Boolean(project),
+    isSubmitting: saving,
+  });
 
   async function handleSave() {
     if (!bug || !project || !canSave || parsedCompletedWork === null) return;
@@ -124,11 +126,11 @@ export function BugDetailSheet({
 
       if (!res.ok) {
         const message = [payload.error, payload.detail].filter(Boolean).join(" — ");
-        appToast.error(message || "No se pudo guardar el defecto.");
+        appToast.error(message || "No se pudo guardar el Bug.");
         return;
       }
 
-      appToast.success("Defecto actualizado.");
+      appToast.success("Bug actualizado.");
       onSaved?.();
       onOpenChange(false);
     } catch {
@@ -142,12 +144,12 @@ export function BugDetailSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Defecto</SheetTitle>
+          <SheetTitle>Bug</SheetTitle>
           <SheetDescription
             className={cn(bug && "line-clamp-2 text-pretty text-foreground/80")}
             title={bug?.title}
           >
-            {bug?.title ?? "Selecciona un defecto para ver el detalle."}
+            {bug?.title ?? "Selecciona un Bug para ver el detalle."}
           </SheetDescription>
         </SheetHeader>
 
@@ -185,7 +187,7 @@ export function BugDetailSheet({
                     onChange={(event) => setDraftCompletedWork(event.target.value)}
                   />
                   <p className="text-muted-foreground text-xs">
-                    Horas registradas en el defecto. Obligatorias al cambiar el estado.
+                    Horas registradas en el Bug. Obligatorias al cambiar el estado.
                   </p>
                 </section>
 
@@ -221,7 +223,7 @@ export function BugDetailSheet({
               </>
             ) : (
               <p className="text-muted-foreground text-sm">
-                Selecciona un defecto para ver el detalle.
+                Selecciona un Bug para ver el detalle.
               </p>
             )}
           </div>

@@ -5,7 +5,9 @@ import { PAGE_SEO } from "@/lib/seo/pages";
 import {
   APPLE_TOUCH_ICON_PATH,
   DEFAULT_ICON_PATH,
+  DEFAULT_OG_IMAGE_HEIGHT,
   DEFAULT_OG_IMAGE_PATH,
+  DEFAULT_OG_IMAGE_WIDTH,
   isIndexingAllowed,
   resolveSiteUrl,
   SITE_DESCRIPTION,
@@ -48,6 +50,8 @@ function buildOpenGraph(
     images: [
       {
         url: DEFAULT_OG_IMAGE_PATH,
+        width: DEFAULT_OG_IMAGE_WIDTH,
+        height: DEFAULT_OG_IMAGE_HEIGHT,
         alt: `${SITE_NAME} — ${SITE_TAGLINE}`,
       },
     ],

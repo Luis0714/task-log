@@ -12,9 +12,9 @@ const PAGE_COPY: Record<
   { title: string; description: string; notReadyMessage: string }
 > = {
   bugs: {
-    title: "Defectos",
-    description: "Defectos del sprint con filtros por asignación, estado y fecha.",
-    notReadyMessage: "Conecta Azure DevOps para ver los defectos del sprint.",
+    title: "Bugs",
+    description: "Bugs del sprint con filtros por asignación, estado y fecha.",
+    notReadyMessage: "Conecta Azure DevOps para ver los Bugs del sprint.",
   },
   tasks: {
     title: "Tareas",

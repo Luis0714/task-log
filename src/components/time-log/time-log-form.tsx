@@ -15,7 +15,8 @@ export type TimeLogFormProps = {
   form: UseFormReturn<TimeLogFormValues>;
   catalog: TimeLogCatalog;
   step: TimeLogStep;
-  adoExecutionReady: boolean;
+  canContinueStep1: boolean;
+  canSubmitStep2: boolean;
   loading?: boolean;
   onContinue: () => void;
   onBack: () => void;
@@ -26,7 +27,8 @@ export function TimeLogForm({
   form,
   catalog,
   step,
-  adoExecutionReady,
+  canContinueStep1,
+  canSubmitStep2,
   loading = false,
   onContinue,
   onBack,
@@ -44,12 +46,18 @@ export function TimeLogForm({
         <TimeLogStepIndicator step={step} />
 
         {step === 1 ? (
-          <TimeLogContextStep form={form} catalog={catalog} onContinue={onContinue} />
+          <TimeLogContextStep
+            form={form}
+            catalog={catalog}
+            canContinue={canContinueStep1}
+            loading={loading}
+            onContinue={onContinue}
+          />
         ) : (
           <TimeLogTaskStep
             form={form}
             catalog={catalog}
-            adoExecutionReady={adoExecutionReady}
+            canSubmit={canSubmitStep2}
             loading={loading}
             onBack={onBack}
             onSubmit={onSubmit}

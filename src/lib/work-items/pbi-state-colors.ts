@@ -134,36 +134,3 @@ export function getPbiStateColorPresentation(state: string): PbiStateColorPresen
 export function getPbiStateChartColor(state: string): string {
   return getPbiStateColorPresentation(state).chartColor;
 }
-
-/** Etiqueta legible en español para estados de backlog. */
-export const PBI_STATE_LABELS: Record<Exclude<PbiStateSlug, "unknown">, string> = {
-  new: "Nuevo",
-  approved: "Aprobado",
-  committed: "Comprometido",
-  impediment: "Impedimento",
-  reopened: "Reabierto",
-  qa: "QA",
-  "review-po": "Revisión PO",
-  "in-stage": "En stage",
-  done: "Hecho",
-};
-
-const GENERIC_STATE_LABELS: Record<string, string> = {
-  "to do": "Por hacer",
-  "in progress": "En progreso",
-  active: "Activo",
-  closed: "Cerrado",
-  completed: "Completado",
-  resolved: "Resuelto",
-  removed: "Eliminado",
-};
-
-/** Etiqueta en español para mostrar en UI; conserva el valor original si no hay traducción. */
-export function formatWorkItemStateLabel(state: string): string {
-  const slug = resolvePbiStateSlug(state);
-  if (slug !== "unknown") {
-    return PBI_STATE_LABELS[slug];
-  }
-  const normalized = normalizeStateKey(state);
-  return GENERIC_STATE_LABELS[normalized] ?? state;
-}
