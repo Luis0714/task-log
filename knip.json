@@ -1,0 +1,17 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "next.config.ts",
+    "src/app/**/*.{ts,tsx}",
+    "src/app/api/**/*.{ts,tsx}"
+  ],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignore": [".next/**", "src/components/ui/**"],
+  "ignoreDependencies": [
+    "@tailwindcss/postcss",
+    "tw-animate-css",
+    "tailwindcss",
+    "shadcn"
+  ],
+  "ignoreExportsUsedInFile": true
+}

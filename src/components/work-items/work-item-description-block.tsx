@@ -1,14 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { RichTextContent } from "@/components/ui/rich-text-content";
-import { htmlToPlainText } from "@/lib/html/html-to-plain-text";
-import { cn } from "@/lib/utils";
-
-const MIN_CHARS_FOR_TOGGLE = 120;
+import { WorkItemDescriptionView } from "@/components/work-items/work-item-description-view";
+import { useExpandableRichText } from "@/hooks/work-items/use-expandable-rich-text";
 
 export type WorkItemDescriptionBlockProps = {
   html: string;
@@ -19,33 +12,17 @@ export function WorkItemDescriptionBlock({
   html,
   label = "Descripcion",
 }: WorkItemDescriptionBlockProps) {
-  const [expanded, setExpanded] = useState(false);
+  const { expanded, canToggle, hasContent, toggle } = useExpandableRichText({ html });
 
-  const plainPreview = useMemo(() => htmlToPlainText(html), [html]);
-  const canToggle = plainPreview.length > MIN_CHARS_FOR_TOGGLE;
-
-  useEffect(() => {
-    setExpanded(false);
-  }, [html]);
-
-  if (!plainPreview) return null;
+  if (!hasContent) return null;
 
   return (
-    <>
-      <Label className="mt-2">{label}</Label>
-      <div className={cn(!expanded && "line-clamp-3 overflow-hidden")}>
-        <RichTextContent html={html} className="text-muted-foreground" />
-      </div>
-      {canToggle ? (
-        <Button
-          type="button"
-          variant="link"
-          className="text-primary h-auto px-0 py-0 text-xs font-medium"
-          onClick={() => setExpanded((current) => !current)}
-        >
-          {expanded ? "Ver menos" : "Ver más"}
-        </Button>
-      ) : null}
-    </>
+    <WorkItemDescriptionView
+      html={html}
+      label={label}
+      expanded={expanded}
+      canToggle={canToggle}
+      onToggle={toggle}
+    />
   );
 }

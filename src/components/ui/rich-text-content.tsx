@@ -1,8 +1,8 @@
 "use client";
 
-import DOMPurify from "dompurify";
 import { useMemo } from "react";
 
+import { sanitizeRichTextHtml } from "@/lib/html/sanitize-rich-text-html";
 import { cn } from "@/lib/utils";
 
 type RichTextContentProps = {
@@ -11,14 +11,7 @@ type RichTextContentProps = {
 };
 
 export function RichTextContent({ html, className }: RichTextContentProps) {
-  const safeHtml = useMemo(
-    () =>
-      DOMPurify.sanitize(html, {
-        USE_PROFILES: { html: true },
-        ADD_ATTR: ["target", "src", "alt", "width", "height", "title"],
-      }),
-    [html],
-  );
+  const safeHtml = useMemo(() => sanitizeRichTextHtml(html), [html]);
 
   return (
     <div
@@ -30,7 +23,6 @@ export function RichTextContent({ html, className }: RichTextContentProps) {
         "[&_li]:mb-0.5",
         "[&_strong]:font-semibold [&_strong]:text-foreground",
         "[&_em]:italic",
-        "[&_img]:max-w-full [&_img]:rounded-md [&_img]:my-2",
         "[&_a]:text-primary [&_a]:underline",
         "[&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold",
         className,
