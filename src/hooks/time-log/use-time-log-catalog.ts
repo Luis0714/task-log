@@ -148,7 +148,7 @@ export function useTimeLogCatalog({
     [sprintPbis, workItemFilters.search, workItemFilters.states],
   );
 
-  const workItemFiltersPanel = useWorkItemFiltersPanel({
+  useWorkItemFiltersPanel({
     filters: workItemFiltersWithUrlAssignee,
     setSearch: setWorkItemSearch,
     setAssignee: setWorkItemAssignee,

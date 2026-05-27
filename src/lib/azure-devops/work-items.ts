@@ -77,28 +77,6 @@ type JsonPatchOp =
     }
   | { op: "replace"; path: string; value: string | number };
 
-async function patchWorkItemFields(
-  auth: AdoCallerAuth,
-  taskId: number,
-  ops: Array<{ op: "replace" | "add"; path: string; value: string | number }>,
-): Promise<{ ok: true } | { ok: false; status: number; body: string }> {
-  const url = `${adoProjectBase(auth)}/_apis/wit/workitems/${taskId}?api-version=7.1`;
-  const res = await adoFetch(auth, url, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json-patch+json",
-    },
-    body: JSON.stringify(ops),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    return { ok: false, status: res.status, body: body.slice(0, 500) };
-  }
-
-  return { ok: true };
-}
-
 async function fetchPbiContext(
   auth: AdoCallerAuth,
   pbiId: number,

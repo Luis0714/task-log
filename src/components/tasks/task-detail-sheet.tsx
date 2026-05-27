@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
-import {
-  TaskLoggedHoursHighlight,
-  TaskSummaryCard,
-} from "@/components/tasks/task-summary-card";
+import { TaskSummaryCard } from "@/components/tasks/task-summary-card";
+import { TaskLoggedHoursHighlight } from "@/components/tasks/task-logged-hours-highlight";
 import { WorkItemDescriptionBlock } from "@/components/work-items/work-item-description-block";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { Button } from "@/components/ui/button";
@@ -29,9 +27,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import { appToast } from "@/lib/toast";
 import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
-import { computeDraftCanSave } from "@/lib/forms/can-submit";
-import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
-import { isDateKeyValid } from "@/lib/validation/date-key";
+import { useTaskDetailDraftController } from "@/components/tasks/use-task-detail-draft-controller";
+import { patchTaskWorkItem } from "@/components/tasks/task-work-item.service";
 import { cn } from "@/lib/utils";
 
 export type TaskDetailSheetProps = {
@@ -44,103 +41,6 @@ export type TaskDetailSheetProps = {
   sprintWorkingDays?: readonly SprintWorkingDay[];
   onSaved?: () => void;
 };
-
-type SprintDateBounds = {
-  min: string | undefined;
-  max: string | undefined;
-};
-
-type TaskUpdatePayload = {
-  project: string;
-  state: string;
-  workingDate: string;
-};
-
-type TaskUpdateResponse = {
-  ok: boolean;
-  errorMessage?: string;
-};
-
-function buildSprintDateBounds(sprintWorkingDays: readonly SprintWorkingDay[]): SprintDateBounds {
-  if (sprintWorkingDays.length === 0) {
-    return { min: undefined, max: undefined };
-  }
-
-  return {
-    min: sprintWorkingDays[0]?.value,
-    max: sprintWorkingDays[sprintWorkingDays.length - 1]?.value,
-  };
-}
-
-async function patchTaskWorkItem(taskId: number, payload: TaskUpdatePayload): Promise<TaskUpdateResponse> {
-  const res = await fetch(`/api/ado/work-items/${taskId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const body = (await res.json()) as { error?: string; detail?: string };
-
-  if (res.ok) return { ok: true };
-
-  const errorMessage = [body.error, body.detail].filter(Boolean).join(" — ");
-  return { ok: false, errorMessage: errorMessage || "No se pudo guardar el estado." };
-}
-
-function useTaskDetailDraftController({
-  task,
-  taskStates,
-  statesLoading,
-  project,
-  sprintWorkingDays,
-  saving,
-}: {
-  task: AdoWorkItemOptionDto | null;
-  taskStates: readonly AdoTaskStateDto[];
-  statesLoading: boolean;
-  project: string | null;
-  sprintWorkingDays: readonly SprintWorkingDay[];
-  saving: boolean;
-}) {
-  const [draftState, setDraftState] = useState("");
-  const [draftWorkingDate, setDraftWorkingDate] = useState("");
-
-  const stateOptions = useMemo(() => taskStates.map((state) => state.name), [taskStates]);
-  const statesReady = !statesLoading && stateOptions.length > 0;
-  const sprintDateBounds = useMemo(
-    () => buildSprintDateBounds(sprintWorkingDays),
-    [sprintWorkingDays],
-  );
-
-  useEffect(() => {
-    if (!task) return;
-
-    setDraftState(task.state);
-    setDraftWorkingDate(task.workingDate?.trim() || getDefaultWorkingDate());
-  }, [task?.id, task?.state, task?.workingDate]);
-
-  const initialWorkingDate = task?.workingDate?.trim() ?? "";
-  const isStateDirty = Boolean(task && draftState !== task.state);
-  const isDateDirty = Boolean(task && draftWorkingDate !== initialWorkingDate);
-  const isDirty = isStateDirty || isDateDirty;
-
-  const canSave = computeDraftCanSave({
-    isDirty,
-    isValid: isDateKeyValid(draftWorkingDate),
-    externalReady: statesReady && Boolean(project),
-    isSubmitting: saving,
-  });
-
-  return {
-    draftState,
-    setDraftState,
-    draftWorkingDate,
-    setDraftWorkingDate,
-    stateOptions,
-    statesReady,
-    sprintDateBounds,
-    canSave,
-  };
-}
 
 export function TaskDetailSheet({
   open,

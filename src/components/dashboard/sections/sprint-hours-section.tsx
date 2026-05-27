@@ -43,27 +43,26 @@ export function SprintHoursSection({
     hoursToday,
     HOURS_PER_SPRINT_WORKING_DAY,
   );
-  const sprintVariant: KpiVariant = resolveHoursKpiVariant(
+  const sprintVariantBase: KpiVariant = resolveHoursKpiVariant(
     hoursSprint,
     metrics.hoursSprintTarget,
   );
-  if (sprintVariant === "primary" || sprintVariant === "warning") {
+  if (sprintVariantBase === "primary" || sprintVariantBase === "warning") {
     if (pace === "behind") {
       // Mantener warning si el ritmo del sprint va retrasado.
-    } else if (pace === "ahead" && sprintVariant === "primary") {
+    } else if (pace === "ahead" && sprintVariantBase === "primary") {
       // sprintVariant se sobrescribe abajo
     }
   }
 
   const sprintVariantResolved: DashboardKpiVariant =
-    resolveHoursKpiVariant(hoursSprint, metrics.hoursSprintTarget) === "destructive" ||
-    resolveHoursKpiVariant(hoursSprint, metrics.hoursSprintTarget) === "success"
-      ? resolveHoursKpiVariant(hoursSprint, metrics.hoursSprintTarget)
+    sprintVariantBase === "destructive" || sprintVariantBase === "success"
+      ? sprintVariantBase
       : pace === "behind"
         ? "warning"
         : pace === "ahead"
           ? "accent"
-          : resolveHoursKpiVariant(hoursSprint, metrics.hoursSprintTarget);
+          : sprintVariantBase;
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
@@ -89,8 +88,8 @@ export function SprintHoursSection({
           progress={kpiProgressPercent(hoursSprint, metrics.hoursSprintTarget)}
           hoursBreakdown={metrics.hoursSprintCurrent}
           hoursPending={metrics.hoursRemaining}
-          variant={sprintVariant}
-          highlight={sprintVariant === "destructive" || sprintVariant === "success"}
+          variant={sprintVariantResolved}
+          highlight={sprintVariantResolved === "destructive" || sprintVariantResolved === "success"}
           className="min-w-0 lg:col-span-4"
           loading={loading}
         />
