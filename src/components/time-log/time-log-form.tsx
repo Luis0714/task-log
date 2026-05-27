@@ -13,7 +13,6 @@ import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 export type TimeLogFormProps = {
   form: UseFormReturn<TimeLogFormValues>;
   catalog: TimeLogCatalog;
-  canSubmit: boolean;
   loading?: boolean;
   onSubmit: () => void;
 };
@@ -21,7 +20,6 @@ export type TimeLogFormProps = {
 export function TimeLogForm({
   form,
   catalog,
-  canSubmit,
   loading = false,
   onSubmit,
 }: TimeLogFormProps) {
@@ -40,10 +38,11 @@ export function TimeLogForm({
         taskStates={catalog.taskStates}
         taskStatesLoading={catalog.taskStatesLoading}
         taskStatesError={catalog.taskStatesError}
+        defaultCompletedTaskState={catalog.defaultCompletedTaskState}
         disabled={loading}
       />
 
-      <Button type="submit" disabled={loading || !canSubmit} className="min-h-10 w-full sm:w-auto">
+      <Button type="submit" disabled={loading} className="min-h-10 w-full sm:w-auto">
         {loading ? (
           <Loader2 className="size-4 animate-spin" aria-hidden />
         ) : (

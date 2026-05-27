@@ -33,6 +33,7 @@ function clearTaskFields(
   form.setValue("activity", TIME_LOG_TASK_STEP_DEFAULTS.activity);
   form.setValue("workingDate", getDefaultWorkingDate());
   form.setValue("taskState", getDefaultTaskState());
+  form.setValue("autoMarkAsDone", TIME_LOG_TASK_STEP_DEFAULTS.autoMarkAsDone);
   resetTaskStepFields(form);
 }
 
@@ -79,13 +80,14 @@ export function useCreateTask({
 
         setPreview(null);
         clearTaskFields(form, getDefaultTaskState, getDefaultWorkingDate);
+        const doneNote = result.markedAsDone ? " · marcada como Done" : "";
         appToast.success(`Tarea creada: #${result.taskId}`, {
-          description: `${payload.title} · ${payload.hours}h · Historia #${payload.pbiId}`,
+          description: `${payload.title} · ${payload.hours}h · Historia #${payload.pbiId}${doneNote}`,
         });
         appendHistory({
           id: crypto.randomUUID(),
           at: new Date().toISOString(),
-          summary: `Tarea #${result.taskId} +${payload.hours}h · Historia #${payload.pbiId}`,
+          summary: `Tarea #${result.taskId} +${payload.hours}h · Historia #${payload.pbiId}${doneNote}`,
           ok: true,
         });
       } catch {

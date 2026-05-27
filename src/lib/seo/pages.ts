@@ -6,7 +6,7 @@ export type PageSeoEntry = {
 
 export const PAGE_SEO = {
   dashboard: {
-    title: "Panel",
+    title: "Dashboard",
     description:
       "Visibilidad del sprint en tiempo real: entrega, ritmo de horas, trabajo por estado y resumen del daily conectado a Azure DevOps.",
     path: "/",

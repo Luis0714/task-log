@@ -12,6 +12,7 @@ import {
 import { computeSprintStatusOverview } from "@/lib/dashboard/sprint-status-overview";
 import {
   computeAssignedStoryPoints,
+  computeDevelopedStoryPoints,
   computeDashboardMetrics,
   computeSprintPbiProgress,
   mapToDashboardWorkItems,
@@ -70,6 +71,7 @@ export function buildDashboardMetrics({
 
   const pbiProgress = computeSprintPbiProgress(assigned, workItemStates);
   const storyPointsAssigned = computeAssignedStoryPoints(assigned);
+  const storyPointsDeveloped = computeDevelopedStoryPoints(assigned);
   const sprintStatusOverview = computeSprintStatusOverview(assigned, assignedBugs, {
     userStories: USER_STORY_STATUS_MAPPING,
     bugs: BUG_STATUS_MAPPING,
@@ -105,6 +107,7 @@ export function buildDashboardMetrics({
   const metrics = computeDashboardMetrics(hoursToday, {
     sprintHours: { hoursSprintCurrent, hoursSprintTarget },
     storyPointsAssigned,
+    storyPointsDeveloped,
     pbiStateGroups,
     pbiProgress,
     sprintStatusOverview,

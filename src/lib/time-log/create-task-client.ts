@@ -7,11 +7,15 @@ export type CreateTaskApiResponse = {
   detail?: string;
   taskId?: number;
   completedWork?: number;
+  markedAsDone?: boolean;
 };
 
 export async function createTaskInAdo(
   payload: CreateTaskPayload,
-): Promise<{ ok: true; taskId: number } | { ok: false; message: string }> {
+): Promise<
+  | { ok: true; taskId: number; markedAsDone: boolean }
+  | { ok: false; message: string }
+> {
   const res = await fetch("/api/execute/create-task", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -26,6 +30,7 @@ export async function createTaskInAdo(
         activity: payload.activity,
         workingDate: payload.workingDate,
         state: payload.state,
+        markAsDone: payload.markAsDone,
         sprintPath: payload.sprintPath,
         team: payload.team,
       },
@@ -43,5 +48,5 @@ export async function createTaskInAdo(
     };
   }
 
-  return { ok: true, taskId: data.taskId ?? 0 };
+  return { ok: true, taskId: data.taskId ?? 0, markedAsDone: data.markedAsDone ?? false };
 }

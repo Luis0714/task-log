@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
-import { useZodStepSubmit } from "@/hooks/use-zod-step-submit";
 import { useCreateTask } from "@/hooks/time-log/use-create-task";
 import { useTimeLogCatalog } from "@/hooks/time-log/use-time-log-catalog";
 import type {
@@ -19,19 +18,6 @@ import {
   timeLogFormSchema,
   type TimeLogFormValues,
 } from "@/lib/schemas/time-log";
-
-const TIME_LOG_FORM_FIELDS = [
-  "project",
-  "team",
-  "sprintPath",
-  "pbiId",
-  "taskTitle",
-  "hours",
-  "description",
-  "activity",
-  "workingDate",
-  "taskState",
-] as const satisfies readonly (keyof TimeLogFormValues)[];
 
 type UseTimeLogFormOptions = {
   appendHistory: (entry: CopilotHistoryEntry) => void;
@@ -54,7 +40,7 @@ export function useTimeLogForm({
       defaultProject ?? "",
       serverBaseline.catalog,
     ),
-    mode: "onTouched",
+    mode: "onSubmit",
   });
 
   const { project: catalogProject, team: catalogTeam, sprintPath: catalogSprintPath } =
@@ -104,21 +90,6 @@ export function useTimeLogForm({
     }
   }, [catalog.defaultOpenTaskState]);
 
-  const taskStatesReady =
-    !catalog.taskStatesLoading && catalog.taskStates.length > 0 && !catalog.taskStatesError;
-
-  const { canSubmit } = useZodStepSubmit({
-    form,
-    schema: timeLogFormSchema,
-    fields: TIME_LOG_FORM_FIELDS,
-    externalReady:
-      adoExecutionReady &&
-      taskStatesReady &&
-      !catalog.catalogDisabled &&
-      !catalog.pbisLoading,
-    isSubmitting: createTask.loading,
-  });
-
   const prepareSubmit = form.handleSubmit((values) => {
     createTask.preparePreview(values, catalog.selectedPbi);
   });
@@ -126,7 +97,6 @@ export function useTimeLogForm({
   return {
     form,
     catalog,
-    canSubmit,
     preview: createTask.preview,
     error: createTask.error,
     loadingExecute: createTask.loading,

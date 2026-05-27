@@ -2,9 +2,16 @@ import { DashboardSection } from "@/components/dashboard/layout/dashboard-sectio
 import { SectionBlockSkeleton } from "@/components/skeletons/section-block-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 
+function SectionTitleBadgeSkeleton() {
+  return <Skeleton className="h-5 w-12 rounded-full" />;
+}
+
 export function DashboardDeliverySectionSkeleton() {
   return (
-    <DashboardSection title="Entrega del sprint">
+    <DashboardSection
+      title="Entrega del sprint"
+      action={<SectionTitleBadgeSkeleton />}
+    >
       <SectionBlockSkeleton content="chart-delivery" showHeader={false} />
     </DashboardSection>
   );

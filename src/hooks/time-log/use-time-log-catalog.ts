@@ -68,6 +68,7 @@ export function useTimeLogCatalog({
   const taskStates =
     project === catalog.project ? serverBaseline.taskStates : [];
   const defaultOpenTaskState = serverBaseline.defaultOpenTaskState;
+  const defaultCompletedTaskState = serverBaseline.defaultCompletedTaskState;
   const nonWorkingDates = serverBaseline.nonWorkingDates;
 
   const workingDayOptions = useMemo(
@@ -231,6 +232,7 @@ export function useTimeLogCatalog({
     taskStatesLoading: false,
     taskStatesError: null,
     defaultOpenTaskState,
+    defaultCompletedTaskState,
     ...disabledState,
     placeholders: buildCatalogPlaceholders({
       adoExecutionReady,

@@ -10,7 +10,7 @@ import { formatHours } from "@/lib/dashboard/format-hours";
 import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
 import { getHoursPaceStatus } from "@/lib/dashboard/hours-pace";
-import { kpiProgressPercent, kpiVariantFromProgress } from "@/lib/dashboard/kpi-variant";
+import { kpiProgressPercent } from "@/lib/dashboard/kpi-variant";
 import { resolveProgressStatus } from "@/lib/dashboard/progress-status";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
 import type { DashboardKpiVariant } from "@/components/dashboard/charts/dashboard-kpi";
@@ -40,12 +40,16 @@ export function SprintHoursSection({
   );
   const hasDaySeries = metrics.hoursByDay.length > 0;
   const pace = getHoursPaceStatus(metrics.hoursByDay);
-  const todayLow = hoursToday > 0 && hoursToday < HOURS_PER_SPRINT_WORKING_DAY * 0.5;
-  const todayVariantBase = kpiVariantFromProgress(hoursToday, HOURS_PER_SPRINT_WORKING_DAY, {
-    lowProgress: todayLow,
-  });
+  const todayStatus = resolveProgressStatus(
+    hoursToday,
+    HOURS_PER_SPRINT_WORKING_DAY,
+  );
   const todayVariant: DashboardKpiVariant =
-    todayVariantBase === "default" ? "primary" : todayVariantBase;
+    todayStatus === "over"
+      ? "destructive"
+      : todayStatus === "complete"
+        ? "success"
+        : "primary";
   const sprintStatus = resolveProgressStatus(hoursSprint, metrics.hoursSprintTarget);
   const sprintVariant: KpiVariant =
     sprintStatus === "over"
@@ -73,7 +77,6 @@ export function SprintHoursSection({
           highlight={
             todayVariant === "primary" ||
             todayVariant === "success" ||
-            todayVariant === "warning" ||
             todayVariant === "destructive"
           }
           className="min-w-0 lg:col-span-4"

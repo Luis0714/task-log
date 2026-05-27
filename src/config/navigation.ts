@@ -25,7 +25,7 @@ export const MAIN_NAVIGATION: NavGroupConfig[] = [
   {
     title: "Principal",
     items: [
-      { href: "/", label: "Panel", icon: LayoutDashboard },
+      { href: "/", label: "Dashboard", icon: LayoutDashboard },
       { href: "/copilot", label: "Copiloto IA", icon: Bot },
       { href: "/history", label: "Historial", icon: History },
     ],

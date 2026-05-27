@@ -38,6 +38,7 @@ export const createTaskRequestSchema = z.object({
   activity: z.string().min(1).max(100),
   workingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   state: z.string().trim().min(1).max(100),
+  markAsDone: z.boolean().optional().default(false),
   sprintPath: z.string().min(1).max(500),
   team: z.string().min(1).max(200),
 });

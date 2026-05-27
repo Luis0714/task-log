@@ -137,14 +137,18 @@ function EmptyProgressDash({ variant }: { variant: DeliveryMetricVariant }) {
 
 function DeliveryMetricCardSkeleton() {
   return (
-    <div className="flex min-w-0 flex-col gap-2 p-2.5">
-      <div className="flex items-center gap-1.5">
-        <Skeleton className="size-3.5 shrink-0 rounded-sm" />
-        <Skeleton className="h-3 min-w-0 flex-1" />
+    <div className="flex min-h-full min-w-0 flex-col gap-2 p-2.5">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-1.5">
+          <Skeleton className="size-3.5 shrink-0 rounded-sm" />
+          <Skeleton className="h-3 min-w-0 flex-1" />
+        </div>
+        <Skeleton className="h-7 w-16" />
       </div>
-      <Skeleton className="h-7 w-12" />
-      <Skeleton className="h-1.5 w-full rounded-full" />
-      <Skeleton className="h-2.5 w-14" />
+      <div className="mt-auto flex flex-col gap-1 pt-0.5">
+        <Skeleton className="h-1.5 w-full rounded-full" />
+        <Skeleton className="h-2.5 w-10" />
+      </div>
     </div>
   );
 }
@@ -165,11 +169,13 @@ export function DeliveryMetricCard({
   const isEmpty = variant === "empty";
   const showProgress = progress !== undefined && !loading;
   const showEmptyDash = isEmpty && progress === undefined && !loading;
+  const primaryLabel = hint ?? value;
+  const secondaryLabel = hint && value.endsWith("%") ? value : undefined;
 
   return (
     <article
       className={cn(
-        "flex min-w-0 flex-col rounded-lg border transition-colors",
+        "flex h-full min-w-0 flex-col rounded-lg border transition-colors",
         "gap-1.5 p-2.5 lg:gap-2 lg:p-3",
         styles.border,
         styles.bg,
@@ -192,21 +198,24 @@ export function DeliveryMetricCard({
             className={cn(
               "font-heading text-xl font-semibold leading-none tracking-tight tabular-nums",
               "lg:text-2xl",
-              styles.value,
+              isEmpty && !hint ? "text-muted-foreground" : styles.value,
             )}
           >
-            {value}
+            {primaryLabel}
           </p>
 
-          {showProgress ? (
-            <ProgressTrack progress={progress} barClassName={styles.bar} />
-          ) : null}
-          {showEmptyDash ? <EmptyProgressDash variant={variant} /> : null}
-
-          {hint ? (
-            <p className="text-muted-foreground line-clamp-2 text-[10px] leading-tight">
-              {hint}
-            </p>
+          {showProgress || showEmptyDash || secondaryLabel ? (
+            <div className="mt-auto flex flex-col gap-1 pt-0.5">
+              {showProgress ? (
+                <ProgressTrack progress={progress} barClassName={styles.bar} />
+              ) : null}
+              {showEmptyDash ? <EmptyProgressDash variant={variant} /> : null}
+              {secondaryLabel ? (
+                <p className="text-muted-foreground text-[10px] leading-tight tabular-nums">
+                  {secondaryLabel}
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </>
       )}

@@ -36,7 +36,10 @@ import { mapBacklogItemFields } from "@/lib/azure-devops/map-backlog-item-fields
 import { parseAdoWorkItemTags } from "@/lib/work-items/ado-work-item-tags";
 import type { WorkItemFieldPatchOp } from "@/lib/azure-devops/work-item-patch";
 import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
-import { pickDefaultOpenTaskState } from "@/lib/time-log/task-state-utils";
+import {
+  pickDefaultCompletedTaskState,
+  pickDefaultOpenTaskState,
+} from "@/lib/time-log/task-state-utils";
 
 export type { AdoWorkItemOption } from "@/lib/azure-devops/work-items-filters";
 import type { AdoWorkItemOption } from "@/lib/azure-devops/work-items-filters";
@@ -61,7 +64,12 @@ export type CreateTaskParams = {
   workingDate: string;
   state: string;
   sprintPath: string;
+  markAsDone?: boolean;
 };
+
+export type CreateTaskUnderPbiResult =
+  | { ok: true; taskId: number; completedWork: number; markedAsDone: boolean }
+  | { ok: false; status: number; body: string };
 
 type JsonPatchOp =
   | { op: "add"; path: string; value: string | number }
@@ -134,10 +142,7 @@ async function resolveAssignedToValue(auth: AdoCallerAuth): Promise<string | nul
 export async function createTaskUnderPbi(
   params: CreateTaskParams,
   auth: AdoCallerAuth,
-): Promise<
-  | { ok: true; taskId: number; completedWork: number }
-  | { ok: false; status: number; body: string }
-> {
+): Promise<CreateTaskUnderPbiResult> {
   const pbiContext = await fetchPbiContext(auth, params.pbiId);
   if (!pbiContext.ok) return pbiContext;
 
@@ -207,7 +212,30 @@ export async function createTaskUnderPbi(
     return { ok: false, status: 502, body: "Azure DevOps no devolvió el ID de la tarea creada." };
   }
 
-  return { ok: true, taskId: created.id, completedWork: params.hours };
+  if (!params.markAsDone) {
+    return { ok: true, taskId: created.id, completedWork: params.hours, markedAsDone: false };
+  }
+
+  const doneState = pickDefaultCompletedTaskState(taskStates);
+  const markDoneResult = await updateWorkItemState(
+    {
+      workItemId: created.id,
+      state: doneState,
+      workingDate: params.workingDate,
+      completedWork: params.hours,
+    },
+    auth,
+  );
+
+  if (!markDoneResult.ok) {
+    return {
+      ok: false,
+      status: markDoneResult.status,
+      body: `La tarea #${created.id} se creó, pero no se pudo marcar como Done: ${markDoneResult.body}`,
+    };
+  }
+
+  return { ok: true, taskId: created.id, completedWork: params.hours, markedAsDone: true };
 }
 
 export async function logWorkOnWorkItem(

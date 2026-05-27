@@ -24,6 +24,7 @@ type TaskFormFieldsProps = {
   taskStates: AdoTaskStateDto[];
   taskStatesLoading?: boolean;
   taskStatesError?: string | null;
+  defaultCompletedTaskState?: string | null;
   disabled?: boolean;
 };
 
@@ -32,9 +33,11 @@ export function TaskFormFields({
   taskStates,
   taskStatesLoading = false,
   taskStatesError = null,
+  defaultCompletedTaskState = null,
   disabled = false,
 }: TaskFormFieldsProps) {
   const taskState = form.watch("taskState");
+  const autoMarkAsDone = form.watch("autoMarkAsDone");
   const stateOptions = taskStates.map((state) => ({
     value: state.name,
     label: <WorkItemStateLabel state={state.name} />,
@@ -112,7 +115,7 @@ export function TaskFormFields({
           <FormSelectField
             control={form.control}
             name="taskState"
-            label="Estado"
+            label="Estado inicial"
             placeholder={
               taskStatesLoading
                 ? "Cargando estados..."
@@ -120,7 +123,7 @@ export function TaskFormFields({
                   ? "Estado de la tarea"
                   : "Estados no disponibles"
             }
-            disabled={disabled || taskStatesLoading || !statesReady}
+            disabled={disabled || autoMarkAsDone || taskStatesLoading || !statesReady}
             options={stateOptions}
             displayValue={
               taskState ? <WorkItemStateLabel state={taskState} /> : undefined
@@ -146,6 +149,39 @@ export function TaskFormFields({
               />
             </FormControl>
             <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="autoMarkAsDone"
+        render={({ field }) => (
+          <FormItem className="flex flex-row items-start gap-3 rounded-lg border bg-muted/30 p-3">
+            <FormControl>
+              <input
+                type="checkbox"
+                className="border-input mt-0.5 size-4 shrink-0 rounded border accent-primary"
+                checked={field.value}
+                disabled={disabled}
+                onChange={(event) => field.onChange(event.target.checked)}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                name={field.name}
+              />
+            </FormControl>
+            <div className="min-w-0 space-y-1 leading-none">
+              <FormLabel className="cursor-pointer font-medium">
+                Marcar como Done al crear
+              </FormLabel>
+              <p className="text-muted-foreground text-sm text-pretty">
+                {autoMarkAsDone
+                  ? defaultCompletedTaskState
+                    ? `La tarea pasará a «${defaultCompletedTaskState}» y contará de inmediato en las horas del día.`
+                    : "La tarea pasará a Done y contará de inmediato en las horas del día."
+                  : "La tarea se creará en estado abierto; deberás cambiarla a Done manualmente para que sume en el dashboard."}
+              </p>
+            </div>
           </FormItem>
         )}
       />

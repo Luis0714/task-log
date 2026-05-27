@@ -90,6 +90,7 @@ export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
   hoursSprintTarget: 40,
   hoursRemaining: 8,
   storyPointsAssigned: 19,
+  storyPointsDeveloped: 9,
   sprintWorkingDaysCount: 10,
   sprintWeeks: [
     {

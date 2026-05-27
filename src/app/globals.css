@@ -266,6 +266,17 @@
   html {
     @apply font-sans;
   }
+  /* Chrome y otros navegadores ya no usan pointer en <button> por defecto. */
+  button:not(:disabled):not([disabled]),
+  [role="button"]:not(:disabled):not([aria-disabled="true"]),
+  [data-slot="button"]:not(:disabled):not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  [role="button"]:disabled {
+    cursor: not-allowed;
+  }
 }
 
 /* Utilidades de marca — aseguran el morado y el fondo de la pastilla del isotipo. */

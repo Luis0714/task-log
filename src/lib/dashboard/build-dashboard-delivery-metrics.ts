@@ -6,6 +6,7 @@ import { computeSprintStatusOverview } from "@/lib/dashboard/sprint-status-overv
 import type { DashboardDeliveryMetrics } from "@/lib/dashboard/types";
 import {
   computeAssignedStoryPoints,
+  computeDevelopedStoryPoints,
   computeDashboardMetrics,
   computeSprintPbiProgress,
   mapToDashboardWorkItems,
@@ -29,6 +30,7 @@ export function buildDashboardDeliveryMetrics(
   return computeDashboardMetrics(EMPTY_HOURS_BREAKDOWN, {
     sprintStatusOverview,
     storyPointsAssigned: computeAssignedStoryPoints(assigned),
+    storyPointsDeveloped: computeDevelopedStoryPoints(assigned),
     pbiProgress: computeSprintPbiProgress(assigned, workItemStates),
   });
 }

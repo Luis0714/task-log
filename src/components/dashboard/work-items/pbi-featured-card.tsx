@@ -1,6 +1,9 @@
 import { ProgressBar } from "@/components/dashboard/metrics/progress-bar";
+import { WorkItemBugCountBadge } from "@/components/work-items/work-item-bug-count-badge";
+import { WorkItemEffortBadge } from "@/components/work-items/work-item-effort-badge";
 import { WorkItemHoursLabel } from "@/components/work-items/work-item-hours-label";
 import { WorkItemId } from "@/components/work-items/work-item-id";
+import { WorkItemPriorityBadge } from "@/components/work-items/work-item-priority-badge";
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import { WorkItemTypeAvatar } from "@/components/work-items/work-item-type-avatar";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
@@ -21,7 +24,19 @@ export function PbiFeaturedCard({ item, className, onClick }: PbiFeaturedCardPro
   const content = (
     <>
       <div className="flex min-w-0 items-start justify-between gap-2">
-        <WorkItemId id={item.id} className="shrink-0" />
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <WorkItemId id={item.id} className="shrink-0" />
+          {item.priority !== undefined ? (
+            <WorkItemPriorityBadge priority={item.priority} />
+          ) : null}
+          {item.effort !== undefined ? <WorkItemEffortBadge effort={item.effort} /> : null}
+          {item.bugCount !== undefined && item.bugCount > 0 ? (
+            <WorkItemBugCountBadge count={item.bugCount} variant="total" />
+          ) : null}
+          {item.attendedBugCount !== undefined && item.attendedBugCount > 0 ? (
+            <WorkItemBugCountBadge count={item.attendedBugCount} variant="attended" />
+          ) : null}
+        </div>
         {item.state ? <WorkItemStateBadge state={item.state} className="shrink" /> : null}
       </div>
 

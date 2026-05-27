@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { Bug, ListChecks } from "lucide-react";
 import { Cell, Pie, PieChart } from "recharts";
 
 import { ConfigChartTooltip } from "@/components/dashboard/charts/config-chart-tooltip";
@@ -7,7 +9,7 @@ import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { formatHours } from "@/lib/dashboard/format-hours";
 import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
-import { BUG_BAR_OPEN_CLASS } from "@/lib/brand/bug-colors";
+import { BUG_ICON_OPEN_CLASS } from "@/lib/brand/bug-colors";
 import {
   CHART_HEIGHT_INLINE,
   CHART_WIDTH_INLINE_RING,
@@ -21,6 +23,24 @@ export type HoursMixChartProps = {
   breakdown: HoursBreakdown;
   className?: string;
 };
+
+type MixMetricColumnProps = {
+  children: ReactNode;
+  className?: string;
+};
+
+function MixMetricColumn({ children, className }: MixMetricColumnProps) {
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-md border border-border/50 bg-muted/20 px-2.5 py-2 sm:min-w-20 sm:px-3 sm:py-2.5",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
   const total = totalHoursBreakdown(breakdown);
@@ -36,71 +56,84 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
   const taskPercent = Math.round((breakdown.taskHours / total) * 100);
   const bugPercent = 100 - taskPercent;
   const bugHeavy = taskPercent < 60;
+  const bugIconClass = cn(BUG_ICON_OPEN_CLASS, "size-3.5 shrink-0");
 
   return (
-    <div className={cn("flex items-center gap-4", className)}>
-      <ChartContainer
-        config={hoursMixChartConfig}
-        className={chartContainerClass(
-          CHART_HEIGHT_INLINE,
-          cn(CHART_WIDTH_INLINE_RING, "shrink-0"),
-        )}
-      >
-        <PieChart>
-          <ChartTooltip
-            content={
-              <ConfigChartTooltip
-                config={hoursMixChartConfig}
-                formatValue={(value) => formatHours(value)}
-              />
-            }
-          />
-          <Pie data={slices} dataKey="value" nameKey="key" {...INLINE_PIE_RING}>
-            {slices.map((slice) => (
-              <Cell key={slice.key} fill={`var(--color-${slice.key})`} />
-            ))}
-          </Pie>
-        </PieChart>
-      </ChartContainer>
+    <div
+      className={cn(
+        "flex w-full flex-col items-center justify-center gap-3 text-center",
+        "lg:flex-row lg:items-center lg:gap-3",
+        className,
+      )}
+    >
+      <div className="flex shrink-0 items-center justify-center">
+        <ChartContainer
+          config={hoursMixChartConfig}
+          className={chartContainerClass(
+            CHART_HEIGHT_INLINE,
+            cn(CHART_WIDTH_INLINE_RING, "shrink-0"),
+          )}
+        >
+          <PieChart>
+            <ChartTooltip
+              content={
+                <ConfigChartTooltip
+                  config={hoursMixChartConfig}
+                  formatValue={(value) => formatHours(value)}
+                />
+              }
+            />
+            <Pie data={slices} dataKey="value" nameKey="key" {...INLINE_PIE_RING}>
+              {slices.map((slice) => (
+                <Cell key={slice.key} fill={`var(--color-${slice.key})`} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ChartContainer>
+      </div>
 
-      <div className="min-w-0 flex-1 space-y-1">
-        <p className="font-heading flex flex-wrap items-baseline gap-x-1.5 gap-y-0 text-lg font-semibold tabular-nums leading-none">
-          <span>
-            <span className={bugHeavy ? "text-amber-600 dark:text-amber-400" : "text-primary"}>
+      <div className="flex w-full max-w-44 items-stretch justify-center gap-2 lg:max-w-none lg:min-w-0 lg:flex-1">
+        <MixMetricColumn>
+          <span className="inline-flex items-center justify-center gap-1">
+            <span
+              className={cn(
+                "font-heading text-lg font-semibold tabular-nums leading-none",
+                bugHeavy ? "text-amber-600 dark:text-amber-400" : "text-primary",
+              )}
+            >
               {taskPercent}%
             </span>
-            <span className="text-muted-foreground text-sm font-normal"> tareas</span>
+            <ListChecks className="text-chart-1 size-3.5 shrink-0" aria-hidden />
           </span>
-          <span aria-hidden className="text-muted-foreground text-sm font-normal">
-            ·
+          <span className="text-muted-foreground inline-flex items-center justify-center gap-1 text-xs">
+            <ListChecks className="text-chart-1 size-3 shrink-0" aria-hidden />
+            <span className="tabular-nums">{formatHours(breakdown.taskHours)}</span>
           </span>
-          <span>
+          <span className="text-muted-foreground inline-flex items-center justify-center gap-1 text-[10px]">
+            <ListChecks className="text-chart-1 size-3 shrink-0" aria-hidden />
+            Desarrollo
+          </span>
+        </MixMetricColumn>
+
+        <MixMetricColumn>
+          <span className="inline-flex items-center justify-center gap-1">
             <span
-              className="text-bug-open tabular-nums"
+              className="font-heading text-lg font-semibold leading-none tabular-nums"
               style={{ color: "var(--bug-open)" }}
             >
               {bugPercent}%
             </span>
-            <span className="text-muted-foreground text-sm font-normal"> Bugs</span>
+            <Bug className={bugIconClass} style={{ color: "var(--bug-open)" }} aria-hidden />
           </span>
-        </p>
-        <p className="text-muted-foreground text-xs leading-snug">
-          {formatHours(breakdown.taskHours)} dev · {formatHours(breakdown.bugHours)} Bugs
-        </p>
-        <div className="flex gap-3 text-[10px]">
-          <span className="flex items-center gap-1">
-            <span className="bg-chart-1 size-1.5 rounded-full" />
-            Tareas
+          <span className="text-muted-foreground inline-flex items-center justify-center gap-1 text-xs">
+            <Bug className={bugIconClass} style={{ color: "var(--bug-open)" }} aria-hidden />
+            <span className="tabular-nums">{formatHours(breakdown.bugHours)}</span>
           </span>
-          <span className="flex items-center gap-1">
-            <span
-              className={cn(BUG_BAR_OPEN_CLASS, "size-1.5 shrink-0 rounded-full")}
-              style={{ backgroundColor: "var(--bug-open)" }}
-              aria-hidden
-            />
-            {hoursMixChartConfig.bugHours.label}
+          <span className="text-muted-foreground inline-flex items-center justify-center gap-1 text-[10px]">
+            <Bug className={bugIconClass} style={{ color: "var(--bug-open)" }} aria-hidden />
+            Bugs
           </span>
-        </div>
+        </MixMetricColumn>
       </div>
     </div>
   );

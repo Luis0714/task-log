@@ -1,5 +1,6 @@
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
+import { SprintHuCountBadge } from "@/components/dashboard/metrics/sprint-hu-count-badge";
 import { SprintDeliverySection } from "@/components/dashboard/sections/sprint-delivery-section";
 import {
   firstSprintDataError,
@@ -32,9 +33,13 @@ export async function DashboardDeliverySectionServer({
   if (error) return <CopilotErrorAlert message={error} />;
 
   const metrics = buildDashboardDeliveryMetrics(workItems.data, bugs.data);
+  const huCount = metrics.sprintStatusOverview.userStories.assigned;
 
   return (
-    <DashboardSection title="Entrega del sprint">
+    <DashboardSection
+      title="Entrega del sprint"
+      action={<SprintHuCountBadge count={huCount} />}
+    >
       <SprintDeliverySection metrics={metrics} />
     </DashboardSection>
   );

@@ -80,7 +80,7 @@ export function SprintPbiProgressCard({
             <div className="relative flex shrink-0 items-center justify-center">
               <PbiProgressRingChart percent={progress.percent} />
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-heading text-2xl font-semibold tracking-tight tabular-nums">
+                <span className="font-heading text-[22px] font-semibold leading-none tracking-tight tabular-nums">
                   {progress.percent}%
                 </span>
                 <span className="text-muted-foreground text-[10px]">

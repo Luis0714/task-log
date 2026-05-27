@@ -48,7 +48,6 @@ export function TimeLogBodyClient({
             <TimeLogForm
               form={form.form}
               catalog={form.catalog}
-              canSubmit={form.canSubmit}
               loading={form.loadingExecute}
               onSubmit={form.prepareSubmit}
             />
@@ -63,6 +62,7 @@ export function TimeLogBodyClient({
       <TimeLogPreviewDialog
         open={Boolean(form.preview)}
         preview={form.preview}
+        defaultCompletedTaskState={form.catalog.defaultCompletedTaskState}
         adoExecutionReady={adoExecutionReady}
         authMethod={authMethod}
         loading={form.loadingExecute}

@@ -47,6 +47,7 @@ export async function POST(req: Request) {
       workingDate: task.workingDate,
       state: task.state,
       sprintPath: task.sprintPath,
+      markAsDone: task.markAsDone,
     },
     authForExecute,
   );
@@ -69,5 +70,6 @@ export async function POST(req: Request) {
     pbiId: task.pbiId,
     hours: task.hours,
     completedWork: result.completedWork,
+    markedAsDone: result.markedAsDone,
   });
 }

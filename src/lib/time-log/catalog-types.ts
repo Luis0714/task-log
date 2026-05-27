@@ -34,6 +34,7 @@ export type TimeLogCatalog = {
   taskStatesLoading: boolean;
   taskStatesError: string | null;
   defaultOpenTaskState: string | null;
+  defaultCompletedTaskState: string | null;
   catalogDisabled: boolean;
   projectSelectDisabled: boolean;
   teamSelectDisabled: boolean;

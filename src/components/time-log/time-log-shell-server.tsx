@@ -22,6 +22,7 @@ export async function TimeLogShellServer({
     backlogStates: [],
     taskStates: [],
     defaultOpenTaskState: null,
+    defaultCompletedTaskState: null,
     nonWorkingDates: [],
   };
 

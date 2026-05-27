@@ -7,7 +7,10 @@ import {
   USER_STORY_STATUS_MAPPING,
   type SprintStatusMapping,
 } from "@/lib/dashboard/sprint-status-mapping";
-import { classifyUserStoryWorkflow } from "@/lib/work-items/user-story-workflow-status";
+import {
+  classifyUserStoryWorkflow,
+  filterUserStoriesByWorkflowCategory,
+} from "@/lib/work-items/user-story-workflow-status";
 import { EMPTY_SPRINT_STATUS_OVERVIEW } from "@/lib/dashboard/sprint-status-overview";
 import {
   EMPTY_HOURS_BREAKDOWN,
@@ -142,7 +145,7 @@ export function formatStoryPoints(value: number): string {
   return value.toFixed(1).replace(/\.0$/, "");
 }
 
-export function computeAssignedStoryPoints(items: DashboardWorkItem[]): number {
+function sumStoryPointsEffort(items: readonly DashboardWorkItem[]): number {
   let total = 0;
   for (const item of items) {
     if (item.effort !== undefined && Number.isFinite(item.effort) && item.effort >= 0) {
@@ -150,6 +153,17 @@ export function computeAssignedStoryPoints(items: DashboardWorkItem[]): number {
     }
   }
   return Math.round(total * 10) / 10;
+}
+
+export function computeAssignedStoryPoints(items: DashboardWorkItem[]): number {
+  return sumStoryPointsEffort(items);
+}
+
+/** Suma de story points de HUs en estado desarrollado (workflow). */
+export function computeDevelopedStoryPoints(items: DashboardWorkItem[]): number {
+  return sumStoryPointsEffort(
+    filterUserStoriesByWorkflowCategory(items, "developed"),
+  );
 }
 
 export function selectInProgressItems(items: DashboardWorkItem[]): DashboardWorkItem[] {
@@ -181,6 +195,7 @@ const EMPTY_PBI_PROGRESS: SprintPbiProgress = {
 export type DashboardMetricsInput = {
   sprintHours?: SprintHoursInput;
   storyPointsAssigned?: number;
+  storyPointsDeveloped?: number;
   pbiStateGroups?: DashboardMetrics["pbiStateGroups"];
   pbiProgress?: SprintPbiProgress;
   sprintStatusOverview?: SprintStatusOverview;
@@ -209,6 +224,7 @@ export function computeDashboardMetrics(
     hoursSprintTarget,
     hoursRemaining,
     storyPointsAssigned: input.storyPointsAssigned ?? 0,
+    storyPointsDeveloped: input.storyPointsDeveloped ?? 0,
     sprintWorkingDaysCount: input.sprintWorkingDaysCount ?? 0,
     hoursByDay: input.hoursByDay ?? [],
     sprintWeeks: input.sprintWeeks ?? [],

@@ -27,6 +27,16 @@ export function resolveBugsMetricVariant(
   return "default";
 }
 
-export function resolveStoryPointsMetricVariant(points: number): DeliveryMetricVariant {
-  return points > 0 ? "accent" : "empty";
+export function resolveStoryPointsMetricVariant(
+  developed: number,
+  assigned: number,
+  percent: number,
+): DeliveryMetricVariant {
+  if (assigned <= 0) return "empty";
+
+  const base = kpiVariantFromProgress(developed, assigned);
+  if (base === "destructive") return "destructive";
+  if (percent >= 75) return "success";
+  if (developed < assigned && percent < 50) return "warning";
+  return "primary";
 }

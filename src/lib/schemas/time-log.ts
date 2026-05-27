@@ -48,6 +48,7 @@ export const timeLogTaskStepSchema = z.object({
     .min(1, "Selecciona la fecha de trabajo.")
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida."),
   taskState: z.string().trim().min(1, "Selecciona un estado."),
+  autoMarkAsDone: z.boolean(),
 });
 
 export const timeLogFormSchema = timeLogContextStepSchema.merge(timeLogTaskStepSchema);
@@ -64,6 +65,7 @@ export type CreateTaskPayload = {
   activity: (typeof TASK_ACTIVITY_OPTIONS)[number];
   workingDate: string;
   state: string;
+  markAsDone: boolean;
   sprintPath: string;
   team: string;
   project: string;
@@ -84,12 +86,19 @@ export function createTimeLogFormDefaults(
     activity: DEFAULT_TASK_ACTIVITY,
     workingDate: getDefaultWorkingDate(),
     taskState: "",
+    autoMarkAsDone: true,
   };
 }
 
 export const TIME_LOG_TASK_STEP_DEFAULTS: Pick<
   TimeLogFormValues,
-  "taskTitle" | "hours" | "description" | "activity" | "workingDate" | "taskState"
+  | "taskTitle"
+  | "hours"
+  | "description"
+  | "activity"
+  | "workingDate"
+  | "taskState"
+  | "autoMarkAsDone"
 > = {
   taskTitle: "",
   hours: "",
@@ -97,6 +106,7 @@ export const TIME_LOG_TASK_STEP_DEFAULTS: Pick<
   activity: DEFAULT_TASK_ACTIVITY,
   workingDate: getDefaultWorkingDate(),
   taskState: "",
+  autoMarkAsDone: true,
 };
 
 export function mapTimeLogFormToPayload(
@@ -116,5 +126,6 @@ export function mapTimeLogFormToPayload(
     activity: values.activity,
     workingDate: values.workingDate,
     state: values.taskState,
+    markAsDone: values.autoMarkAsDone,
   };
 }

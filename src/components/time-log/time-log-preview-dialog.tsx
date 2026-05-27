@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 export type TimeLogPreviewDialogProps = {
   open: boolean;
   preview: CreateTaskPayload | null;
+  defaultCompletedTaskState?: string | null;
   adoExecutionReady: boolean;
   authMethod: AzdoAuthMethod;
   loading?: boolean;
@@ -49,6 +50,7 @@ function PreviewField({ label, children }: { label: string; children: ReactNode 
 export function TimeLogPreviewDialog({
   open,
   preview,
+  defaultCompletedTaskState = null,
   adoExecutionReady,
   authMethod,
   loading = false,
@@ -94,9 +96,15 @@ export function TimeLogPreviewDialog({
               <Badge className="shrink-0" variant="outline">
                 {preview.workingDate}
               </Badge>
-              <Badge className="max-w-full shrink truncate" variant="outline">
-                {preview.state}
-              </Badge>
+              {preview.markAsDone ? (
+                <Badge className="max-w-full shrink truncate" variant="default">
+                  → {defaultCompletedTaskState ?? "Done"}
+                </Badge>
+              ) : (
+                <Badge className="max-w-full shrink truncate" variant="outline">
+                  {preview.state}
+                </Badge>
+              )}
             </div>
             <PreviewField label="Título">
               <span className="font-medium">{preview.title}</span>

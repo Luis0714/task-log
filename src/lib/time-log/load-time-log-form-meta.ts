@@ -11,7 +11,10 @@ import {
   listTaskStates,
   listTeamMembers,
 } from "@/lib/azure-devops/work-item-type-states";
-import { resolveTaskStateSelection } from "@/lib/time-log/task-state-utils";
+import {
+  pickDefaultCompletedTaskState,
+  resolveTaskStateSelection,
+} from "@/lib/time-log/task-state-utils";
 import type { AdoTaskStateDto, AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 
 export type TimeLogFormMeta = {
@@ -19,6 +22,7 @@ export type TimeLogFormMeta = {
   backlogStates: Awaited<ReturnType<typeof listBacklogItemStates>>;
   taskStates: AdoTaskStateDto[];
   defaultOpenTaskState: string | null;
+  defaultCompletedTaskState: string | null;
   nonWorkingDates: string[];
 };
 
@@ -27,6 +31,7 @@ const emptyMeta: TimeLogFormMeta = {
   backlogStates: [],
   taskStates: [],
   defaultOpenTaskState: null,
+  defaultCompletedTaskState: null,
   nonWorkingDates: [],
 };
 
@@ -48,12 +53,15 @@ export const loadTimeLogFormMeta = cache(async function loadTimeLogFormMeta(
 
   const defaultOpenTaskState =
     taskStates.length > 0 ? resolveTaskStateSelection(taskStates, "") : null;
+  const defaultCompletedTaskState =
+    taskStates.length > 0 ? pickDefaultCompletedTaskState(taskStates) : null;
 
   return {
     teamMembers,
     backlogStates,
     taskStates,
     defaultOpenTaskState,
+    defaultCompletedTaskState,
     nonWorkingDates,
   };
 });
