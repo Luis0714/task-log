@@ -18,7 +18,11 @@ export async function WorkItemsShellServer({
 
   const filterMeta =
     adoExecutionReady && catalog.project && catalog.team
-      ? await loadWorkItemsFilterMeta(catalog.project, catalog.team)
+      ? await loadWorkItemsFilterMeta(
+          catalog.project,
+          catalog.team,
+          catalog.sprintPath,
+        )
       : { members: [], states: [] };
 
   return (

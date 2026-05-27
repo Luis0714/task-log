@@ -1,5 +1,6 @@
 import { UserRound } from "lucide-react";
 
+import { getAssigneeTagClasses } from "@/lib/work-items/assignee-tag-colors";
 import { cn } from "@/lib/utils";
 
 export type WorkItemAssigneeTagProps = {
@@ -11,9 +12,8 @@ export function WorkItemAssigneeTag({ name, className }: WorkItemAssigneeTagProp
   return (
     <span
       className={cn(
-        "inline-flex min-w-0 max-w-30 shrink items-center gap-1 rounded-full border border-primary/35",
-        "bg-primary/12 px-2 py-0.5 text-[10px] font-medium text-primary",
-        "dark:bg-primary/18 dark:text-primary",
+        "inline-flex min-w-0 max-w-30 shrink items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium",
+        getAssigneeTagClasses(name),
         className,
       )}
       title={name}

@@ -22,7 +22,12 @@ export const loadSprintItemsPageMeta = cache(async function loadSprintItemsPageM
   }
 
   const [filterMeta, nonWorkingDates] = await Promise.all([
-    loadSprintItemsFilterMeta(kind, catalog.project, catalog.team),
+    loadSprintItemsFilterMeta(
+      kind,
+      catalog.project,
+      catalog.team,
+      catalog.sprintPath,
+    ),
     loadNonWorkingDates(catalog.project, catalog.team),
   ]);
 

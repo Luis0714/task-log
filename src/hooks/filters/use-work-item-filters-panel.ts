@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo } from "react";
 
+import { assigneeMatchesMember } from "@/lib/filters/person-name";
+import { mergeTeamMembersWithWorkItemAssignees } from "@/lib/filters/merge-team-members-with-assignees";
 import type { AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import {
   parseAssigneeFilter,
@@ -59,6 +61,11 @@ export function useWorkItemFiltersPanel({
     return collectWorkItemStates(items);
   }, [items, stateNames]);
 
+  const membersForFilter = useMemo(
+    () => mergeTeamMembersWithWorkItemAssignees(members, items),
+    [items, members],
+  );
+
   useEffect(() => {
     resetFilters();
   }, [resetFilters, sprintPath]);
@@ -73,21 +80,21 @@ export function useWorkItemFiltersPanel({
   useEffect(() => {
     const assigneeFilter = parseAssigneeFilter(filters.assignee);
     if (assigneeFilter.kind !== "members") return;
-    if (membersLoading || members.length === 0) return;
+    if (membersLoading || membersForFilter.length === 0) return;
 
     const valid = assigneeFilter.names.filter((name) =>
-      members.some((member) => member.displayName === name),
+      assigneeMatchesMember(membersForFilter, name),
     );
     if (valid.length === assigneeFilter.names.length) return;
     if (valid.length === 0) return;
 
     setAssignee(serializeAssigneeFilter({ kind: "members", names: valid }));
-  }, [filters.assignee, members, membersLoading, setAssignee]);
+  }, [filters.assignee, membersForFilter, membersLoading, setAssignee]);
 
   return {
     values: filters,
     states,
-    members,
+    members: membersForFilter,
     membersLoading,
     membersError,
     totalCount,

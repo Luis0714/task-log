@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { findTeamMemberByAssigneeName } from "@/lib/filters/person-name";
+
 export const WORK_ITEM_ASSIGNEE_ALL = "all";
 export const WORK_ITEM_ASSIGNEE_ME = "me";
 
@@ -98,8 +100,9 @@ export function resolveWorkItemAssigneeLabel(
   if (filter.kind === "all") return "Todos";
   if (filter.kind === "me") return "Asignados a mí";
   if (filter.names.length === 1) {
-    const member = members.find((item) => item.displayName === filter.names[0]);
-    return member?.displayName ?? filter.names[0];
+    const name = filter.names[0];
+    const member = findTeamMemberByAssigneeName(members, name);
+    return member?.displayName ?? name;
   }
   return `${filter.names.length} personas`;
 }
