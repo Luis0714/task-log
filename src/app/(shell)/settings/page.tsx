@@ -18,6 +18,7 @@ export default async function SettingsPage() {
         title={PAGE_SEO.settings.title}
         description={PAGE_SEO.settings.description}
         connectOptions={auth.connectOptions}
+        savedConnectionTarget={auth.savedConnectionTarget}
       />
     );
   }

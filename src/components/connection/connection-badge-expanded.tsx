@@ -17,6 +17,7 @@ export function ConnectionBadgeExpanded({
   isConnected,
   canLogout,
   connectOptions,
+  savedConnectionTarget,
   showSignIn,
   organization,
   userDisplayName,
@@ -68,7 +69,11 @@ export function ConnectionBadgeExpanded({
       </div>
 
       {showSignIn ? (
-        <ConnectSignInTrigger connectOptions={connectOptions} fullWidth />
+        <ConnectSignInTrigger
+          connectOptions={connectOptions}
+          savedConnectionTarget={savedConnectionTarget}
+          fullWidth
+        />
       ) : null}
     </section>
   );

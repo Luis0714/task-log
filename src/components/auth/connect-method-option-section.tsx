@@ -1,3 +1,7 @@
+"use client";
+
+import type { ReactNode } from "react";
+
 import { ConnectMethodPreview } from "@/components/auth/connect-method-preview";
 import type { SessionAuthMethod } from "@/lib/auth/session-auth-method";
 import { cn } from "@/lib/utils";
@@ -10,6 +14,7 @@ export type ConnectMethodOptionSectionProps = {
   selected: boolean;
   disabled: boolean;
   disabledHint?: string;
+  action?: ReactNode;
   onSelect: (method: SessionAuthMethod) => void;
 };
 
@@ -21,6 +26,7 @@ export function ConnectMethodOptionSection({
   selected,
   disabled,
   disabledHint,
+  action,
   onSelect,
 }: ConnectMethodOptionSectionProps) {
   const inputId = `connect-method-${method}`;
@@ -59,10 +65,12 @@ export function ConnectMethodOptionSection({
       {selected ? (
         <div className="border-border text-muted-foreground border-t px-4 pb-4">
           <div className="pt-3">
-            <ConnectMethodPreview method={method} />
+            {method === "oauth" ? <ConnectMethodPreview method={method} /> : null}
             {disabled && disabledHint ? (
               <p className="text-destructive mt-3 text-xs leading-relaxed">{disabledHint}</p>
-            ) : null}
+            ) : (
+              action
+            )}
           </div>
         </div>
       ) : null}

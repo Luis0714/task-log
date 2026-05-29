@@ -16,6 +16,7 @@ import {
   resolveEffectiveSprintDayKey,
 } from "@/lib/dashboard/sprint-days";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
+import type { SavedConnectionTarget } from "@/lib/auth/server-state";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
 
 export type DashboardPageShellProps = {
@@ -24,6 +25,7 @@ export type DashboardPageShellProps = {
   adoExecutionReady: boolean;
   userSessionActive: boolean;
   connectOptions: ConnectAuthOptions;
+  savedConnectionTarget: SavedConnectionTarget | null;
   initialSprintDayKey: string;
   nonWorkingDates: readonly string[];
   children?: ReactNode;
@@ -35,6 +37,7 @@ export function DashboardPageShell({
   adoExecutionReady,
   userSessionActive,
   connectOptions,
+  savedConnectionTarget,
   initialSprintDayKey,
   nonWorkingDates,
   children = null,
@@ -125,7 +128,10 @@ export function DashboardPageShell({
         data={resolvedHeader}
         actions={
           !userSessionActive ? (
-            <ConnectSignInTrigger connectOptions={connectOptions} />
+            <ConnectSignInTrigger
+              connectOptions={connectOptions}
+              savedConnectionTarget={savedConnectionTarget}
+            />
           ) : null
         }
       />

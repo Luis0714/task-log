@@ -3,7 +3,6 @@ export const CONNECT_ADO_COPY = {
   sheetSubtitle: "Elige cómo quieres entrar. Solo necesitas una opción.",
   signInButton: "Iniciar sesión",
   back: "Volver",
-  continue: "Continuar",
   chooseMethodAriaLabel: "Método de inicio de sesión",
   microsoft: {
     cardTitle: "Con mi cuenta de Microsoft",
@@ -31,15 +30,30 @@ export const CONNECT_ADO_COPY = {
       "Abre Azure DevOps y entra a tu perfil (arriba a la derecha).",
       "Busca «Tokens de acceso personal» o «Personal access tokens».",
       "Crea uno nuevo, ponle un nombre que recuerdes y elige cuánto tiempo será válido.",
-      "Marca permiso para ver y trabajar con elementos de trabajo.",
+      "Marca permisos para leer proyectos y elementos de trabajo.",
       "Copia el código en cuanto aparezca (solo se muestra una vez) y pégalo abajo.",
     ],
     expiryNote:
       "Cuando expire, tendrás que crear otro y volver a conectarte. Te conviene poner la fecha más corta que te sirva.",
+    tokenHelpToggle: "¿Cómo obtengo el código de acceso?",
+    urlLabel: "URL de Azure DevOps (opcional)",
+    urlPlaceholder: "https://dev.azure.com/tu-organizacion/tu-proyecto/...",
+    urlHint:
+      "De la URL leemos organización (1.er segmento), proyecto (2.º) y equipo si estás en tablero o backlog. Ejemplo: dev.azure.com/technologyfactory/Plataforma Virtual - NARP/.../taskboard/Plataforma Virtual - Studia LMS V2/...",
+    organizationLabel: "Organización",
+    organizationPlaceholder: "technologyfactory",
+    organizationHint:
+      "Nombre corto de tu cuenta Azure DevOps. En la URL va justo después de dev.azure.com/.",
+    projectLabel: "Proyecto",
+    projectPlaceholder: "Plataforma Virtual - NARP",
+    projectHint:
+      "Nombre del proyecto en Azure DevOps. En la URL es el segmento que sigue a la organización.",
+    teamLabel: "Equipo (opcional)",
+    teamPlaceholder: "Plataforma Virtual - Studia LMS V2",
+    teamHint:
+      "Nombre del equipo en Azure DevOps. Si pegas una URL de tablero o sprint, lo detectamos automáticamente y lo usaremos en los filtros.",
     tokenLabel: "Código de acceso",
     tokenPlaceholder: "Pega aquí tu código",
-    formHint:
-      "Usaremos tu primera organización y el primer proyecto disponibles en Azure DevOps.",
     connect: "Conectar",
     connecting: "Conectando…",
     unavailableHint:

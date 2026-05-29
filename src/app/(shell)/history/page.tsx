@@ -18,6 +18,7 @@ export default async function HistoryPage() {
         title={PAGE_SEO.history.title}
         description={PAGE_SEO.history.description}
         connectOptions={auth.connectOptions}
+        savedConnectionTarget={auth.savedConnectionTarget}
       />
     );
   }

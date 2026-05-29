@@ -7,16 +7,19 @@ import { CONNECT_ADO_COPY } from "@/components/auth/connect-ado-copy";
 import { ConnectAdoSheet } from "@/components/auth/connect-ado-sheet";
 import { Button } from "@/components/ui/button";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
+import type { SavedConnectionTarget } from "@/lib/auth/server-state";
 import { cn } from "@/lib/utils";
 
 export type ConnectSignInTriggerProps = {
   connectOptions: ConnectAuthOptions;
+  savedConnectionTarget?: SavedConnectionTarget | null;
   className?: string;
   fullWidth?: boolean;
 };
 
 export function ConnectSignInTrigger({
   connectOptions,
+  savedConnectionTarget = null,
   className,
   fullWidth = false,
 }: ConnectSignInTriggerProps) {
@@ -34,6 +37,7 @@ export function ConnectSignInTrigger({
       </Button>
       <ConnectAdoSheet
         connectOptions={connectOptions}
+        savedConnectionTarget={savedConnectionTarget}
         open={open}
         onOpenChange={setOpen}
       />

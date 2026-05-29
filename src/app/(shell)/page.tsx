@@ -47,6 +47,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       shellFallback={<DashboardShellSkeleton />}
       adoExecutionReady={showLiveData}
       connectOptions={auth.connectOptions}
+      savedConnectionTarget={auth.savedConnectionTarget}
       disconnectedFallback={<DashboardMockSections />}
       shell={
         showLiveData ? (
@@ -56,6 +57,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             userSessionActive={auth.userSessionActive}
             adoExecutionReady={showLiveData}
             connectOptions={auth.connectOptions}
+            savedConnectionTarget={auth.savedConnectionTarget}
             header={header}
             initialSprintDayKey={sprintDayKey}
           />

@@ -4,7 +4,7 @@ import { Suspense } from "react";
 
 import { ConnectAuthNotice } from "@/components/auth/connect-auth-notice";
 import { CONNECT_ADO_COPY } from "@/components/auth/connect-ado-copy";
-import { ConnectSheetStepContent } from "@/components/auth/connect-sheet-step-content";
+import { ConnectMethodPicker } from "@/components/auth/connect-method-picker";
 import {
   Sheet,
   SheetContent,
@@ -15,20 +15,28 @@ import {
 import { useAuthNoticeFromUrl } from "@/hooks/auth/use-auth-notice-from-url";
 import { useConnectAdoSheet } from "@/hooks/auth/use-connect-ado-sheet";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
+import type { SavedConnectionTarget } from "@/lib/auth/server-state";
 
 export type ConnectAdoSheetProps = {
   connectOptions: ConnectAuthOptions;
+  savedConnectionTarget?: SavedConnectionTarget | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-function ConnectAdoSheetBody({
+function ConnectAuthNoticeSlot() {
+  const authNotice = useAuthNoticeFromUrl();
+  if (!authNotice) return null;
+  return <ConnectAuthNotice message={authNotice} />;
+}
+
+export function ConnectAdoSheet({
   connectOptions,
+  savedConnectionTarget = null,
   open,
   onOpenChange,
 }: ConnectAdoSheetProps) {
-  const authNotice = useAuthNoticeFromUrl();
-  const sheet = useConnectAdoSheet({ connectOptions, open });
+  const sheet = useConnectAdoSheet({ open });
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) sheet.resetFlow();
@@ -44,28 +52,19 @@ function ConnectAdoSheetBody({
         </SheetHeader>
 
         <div className="flex flex-col gap-4 px-4 pb-6">
-          {authNotice ? <ConnectAuthNotice message={authNotice} /> : null}
+          <Suspense fallback={null}>
+            <ConnectAuthNoticeSlot />
+          </Suspense>
 
-          <ConnectSheetStepContent
-            step={sheet.step}
-            selectedMethod={sheet.selectedMethod}
-            canContinue={sheet.canContinue}
+          <ConnectMethodPicker
             connectOptions={connectOptions}
+            savedConnectionTarget={savedConnectionTarget}
+            selectedMethod={sheet.selectedMethod}
             onSelectMethod={sheet.selectMethod}
-            onContinue={sheet.continueToDetail}
-            onBack={sheet.goBack}
             onConnected={() => handleOpenChange(false)}
           />
         </div>
       </SheetContent>
     </Sheet>
-  );
-}
-
-export function ConnectAdoSheet(props: ConnectAdoSheetProps) {
-  return (
-    <Suspense fallback={null}>
-      <ConnectAdoSheetBody {...props} />
-    </Suspense>
   );
 }

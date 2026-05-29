@@ -39,6 +39,7 @@ export default async function WorkItemsPage({ searchParams }: PageProps) {
         shellFallback={<WorkItemsShellSkeleton />}
         adoExecutionReady={showLiveData}
         connectOptions={auth.connectOptions}
+        savedConnectionTarget={auth.savedConnectionTarget}
         shell={
           <WorkItemsShellServer
             sp={sp}

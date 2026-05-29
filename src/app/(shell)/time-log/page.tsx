@@ -32,6 +32,7 @@ export default async function TimeLogPage({ searchParams }: PageProps) {
         title={PAGE_SEO.timeLog.title}
         description={PAGE_SEO.timeLog.description}
         connectOptions={auth.connectOptions}
+        savedConnectionTarget={auth.savedConnectionTarget}
       />
     );
   }
@@ -44,6 +45,7 @@ export default async function TimeLogPage({ searchParams }: PageProps) {
         shellFallback={<TimeLogShellSkeleton />}
         adoExecutionReady={showLiveData}
         connectOptions={auth.connectOptions}
+        savedConnectionTarget={auth.savedConnectionTarget}
         shell={
           <TimeLogShellServer
             sp={sp}

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
-import { resolvePatDefaults } from "@/lib/auth/resolve-pat-defaults";
 import { validatePatConnection } from "@/lib/auth/validate-pat-connection";
 import { fetchCurrentAdoProfile } from "@/lib/azure-devops/profile";
 import { clearSessionCredentials, getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
@@ -39,14 +38,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  const { pat } = parsed.data;
-
-  const defaults = await resolvePatDefaults(pat);
-  if (!defaults.ok) {
-    return NextResponse.json({ error: defaults.message }, { status: 400 });
-  }
-
-  const { organization, project } = defaults;
+  const { pat, organization, project, team } = parsed.data;
+  const trimmedTeam = team?.trim();
 
   const validation = await validatePatConnection({ organization, project, pat });
   if (!validation.ok) {
@@ -57,7 +50,7 @@ export async function POST(req: Request) {
     mode: "pat" as const,
     organization,
     project,
-    pat: pat.trim(),
+    pat,
   };
 
   const profile = await fetchCurrentAdoProfile(caller);
@@ -65,9 +58,10 @@ export async function POST(req: Request) {
   const session = await getTaskPilotSession();
   clearSessionCredentials(session);
   session.sessionAuthMethod = "pat";
-  session.azdoPat = pat.trim();
+  session.azdoPat = pat;
   session.defaultOrg = organization;
   session.defaultProject = project;
+  session.defaultTeam = trimmedTeam || undefined;
   if (profile) {
     session.adoProfile = profile;
   }

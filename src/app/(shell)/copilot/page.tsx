@@ -21,6 +21,7 @@ export default async function CopilotPage() {
         title="Copiloto IA"
         description={COPILOT_DESCRIPTION}
         connectOptions={auth.connectOptions}
+        savedConnectionTarget={auth.savedConnectionTarget}
       />
     );
   }

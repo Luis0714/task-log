@@ -21,6 +21,12 @@ export type ServerAuthProfileFields = {
   profileAvatarUrl: string | null;
 };
 
+export type SavedConnectionTarget = {
+  organization: string;
+  project: string;
+  team?: string;
+};
+
 export type ServerAuthBootstrap = {
   authMethod: AzdoAuthMethod;
   connectOptions: ConnectAuthOptions;
@@ -28,6 +34,7 @@ export type ServerAuthBootstrap = {
   oauthConnected: boolean;
   defaultOrg: string | null;
   defaultProject: string | null;
+  savedConnectionTarget: SavedConnectionTarget | null;
   adoExecutionReady: boolean;
   patConfigured: boolean;
   patOrganization: string | null;
@@ -45,12 +52,24 @@ export const getServerAuthBootstrap = cache(async function getServerAuthBootstra
   let oauthConnected = false;
   let defaultOrg: string | null = null;
   let defaultProject: string | null = null;
+  let savedConnectionTarget: SavedConnectionTarget | null = null;
 
   if (isIronSessionConfigured()) {
     const session = await getTaskPilotSession();
     oauthConnected = Boolean(session.azdoRefreshToken);
     defaultOrg = session.defaultOrg ?? null;
     defaultProject = session.defaultProject ?? null;
+
+    const organization = session.defaultOrg?.trim();
+    const project = session.defaultProject?.trim();
+    const team = session.defaultTeam?.trim();
+    if (organization && project) {
+      savedConnectionTarget = {
+        organization,
+        project,
+        ...(team ? { team } : {}),
+      };
+    }
   }
 
   const userSessionActive = await hasActiveUserSession();
@@ -66,6 +85,7 @@ export const getServerAuthBootstrap = cache(async function getServerAuthBootstra
     oauthConnected,
     defaultOrg: sessionConnected ? defaultOrg : null,
     defaultProject: sessionConnected ? defaultProject : null,
+    savedConnectionTarget,
     adoExecutionReady,
     patConfigured,
     patOrganization:

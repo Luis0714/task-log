@@ -3,15 +3,18 @@ import { Cloud, Sparkles } from "lucide-react";
 import { ConnectSignInTrigger } from "@/components/auth/connect-sign-in-trigger";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
 import { isSignInUiOffered } from "@/lib/auth/auth-method";
+import type { SavedConnectionTarget } from "@/lib/auth/server-state";
 import { cn } from "@/lib/utils";
 
 export type SignInRequiredPanelProps = {
   connectOptions: ConnectAuthOptions;
+  savedConnectionTarget?: SavedConnectionTarget | null;
   className?: string;
 };
 
 export function SignInRequiredPanel({
   connectOptions,
+  savedConnectionTarget = null,
   className,
 }: SignInRequiredPanelProps) {
   const showSignIn = isSignInUiOffered();
@@ -56,7 +59,11 @@ export function SignInRequiredPanel({
         </div>
 
         {showSignIn ? (
-          <ConnectSignInTrigger connectOptions={connectOptions} className="min-w-44" />
+          <ConnectSignInTrigger
+            connectOptions={connectOptions}
+            savedConnectionTarget={savedConnectionTarget}
+            className="min-w-44"
+          />
         ) : null}
       </div>
     </section>

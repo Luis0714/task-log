@@ -11,6 +11,7 @@ export type TaskPilotSessionData = {
   adoProfile?: { displayName: string; publicAlias?: string; id: string };
   defaultOrg?: string;
   defaultProject?: string;
+  defaultTeam?: string;
 };
 
 export function clearSessionCredentials(session: TaskPilotSessionData): void {
@@ -21,6 +22,7 @@ export function clearSessionCredentials(session: TaskPilotSessionData): void {
   session.adoProfile = undefined;
   session.defaultOrg = undefined;
   session.defaultProject = undefined;
+  session.defaultTeam = undefined;
 }
 
 function sessionPassword(): string {

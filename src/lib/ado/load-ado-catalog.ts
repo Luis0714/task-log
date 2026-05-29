@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import type { AdoCatalogSnapshot, AdoContextSearchParams } from "@/lib/ado/types";
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
+import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
 import { listOrganizationProjects, withAdoProject } from "@/lib/azure-devops/projects";
 import { listTeamSprints } from "@/lib/azure-devops/sprints";
 import { resolveSuggestedTeam } from "@/lib/azure-devops/suggested-team";
@@ -61,9 +62,15 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
     const scopedAuth = withAdoProject(caller.auth, project);
     teams = await listProjectTeams(scopedAuth);
     suggestedTeam = await resolveSuggestedTeam(scopedAuth, teams);
-    const envTeam = process.env.AZDO_TEAM?.trim();
+
+    let sessionTeam: string | null = null;
+    if (isIronSessionConfigured()) {
+      const session = await getTaskPilotSession();
+      sessionTeam = session.defaultTeam?.trim() ?? null;
+    }
+
     defaultTeam =
-      envTeam && teams.some((team) => team.name === envTeam) ? envTeam : null;
+      sessionTeam && teams.some((item) => item.name === sessionTeam) ? sessionTeam : null;
   } catch (cause) {
     errors.teams = cause instanceof Error ? cause.message : "No se pudieron cargar los equipos.";
     return {

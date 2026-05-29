@@ -43,6 +43,7 @@ export default async function TasksPage({ searchParams }: PageProps) {
         shellFallback={<SprintItemsShellSkeleton />}
         adoExecutionReady={showLiveData}
         connectOptions={auth.connectOptions}
+        savedConnectionTarget={auth.savedConnectionTarget}
         shell={
           <SprintItemsShellServer
             kind="tasks"

@@ -1,5 +1,8 @@
 export type ConnectPatPayload = {
   pat: string;
+  organization: string;
+  project: string;
+  team?: string;
 };
 
 export type ConnectPatResult =

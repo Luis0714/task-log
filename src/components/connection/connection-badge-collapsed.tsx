@@ -13,6 +13,7 @@ export function ConnectionBadgeCollapsed({
   className,
   showSignIn,
   connectOptions,
+  savedConnectionTarget,
   canLogout,
   ...badgeProps
 }: ConnectionBadgeCollapsedProps) {
@@ -24,7 +25,11 @@ export function ConnectionBadgeCollapsed({
         {canLogout ? <LogoutButton /> : null}
       </div>
       {showSignIn ? (
-        <ConnectSignInTrigger connectOptions={connectOptions} fullWidth />
+        <ConnectSignInTrigger
+          connectOptions={connectOptions}
+          savedConnectionTarget={savedConnectionTarget}
+          fullWidth
+        />
       ) : null}
     </div>
   );

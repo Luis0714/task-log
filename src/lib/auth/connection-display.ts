@@ -1,5 +1,5 @@
 import { isSignInUiOffered } from "@/lib/auth/auth-method";
-import type { ServerAuthState } from "@/lib/auth/server-state";
+import type { SavedConnectionTarget, ServerAuthState } from "@/lib/auth/server-state";
 
 export type { AzdoAuthMethod, ConnectAuthOptions } from "@/lib/auth/auth-method";
 export {
@@ -12,6 +12,7 @@ export type AdoConnectionDisplay = {
   isConnected: boolean;
   canLogout: boolean;
   connectOptions: ServerAuthState["connectOptions"];
+  savedConnectionTarget: SavedConnectionTarget | null;
   showSignIn: boolean;
   organization: string | null;
   project: string | null;
@@ -32,6 +33,7 @@ export function mapAuthStateToConnectionDisplay(
     isConnected: signedIn,
     canLogout: signedIn,
     connectOptions: auth.connectOptions,
+    savedConnectionTarget: auth.savedConnectionTarget,
     showSignIn: !signedIn && isSignInUiOffered(),
     organization: signedIn ? organization : null,
     project: signedIn ? project : null,

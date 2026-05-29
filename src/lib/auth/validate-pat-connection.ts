@@ -1,6 +1,6 @@
 import "server-only";
 
-import { adoAuthHeader } from "@/lib/azure-devops/client";
+import { adoFetch, adoOrgBase } from "@/lib/azure-devops/client";
 
 export type PatConnectionInput = {
   organization: string;
@@ -11,6 +11,10 @@ export type PatConnectionInput = {
 export type PatValidationResult =
   | { ok: true }
   | { ok: false; message: string };
+
+type ProjectsResponse = {
+  value?: Array<{ name?: string }>;
+};
 
 export async function validatePatConnection(
   input: PatConnectionInput,
@@ -23,23 +27,30 @@ export async function validatePatConnection(
     return { ok: false, message: "Completa organización, proyecto y código de acceso." };
   }
 
-  const authHeader = adoAuthHeader({ mode: "pat", organization, project, pat });
+  const caller = { mode: "pat" as const, organization, project, pat };
 
   try {
-    const projectUrl = `https://dev.azure.com/${encodeURIComponent(organization)}/_apis/projects/${encodeURIComponent(project)}?api-version=7.1`;
-    const projectRes = await fetch(projectUrl, {
-      headers: { Authorization: authHeader },
-      cache: "no-store",
-    });
+    const url = `${adoOrgBase(caller)}/_apis/projects?api-version=7.1&$top=100&stateFilter=WellFormed`;
+    const res = await adoFetch(caller, url);
 
-    if (projectRes.status === 401 || projectRes.status === 403) {
+    if (res.status === 401 || res.status === 403) {
       return {
         ok: false,
         message: "El código de acceso no es válido o no tiene permisos suficientes.",
       };
     }
 
-    if (!projectRes.ok) {
+    if (!res.ok) {
+      return {
+        ok: false,
+        message: "No pudimos comprobar la conexión. Inténtalo de nuevo en unos segundos.",
+      };
+    }
+
+    const data = (await res.json()) as ProjectsResponse;
+    const match = (data.value ?? []).some((item) => item.name === project);
+
+    if (!match) {
       return {
         ok: false,
         message: "No encontramos ese proyecto en la organización. Revisa los nombres.",

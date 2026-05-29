@@ -3,6 +3,7 @@ import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
 import { resolvePageCatalog } from "@/lib/ado/resolve-page-catalog";
 import type { AdoContextSearchParams } from "@/lib/ado/types";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
+import type { SavedConnectionTarget } from "@/lib/auth/server-state";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
 
 export type DashboardShellServerProps = {
@@ -11,6 +12,7 @@ export type DashboardShellServerProps = {
   userSessionActive: boolean;
   adoExecutionReady: boolean;
   connectOptions: ConnectAuthOptions;
+  savedConnectionTarget: SavedConnectionTarget | null;
   header: DashboardHeaderData;
   initialSprintDayKey: string;
 };
@@ -21,6 +23,7 @@ export async function DashboardShellServer({
   userSessionActive,
   adoExecutionReady,
   connectOptions,
+  savedConnectionTarget,
   header,
   initialSprintDayKey,
 }: DashboardShellServerProps) {
@@ -39,6 +42,7 @@ export async function DashboardShellServer({
       adoExecutionReady={canLoadCatalog}
       userSessionActive={userSessionActive}
       connectOptions={connectOptions}
+      savedConnectionTarget={savedConnectionTarget}
       initialSprintDayKey={initialSprintDayKey}
       nonWorkingDates={nonWorkingDates}
     />

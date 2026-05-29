@@ -23,6 +23,7 @@ export function DashboardDemoShell({ connectOptions }: DashboardDemoShellProps) 
       adoExecutionReady={false}
       userSessionActive={false}
       connectOptions={connectOptions}
+      savedConnectionTarget={null}
       initialSprintDayKey=""
       nonWorkingDates={[]}
     />

@@ -28,6 +28,7 @@ export default async function BugsPage({ searchParams }: PageProps) {
         shellFallback={<SprintItemsShellSkeleton />}
         adoExecutionReady={showLiveData}
         connectOptions={auth.connectOptions}
+        savedConnectionTarget={auth.savedConnectionTarget}
         shell={
           <SprintItemsShellServer
             kind="bugs"

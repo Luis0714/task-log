@@ -17,16 +17,5 @@ export function ConnectMethodPreview({ method }: ConnectMethodPreviewProps) {
     );
   }
 
-  const copy = CONNECT_ADO_COPY.pat;
-  return (
-    <div className="space-y-2 text-sm leading-relaxed">
-      <p>{copy.intro}</p>
-      <ol className="list-decimal space-y-1 pl-4">
-        {copy.steps.map((step) => (
-          <li key={step}>{step}</li>
-        ))}
-      </ol>
-      <p>{copy.expiryNote}</p>
-    </div>
-  );
+  return null;
 }
