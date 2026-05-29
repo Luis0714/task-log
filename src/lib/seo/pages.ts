@@ -53,4 +53,16 @@ export const PAGE_SEO = {
       "Conexión con Azure DevOps, proyecto, equipo y preferencias de la cuenta en NeosView.",
     path: "/settings",
   },
+  privacy: {
+    title: "Política de privacidad",
+    description:
+      "Cómo NeosView trata datos de sesión, Microsoft Entra ID, Azure DevOps y el copiloto IA.",
+    path: "/privacy",
+  },
+  terms: {
+    title: "Términos del servicio",
+    description:
+      "Condiciones de uso de NeosView, acceso a Azure DevOps y responsabilidades del usuario.",
+    path: "/terms",
+  },
 } as const satisfies Record<string, PageSeoEntry>;

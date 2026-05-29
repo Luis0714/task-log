@@ -5,10 +5,16 @@ import { isIndexingAllowed, resolveSiteUrl } from "@/lib/seo/site";
 export default function robots(): MetadataRoute.Robots {
   if (!isIndexingAllowed()) {
     return {
-      rules: {
-        userAgent: "*",
-        disallow: "/",
-      },
+      rules: [
+        {
+          userAgent: "*",
+          allow: ["/privacy", "/terms"],
+        },
+        {
+          userAgent: "*",
+          disallow: "/",
+        },
+      ],
     };
   }
 

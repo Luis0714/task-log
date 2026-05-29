@@ -30,6 +30,8 @@ export const PUBLIC_APP_PATHS = [
   "/tasks",
   "/bugs",
   "/settings",
+  "/privacy",
+  "/terms",
 ] as const;
 
 /** Imagen estática para vistas previa en redes y chats (Open Graph / Twitter). */
