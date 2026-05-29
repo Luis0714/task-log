@@ -39,17 +39,17 @@ export const CONNECT_ADO_COPY = {
     urlLabel: "URL de Azure DevOps (opcional)",
     urlPlaceholder: "https://dev.azure.com/tu-organizacion/tu-proyecto/...",
     urlHint:
-      "De la URL leemos organización (1.er segmento), proyecto (2.º) y equipo si estás en tablero o backlog. Ejemplo: dev.azure.com/technologyfactory/Plataforma Virtual - NARP/.../taskboard/Plataforma Virtual - Studia LMS V2/...",
+      "De la URL leemos organización (1.er segmento), proyecto (2.º) y equipo si estás en tablero o backlog. Ejemplo: dev.azure.com/mi-organizacion/mi-proyecto/.../taskboard/mi-equipo/...",
     organizationLabel: "Organización",
-    organizationPlaceholder: "technologyfactory",
+    organizationPlaceholder: "mi-organizacion",
     organizationHint:
       "Nombre corto de tu cuenta Azure DevOps. En la URL va justo después de dev.azure.com/.",
     projectLabel: "Proyecto",
-    projectPlaceholder: "Plataforma Virtual - NARP",
+    projectPlaceholder: "mi-proyecto",
     projectHint:
       "Nombre del proyecto en Azure DevOps. En la URL es el segmento que sigue a la organización.",
     teamLabel: "Equipo (opcional)",
-    teamPlaceholder: "Plataforma Virtual - Studia LMS V2",
+    teamPlaceholder: "mi-equipo",
     teamHint:
       "Nombre del equipo en Azure DevOps. Si pegas una URL de tablero o sprint, lo detectamos automáticamente y lo usaremos en los filtros.",
     tokenLabel: "Código de acceso",
