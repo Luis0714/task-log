@@ -63,7 +63,7 @@ export function ConnectMethodOptionSection({
       </label>
 
       {selected ? (
-        <div className="border-border text-muted-foreground border-t px-4 pb-4">
+        <div className="border-border border-t px-4 pb-4">
           <div className="pt-3">
             {method === "oauth" ? <ConnectMethodPreview method={method} /> : null}
             {disabled && disabledHint ? (
