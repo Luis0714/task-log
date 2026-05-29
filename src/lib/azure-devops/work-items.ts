@@ -1,6 +1,5 @@
 import "server-only";
 
-import { getAzdoAuthMethod } from "@/lib/auth/auth-method";
 import {
   adoFetch,
   adoOrgBase,
@@ -8,12 +7,9 @@ import {
   adoAuthHeader,
   escapeWiqlString,
 } from "@/lib/azure-devops/client";
-import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
-import { isPatConfigured } from "@/lib/azure-devops/resolve-auth";
+import { resolveAdoCaller, type AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { listTaskStates, resolveTaskWorkItemTypeName } from "@/lib/azure-devops/work-item-type-states";
 import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
-import { isIronSessionConfigured } from "@/lib/auth/session";
-import { getTaskPilotSession } from "@/lib/auth/session";
 import { buildAssigneeWiqlCondition } from "@/lib/filters/assignee-wiql";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 import type { TaskActivity } from "@/lib/time-log/task-constants";
@@ -294,45 +290,9 @@ export async function logWorkOnWorkItem(
   return { ok: true, newCompletedWork };
 }
 
-/** True si el método de auth activo está listo para ejecutar en Azure DevOps. */
+/** True si hay credenciales de usuario en sesión listas para llamar a Azure DevOps. */
 export async function isAdoExecutionReady(): Promise<boolean> {
-  const deployMethod = getAzdoAuthMethod();
-
-  if (deployMethod === "pat") {
-    return isPatConfigured();
-  }
-
-  if (!isIronSessionConfigured()) {
-    return false;
-  }
-
-  const session = await getTaskPilotSession();
-
-  if (session.sessionAuthMethod === "pat") {
-    return Boolean(
-      session.azdoPat?.trim() &&
-        session.defaultOrg?.trim() &&
-        session.defaultProject?.trim(),
-    );
-  }
-
-  if (session.sessionAuthMethod === "oauth") {
-    return Boolean(
-      session.azdoRefreshToken &&
-        session.defaultOrg?.trim() &&
-        session.defaultProject?.trim(),
-    );
-  }
-
-  if (deployMethod === "oauth") {
-    return Boolean(
-      session.azdoRefreshToken &&
-        session.defaultOrg?.trim() &&
-        session.defaultProject?.trim(),
-    );
-  }
-
-  return false;
+  return (await resolveAdoCaller()) !== null;
 }
 
 export type WorkItemSprintFilters = {

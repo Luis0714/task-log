@@ -56,7 +56,7 @@ export default async function TimeLogPage({ searchParams }: PageProps) {
             <TimeLogBodyStreamLoader
               sp={sp}
               defaultProject={defaultProject}
-              adoExecutionReady={auth.adoExecutionReady}
+              adoExecutionReady={showLiveData}
               urlAssignee={urlAssignee}
             />
           </Suspense>

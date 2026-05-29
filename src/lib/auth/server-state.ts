@@ -2,7 +2,6 @@ import { cache } from "react";
 
 import { getAzdoAuthMethod, type AzdoAuthMethod, type ConnectAuthOptions } from "@/lib/auth/auth-method";
 import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
-import { isEntraOAuthConfigured } from "@/lib/auth/entra";
 import {
   emptyServerProfileFields,
   toServerProfileFields,
@@ -11,8 +10,7 @@ import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
 import { hasActiveUserSession } from "@/lib/auth/user-session";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
 import {
-  getPatTargetFromEnv,
-  isPatConfigured,
+  isSessionPatReady,
   resolveAdoCaller,
 } from "@/lib/azure-devops/resolve-auth";
 import { isAdoExecutionReady } from "@/lib/azure-devops/work-items";
@@ -42,40 +40,24 @@ export type ServerAuthState = ServerAuthBootstrap & ServerAuthProfileFields;
 export const getServerAuthBootstrap = cache(async function getServerAuthBootstrap(): Promise<ServerAuthBootstrap> {
   const authMethod = getAzdoAuthMethod();
   const connectOptions = getConnectAuthOptions();
-  const patTarget = getPatTargetFromEnv();
-  const oauthEnabled = authMethod === "oauth" || authMethod === "both";
-  const patEnabled = authMethod === "pat";
-
-  const oauthAppReady =
-    oauthEnabled && isEntraOAuthConfigured() && isIronSessionConfigured();
+  const oauthAppReady = connectOptions.oauthReady;
 
   let oauthConnected = false;
   let defaultOrg: string | null = null;
   let defaultProject: string | null = null;
 
-  let sessionOrg: string | null = null;
-  let sessionProject: string | null = null;
-
   if (isIronSessionConfigured()) {
     const session = await getTaskPilotSession();
     oauthConnected = Boolean(session.azdoRefreshToken);
-    sessionOrg = session.defaultOrg ?? null;
-    sessionProject = session.defaultProject ?? null;
-    defaultOrg = sessionOrg;
-    defaultProject = sessionProject;
+    defaultOrg = session.defaultOrg ?? null;
+    defaultProject = session.defaultProject ?? null;
   }
 
-  const patConfigured = patEnabled && isPatConfigured();
-  const patOrganization =
-    patConfigured && patTarget
-      ? patTarget.organization
-      : sessionOrg;
-  const patProject =
-    patConfigured && patTarget ? patTarget.project : sessionProject;
-  const adoExecutionReady = await isAdoExecutionReady();
   const userSessionActive = await hasActiveUserSession();
-
-  const sessionConnected = adoExecutionReady && userSessionActive;
+  const adoExecutionReady = await isAdoExecutionReady();
+  const patConfigured =
+    connectOptions.patReady && (await isSessionPatReady());
+  const sessionConnected = userSessionActive && adoExecutionReady;
 
   return {
     authMethod,
@@ -87,9 +69,8 @@ export const getServerAuthBootstrap = cache(async function getServerAuthBootstra
     adoExecutionReady,
     patConfigured,
     patOrganization:
-      sessionConnected && (patEnabled || authMethod === "both") ? patOrganization : null,
-    patProject:
-      sessionConnected && (patEnabled || authMethod === "both") ? patProject : null,
+      sessionConnected && patConfigured ? defaultOrg : null,
+    patProject: sessionConnected && patConfigured ? defaultProject : null,
     userSessionActive,
   };
 });

@@ -3,6 +3,8 @@ export const CONNECT_ADO_COPY = {
   sheetSubtitle: "Elige cómo quieres entrar. Solo necesitas una opción.",
   signInButton: "Iniciar sesión",
   back: "Volver",
+  continue: "Continuar",
+  chooseMethodAriaLabel: "Método de inicio de sesión",
   microsoft: {
     cardTitle: "Con mi cuenta de Microsoft",
     cardDescription: "La forma más cómoda si ya usas Azure DevOps en el trabajo.",
@@ -15,6 +17,8 @@ export const CONNECT_ADO_COPY = {
       "Tu sesión quedará guardada en este navegador. Puedes cerrarla cuando quieras desde el menú lateral.",
     continue: "Continuar con Microsoft",
     adminHint: "Si algo falla, avisa a tu administrador de TI.",
+    unavailableHint:
+      "Tu administrador debe configurar la aplicación Microsoft (AUTH_BASE_URL, AZURE_AD_CLIENT_ID y AZURE_AD_CLIENT_SECRET).",
   },
   pat: {
     cardTitle: "Con un código de acceso",
@@ -32,14 +36,14 @@ export const CONNECT_ADO_COPY = {
     ],
     expiryNote:
       "Cuando expire, tendrás que crear otro y volver a conectarte. Te conviene poner la fecha más corta que te sirva.",
-    organizationLabel: "Organización",
-    organizationPlaceholder: "nombre-de-tu-organizacion",
-    projectLabel: "Proyecto",
-    projectPlaceholder: "Nombre del proyecto",
     tokenLabel: "Código de acceso",
     tokenPlaceholder: "Pega aquí tu código",
+    formHint:
+      "Usaremos tu primera organización y el primer proyecto disponibles en Azure DevOps.",
     connect: "Conectar",
     connecting: "Conectando…",
+    unavailableHint:
+      "Tu administrador debe configurar la sesión del servidor (IRON_SESSION_PASSWORD, mínimo 32 caracteres).",
   },
   unavailable: {
     setup: {

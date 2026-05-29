@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { getAuthBaseUrl } from "@/lib/auth/entra";
 import { destroyTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
-import { usesServerEnvPat } from "@/lib/azure-devops/resolve-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +23,5 @@ export async function POST() {
 
 export async function GET() {
   await clearSession();
-  const search = usesServerEnvPat() ? "/" : "/?signed_out=1";
-  return redirectHome(search);
+  return redirectHome("/?signed_out=1");
 }

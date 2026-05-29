@@ -41,7 +41,7 @@ export default async function BugsPage({ searchParams }: PageProps) {
             kind="bugs"
             sp={sp}
             defaultProject={defaultProject}
-            adoExecutionReady={auth.adoExecutionReady}
+            adoExecutionReady={showLiveData}
             assignee={urlAssignee}
           />
         }

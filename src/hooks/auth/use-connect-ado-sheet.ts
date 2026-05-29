@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { canContinueWithMethod } from "@/lib/auth/connect-method-availability";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
 import type { SessionAuthMethod } from "@/lib/auth/session-auth-method";
 
@@ -14,9 +15,7 @@ export type UseConnectAdoSheetParams = {
 
 export function useConnectAdoSheet({ connectOptions, open }: UseConnectAdoSheetParams) {
   const [step, setStep] = useState<ConnectSheetStep>("choose");
-  const [selectedMethod, setSelectedMethod] = useState<SessionAuthMethod | null>(
-    null,
-  );
+  const [selectedMethod, setSelectedMethod] = useState<SessionAuthMethod | null>(null);
 
   const resetFlow = useCallback(() => {
     setStep("choose");
@@ -29,25 +28,26 @@ export function useConnectAdoSheet({ connectOptions, open }: UseConnectAdoSheetP
 
   const selectMethod = useCallback((method: SessionAuthMethod) => {
     setSelectedMethod(method);
-    setStep("detail");
   }, []);
+
+  const continueToDetail = useCallback(() => {
+    if (!canContinueWithMethod(selectedMethod, connectOptions)) return;
+    setStep("detail");
+  }, [connectOptions, selectedMethod]);
 
   const goBack = useCallback(() => {
     setStep("choose");
-    setSelectedMethod(null);
   }, []);
 
-  const availableMethods: SessionAuthMethod[] = [
-    ...(connectOptions.oauthEnabled ? (["oauth"] as const) : []),
-    ...(connectOptions.patEnabled ? (["pat"] as const) : []),
-  ];
+  const canContinue = canContinueWithMethod(selectedMethod, connectOptions);
 
   return {
     step,
     selectedMethod,
-    availableMethods,
     selectMethod,
+    continueToDetail,
     goBack,
     resetFlow,
+    canContinue,
   };
 }

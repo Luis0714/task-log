@@ -1,6 +1,6 @@
-import { ConnectMethodPicker } from "@/components/auth/connect-method-picker";
 import { ConnectOauthPanel } from "@/components/auth/connect-oauth-panel";
 import { ConnectPatPanel } from "@/components/auth/connect-pat-panel";
+import { ConnectSheetChooseStep } from "@/components/auth/connect-sheet-choose-step";
 import type { ConnectSheetStep } from "@/hooks/auth/use-connect-ado-sheet";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
 import type { SessionAuthMethod } from "@/lib/auth/session-auth-method";
@@ -8,8 +8,10 @@ import type { SessionAuthMethod } from "@/lib/auth/session-auth-method";
 export type ConnectSheetStepContentProps = {
   step: ConnectSheetStep;
   selectedMethod: SessionAuthMethod | null;
+  canContinue: boolean;
   connectOptions: ConnectAuthOptions;
   onSelectMethod: (method: SessionAuthMethod) => void;
+  onContinue: () => void;
   onBack: () => void;
   onConnected: () => void;
 };
@@ -17,16 +19,21 @@ export type ConnectSheetStepContentProps = {
 export function ConnectSheetStepContent({
   step,
   selectedMethod,
+  canContinue,
   connectOptions,
   onSelectMethod,
+  onContinue,
   onBack,
   onConnected,
 }: ConnectSheetStepContentProps) {
   if (step === "choose") {
     return (
-      <ConnectMethodPicker
+      <ConnectSheetChooseStep
         connectOptions={connectOptions}
-        onSelect={onSelectMethod}
+        selectedMethod={selectedMethod}
+        canContinue={canContinue}
+        onSelectMethod={onSelectMethod}
+        onContinue={onContinue}
       />
     );
   }

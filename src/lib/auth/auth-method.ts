@@ -1,8 +1,12 @@
 export type AzdoAuthMethod = "pat" | "oauth" | "both";
 
 export type ConnectAuthOptions = {
-  oauthEnabled: boolean;
-  patEnabled: boolean;
+  /** Sesión cifrada disponible (IRON_SESSION_PASSWORD). */
+  sessionReady: boolean;
+  /** Microsoft Entra configurado y sesión lista. */
+  oauthReady: boolean;
+  /** Código de acceso disponible (requiere sesión). */
+  patReady: boolean;
 };
 
 const VALID_METHODS: AzdoAuthMethod[] = ["pat", "oauth", "both"];
@@ -36,5 +40,5 @@ export function isSignInUiOffered(): boolean {
 }
 
 export function hasConnectMethod(options: ConnectAuthOptions): boolean {
-  return options.oauthEnabled || options.patEnabled;
+  return options.sessionReady;
 }

@@ -57,7 +57,7 @@ export default async function TasksPage({ searchParams }: PageProps) {
             kind="tasks"
             sp={sp}
             defaultProject={defaultProject}
-            adoExecutionReady={auth.adoExecutionReady}
+            adoExecutionReady={showLiveData}
             assignee={urlAssignee}
           />
         }

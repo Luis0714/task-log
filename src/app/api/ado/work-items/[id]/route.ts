@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
+import { ADO_SIGN_IN_REQUIRED_MESSAGE } from "@/lib/auth/ado-auth-messages";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { updateBacklogItemState } from "@/lib/azure-devops/update-backlog-item-state";
 import { updateWorkItemState } from "@/lib/azure-devops/work-items";
@@ -39,12 +39,7 @@ export async function PATCH(req: Request, context: RouteContext) {
 
   const auth = await resolveAdoCaller();
   if (!auth) {
-    const error = isPatAuthMethod()
-      ? "No hay conexión con Azure DevOps. Configura AZDO_ORGANIZATION, AZDO_PROJECT y AZDO_PAT."
-      : isOAuthAuthMethod()
-        ? "No hay conexión con Azure DevOps. Conecta tu cuenta con OAuth."
-        : "No hay conexión con Azure DevOps.";
-    return NextResponse.json({ error }, { status: 401 });
+    return NextResponse.json({ error: ADO_SIGN_IN_REQUIRED_MESSAGE }, { status: 401 });
   }
 
   try {

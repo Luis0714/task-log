@@ -1,40 +1,55 @@
 import { CONNECT_ADO_COPY } from "@/components/auth/connect-ado-copy";
-import { ConnectMethodCard } from "@/components/auth/connect-method-card";
+import { ConnectMethodOptionSection } from "@/components/auth/connect-method-option-section";
 import { ConnectUnavailablePanel } from "@/components/auth/connect-unavailable-panel";
-import { hasConnectMethod, type ConnectAuthOptions } from "@/lib/auth/auth-method";
+import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
 import type { SessionAuthMethod } from "@/lib/auth/session-auth-method";
+
+const METHOD_OPTIONS: SessionAuthMethod[] = ["oauth", "pat"];
 
 export type ConnectMethodPickerProps = {
   connectOptions: ConnectAuthOptions;
-  onSelect: (method: SessionAuthMethod) => void;
+  selectedMethod: SessionAuthMethod | null;
+  onSelectMethod: (method: SessionAuthMethod) => void;
 };
 
 export function ConnectMethodPicker({
   connectOptions,
-  onSelect,
+  selectedMethod,
+  onSelectMethod,
 }: ConnectMethodPickerProps) {
-  const { microsoft, pat } = CONNECT_ADO_COPY;
-
-  if (!hasConnectMethod(connectOptions)) {
-    return <ConnectUnavailablePanel connectOptions={connectOptions} />;
-  }
+  const { microsoft, pat, chooseMethodAriaLabel } = CONNECT_ADO_COPY;
 
   return (
     <div className="flex flex-col gap-3">
-      {connectOptions.oauthEnabled ? (
-        <ConnectMethodCard
-          title={microsoft.cardTitle}
-          description={microsoft.cardDescription}
-          onSelect={() => onSelect("oauth")}
-        />
+      {!connectOptions.sessionReady ? (
+        <ConnectUnavailablePanel connectOptions={connectOptions} />
       ) : null}
-      {connectOptions.patEnabled ? (
-        <ConnectMethodCard
-          title={pat.cardTitle}
-          description={pat.cardDescription}
-          onSelect={() => onSelect("pat")}
-        />
-      ) : null}
+
+      <div
+        role="radiogroup"
+        aria-label={chooseMethodAriaLabel}
+        className="flex flex-col gap-3"
+      >
+        {METHOD_OPTIONS.map((method) => {
+          const isOAuth = method === "oauth";
+          const copy = isOAuth ? microsoft : pat;
+          const ready = isOAuth ? connectOptions.oauthReady : connectOptions.patReady;
+
+          return (
+            <ConnectMethodOptionSection
+              key={method}
+              method={method}
+              name="connect-auth-method"
+              title={copy.cardTitle}
+              description={copy.cardDescription}
+              selected={selectedMethod === method}
+              disabled={!ready}
+              disabledHint={!ready ? copy.unavailableHint : undefined}
+              onSelect={onSelectMethod}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }

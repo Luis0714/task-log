@@ -49,8 +49,10 @@ function ConnectAdoSheetBody({
           <ConnectSheetStepContent
             step={sheet.step}
             selectedMethod={sheet.selectedMethod}
+            canContinue={sheet.canContinue}
             connectOptions={connectOptions}
             onSelectMethod={sheet.selectMethod}
+            onContinue={sheet.continueToDetail}
             onBack={sheet.goBack}
             onConnected={() => handleOpenChange(false)}
           />

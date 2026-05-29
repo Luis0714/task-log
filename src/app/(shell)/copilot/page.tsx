@@ -27,7 +27,7 @@ export default async function CopilotPage() {
 
   return (
     <CopilotView
-      adoExecutionReady={auth.adoExecutionReady}
+      adoExecutionReady
       authMethod={auth.authMethod}
     />
   );

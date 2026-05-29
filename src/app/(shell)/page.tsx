@@ -54,7 +54,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             sp={sp}
             defaultProject={defaultProject}
             userSessionActive={auth.userSessionActive}
-            adoExecutionReady={auth.adoExecutionReady}
+            adoExecutionReady={showLiveData}
             connectOptions={auth.connectOptions}
             header={header}
             initialSprintDayKey={sprintDayKey}
@@ -68,7 +68,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <DashboardSectionsStreamLoader
             sp={sp}
             defaultProject={defaultProject}
-            adoExecutionReady={auth.adoExecutionReady}
+            adoExecutionReady={showLiveData}
             sprintDayKey={sprintDayKey}
           />
         ) : null

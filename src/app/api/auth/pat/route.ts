@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
+import { resolvePatDefaults } from "@/lib/auth/resolve-pat-defaults";
 import { validatePatConnection } from "@/lib/auth/validate-pat-connection";
 import { fetchCurrentAdoProfile } from "@/lib/azure-devops/profile";
 import { clearSessionCredentials, getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
@@ -9,9 +10,9 @@ import { connectPatBodySchema } from "@/lib/schemas/connect-pat";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  const { patEnabled } = getConnectAuthOptions();
+  const { patReady } = getConnectAuthOptions();
 
-  if (!patEnabled) {
+  if (!patReady) {
     return NextResponse.json(
       { error: "El inicio con código de acceso no está disponible." },
       { status: 403 },
@@ -38,7 +39,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  const { organization, project, pat } = parsed.data;
+  const { pat } = parsed.data;
+
+  const defaults = await resolvePatDefaults(pat);
+  if (!defaults.ok) {
+    return NextResponse.json({ error: defaults.message }, { status: 400 });
+  }
+
+  const { organization, project } = defaults;
 
   const validation = await validatePatConnection({ organization, project, pat });
   if (!validation.ok) {
@@ -47,8 +55,8 @@ export async function POST(req: Request) {
 
   const caller = {
     mode: "pat" as const,
-    organization: organization.trim(),
-    project: project.trim(),
+    organization,
+    project,
     pat: pat.trim(),
   };
 
@@ -58,8 +66,8 @@ export async function POST(req: Request) {
   clearSessionCredentials(session);
   session.sessionAuthMethod = "pat";
   session.azdoPat = pat.trim();
-  session.defaultOrg = organization.trim();
-  session.defaultProject = project.trim();
+  session.defaultOrg = organization;
+  session.defaultProject = project;
   if (profile) {
     session.adoProfile = profile;
   }

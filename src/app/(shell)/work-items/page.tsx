@@ -60,7 +60,7 @@ export default async function WorkItemsPage({ searchParams }: PageProps) {
             <WorkItemsStreamLoader
               sp={sp}
               defaultProject={defaultProject}
-              adoExecutionReady={auth.adoExecutionReady}
+              adoExecutionReady={showLiveData}
               assignee={urlAssignee}
               currentUserDisplayName={profileFields.profileDisplayName}
             />

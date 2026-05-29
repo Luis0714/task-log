@@ -17,8 +17,8 @@ function redirectHome(search: string) {
 }
 
 export async function GET(req: Request) {
-  const { oauthEnabled } = getConnectAuthOptions();
-  if (!oauthEnabled) {
+  const { oauthReady } = getConnectAuthOptions();
+  if (!oauthReady) {
     return redirectHome("?azdo_error=auth&detail=oauth_disabled");
   }
 

@@ -1,6 +1,4 @@
 export type ConnectPatPayload = {
-  organization: string;
-  project: string;
   pat: string;
 };
 

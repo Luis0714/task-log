@@ -12,8 +12,8 @@ import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const { oauthEnabled } = getConnectAuthOptions();
-  if (!oauthEnabled) {
+  const { oauthReady } = getConnectAuthOptions();
+  if (!oauthReady) {
     return NextResponse.json(
       { error: "El inicio con cuenta Microsoft no está disponible." },
       { status: 403 },

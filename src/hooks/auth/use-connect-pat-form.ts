@@ -3,31 +3,25 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import {
-  EMPTY_CONNECT_PAT_VALUES,
-  type ConnectPatFormValues,
-} from "@/lib/auth/connect-pat.types";
+import { EMPTY_CONNECT_PAT_VALUES } from "@/lib/auth/connect-pat.types";
 import { connectWithPat } from "@/services/auth/connect-ado.service";
 
 export function useConnectPatForm(onSuccess?: () => void) {
   const router = useRouter();
-  const [values, setValues] = useState<ConnectPatFormValues>(EMPTY_CONNECT_PAT_VALUES);
+  const [pat, setPat] = useState(EMPTY_CONNECT_PAT_VALUES.pat);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const setField = useCallback(
-    (field: keyof ConnectPatFormValues, value: string) => {
-      setValues((current) => ({ ...current, [field]: value }));
-      setErrorMessage(null);
-    },
-    [],
-  );
+  const setPatValue = useCallback((value: string) => {
+    setPat(value);
+    setErrorMessage(null);
+  }, []);
 
   const submit = useCallback(async () => {
     setSubmitting(true);
     setErrorMessage(null);
 
-    const result = await connectWithPat(values);
+    const result = await connectWithPat({ pat });
 
     setSubmitting(false);
 
@@ -38,13 +32,13 @@ export function useConnectPatForm(onSuccess?: () => void) {
 
     onSuccess?.();
     router.refresh();
-  }, [onSuccess, router, values]);
+  }, [onSuccess, pat, router]);
 
   return {
-    values,
+    pat,
     submitting,
     errorMessage,
-    setField,
+    setPat: setPatValue,
     submit,
   };
 }
