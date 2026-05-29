@@ -28,9 +28,9 @@ export type CopilotPreviewCardProps = {
 
 function getConnectionHint(authMethod: AzdoAuthMethod): string {
   if (authMethod === "pat") {
-    return "Configura AZDO_ORGANIZATION, AZDO_PROJECT y AZDO_PAT en el servidor.";
+    return "La conexión con Azure DevOps debe configurarse en el servidor.";
   }
-  return "Conecta tu cuenta con OAuth en Configuración.";
+  return "Inicia sesión desde el panel principal para usar el copiloto.";
 }
 
 export function CopilotPreviewCard({

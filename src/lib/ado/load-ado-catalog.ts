@@ -10,7 +10,7 @@ import { resolveSuggestedTeam } from "@/lib/azure-devops/suggested-team";
 import { listProjectTeams } from "@/lib/azure-devops/teams";
 import { pickProject, pickSprint, pickTeam } from "@/lib/time-log/context-defaults";
 
-const emptyCatalog: AdoCatalogSnapshot = {
+export const EMPTY_ADO_CATALOG: AdoCatalogSnapshot = {
   projects: [],
   teams: [],
   sprints: [],
@@ -28,11 +28,11 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
   searchParams: AdoContextSearchParams = {},
 ): Promise<AdoCatalogSnapshot> {
   const caller = await requireAdoCaller();
-  if (!caller.ok) return emptyCatalog;
+  if (!caller.ok) return EMPTY_ADO_CATALOG;
 
   const errors = { projects: null, teams: null, sprints: null } as AdoCatalogSnapshot["errors"];
 
-  let projects = emptyCatalog.projects;
+  let projects = EMPTY_ADO_CATALOG.projects;
   const defaultProject: string | null = caller.auth.project ?? null;
 
   try {
@@ -40,20 +40,20 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
   } catch (cause) {
     errors.projects =
       cause instanceof Error ? cause.message : "No se pudieron cargar los proyectos.";
-    return { ...emptyCatalog, errors };
+    return { ...EMPTY_ADO_CATALOG, errors };
   }
 
   const project = pickProject(searchParams.project ?? "", projects, preferredProject ?? defaultProject);
   if (!project) {
     return {
-      ...emptyCatalog,
+      ...EMPTY_ADO_CATALOG,
       projects,
       defaultProject,
       errors,
     };
   }
 
-  let teams = emptyCatalog.teams;
+  let teams = EMPTY_ADO_CATALOG.teams;
   let suggestedTeam: string | null = null;
   let defaultTeam: string | null = null;
 
@@ -67,7 +67,7 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
   } catch (cause) {
     errors.teams = cause instanceof Error ? cause.message : "No se pudieron cargar los equipos.";
     return {
-      ...emptyCatalog,
+      ...EMPTY_ADO_CATALOG,
       projects,
       defaultProject,
       errors,
@@ -96,7 +96,7 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
     };
   }
 
-  let sprints = emptyCatalog.sprints;
+  let sprints = EMPTY_ADO_CATALOG.sprints;
 
   try {
     sprints = await listTeamSprints(withAdoProject(caller.auth, project), team);

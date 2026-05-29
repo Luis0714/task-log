@@ -4,6 +4,7 @@ import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { CopilotInput } from "@/components/copilot/copilot-input";
 import { CopilotPreviewCard } from "@/components/copilot/copilot-preview-card";
 import { CopilotResultMessage } from "@/components/copilot/copilot-result-message";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   Card,
   CardContent,
@@ -30,15 +31,10 @@ export function CopilotView({ adoExecutionReady, authMethod }: CopilotViewProps)
 
   return (
     <div className="flex w-full flex-col gap-5">
-      <header className="space-y-1">
-        <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
-          Copiloto IA
-        </h1>
-        <p className="text-muted-foreground text-sm text-pretty">
-          Describe qué hiciste en lenguaje natural. Siempre verás una vista previa antes de
-          ejecutar en Azure DevOps.
-        </p>
-      </header>
+      <PageHeader
+        title="Copiloto IA"
+        description="Describe qué hiciste en lenguaje natural. Siempre verás una vista previa antes de ejecutar en Azure DevOps."
+      />
 
       <Card>
         <CardHeader className="pb-3">

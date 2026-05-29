@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
+import { getAzdoAuthMethod } from "@/lib/auth/auth-method";
 import {
   adoFetch,
   adoOrgBase,
@@ -296,14 +296,43 @@ export async function logWorkOnWorkItem(
 
 /** True si el método de auth activo está listo para ejecutar en Azure DevOps. */
 export async function isAdoExecutionReady(): Promise<boolean> {
-  if (isPatAuthMethod()) return isPatConfigured();
+  const deployMethod = getAzdoAuthMethod();
 
-  if (!isOAuthAuthMethod() || !isIronSessionConfigured()) return false;
+  if (deployMethod === "pat") {
+    return isPatConfigured();
+  }
+
+  if (!isIronSessionConfigured()) {
+    return false;
+  }
 
   const session = await getTaskPilotSession();
-  return Boolean(
-    session.azdoRefreshToken && session.defaultOrg?.trim() && session.defaultProject?.trim(),
-  );
+
+  if (session.sessionAuthMethod === "pat") {
+    return Boolean(
+      session.azdoPat?.trim() &&
+        session.defaultOrg?.trim() &&
+        session.defaultProject?.trim(),
+    );
+  }
+
+  if (session.sessionAuthMethod === "oauth") {
+    return Boolean(
+      session.azdoRefreshToken &&
+        session.defaultOrg?.trim() &&
+        session.defaultProject?.trim(),
+    );
+  }
+
+  if (deployMethod === "oauth") {
+    return Boolean(
+      session.azdoRefreshToken &&
+        session.defaultOrg?.trim() &&
+        session.defaultProject?.trim(),
+    );
+  }
+
+  return false;
 }
 
 export type WorkItemSprintFilters = {

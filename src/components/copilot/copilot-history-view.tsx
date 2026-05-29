@@ -2,8 +2,10 @@
 
 import { History } from "lucide-react";
 
+import { PageHeader } from "@/components/layout/page-header";
 import { Separator } from "@/components/ui/separator";
 import { useCopilotHistory } from "@/hooks/use-copilot-history";
+import { PAGE_SEO } from "@/lib/seo/pages";
 import { useHistoryFilter } from "@/hooks/use-history-filter";
 import { CopilotHistoryList } from "@/components/copilot/copilot-history-list";
 import { HistoryFilterChips } from "@/components/copilot/history-filter-chips";
@@ -14,14 +16,10 @@ export function CopilotHistoryView() {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col gap-4">
-      <header className="space-y-1">
-        <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
-          Historial
-        </h1>
-        <p className="text-muted-foreground text-sm text-pretty">
-          Revisa las ejecuciones recientes del registro de trabajo en este navegador.
-        </p>
-      </header>
+      <PageHeader
+        title={PAGE_SEO.history.title}
+        description={PAGE_SEO.history.description}
+      />
 
       <section className="flex flex-col gap-2">
         <div className="text-muted-foreground flex items-center gap-2 text-sm font-medium">

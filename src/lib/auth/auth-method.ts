@@ -1,6 +1,11 @@
-export type AzdoAuthMethod = "pat" | "oauth";
+export type AzdoAuthMethod = "pat" | "oauth" | "both";
 
-const VALID_METHODS: AzdoAuthMethod[] = ["pat", "oauth"];
+export type ConnectAuthOptions = {
+  oauthEnabled: boolean;
+  patEnabled: boolean;
+};
+
+const VALID_METHODS: AzdoAuthMethod[] = ["pat", "oauth", "both"];
 
 export function getAzdoAuthMethod(): AzdoAuthMethod {
   const raw = process.env.AZDO_AUTH_METHOD?.trim().toLowerCase();
@@ -11,9 +16,25 @@ export function getAzdoAuthMethod(): AzdoAuthMethod {
 }
 
 export function isPatAuthMethod(): boolean {
-  return getAzdoAuthMethod() === "pat";
+  const method = getAzdoAuthMethod();
+  return method === "pat" || method === "both";
 }
 
 export function isOAuthAuthMethod(): boolean {
-  return getAzdoAuthMethod() === "oauth";
+  const method = getAzdoAuthMethod();
+  return method === "oauth" || method === "both";
+}
+
+export function isBothAuthMethod(): boolean {
+  return getAzdoAuthMethod() === "both";
+}
+
+/** La app ofrece pantalla de inicio de sesión al usuario (no solo PAT en servidor). */
+export function isSignInUiOffered(): boolean {
+  const deploy = getAzdoAuthMethod();
+  return deploy === "both" || deploy === "oauth" || deploy === "pat";
+}
+
+export function hasConnectMethod(options: ConnectAuthOptions): boolean {
+  return options.oauthEnabled || options.patEnabled;
 }

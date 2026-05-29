@@ -23,7 +23,6 @@ export function WorkItemsPageShell({
     <AdoFilteredPageShell
       title="Historias de usuario"
       description="Historias de usuario del sprint actual, con filtros por estado, nombre, asignación y sprint."
-      notReadyMessage="Conecta Azure DevOps para ver las historias de usuario del sprint."
       catalog={catalog}
       filterMeta={filterMeta}
       adoExecutionReady={adoExecutionReady}

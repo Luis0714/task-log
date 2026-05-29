@@ -27,10 +27,6 @@ export async function TimeLogShellServer({
   };
 
   return (
-    <TimeLogPageShell
-      serverBaseline={shellBaseline}
-      adoExecutionReady={adoExecutionReady}
-      notReadyMessage="Conecta Azure DevOps para registrar tiempo en Azure DevOps."
-    />
+    <TimeLogPageShell serverBaseline={shellBaseline} />
   );
 }

@@ -7,7 +7,7 @@ import {
   listAdoAccounts,
   pickDefaultProject,
 } from "@/lib/auth/entra";
-import { isOAuthAuthMethod } from "@/lib/auth/auth-method";
+import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
 import { getTaskPilotSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,8 @@ function redirectHome(search: string) {
 }
 
 export async function GET(req: Request) {
-  if (!isOAuthAuthMethod()) {
+  const { oauthEnabled } = getConnectAuthOptions();
+  if (!oauthEnabled) {
     return redirectHome("?azdo_error=auth&detail=oauth_disabled");
   }
 
@@ -58,6 +59,8 @@ export async function GET(req: Request) {
     }
 
     session.pendingOAuth = undefined;
+    session.sessionAuthMethod = "oauth";
+    session.azdoPat = undefined;
     session.azdoRefreshToken = refresh;
 
     try {

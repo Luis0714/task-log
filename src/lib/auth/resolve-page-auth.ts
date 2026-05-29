@@ -22,7 +22,9 @@ export async function resolvePageAuth(
   const searchParams = parseAdoContextSearchParams(await rawSearchParams);
   const auth = await getServerAuthBootstrap();
   const defaultProject =
-    auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
+    auth.authMethod === "pat" && auth.patProject
+      ? auth.patProject
+      : auth.defaultProject;
 
   return { searchParams, auth, defaultProject };
 }
@@ -41,6 +43,6 @@ export async function resolvePageAuthWithProfile(
 
   return {
     ...pageAuth,
-    profile: pageAuth.auth.adoExecutionReady ? profile : emptyServerProfileFields,
+    profile: pageAuth.auth.userSessionActive ? profile : emptyServerProfileFields,
   };
 }

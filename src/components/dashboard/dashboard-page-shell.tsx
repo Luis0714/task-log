@@ -4,7 +4,8 @@ import { useMemo, useState, useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
-import { DashboardHeader } from "@/components/dashboard/layout/dashboard-header";
+import { ConnectSignInTrigger } from "@/components/auth/connect-sign-in-trigger";
+import { DashboardHeaderRow } from "@/components/dashboard/layout/dashboard-header-row";
 import { AdoFiltersSection } from "@/components/filters/ado-filters-section";
 import { SprintDaySelect } from "@/components/filters/sprint-day-select";
 import { useAdoContextUrl } from "@/hooks/use-ado-context-url";
@@ -14,12 +15,15 @@ import {
   listSprintWorkingDays,
   resolveEffectiveSprintDayKey,
 } from "@/lib/dashboard/sprint-days";
+import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
 
 export type DashboardPageShellProps = {
   header: DashboardHeaderData;
   catalog: AdoCatalogSnapshot;
   adoExecutionReady: boolean;
+  userSessionActive: boolean;
+  connectOptions: ConnectAuthOptions;
   initialSprintDayKey: string;
   nonWorkingDates: readonly string[];
   children?: ReactNode;
@@ -29,6 +33,8 @@ export function DashboardPageShell({
   header,
   catalog,
   adoExecutionReady,
+  userSessionActive,
+  connectOptions,
   initialSprintDayKey,
   nonWorkingDates,
   children = null,
@@ -115,13 +121,18 @@ export function DashboardPageShell({
 
   return (
     <div className="flex w-full flex-col gap-6 pb-6">
-      <DashboardHeader data={resolvedHeader} />
+      <DashboardHeaderRow
+        data={resolvedHeader}
+        actions={
+          !userSessionActive ? (
+            <ConnectSignInTrigger connectOptions={connectOptions} />
+          ) : null
+        }
+      />
 
-      {!adoExecutionReady ? (
-        <CopilotErrorAlert message="Conecta Azure DevOps para ver tu panel con datos reales." />
+      {userSessionActive && catalogError ? (
+        <CopilotErrorAlert message={catalogError} />
       ) : null}
-
-      {catalogError ? <CopilotErrorAlert message={catalogError} /> : null}
 
       {adoExecutionReady ? (
         <AdoFiltersSection

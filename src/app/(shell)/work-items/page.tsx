@@ -12,6 +12,7 @@ import {
 } from "@/components/skeletons/work-items-section-skeletons";
 import { WorkItemsShellSkeleton } from "@/components/skeletons/work-items-shell-skeleton";
 import { emptyServerProfileFields } from "@/lib/auth/profile-display";
+import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
 import { resolvePageAuthWithProfile } from "@/lib/auth/resolve-page-auth";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
@@ -28,19 +29,21 @@ type PageProps = {
 export default async function WorkItemsPage({ searchParams }: PageProps) {
   const { searchParams: sp, auth, defaultProject, profile } =
     await resolvePageAuthWithProfile(searchParams);
-  const profileFields = auth.adoExecutionReady ? profile : emptyServerProfileFields;
+  const showLiveData = canLoadLiveAdoContent(auth);
+  const profileFields = showLiveData ? profile : emptyServerProfileFields;
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
   return (
     <WorkItemsFiltersProvider initialAssignee={urlAssignee}>
       <AdoContextPageLayout
         shellFallback={<WorkItemsShellSkeleton />}
-        adoExecutionReady={auth.adoExecutionReady}
+        adoExecutionReady={showLiveData}
+        connectOptions={auth.connectOptions}
         shell={
           <WorkItemsShellServer
             sp={sp}
             defaultProject={defaultProject}
-            adoExecutionReady={auth.adoExecutionReady}
+            adoExecutionReady={showLiveData}
           />
         }
         content={

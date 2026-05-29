@@ -7,6 +7,7 @@ import { SprintItemsSharedProviders } from "@/components/sprint-items/sprint-ite
 import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
 import { SprintItemsShellSkeleton } from "@/components/skeletons/sprint-items-shell-skeleton";
 import { Button } from "@/components/ui/button";
+import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
 import { resolvePageAuth } from "@/lib/auth/resolve-page-auth";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
@@ -24,7 +25,8 @@ export default async function TasksPage({ searchParams }: PageProps) {
   const { searchParams: sp, auth, defaultProject } = await resolvePageAuth(searchParams);
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
-  const headerAction = auth.adoExecutionReady ? (
+  const showLiveData = canLoadLiveAdoContent(auth);
+  const headerAction = showLiveData ? (
     <Button
       render={<Link href="/time-log" />}
       nativeButton={false}
@@ -39,13 +41,14 @@ export default async function TasksPage({ searchParams }: PageProps) {
     <SprintItemsSharedProviders initialAssignee={urlAssignee}>
       <AdoContextPageLayout
         shellFallback={<SprintItemsShellSkeleton />}
-        adoExecutionReady={auth.adoExecutionReady}
+        adoExecutionReady={showLiveData}
+        connectOptions={auth.connectOptions}
         shell={
           <SprintItemsShellServer
             kind="tasks"
             sp={sp}
             defaultProject={defaultProject}
-            adoExecutionReady={auth.adoExecutionReady}
+            adoExecutionReady={showLiveData}
             headerAction={headerAction}
           />
         }

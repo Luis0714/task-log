@@ -6,15 +6,16 @@ import {
   generatePkcePair,
   isEntraOAuthConfigured,
 } from "@/lib/auth/entra";
-import { isOAuthAuthMethod } from "@/lib/auth/auth-method";
+import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!isOAuthAuthMethod()) {
+  const { oauthEnabled } = getConnectAuthOptions();
+  if (!oauthEnabled) {
     return NextResponse.json(
-      { error: "OAuth deshabilitado. AZDO_AUTH_METHOD=pat está activo." },
+      { error: "El inicio con cuenta Microsoft no está disponible." },
       { status: 403 },
     );
   }

@@ -1,32 +1,29 @@
 import { NextResponse } from "next/server";
 
 import { getAuthBaseUrl } from "@/lib/auth/entra";
-import { isOAuthAuthMethod } from "@/lib/auth/auth-method";
-import { getTaskPilotSession } from "@/lib/auth/session";
+import { destroyTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
+import { usesServerEnvPat } from "@/lib/azure-devops/resolve-auth";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
-  if (!isOAuthAuthMethod()) {
-    return NextResponse.json(
-      { error: "OAuth deshabilitado. AZDO_AUTH_METHOD=pat está activo." },
-      { status: 403 },
-    );
-  }
+async function clearSession() {
+  if (!isIronSessionConfigured()) return;
+  await destroyTaskPilotSession();
+}
 
-  const session = await getTaskPilotSession();
-  session.destroy();
-  await session.save();
+function redirectHome(search: string) {
+  const response = NextResponse.redirect(new URL(search, getAuthBaseUrl()));
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  return response;
+}
+
+export async function POST() {
+  await clearSession();
   return NextResponse.json({ ok: true });
 }
 
 export async function GET() {
-  if (!isOAuthAuthMethod()) {
-    return NextResponse.redirect(new URL("/", getAuthBaseUrl()));
-  }
-
-  const session = await getTaskPilotSession();
-  session.destroy();
-  await session.save();
-  return NextResponse.redirect(new URL("/", getAuthBaseUrl()));
+  await clearSession();
+  const search = usesServerEnvPat() ? "/" : "/?signed_out=1";
+  return redirectHome(search);
 }

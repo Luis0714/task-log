@@ -9,17 +9,15 @@ import type { SprintItemsKind } from "@/lib/sprint-items/types";
 
 const PAGE_COPY: Record<
   SprintItemsKind,
-  { title: string; description: string; notReadyMessage: string }
+  { title: string; description: string }
 > = {
   bugs: {
     title: "Bugs",
     description: "Bugs asignados al sprint actual, con filtros por asignación, estado y fecha.",
-    notReadyMessage: "Conecta Azure DevOps para ver los Bugs del sprint.",
   },
   tasks: {
     title: "Tareas",
     description: "Tareas asignadas al sprint actual, con filtros por asignación, estado y día de trabajo.",
-    notReadyMessage: "Conecta Azure DevOps para ver tus tareas del sprint.",
   },
 };
 
@@ -48,7 +46,6 @@ export function SprintItemsPageShell({
     <AdoFilteredPageShell
       title={copy.title}
       description={copy.description}
-      notReadyMessage={copy.notReadyMessage}
       catalog={catalog}
       filterMeta={filterMeta}
       adoExecutionReady={adoExecutionReady}

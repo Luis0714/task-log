@@ -1,9 +1,18 @@
-import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
+import { isSignInUiOffered } from "@/lib/auth/auth-method";
 import type { ServerAuthState } from "@/lib/auth/server-state";
 
+export type { AzdoAuthMethod, ConnectAuthOptions } from "@/lib/auth/auth-method";
+export {
+  buildConnectionMetaLine,
+  getAuthMethodLabel,
+} from "@/lib/auth/connection-display-labels";
+
 export type AdoConnectionDisplay = {
-  authMethod: AzdoAuthMethod;
+  authMethod: ServerAuthState["authMethod"];
   isConnected: boolean;
+  canLogout: boolean;
+  connectOptions: ServerAuthState["connectOptions"];
+  showSignIn: boolean;
   organization: string | null;
   project: string | null;
   userDisplayName: string | null;
@@ -14,21 +23,20 @@ export type AdoConnectionDisplay = {
 export function mapAuthStateToConnectionDisplay(
   auth: ServerAuthState,
 ): AdoConnectionDisplay {
-  const organization =
-    auth.authMethod === "pat" ? auth.patOrganization : auth.defaultOrg;
-  const project = auth.authMethod === "pat" ? auth.patProject : auth.defaultProject;
+  const organization = auth.defaultOrg ?? auth.patOrganization;
+  const project = auth.defaultProject ?? auth.patProject;
+  const signedIn = auth.userSessionActive;
 
   return {
     authMethod: auth.authMethod,
-    isConnected: auth.adoExecutionReady,
-    organization,
-    project,
-    userDisplayName: auth.profileDisplayName,
-    userInitials: auth.profileInitials,
-    userAvatarUrl: auth.profileAvatarUrl,
+    isConnected: signedIn,
+    canLogout: signedIn,
+    connectOptions: auth.connectOptions,
+    showSignIn: !signedIn && isSignInUiOffered(),
+    organization: signedIn ? organization : null,
+    project: signedIn ? project : null,
+    userDisplayName: signedIn ? auth.profileDisplayName : null,
+    userInitials: signedIn ? auth.profileInitials : null,
+    userAvatarUrl: signedIn ? auth.profileAvatarUrl : null,
   };
-}
-
-export function getAuthMethodLabel(authMethod: AzdoAuthMethod): string {
-  return authMethod === "pat" ? "PAT en servidor" : "OAuth";
 }

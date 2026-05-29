@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { AdoFiltersSection } from "@/components/filters/ado-filters-section";
+import { PageHeader } from "@/components/layout/page-header";
 import { SprintDaySelect } from "@/components/filters/sprint-day-select";
 import { useSprintItemsDayContext } from "@/components/sprint-items/sprint-items-day-context";
 import { useAdoFilteredPage } from "@/hooks/filters/use-ado-filtered-page";
@@ -18,7 +19,6 @@ import { SPRINT_DAY_ALL } from "@/lib/sprint-items/filter-by-criteria";
 export type AdoFilteredPageShellProps = {
   title: string;
   description: string;
-  notReadyMessage: string;
   catalog: AdoCatalogSnapshot;
   filterMeta: AdoFilterMeta;
   adoExecutionReady: boolean;
@@ -32,7 +32,6 @@ export type AdoFilteredPageShellProps = {
 export function AdoFilteredPageShell({
   title,
   description,
-  notReadyMessage,
   catalog,
   filterMeta,
   adoExecutionReady,
@@ -111,21 +110,8 @@ export function AdoFilteredPageShell({
 
   return (
     <div className="flex w-full flex-col gap-6 pb-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 space-y-1">
-          <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
-            {title}
-          </h1>
-          <p className="text-muted-foreground text-sm text-pretty">
-            {description}
-          </p>
-        </div>
-        {headerAction ? (
-          <div className="shrink-0 self-start sm:self-center">{headerAction}</div>
-        ) : null}
-      </header>
+      <PageHeader title={title} description={description} action={headerAction} />
 
-      {!adoExecutionReady ? <CopilotErrorAlert message={notReadyMessage} /> : null}
       {catalogError ? <CopilotErrorAlert message={catalogError} /> : null}
 
       {adoExecutionReady ? (

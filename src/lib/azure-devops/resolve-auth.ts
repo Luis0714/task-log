@@ -1,6 +1,10 @@
-import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
+import { getAzdoAuthMethod, isBothAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
 import { refreshAccessToken } from "@/lib/auth/entra";
-import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
+import {
+  clearSessionCredentials,
+  getTaskPilotSession,
+  isIronSessionConfigured,
+} from "@/lib/auth/session";
 
 export type AdoCallerAuth =
   | { mode: "oauth"; accessToken: string; organization: string; project: string }
@@ -25,6 +29,22 @@ function patFromEnv(): AdoCallerAuth | null {
     organization: target.organization,
     project: target.project,
     pat: pat.trim(),
+  };
+}
+
+function patFromSession(
+  session: Awaited<ReturnType<typeof getTaskPilotSession>>,
+): AdoCallerAuth | null {
+  const pat = session.azdoPat?.trim();
+  const organization = session.defaultOrg?.trim();
+  const project = session.defaultProject?.trim();
+  if (!pat || !organization || !project) return null;
+
+  return {
+    mode: "pat",
+    organization,
+    project,
+    pat,
   };
 }
 
@@ -57,13 +77,73 @@ async function oauthFromSession(): Promise<AdoCallerAuth | null> {
   }
 }
 
+async function resolveFromUserSession(): Promise<AdoCallerAuth | null> {
+  if (!isIronSessionConfigured()) return null;
+
+  const session = await getTaskPilotSession();
+
+  if (session.sessionAuthMethod === "pat") {
+    return patFromSession(session);
+  }
+
+  if (session.sessionAuthMethod === "oauth") {
+    return oauthFromSession();
+  }
+
+  return null;
+}
+
 export async function resolveAdoCaller(): Promise<AdoCallerAuth | null> {
-  if (isPatAuthMethod()) return patFromEnv();
-  if (isOAuthAuthMethod()) return oauthFromSession();
+  const sessionAuth = await resolveFromUserSession();
+  if (sessionAuth) return sessionAuth;
+
+  const deployMethod = getAzdoAuthMethod();
+
+  if (deployMethod === "pat") {
+    return patFromEnv();
+  }
+
+  if (deployMethod === "oauth") {
+    return oauthFromSession();
+  }
+
   return null;
 }
 
 export function isPatConfigured(): boolean {
   if (!isPatAuthMethod()) return false;
   return patFromEnv() !== null;
+}
+
+export async function isSessionPatReady(): Promise<boolean> {
+  if (!isIronSessionConfigured()) return false;
+  const session = await getTaskPilotSession();
+  return Boolean(
+    session.sessionAuthMethod === "pat" &&
+      session.azdoPat?.trim() &&
+      session.defaultOrg?.trim() &&
+      session.defaultProject?.trim(),
+  );
+}
+
+export async function isSessionOAuthReady(): Promise<boolean> {
+  if (!isIronSessionConfigured()) return false;
+  const session = await getTaskPilotSession();
+  return Boolean(
+    session.sessionAuthMethod === "oauth" &&
+      session.azdoRefreshToken &&
+      session.defaultOrg?.trim() &&
+      session.defaultProject?.trim(),
+  );
+}
+
+export async function clearUserSessionAuth(): Promise<void> {
+  if (!isIronSessionConfigured()) return;
+  const session = await getTaskPilotSession();
+  clearSessionCredentials(session);
+  await session.save();
+}
+
+export function usesServerEnvPat(): boolean {
+  return getAzdoAuthMethod() === "pat" && patFromEnv() !== null && !isBothAuthMethod();
 }

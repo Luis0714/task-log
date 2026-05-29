@@ -3,6 +3,7 @@ import { SprintItemsListStreamLoader } from "@/components/sprint-items/sprint-it
 import { SprintItemsSharedProviders } from "@/components/sprint-items/sprint-items-shared-providers";
 import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
 import { SprintItemsShellSkeleton } from "@/components/skeletons/sprint-items-shell-skeleton";
+import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
 import { resolvePageAuth } from "@/lib/auth/resolve-page-auth";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
@@ -19,18 +20,20 @@ type PageProps = {
 export default async function BugsPage({ searchParams }: PageProps) {
   const { searchParams: sp, auth, defaultProject } = await resolvePageAuth(searchParams);
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
+  const showLiveData = canLoadLiveAdoContent(auth);
 
   return (
     <SprintItemsSharedProviders initialAssignee={urlAssignee}>
       <AdoContextPageLayout
         shellFallback={<SprintItemsShellSkeleton />}
-        adoExecutionReady={auth.adoExecutionReady}
+        adoExecutionReady={showLiveData}
+        connectOptions={auth.connectOptions}
         shell={
           <SprintItemsShellServer
             kind="bugs"
             sp={sp}
             defaultProject={defaultProject}
-            adoExecutionReady={auth.adoExecutionReady}
+            adoExecutionReady={showLiveData}
           />
         }
         content={

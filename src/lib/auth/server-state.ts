@@ -1,12 +1,14 @@
 import { cache } from "react";
 
-import { getAzdoAuthMethod, type AzdoAuthMethod } from "@/lib/auth/auth-method";
+import { getAzdoAuthMethod, type AzdoAuthMethod, type ConnectAuthOptions } from "@/lib/auth/auth-method";
+import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
 import { isEntraOAuthConfigured } from "@/lib/auth/entra";
 import {
   emptyServerProfileFields,
   toServerProfileFields,
 } from "@/lib/auth/profile-display";
 import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
+import { hasActiveUserSession } from "@/lib/auth/user-session";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
 import {
   getPatTargetFromEnv,
@@ -23,6 +25,7 @@ export type ServerAuthProfileFields = {
 
 export type ServerAuthBootstrap = {
   authMethod: AzdoAuthMethod;
+  connectOptions: ConnectAuthOptions;
   oauthAppReady: boolean;
   oauthConnected: boolean;
   defaultOrg: string | null;
@@ -31,14 +34,16 @@ export type ServerAuthBootstrap = {
   patConfigured: boolean;
   patOrganization: string | null;
   patProject: string | null;
+  userSessionActive: boolean;
 };
 
 export type ServerAuthState = ServerAuthBootstrap & ServerAuthProfileFields;
 
 export const getServerAuthBootstrap = cache(async function getServerAuthBootstrap(): Promise<ServerAuthBootstrap> {
   const authMethod = getAzdoAuthMethod();
+  const connectOptions = getConnectAuthOptions();
   const patTarget = getPatTargetFromEnv();
-  const oauthEnabled = authMethod === "oauth";
+  const oauthEnabled = authMethod === "oauth" || authMethod === "both";
   const patEnabled = authMethod === "pat";
 
   const oauthAppReady =
@@ -48,33 +53,51 @@ export const getServerAuthBootstrap = cache(async function getServerAuthBootstra
   let defaultOrg: string | null = null;
   let defaultProject: string | null = null;
 
-  if (oauthEnabled && isIronSessionConfigured()) {
+  let sessionOrg: string | null = null;
+  let sessionProject: string | null = null;
+
+  if (isIronSessionConfigured()) {
     const session = await getTaskPilotSession();
     oauthConnected = Boolean(session.azdoRefreshToken);
-    defaultOrg = session.defaultOrg ?? null;
-    defaultProject = session.defaultProject ?? null;
+    sessionOrg = session.defaultOrg ?? null;
+    sessionProject = session.defaultProject ?? null;
+    defaultOrg = sessionOrg;
+    defaultProject = sessionProject;
   }
 
   const patConfigured = patEnabled && isPatConfigured();
+  const patOrganization =
+    patConfigured && patTarget
+      ? patTarget.organization
+      : sessionOrg;
+  const patProject =
+    patConfigured && patTarget ? patTarget.project : sessionProject;
   const adoExecutionReady = await isAdoExecutionReady();
+  const userSessionActive = await hasActiveUserSession();
+
+  const sessionConnected = adoExecutionReady && userSessionActive;
 
   return {
     authMethod,
+    connectOptions,
     oauthAppReady,
     oauthConnected,
-    defaultOrg,
-    defaultProject,
+    defaultOrg: sessionConnected ? defaultOrg : null,
+    defaultProject: sessionConnected ? defaultProject : null,
     adoExecutionReady,
     patConfigured,
-    patOrganization: patEnabled ? (patTarget?.organization ?? null) : null,
-    patProject: patEnabled ? (patTarget?.project ?? null) : null,
+    patOrganization:
+      sessionConnected && (patEnabled || authMethod === "both") ? patOrganization : null,
+    patProject:
+      sessionConnected && (patEnabled || authMethod === "both") ? patProject : null,
+    userSessionActive,
   };
 });
 
 export const getServerAuthProfile = cache(async function getServerAuthProfile(): Promise<ServerAuthProfileFields> {
   const bootstrap = await getServerAuthBootstrap();
 
-  if (!bootstrap.adoExecutionReady) {
+  if (!bootstrap.userSessionActive) {
     return emptyServerProfileFields;
   }
 

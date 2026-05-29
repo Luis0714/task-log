@@ -53,7 +53,7 @@ export function AppShell({
             </div>
           </header>
 
-          <div className="mx-auto flex w-full max-w-md flex-1 flex-col p-4 sm:max-w-lg md:max-w-none md:p-6">
+          <div className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col p-4 sm:max-w-lg md:max-w-none md:p-6">
             {children}
           </div>
         </SidebarInset>
