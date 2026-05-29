@@ -13,13 +13,15 @@ import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
 import { buildAssigneeWiqlCondition } from "@/lib/filters/assignee-wiql";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 import type { TaskActivity } from "@/lib/time-log/task-constants";
+import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import {
-  getWorkItemDateFieldNames,
-  getWorkingDateFieldNamesForUpdate,
-  resolveWorkingDateFieldName,
   resolveWorkingDateKeyFromFields,
   toWorkingDateKey,
 } from "@/lib/azure-devops/working-date-field";
+import {
+  fetchWorkItemsBatchWithFieldFallback,
+  filterFieldsToProject,
+} from "@/lib/azure-devops/wit-project-fields";
 import {
   getBacklogItemFetchFieldNames,
   resolveBacklogResponsableFields,
@@ -117,6 +119,7 @@ export async function createTaskUnderPbi(
   const pbiContext = await fetchPbiContext(auth, params.pbiId);
   if (!pbiContext.ok) return pbiContext;
 
+  const processProfile = await resolveProcessProfile(auth);
   const assignedTo = await resolveAssignedToValue(auth);
   const pbiUrl = `${adoOrgBase(auth)}/_apis/wit/workitems/${params.pbiId}`;
   const iterationPath = params.sprintPath.trim() || pbiContext.iterationPath;
@@ -144,7 +147,11 @@ export async function createTaskUnderPbi(
     { op: "add", path: `/fields/${COMPLETED_WORK}`, value: params.hours },
     { op: "add", path: `/fields/${ORIGINAL_ESTIMATE}`, value: params.hours },
     { op: "add", path: `/fields/${ACTIVITY}`, value: params.activity },
-    { op: "add", path: `/fields/${resolveWorkingDateFieldName()}`, value: params.workingDate },
+    {
+      op: "add",
+      path: `/fields/${processProfile.workingDateField}`,
+      value: params.workingDate,
+    },
     {
       op: "add",
       path: "/relations/-",
@@ -304,13 +311,6 @@ type WiqlResponse = {
   workItems?: Array<{ id: number }>;
 };
 
-type WorkItemsBatchResponse = {
-  value?: Array<{
-    id: number;
-    fields?: Record<string, string | number | undefined>;
-  }>;
-};
-
 const TITLE = "System.Title";
 const WORK_ITEM_TYPE = "System.WorkItemType";
 const STATE = "System.State";
@@ -364,8 +364,13 @@ async function fetchWorkItemDetails(
 ): Promise<AdoWorkItemOption[]> {
   if (ids.length === 0) return [];
 
-  const responsableFields = await resolveBacklogResponsableFields(auth);
-  const fields = [
+  const [responsableFields, processProfile, backlogFetchFields] = await Promise.all([
+    resolveBacklogResponsableFields(auth),
+    resolveProcessProfile(auth),
+    getBacklogItemFetchFieldNames(auth),
+  ]);
+
+  const requestedFields = [
     TITLE,
     WORK_ITEM_TYPE,
     STATE,
@@ -379,23 +384,16 @@ async function fetchWorkItemDetails(
     ACCEPTANCE_CRITERIA_FIELD,
     WI_COMPLETED_WORK,
     WI_ORIGINAL_ESTIMATE,
-    ...getWorkItemDateFieldNames(),
-    ...(await getBacklogItemFetchFieldNames(auth)),
-  ].join(",");
+    ...processProfile.workItemDateFieldNames,
+    ...backlogFetchFields,
+  ];
+
   const chunkSize = 200;
   const items: AdoWorkItemOption[] = [];
 
   for (let index = 0; index < ids.length; index += chunkSize) {
     const chunk = ids.slice(index, index + chunkSize);
-    const url = `${adoProjectBase(auth)}/_apis/wit/workitems?ids=${chunk.join(",")}&fields=${encodeURIComponent(fields)}&api-version=7.1`;
-    const res = await adoFetch(auth, url);
-
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(adoListErrorMessage(res, body, "No se pudieron cargar los elementos de trabajo."));
-    }
-
-    const data = (await res.json()) as WorkItemsBatchResponse;
+    const data = await fetchWorkItemsBatchWithFieldFallback(auth, chunk, requestedFields);
     for (const workItem of data.value ?? []) {
       const title = workItem.fields?.[TITLE];
       items.push({
@@ -411,7 +409,11 @@ async function fetchWorkItemDetails(
         parentId: parseNumericField(workItem.fields?.[PARENT]),
         loggedHours: parseNumericField(workItem.fields?.[WI_COMPLETED_WORK]),
         estimatedHours: parseNumericField(workItem.fields?.[WI_ORIGINAL_ESTIMATE]),
-        workingDate: resolveWorkingDateKeyFromFields(workItem.fields),
+        workingDate: resolveWorkingDateKeyFromFields(
+          workItem.fields,
+          processProfile.workItemDateFieldNames,
+          processProfile.timezone,
+        ),
         tags: parseAdoWorkItemTags(
           typeof workItem.fields?.[SYSTEM_TAGS] === "string"
             ? workItem.fields[SYSTEM_TAGS]
@@ -490,10 +492,11 @@ export type UpdateWorkItemStateResult =
 function buildWorkingDatePatchOps(
   fields: Record<string, string | number | undefined> | undefined,
   dateValue: string,
+  workingDateFieldNames: readonly string[],
 ): WorkItemFieldPatchOp[] {
   const ops: WorkItemFieldPatchOp[] = [];
 
-  for (const fieldName of getWorkingDateFieldNamesForUpdate()) {
+  for (const fieldName of workingDateFieldNames) {
     const hadValue =
       fields?.[fieldName] !== undefined && fields?.[fieldName] !== null && fields?.[fieldName] !== "";
     ops.push({
@@ -538,6 +541,9 @@ export async function updateWorkItemState(
     return { ok: false, status: 400, body: "El estado no puede estar vacío." };
   }
 
+  const processProfile = await resolveProcessProfile(auth);
+  const workingDateFieldNamesForUpdate = [processProfile.workingDateField];
+
   const base = `${adoProjectBase(auth)}/_apis/wit/workitems`;
   const api = "api-version=7.1";
   const headers: Record<string, string> = {
@@ -548,11 +554,11 @@ export async function updateWorkItemState(
   const dateFields = [
     SYSTEM_STATE,
     COMPLETED_WORK,
-    ...getWorkingDateFieldNamesForUpdate(),
-    ...getWorkItemDateFieldNames(),
+    ...workingDateFieldNamesForUpdate,
+    ...processProfile.workItemDateFieldNames,
   ];
-  const getFields = [...new Set(dateFields)].join(",");
-  const getUrl = `${base}/${params.workItemId}?${api}&$fields=${encodeURIComponent(getFields)}`;
+  const getFields = await filterFieldsToProject(auth, [...new Set(dateFields)]);
+  const getUrl = `${base}/${params.workItemId}?${api}&$fields=${encodeURIComponent(getFields.join(","))}`;
   const getRes = await adoFetch(auth, getUrl);
 
   if (!getRes.ok) {
@@ -569,11 +575,17 @@ export async function updateWorkItemState(
   };
 
   const dateValue =
-    toWorkingDateKey(params.workingDate) ??
-    resolveWorkingDateKeyFromFields(wi.fields) ??
+    toWorkingDateKey(params.workingDate, processProfile.timezone) ??
+    resolveWorkingDateKeyFromFields(
+      wi.fields,
+      processProfile.workItemDateFieldNames,
+      processProfile.timezone,
+    ) ??
     getDefaultWorkingDate();
 
-  const patchOps: WorkItemFieldPatchOp[] = [...buildWorkingDatePatchOps(wi.fields, dateValue)];
+  const patchOps: WorkItemFieldPatchOp[] = [
+    ...buildWorkingDatePatchOps(wi.fields, dateValue, workingDateFieldNamesForUpdate),
+  ];
 
   if (params.completedWork !== undefined && Number.isFinite(params.completedWork)) {
     patchOps.push(...buildCompletedWorkPatchOps(wi.fields, params.completedWork));

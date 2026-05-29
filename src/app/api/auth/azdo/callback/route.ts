@@ -7,6 +7,7 @@ import {
   listAdoAccounts,
   pickDefaultProject,
 } from "@/lib/auth/entra";
+import { attachProcessProfileOnConnect } from "@/lib/azure-devops/persist-process-profile";
 import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
 import { getTaskPilotSession } from "@/lib/auth/session";
 
@@ -74,6 +75,21 @@ export async function GET(req: Request) {
           tokens.access_token,
           firstOrg,
         );
+      }
+
+      const organization = session.defaultOrg?.trim();
+      const project = session.defaultProject?.trim();
+      if (organization && project) {
+        try {
+          await attachProcessProfileOnConnect(session, {
+            mode: "oauth",
+            accessToken: tokens.access_token,
+            organization,
+            project,
+          });
+        } catch {
+          // OAuth sigue válido; el perfil se resolverá en la primera carga del proyecto.
+        }
       }
     } catch {
       // Tokens válidos; org/proyecto se pueden completar en una siguiente HU.

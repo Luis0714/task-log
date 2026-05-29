@@ -6,7 +6,7 @@ import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 export const dynamic = "force-dynamic";
 
 export async function POST() {
-  const auth = await resolveAdoCaller();
+  const auth = await resolveAdoCaller({ persistOAuthTokens: true });
   if (!auth) {
     return NextResponse.json({ error: "Sin conexión ADO" }, { status: 401 });
   }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
 import { validatePatConnection } from "@/lib/auth/validate-pat-connection";
+import { attachProcessProfileOnConnect } from "@/lib/azure-devops/persist-process-profile";
 import { fetchCurrentAdoProfile } from "@/lib/azure-devops/profile";
 import { clearSessionCredentials, getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
 import { connectPatBodySchema } from "@/lib/schemas/connect-pat";
@@ -65,6 +66,13 @@ export async function POST(req: Request) {
   if (profile) {
     session.adoProfile = profile;
   }
+
+  try {
+    await attachProcessProfileOnConnect(session, caller);
+  } catch {
+    // La conexión PAT sigue siendo válida aunque falle la detección del perfil de proceso.
+  }
+
   await session.save();
 
   return NextResponse.json({ ok: true });

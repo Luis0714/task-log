@@ -1,6 +1,25 @@
-const CUSTOM_WORKING_DATE_FIELD = "Custom.WorkingDate";
+export const DEFAULT_WORKING_DATE_FIELD = "Microsoft.VSTS.Scheduling.StartDate";
+
+export const FALLBACK_DATE_FIELDS = [
+  DEFAULT_WORKING_DATE_FIELD,
+  "Microsoft.VSTS.Scheduling.FinishDate",
+  "Microsoft.VSTS.Scheduling.TargetDate",
+  "System.CreatedDate",
+] as const;
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const DEFAULT_READ_DATE_FIELDS: readonly string[] = [
+  ...new Set([
+    DEFAULT_WORKING_DATE_FIELD,
+    ...FALLBACK_DATE_FIELDS.filter((field) => field !== DEFAULT_WORKING_DATE_FIELD),
+  ]),
+];
+
+export function buildWorkItemDateFieldNames(primary: string): readonly string[] {
+  const ordered = [primary, ...FALLBACK_DATE_FIELDS.filter((field) => field !== primary)];
+  return [...new Set(ordered)];
+}
 
 /** Zona horaria del proyecto ADO (debe coincidir con la org en Azure DevOps). */
 export function resolveAdoTimeZone(): string {
@@ -14,33 +33,6 @@ function formatDateKeyInTimeZone(instant: Date, timeZone: string): string {
     month: "2-digit",
     day: "2-digit",
   }).format(instant);
-}
-
-/** Campo de fecha de trabajo en Tasks (configurable vía env en servidor). */
-export function resolveWorkingDateFieldName(): string {
-  return (
-    process.env.AZDO_WORKING_DATE_FIELD?.trim() || "Microsoft.VSTS.Scheduling.StartDate"
-  );
-}
-
-/** Campos de fecha a rellenar al actualizar estado (reglas Required en Custom.WorkingDate, etc.). */
-export function getWorkingDateFieldNamesForUpdate(): readonly string[] {
-  const primary = resolveWorkingDateFieldName();
-  return [...new Set([primary, CUSTOM_WORKING_DATE_FIELD])];
-}
-
-const FALLBACK_DATE_FIELDS = [
-  "Microsoft.VSTS.Scheduling.StartDate",
-  "Microsoft.VSTS.Scheduling.FinishDate",
-  "Microsoft.VSTS.Scheduling.TargetDate",
-  "System.CreatedDate",
-] as const;
-
-/** Campos a pedir a ADO para resolver workingDate (primario + respaldos). */
-export function getWorkItemDateFieldNames(): readonly string[] {
-  const primary = resolveWorkingDateFieldName();
-  const ordered = [primary, ...FALLBACK_DATE_FIELDS.filter((field) => field !== primary)];
-  return [...new Set(ordered)];
 }
 
 /**
@@ -75,14 +67,16 @@ export function toWorkingDateKey(
   return formatDateKeyInTimeZone(instant, timeZone);
 }
 
-/** Primera fecha válida entre el campo configurado y respaldos típicos de Task. */
+/** Primera fecha válida entre los campos indicados (p. ej. desde resolveProcessProfile). */
 export function resolveWorkingDateKeyFromFields(
   fields: Record<string, string | number | undefined> | undefined,
+  dateFieldNames: readonly string[] = DEFAULT_READ_DATE_FIELDS,
+  timeZone = resolveAdoTimeZone(),
 ): string | undefined {
   if (!fields) return undefined;
 
-  for (const fieldName of getWorkItemDateFieldNames()) {
-    const key = toWorkingDateKey(fields[fieldName]);
+  for (const fieldName of dateFieldNames) {
+    const key = toWorkingDateKey(fields[fieldName], timeZone);
     if (key) return key;
   }
 

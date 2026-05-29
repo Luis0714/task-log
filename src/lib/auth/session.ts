@@ -1,6 +1,7 @@
 import { getIronSession, type SessionOptions } from "iron-session";
 import { cookies } from "next/headers";
 
+import type { StoredAdoProcessProfile } from "@/lib/azure-devops/process-profile-types";
 import type { SessionAuthMethod } from "@/lib/auth/session-auth-method";
 
 export type TaskPilotSessionData = {
@@ -12,6 +13,8 @@ export type TaskPilotSessionData = {
   defaultOrg?: string;
   defaultProject?: string;
   defaultTeam?: string;
+  /** Perfiles ADO por org::proyecto (detectados al conectar). */
+  adoProcessProfiles?: Record<string, StoredAdoProcessProfile>;
 };
 
 export function clearSessionCredentials(session: TaskPilotSessionData): void {
@@ -23,6 +26,7 @@ export function clearSessionCredentials(session: TaskPilotSessionData): void {
   session.defaultOrg = undefined;
   session.defaultProject = undefined;
   session.defaultTeam = undefined;
+  session.adoProcessProfiles = undefined;
 }
 
 function sessionPassword(): string {

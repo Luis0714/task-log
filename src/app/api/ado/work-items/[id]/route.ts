@@ -37,7 +37,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     );
   }
 
-  const auth = await resolveAdoCaller();
+  const auth = await resolveAdoCaller({ persistOAuthTokens: true });
   if (!auth) {
     return NextResponse.json({ error: ADO_SIGN_IN_REQUIRED_MESSAGE }, { status: 401 });
   }

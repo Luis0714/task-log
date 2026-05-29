@@ -1,19 +1,10 @@
 import "server-only";
 
-import { adoFetch, adoProjectBase } from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
-import { resolveBacklogWorkItemTypeName } from "@/lib/azure-devops/work-item-type-states";
 import type { BacklogResponsableFieldConfig } from "@/lib/azure-devops/backlog-item-fields-config";
+import { findFieldByLabelMatch, listWorkItemTypeFields } from "@/lib/azure-devops/wit-field-metadata";
+import { resolveBacklogWorkItemTypeName } from "@/lib/azure-devops/work-item-type-states";
 import type { BacklogResponsableFieldKey } from "@/lib/work-items/backlog-field-types";
-
-type WitFieldDefinition = {
-  referenceName?: string;
-  name?: string;
-};
-
-type WitFieldsResponse = {
-  value?: WitFieldDefinition[];
-};
 
 const RESPONSABLE_DEFINITIONS: ReadonlyArray<{
   key: BacklogResponsableFieldKey;
@@ -46,36 +37,15 @@ const RESPONSABLE_DEFINITIONS: ReadonlyArray<{
   },
 ];
 
-function normalizeFieldLabel(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "");
-}
-
 export async function discoverBacklogResponsableFields(
   auth: AdoCallerAuth,
 ): Promise<readonly BacklogResponsableFieldConfig[]> {
   const workItemType = resolveBacklogWorkItemTypeName();
-  const url = `${adoProjectBase(auth)}/_apis/wit/workitemtypes/${encodeURIComponent(workItemType)}/fields?api-version=7.1`;
-  const res = await adoFetch(auth, url);
-
-  if (!res.ok) {
-    return [];
-  }
-
-  const data = (await res.json()) as WitFieldsResponse;
-  const witFields = data.value ?? [];
+  const witFields = await listWorkItemTypeFields(auth, workItemType);
   const discovered: BacklogResponsableFieldConfig[] = [];
 
   for (const definition of RESPONSABLE_DEFINITIONS) {
-    const match = witFields.find((field) => {
-      const referenceName = field.referenceName?.trim();
-      const name = field.name?.trim();
-      if (!referenceName || !name) return false;
-      return definition.matchName(normalizeFieldLabel(name));
-    });
+    const match = findFieldByLabelMatch(witFields, definition.matchName);
 
     if (match?.referenceName) {
       discovered.push({

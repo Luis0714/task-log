@@ -25,7 +25,14 @@ function patFromSession(
   };
 }
 
-async function oauthFromSession(): Promise<AdoCallerAuth | null> {
+export type ResolveAdoCallerOptions = {
+  /** Solo en Route Handlers / Server Actions (Next.js no permite escribir cookies en RSC). */
+  persistOAuthTokens?: boolean;
+};
+
+async function oauthFromSession(
+  options: ResolveAdoCallerOptions,
+): Promise<AdoCallerAuth | null> {
   if (!isIronSessionConfigured()) return null;
 
   const session = await getTaskPilotSession();
@@ -39,7 +46,7 @@ async function oauthFromSession(): Promise<AdoCallerAuth | null> {
 
   try {
     const tokens = await refreshAccessToken(session.azdoRefreshToken);
-    if (tokens.refresh_token) {
+    if (tokens.refresh_token && options.persistOAuthTokens) {
       session.azdoRefreshToken = tokens.refresh_token;
       await session.save();
     }
@@ -55,7 +62,9 @@ async function oauthFromSession(): Promise<AdoCallerAuth | null> {
 }
 
 /** Credenciales ADO solo desde la sesión del usuario (nunca desde variables de entorno). */
-export async function resolveAdoCaller(): Promise<AdoCallerAuth | null> {
+export async function resolveAdoCaller(
+  options: ResolveAdoCallerOptions = {},
+): Promise<AdoCallerAuth | null> {
   if (!isIronSessionConfigured()) return null;
 
   const session = await getTaskPilotSession();
@@ -65,7 +74,7 @@ export async function resolveAdoCaller(): Promise<AdoCallerAuth | null> {
   }
 
   if (session.sessionAuthMethod === "oauth") {
-    return oauthFromSession();
+    return oauthFromSession(options);
   }
 
   if (
@@ -73,7 +82,7 @@ export async function resolveAdoCaller(): Promise<AdoCallerAuth | null> {
     session.defaultOrg?.trim() &&
     session.defaultProject?.trim()
   ) {
-    return oauthFromSession();
+    return oauthFromSession(options);
   }
 
   return null;
