@@ -8,8 +8,6 @@ export const USER_MESSAGES = {
     "El inicio de sesión no está disponible ahora. Vuelve a intentarlo más tarde.",
   microsoftUnavailable:
     "El inicio con Microsoft no está disponible en este entorno.",
-  patConnectDeprecated:
-    "Para usar un código de acceso, crea una cuenta en Registrarse o entra con tu usuario en Iniciar sesión.",
   invalidCredentials: "Usuario o contraseña incorrectos.",
   invalidForm: "Revisa los datos del formulario e inténtalo de nuevo.",
   invalidJsonBody: "No pudimos leer los datos enviados. Inténtalo de nuevo.",

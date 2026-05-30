@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { loginLocalUser } from "@/lib/auth/login-local-user";
+import { parseAuthPostBody } from "@/lib/auth/parse-auth-post-body";
 import { requireUserPersistence } from "@/lib/auth/require-user-persistence";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { loginLocalBodySchema } from "@/lib/schemas/login-local";
@@ -13,18 +14,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: gate.message }, { status: gate.status });
   }
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: USER_MESSAGES.invalidForm }, { status: 400 });
-  }
-
-  const parsed = loginLocalBodySchema.safeParse(body);
-  if (!parsed.success) {
-    const message = parsed.error.issues[0]?.message ?? USER_MESSAGES.invalidForm;
-    return NextResponse.json({ error: message }, { status: 400 });
-  }
+  const parsed = await parseAuthPostBody(req, loginLocalBodySchema);
+  if (!parsed.ok) return parsed.response;
 
   try {
     const result = await loginLocalUser(parsed.data);

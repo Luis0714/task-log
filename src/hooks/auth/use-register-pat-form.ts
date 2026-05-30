@@ -1,90 +1,51 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 
-import { EMPTY_CONNECT_PAT_VALUES } from "@/lib/auth/connect-pat.types";
-import { parseAdoUrl } from "@/lib/auth/parse-ado-url";
+import { useConnectPatFields } from "@/hooks/auth/use-connect-pat-fields";
 import { registerLocalPat } from "@/services/auth/register-local.service";
 
-export type RegisterCredentials = {
-  email: string;
-  password: string;
-  notice: string;
-};
-
 export function useRegisterPatForm() {
-  const [pat, setPat] = useState(EMPTY_CONNECT_PAT_VALUES.pat);
-  const [organization, setOrganization] = useState(
-    EMPTY_CONNECT_PAT_VALUES.organization,
-  );
-  const [project, setProject] = useState(EMPTY_CONNECT_PAT_VALUES.project);
-  const [team, setTeam] = useState(EMPTY_CONNECT_PAT_VALUES.team);
-  const [adoUrl, setAdoUrl] = useState(EMPTY_CONNECT_PAT_VALUES.adoUrl);
-  const [urlParseError, setUrlParseError] = useState<string | null>(null);
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [credentials, setCredentials] = useState<RegisterCredentials | null>(
-    null,
-  );
+
+  const {
+    pat,
+    organization,
+    project,
+    team,
+    adoUrl,
+    urlParseError,
+    setPat,
+    setOrganization,
+    setProject,
+    setTeam,
+    setAdoUrl,
+    clearPatFieldErrors,
+    buildPatPayload,
+  } = useConnectPatFields();
 
   const clearErrors = useCallback(() => {
     setErrorMessage(null);
-    setUrlParseError(null);
-  }, []);
+    clearPatFieldErrors();
+  }, [clearPatFieldErrors]);
 
-  const setPatValue = useCallback(
+  const setEmailValue = useCallback(
     (value: string) => {
-      setPat(value);
+      setEmail(value);
       clearErrors();
     },
     [clearErrors],
   );
 
-  const setOrganizationValue = useCallback(
+  const setPasswordValue = useCallback(
     (value: string) => {
-      setOrganization(value);
+      setPassword(value);
       clearErrors();
-    },
-    [clearErrors],
-  );
-
-  const setProjectValue = useCallback(
-    (value: string) => {
-      setProject(value);
-      clearErrors();
-    },
-    [clearErrors],
-  );
-
-  const setTeamValue = useCallback(
-    (value: string) => {
-      setTeam(value);
-      clearErrors();
-    },
-    [clearErrors],
-  );
-
-  const setAdoUrlValue = useCallback(
-    (value: string) => {
-      setAdoUrl(value);
-      clearErrors();
-
-      const trimmed = value.trim();
-      if (!trimmed) return;
-
-      const parsed = parseAdoUrl(trimmed);
-      if (!parsed) {
-        setUrlParseError(
-          "No pudimos leer la organización y el proyecto desde esa URL.",
-        );
-        return;
-      }
-
-      setOrganization(parsed.organization);
-      setProject(parsed.project);
-      if (parsed.team) {
-        setTeam(parsed.team);
-      }
     },
     [clearErrors],
   );
@@ -93,12 +54,10 @@ export function useRegisterPatForm() {
     setSubmitting(true);
     clearErrors();
 
-    const trimmedTeam = team.trim();
     const result = await registerLocalPat({
-      pat,
-      organization,
-      project,
-      ...(trimmedTeam ? { team: trimmedTeam } : {}),
+      email,
+      password,
+      ...buildPatPayload(),
     });
 
     setSubmitting(false);
@@ -108,14 +67,13 @@ export function useRegisterPatForm() {
       return;
     }
 
-    setCredentials({
-      email: result.email,
-      password: result.password,
-      notice: result.notice,
-    });
-  }, [clearErrors, organization, pat, project, team]);
+    router.push("/");
+    router.refresh();
+  }, [buildPatPayload, clearErrors, email, password, router]);
 
   return {
+    email,
+    password,
     pat,
     organization,
     project,
@@ -124,12 +82,13 @@ export function useRegisterPatForm() {
     urlParseError,
     submitting,
     errorMessage,
-    credentials,
-    setPat: setPatValue,
-    setOrganization: setOrganizationValue,
-    setProject: setProjectValue,
-    setTeam: setTeamValue,
-    setAdoUrl: setAdoUrlValue,
+    setEmail: setEmailValue,
+    setPassword: setPasswordValue,
+    setPat,
+    setOrganization,
+    setProject,
+    setTeam,
+    setAdoUrl,
     submit,
   };
 }

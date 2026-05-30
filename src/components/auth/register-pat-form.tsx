@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ACCOUNT_AUTH_COPY } from "@/components/auth/account-auth-copy";
 import { CONNECT_ADO_COPY } from "@/components/auth/connect-ado-copy";
 import { ConnectPatFormFields } from "@/components/auth/connect-pat-form-fields";
-import { RegisterCredentialsReveal } from "@/components/auth/register-credentials-reveal";
+import { LocalAccountFields } from "@/components/auth/local-account-fields";
 import { Button } from "@/components/ui/button";
 import { useRegisterPatForm } from "@/hooks/auth/use-register-pat-form";
 
@@ -13,6 +13,8 @@ export function RegisterPatForm() {
   const copy = ACCOUNT_AUTH_COPY.register;
   const patCopy = CONNECT_ADO_COPY.pat;
   const {
+    email,
+    password,
     pat,
     organization,
     project,
@@ -21,7 +23,8 @@ export function RegisterPatForm() {
     urlParseError,
     submitting,
     errorMessage,
-    credentials,
+    setEmail,
+    setPassword,
     setPat,
     setOrganization,
     setProject,
@@ -29,10 +32,6 @@ export function RegisterPatForm() {
     setAdoUrl,
     submit,
   } = useRegisterPatForm();
-
-  if (credentials) {
-    return <RegisterCredentialsReveal credentials={credentials} />;
-  }
 
   return (
     <div className="space-y-4">
@@ -43,6 +42,16 @@ export function RegisterPatForm() {
           void submit();
         }}
       >
+        <LocalAccountFields
+          idPrefix="register"
+          email={email}
+          password={password}
+          copy={copy}
+          passwordAutoComplete="new-password"
+          onEmailChange={setEmail}
+          onPasswordChange={setPassword}
+        />
+
         <p className="text-muted-foreground text-sm leading-relaxed">
           {patCopy.intro}
         </p>

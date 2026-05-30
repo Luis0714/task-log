@@ -4,10 +4,8 @@ import Link from "next/link";
 
 import { ACCOUNT_AUTH_COPY } from "@/components/auth/account-auth-copy";
 import { ConnectMethodOauthAction } from "@/components/auth/connect-method-oauth-action";
+import { LocalAccountFields } from "@/components/auth/local-account-fields";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/ui/password-input";
-import { Label } from "@/components/ui/label";
 import {
   useLoginLocalForm,
   type UseLoginLocalFormOptions,
@@ -38,9 +36,6 @@ export function LoginLocalForm({
     submit,
   } = useLoginLocalForm({ onSuccess, onUserNotFound });
 
-  const emailId = `${idPrefix}-email`;
-  const passwordId = `${idPrefix}-password`;
-
   return (
     <div className="space-y-6">
       <form
@@ -50,30 +45,14 @@ export function LoginLocalForm({
           void submit();
         }}
       >
-        <div className="space-y-1.5">
-          <Label htmlFor={emailId}>{copy.emailLabel}</Label>
-          <Input
-            id={emailId}
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            spellCheck={false}
-            placeholder={copy.emailPlaceholder}
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor={passwordId}>{copy.passwordLabel}</Label>
-          <PasswordInput
-            id={passwordId}
-            autoComplete="current-password"
-            placeholder={copy.passwordPlaceholder}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </div>
+        <LocalAccountFields
+          idPrefix={idPrefix}
+          email={email}
+          password={password}
+          copy={copy}
+          onEmailChange={setEmail}
+          onPasswordChange={setPassword}
+        />
 
         {errorMessage ? (
           <p className="text-destructive text-sm" role="alert">

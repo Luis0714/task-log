@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { parseAuthPostBody } from "@/lib/auth/parse-auth-post-body";
 import { registerLocalPatUser } from "@/lib/auth/register-local-pat-user";
 import { requireUserPersistence } from "@/lib/auth/require-user-persistence";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
-import { connectPatBodySchema } from "@/lib/schemas/connect-pat";
+import { registerPatBodySchema } from "@/lib/schemas/register-pat";
 
 export const dynamic = "force-dynamic";
 
@@ -13,18 +14,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: gate.message }, { status: gate.status });
   }
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: USER_MESSAGES.invalidForm }, { status: 400 });
-  }
-
-  const parsed = connectPatBodySchema.safeParse(body);
-  if (!parsed.success) {
-    const message = parsed.error.issues[0]?.message ?? USER_MESSAGES.invalidForm;
-    return NextResponse.json({ error: message }, { status: 400 });
-  }
+  const parsed = await parseAuthPostBody(req, registerPatBodySchema);
+  if (!parsed.ok) return parsed.response;
 
   try {
     const result = await registerLocalPatUser(parsed.data);
@@ -32,13 +23,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: result.message }, { status: 400 });
     }
 
-    return NextResponse.json({
-      ok: true,
-      email: result.email,
-      password: result.password,
-      notice:
-        "Guarda tu correo y contraseña de TaskPilot. No volverán a mostrarse.",
-    });
+    return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json(
       { error: USER_MESSAGES.genericRetry },

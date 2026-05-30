@@ -1,7 +1,7 @@
 export const CONNECT_ADO_COPY = {
   sheetTitle: "Iniciar sesión",
   sheetSubtitle:
-    "Entra con el correo y la contraseña de TaskPilot que recibiste al registrarte.",
+    "Entra con el correo y la contraseña de TaskPilot que elegiste al registrarte.",
   signInButton: "Iniciar sesión",
   back: "Volver",
   chooseMethodAriaLabel: "Método de inicio de sesión",

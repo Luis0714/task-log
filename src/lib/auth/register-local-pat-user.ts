@@ -5,18 +5,11 @@ import { validatePatConnection } from "@/lib/auth/validate-pat-connection";
 import { createLocalPatUser } from "@/lib/db/repositories/local-user.repository";
 import { fetchCurrentAdoProfile } from "@/lib/azure-devops/profile";
 import { getTaskPilotSession } from "@/lib/auth/session";
-import type { ConnectPatBody } from "@/lib/schemas/connect-pat";
-import {
-  generateLocalCredentials,
-  hashPassword,
-} from "@/lib/security";
-
-const MAX_USERNAME_ATTEMPTS = 5;
+import type { RegisterPatBody } from "@/lib/schemas/register-pat";
+import { hashPassword } from "@/lib/security";
 
 export type RegisterLocalPatSuccess = {
   ok: true;
-  email: string;
-  password: string;
 };
 
 export type RegisterLocalPatFailure = {
@@ -28,7 +21,7 @@ export type RegisterLocalPatResult =
   | RegisterLocalPatSuccess
   | RegisterLocalPatFailure;
 
-function isUniqueUsernameError(error: unknown): boolean {
+function isDuplicateEmailError(error: unknown): boolean {
   return (
     error instanceof Error &&
     (error.message.includes("users_username_unique") ||
@@ -37,9 +30,9 @@ function isUniqueUsernameError(error: unknown): boolean {
 }
 
 export async function registerLocalPatUser(
-  input: ConnectPatBody,
+  input: RegisterPatBody,
 ): Promise<RegisterLocalPatResult> {
-  const { pat, organization, project, team } = input;
+  const { pat, organization, project, team, email, password } = input;
   const trimmedTeam = team?.trim();
 
   const validation = await validatePatConnection({ organization, project, pat });
@@ -54,48 +47,39 @@ export async function registerLocalPatUser(
     pat,
   };
   const profile = await fetchCurrentAdoProfile(caller);
+  const passwordHash = await hashPassword(password);
 
-  for (let attempt = 0; attempt < MAX_USERNAME_ATTEMPTS; attempt++) {
-    const credentials = generateLocalCredentials();
-    const passwordHash = await hashPassword(credentials.password);
+  try {
+    const { userId } = await createLocalPatUser({
+      email,
+      passwordHash,
+      organization,
+      project,
+      team: trimmedTeam,
+      pat,
+      adoProfileId: profile?.id,
+      displayName: profile?.displayName,
+    });
 
-    try {
-      const { userId } = await createLocalPatUser({
-        email: credentials.email,
-        passwordHash,
-        organization,
-        project,
-        team: trimmedTeam,
-        pat,
-        adoProfileId: profile?.id,
-        displayName: profile?.displayName,
-      });
+    const session = await getTaskPilotSession();
+    await hydratePatSession(session, {
+      pat,
+      organization,
+      project,
+      team: trimmedTeam,
+      taskPilotUserId: userId,
+    });
+    await session.save();
 
-      const session = await getTaskPilotSession();
-      await hydratePatSession(session, {
-        pat,
-        organization,
-        project,
-        team: trimmedTeam,
-        taskPilotUserId: userId,
-      });
-      await session.save();
-
+    return { ok: true };
+  } catch (error) {
+    if (isDuplicateEmailError(error)) {
       return {
-        ok: true,
-        email: credentials.email,
-        password: credentials.password,
+        ok: false,
+        message:
+          "Ese correo ya está registrado. Inicia sesión o usa otro correo.",
       };
-    } catch (error) {
-      if (isUniqueUsernameError(error) && attempt < MAX_USERNAME_ATTEMPTS - 1) {
-        continue;
-      }
-      throw error;
     }
+    throw error;
   }
-
-  return {
-    ok: false,
-    message: "No pudimos crear tu cuenta. Inténtalo de nuevo en unos segundos.",
-  };
 }

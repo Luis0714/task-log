@@ -1,11 +1,15 @@
+const LOCAL_ACCOUNT_FIELDS = {
+  emailLabel: "Correo TaskPilot",
+  emailPlaceholder: "tu@correo.com",
+  passwordLabel: "Contraseña",
+} as const;
+
 export const ACCOUNT_AUTH_COPY = {
   login: {
     title: "Iniciar sesión",
     description:
-      "Entra con el correo y la contraseña de TaskPilot que recibiste al registrarte.",
-    emailLabel: "Correo TaskPilot",
-    emailPlaceholder: "tu@correo.taskpilot",
-    passwordLabel: "Contraseña",
+      "Entra con el correo y la contraseña de TaskPilot que elegiste al registrarte.",
+    ...LOCAL_ACCOUNT_FIELDS,
     passwordPlaceholder: "Tu contraseña",
     submit: "Entrar",
     submitting: "Entrando…",
@@ -20,24 +24,14 @@ export const ACCOUNT_AUTH_COPY = {
   register: {
     title: "Crear cuenta",
     description:
-      "Configura tu conexión con Azure DevOps. Te daremos un correo y contraseña de TaskPilot para futuros accesos.",
+      "Elige un correo y contraseña para TaskPilot y configura tu conexión con Azure DevOps.",
+    ...LOCAL_ACCOUNT_FIELDS,
+    emailHint: "Puede ser cualquier correo; lo usarás para entrar a TaskPilot.",
+    passwordPlaceholder: "Mínimo 8 caracteres",
     submit: "Crear cuenta",
     submitting: "Creando cuenta…",
     hasAccount: "¿Ya tienes cuenta?",
     loginLink: "Iniciar sesión",
-  },
-  credentialsReveal: {
-    title: "Guarda tus credenciales",
-    description:
-      "Son solo para entrar a TaskPilot. No son tu cuenta de Microsoft ni tu código de Azure DevOps.",
-    emailLabel: "Correo TaskPilot",
-    passwordLabel: "Contraseña",
-    copyEmail: "Copiar correo",
-    copyPassword: "Copiar contraseña",
-    copied: "Copiado",
-    warning:
-      "No volverán a mostrarse. Si las pierdes, tendrás que volver a registrarte con un código de acceso válido.",
-    continue: "Ir al inicio",
   },
   persistenceUnavailable:
     "El servicio de cuentas no está disponible en este momento. Inténtalo más tarde o contacta al administrador.",

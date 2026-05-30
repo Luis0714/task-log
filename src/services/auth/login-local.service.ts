@@ -1,3 +1,5 @@
+import { postAuthJson } from "@/services/auth/post-auth-json";
+
 export type LoginLocalPayload = {
   email: string;
   password: string;
@@ -15,22 +17,17 @@ export type LoginLocalResult =
 export async function loginLocal(
   payload: LoginLocalPayload,
 ): Promise<LoginLocalResult> {
-  const response = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  const result = await postAuthJson(
+    "/api/auth/login",
+    payload,
+    "No pudimos iniciar sesión. Inténtalo de nuevo.",
+  );
 
-  const body = (await response.json()) as {
-    error?: string;
-    reason?: LoginLocalFailureReason;
-  };
-
-  if (response.ok) return { ok: true };
+  if (result.ok) return { ok: true };
 
   return {
     ok: false,
-    errorMessage: body.error ?? "No pudimos iniciar sesión. Inténtalo de nuevo.",
-    reason: body.reason,
+    errorMessage: result.errorMessage,
+    reason: result.reason as LoginLocalFailureReason | undefined,
   };
 }
