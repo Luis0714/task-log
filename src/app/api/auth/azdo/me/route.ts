@@ -5,8 +5,7 @@ import { isOAuthAuthMethod } from "@/lib/auth/auth-method";
 import { syncOAuthRefreshToDatabase } from "@/lib/auth/sync-oauth-refresh-to-db";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
-import { loadUserAdoConnection } from "@/lib/db/load-user-ado-connection";
-import { isUserPersistenceReady } from "@/lib/db/is-persistence-ready";
+import { getRepositories, isUserPersistenceReady } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +30,7 @@ export async function GET() {
 
   let connection;
   try {
-    connection = await loadUserAdoConnection(userId);
+    connection = await getRepositories().adoConnection.loadByUserId(userId);
   } catch {
     return NextResponse.json({
       connected: false,

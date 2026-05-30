@@ -1,8 +1,7 @@
 import "server-only";
 
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
-import { loadUserAdoConnection } from "@/lib/db/load-user-ado-connection";
-import { isUserPersistenceReady } from "@/lib/db/is-persistence-ready";
+import { getRepositories, isUserPersistenceReady } from "@/lib/db";
 
 /** True si hay cuenta TaskPilot en sesión con conexión ADO guardada en BD. */
 export async function hasActiveUserSession(): Promise<boolean> {
@@ -15,7 +14,7 @@ export async function hasActiveUserSession(): Promise<boolean> {
   if (!userId) return false;
 
   try {
-    const connection = await loadUserAdoConnection(userId);
+    const connection = await getRepositories().adoConnection.loadByUserId(userId);
     return connection !== null;
   } catch {
     return false;

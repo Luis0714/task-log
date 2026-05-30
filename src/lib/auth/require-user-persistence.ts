@@ -3,7 +3,7 @@ import "server-only";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
 import { isIronSessionConfigured } from "@/lib/auth/session";
-import { isUserPersistenceReady } from "@/lib/db/is-persistence-ready";
+import { isUserPersistenceReady } from "@/lib/db";
 
 export type PersistenceGateResult =
   | { ok: true }

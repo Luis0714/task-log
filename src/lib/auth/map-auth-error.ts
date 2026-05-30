@@ -27,6 +27,9 @@ export function mapAuthErrorFromSearchParams(
   if (detail === "incomplete_connection") {
     return "No pudimos vincular tu organización y proyecto en Azure DevOps. Vuelve a intentarlo o pide ayuda a tu administrador.";
   }
+  if (detail === "cancelled") {
+    return "Inicio de sesión cancelado. Puedes intentarlo de nuevo.";
+  }
   if (detail === "invalid_state" || detail === "missing_code") {
     return "La conexión se interrumpió. Vuelve a intentarlo.";
   }

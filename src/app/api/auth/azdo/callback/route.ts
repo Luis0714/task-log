@@ -1,17 +1,22 @@
-import { NextResponse } from "next/server";
-
 import {
   completeEntraOAuthSignIn,
   EntraSignInIncompleteError,
 } from "@/lib/auth/complete-entra-oauth-sign-in";
 import { exchangeCodeForTokens, getAuthBaseUrl } from "@/lib/auth/entra";
+import { oauthRedirect } from "@/lib/auth/oauth-http";
 import { requirePersistenceForOAuth } from "@/lib/auth/require-user-persistence";
 import { getTaskPilotSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
 function redirectHome(search: string) {
-  return NextResponse.redirect(new URL(`/${search}`, getAuthBaseUrl()));
+  return oauthRedirect(new URL(`/${search}`, getAuthBaseUrl()));
+}
+
+function redirectLogin(detail: string) {
+  return oauthRedirect(
+    new URL(`/login?azdo_error=auth&detail=${detail}`, getAuthBaseUrl()),
+  );
 }
 
 export async function GET(req: Request) {
@@ -19,25 +24,33 @@ export async function GET(req: Request) {
   if (!gate.ok) {
     const detail =
       gate.status === 503 ? "persistence_unavailable" : "microsoft_unavailable";
-    return redirectHome(`?azdo_error=auth&detail=${detail}`);
+    return redirectLogin(detail);
   }
 
+  const session = await getTaskPilotSession();
   const url = new URL(req.url);
   const err = url.searchParams.get("error");
+
   if (err) {
-    return redirectHome("?azdo_error=auth");
+    session.pendingOAuth = undefined;
+    await session.save();
+    const detail = err === "access_denied" ? "cancelled" : "auth";
+    return redirectLogin(detail);
   }
 
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   if (!code || !state) {
-    return redirectHome("?azdo_error=auth&detail=missing_code");
+    session.pendingOAuth = undefined;
+    await session.save();
+    return redirectLogin("missing_code");
   }
 
-  const session = await getTaskPilotSession();
   const pending = session.pendingOAuth;
   if (!pending || pending.state !== state) {
-    return redirectHome("?azdo_error=auth&detail=invalid_state");
+    session.pendingOAuth = undefined;
+    await session.save();
+    return redirectLogin("invalid_state");
   }
 
   try {
@@ -48,9 +61,9 @@ export async function GET(req: Request) {
 
     const refresh = tokens.refresh_token;
     if (!refresh) {
-      return redirectHome(
-        "?azdo_error=auth&detail=no_refresh_token_admin_consent",
-      );
+      session.pendingOAuth = undefined;
+      await session.save();
+      return redirectLogin("no_refresh_token_admin_consent");
     }
 
     session.pendingOAuth = undefined;
@@ -68,9 +81,9 @@ export async function GET(req: Request) {
     await session.save().catch(() => undefined);
 
     if (error instanceof EntraSignInIncompleteError) {
-      return redirectHome("?azdo_error=auth&detail=incomplete_connection");
+      return redirectLogin("incomplete_connection");
     }
 
-    return redirectHome("?azdo_error=auth");
+    return redirectLogin("auth");
   }
 }

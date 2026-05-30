@@ -4,7 +4,7 @@ import { AccountAuthCard } from "@/components/auth/account-auth-card";
 import { ACCOUNT_AUTH_COPY } from "@/components/auth/account-auth-copy";
 import { RegisterPatForm } from "@/components/auth/register-pat-form";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
-import { isUserPersistenceReady } from "@/lib/db/is-persistence-ready";
+import { isUserPersistenceReady } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 

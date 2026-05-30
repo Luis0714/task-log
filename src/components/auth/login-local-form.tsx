@@ -6,6 +6,7 @@ import { ACCOUNT_AUTH_COPY } from "@/components/auth/account-auth-copy";
 import { ConnectMethodOauthAction } from "@/components/auth/connect-method-oauth-action";
 import { LocalAccountFields } from "@/components/auth/local-account-fields";
 import { Button } from "@/components/ui/button";
+import { useAbandonPendingOAuth } from "@/hooks/auth/use-abandon-pending-oauth";
 import {
   useLoginLocalForm,
   type UseLoginLocalFormOptions,
@@ -26,6 +27,7 @@ export function LoginLocalForm({
   onUserNotFound,
 }: LoginLocalFormProps) {
   const copy = ACCOUNT_AUTH_COPY.login;
+  useAbandonPendingOAuth();
   const {
     email,
     password,

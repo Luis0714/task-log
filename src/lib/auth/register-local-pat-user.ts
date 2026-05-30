@@ -2,7 +2,7 @@ import "server-only";
 
 import { hydratePatSession } from "@/lib/auth/hydrate-pat-session";
 import { validatePatConnection } from "@/lib/auth/validate-pat-connection";
-import { createLocalPatUser } from "@/lib/db/repositories/local-user.repository";
+import { getRepositories } from "@/lib/db";
 import { fetchCurrentAdoProfile } from "@/lib/azure-devops/profile";
 import { getTaskPilotSession } from "@/lib/auth/session";
 import type { RegisterPatBody } from "@/lib/schemas/register-pat";
@@ -50,7 +50,7 @@ export async function registerLocalPatUser(
   const passwordHash = await hashPassword(password);
 
   try {
-    const { userId } = await createLocalPatUser({
+    const { userId } = await getRepositories().localUser.createPatUser({
       email,
       passwordHash,
       organization,

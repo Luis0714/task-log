@@ -9,10 +9,7 @@ import {
   hydrateOAuthSession,
   type AdoProfileSession,
 } from "@/lib/auth/hydrate-oauth-session";
-import {
-  findEntraUserWithOAuthConnection,
-  upsertEntraOAuthUser,
-} from "@/lib/db/repositories/entra-user.repository";
+import { getRepositories } from "@/lib/db";
 import type { TaskPilotSessionData } from "@/lib/auth/session";
 
 export class EntraSignInIncompleteError extends Error {
@@ -48,8 +45,10 @@ export async function completeEntraOAuthSignIn(
     ? (await pickDefaultProject(accessToken, organization))?.trim() || null
     : null;
 
+  const { entraUser } = getRepositories();
+
   if (!organization || !project) {
-    const existing = await findEntraUserWithOAuthConnection(adoProfile.id);
+    const existing = await entraUser.findWithOAuthConnection(adoProfile.id);
     if (existing) {
       organization = organization ?? existing.organization;
       project = project ?? existing.project;
@@ -60,7 +59,7 @@ export async function completeEntraOAuthSignIn(
     throw new EntraSignInIncompleteError();
   }
 
-  const { userId } = await upsertEntraOAuthUser({
+  const { userId } = await entraUser.upsertOAuthUser({
     entraSubject: adoProfile.id,
     refreshToken,
     organization,

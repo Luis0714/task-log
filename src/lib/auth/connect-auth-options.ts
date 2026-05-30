@@ -3,7 +3,7 @@ import "server-only";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
 import { isEntraOAuthConfigured } from "@/lib/auth/entra";
 import { isIronSessionConfigured } from "@/lib/auth/session";
-import { isUserPersistenceReady } from "@/lib/db/is-persistence-ready";
+import { isUserPersistenceReady } from "@/lib/db";
 
 export function getConnectAuthOptions(): ConnectAuthOptions {
   const sessionReady = isIronSessionConfigured();

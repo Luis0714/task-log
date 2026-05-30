@@ -1,3 +1,6 @@
+const OAUTH_START_PATH = "/api/auth/azdo/start";
+
 export function startMicrosoftConnect(): void {
-  window.location.assign("/api/auth/azdo/start");
+  const nonce = crypto.randomUUID();
+  window.location.assign(`${OAUTH_START_PATH}?nonce=${encodeURIComponent(nonce)}`);
 }

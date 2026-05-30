@@ -44,7 +44,7 @@ export function buildAuthorizeUrl(params: { state: string; codeChallenge: string
   u.searchParams.set("state", params.state);
   u.searchParams.set("code_challenge", params.codeChallenge);
   u.searchParams.set("code_challenge_method", "S256");
-  u.searchParams.set("prompt", "consent");
+  u.searchParams.set("prompt", "select_account");
   return u.toString();
 }
 

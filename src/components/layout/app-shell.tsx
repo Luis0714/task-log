@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 
 import { AdoProfileSync } from "@/components/connection/ado-profile-sync";
+import { HistoryScopeProvider } from "@/components/history/history-scope-provider";
 import { AppLogo } from "@/components/brand/app-logo";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AdoWorkItemLinksProvider } from "@/components/work-items/ado-work-item-links-context";
@@ -16,6 +17,7 @@ import type { AdoConnectionDisplay } from "@/lib/auth/connection-display";
 
 export type AppShellProps = {
   connection: AdoConnectionDisplay;
+  historyScopeKey?: string | null;
   defaultSidebarOpen?: boolean;
   sidebarConnection?: React.ReactNode;
   children: React.ReactNode;
@@ -23,6 +25,7 @@ export type AppShellProps = {
 
 export function AppShell({
   connection,
+  historyScopeKey = null,
   defaultSidebarOpen = true,
   sidebarConnection,
   children,
@@ -31,9 +34,10 @@ export function AppShell({
 
   return (
     <TooltipProvider delay={0}>
-      <AdoWorkItemLinksProvider organization={connection.organization}>
-        <AdoProfileSync isConnected={connection.isConnected} />
-        <SidebarProvider defaultOpen={defaultSidebarOpen}>
+      <HistoryScopeProvider scopeKey={historyScopeKey}>
+        <AdoWorkItemLinksProvider organization={connection.organization}>
+          <AdoProfileSync isConnected={connection.isConnected} />
+          <SidebarProvider defaultOpen={defaultSidebarOpen}>
         <AppSidebar
           connection={connection}
           connectionFooter={sidebarConnection}
@@ -58,7 +62,8 @@ export function AppShell({
           </div>
         </SidebarInset>
         </SidebarProvider>
-      </AdoWorkItemLinksProvider>
+        </AdoWorkItemLinksProvider>
+      </HistoryScopeProvider>
     </TooltipProvider>
   );
 }

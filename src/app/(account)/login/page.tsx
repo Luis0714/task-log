@@ -6,7 +6,7 @@ import { LoginAuthNotice } from "@/components/auth/login-auth-notice";
 import { LoginLocalForm } from "@/components/auth/login-local-form";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
-import { isUserPersistenceReady } from "@/lib/db/is-persistence-ready";
+import { isUserPersistenceReady } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 

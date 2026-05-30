@@ -14,8 +14,7 @@ import {
   resolveAdoCaller,
 } from "@/lib/azure-devops/resolve-auth";
 import { isAdoExecutionReady } from "@/lib/azure-devops/work-items";
-import { loadUserAdoConnection } from "@/lib/db/load-user-ado-connection";
-import { isUserPersistenceReady } from "@/lib/db/is-persistence-ready";
+import { getRepositories, isUserPersistenceReady } from "@/lib/db";
 
 export type ServerAuthProfileFields = {
   profileDisplayName: string | null;
@@ -66,7 +65,7 @@ async function resolveSavedTargetFromSession(): Promise<{
 
   if (userId && isUserPersistenceReady()) {
     try {
-      const connection = await loadUserAdoConnection(userId);
+      const connection = await getRepositories().adoConnection.loadByUserId(userId);
       if (connection) {
         const team = connection.team?.trim();
         return {

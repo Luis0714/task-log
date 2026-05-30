@@ -5,6 +5,7 @@ import { buildShellLayoutMetadata } from "@/lib/seo/metadata";
 import { AppShell } from "@/components/layout/app-shell";
 import { ShellSidebarConnection } from "@/components/layout/shell-sidebar-connection";
 import { mapAuthStateToConnectionDisplay } from "@/lib/auth/connection-display";
+import { getHistoryScopeKey } from "@/lib/auth/history-scope";
 import { mergeServerAuthState } from "@/lib/auth/merge-auth-state";
 import { emptyServerProfileFields } from "@/lib/auth/profile-display";
 import { getServerAuthBootstrap } from "@/lib/auth/server-state";
@@ -19,9 +20,10 @@ export default async function ShellLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [bootstrap, defaultSidebarOpen] = await Promise.all([
+  const [bootstrap, defaultSidebarOpen, historyScopeKey] = await Promise.all([
     getServerAuthBootstrap(),
     getSidebarDefaultOpen(),
+    getHistoryScopeKey(),
   ]);
   const connection = mapAuthStateToConnectionDisplay(
     mergeServerAuthState(bootstrap, emptyServerProfileFields),
@@ -30,6 +32,7 @@ export default async function ShellLayout({
   return (
     <AppShell
       connection={connection}
+      historyScopeKey={historyScopeKey}
       defaultSidebarOpen={defaultSidebarOpen}
       sidebarConnection={
         <Suspense

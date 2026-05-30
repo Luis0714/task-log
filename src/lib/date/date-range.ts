@@ -1,5 +1,23 @@
 import { parseLocalDateKey, toLocalDateKey } from "@/lib/dashboard/sprint-days";
 
+const DISPLAY_LOCALE = "es-ES";
+
+const dateFormatter = new Intl.DateTimeFormat(DISPLAY_LOCALE, {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
+const dateTimeFormatter = new Intl.DateTimeFormat(DISPLAY_LOCALE, {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+});
+
 function startOfDay(date: Date): number {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 }
@@ -32,13 +50,15 @@ export function isWithinDays(dateValue: string, days: number): boolean {
 }
 
 export function formatDateTime(isoDate: string): string {
-  return new Date(isoDate).toLocaleString();
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return isoDate;
+  return dateTimeFormatter.format(date);
 }
 
 export function formatDateKey(dateKey: string): string {
   const date = parseLocalDateKey(dateKey);
   if (!date) return dateKey;
-  return date.toLocaleDateString();
+  return dateFormatter.format(date);
 }
 
 export function isSameCalendarDay(dateValue: string, isoDate: string): boolean {

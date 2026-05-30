@@ -7,8 +7,7 @@ import {
   getTaskPilotSession,
   isIronSessionConfigured,
 } from "@/lib/auth/session";
-import { loadUserAdoConnection } from "@/lib/db/load-user-ado-connection";
-import { isUserPersistenceReady } from "@/lib/db/is-persistence-ready";
+import { getRepositories, isUserPersistenceReady } from "@/lib/db";
 
 export type AdoCallerAuth =
   | { mode: "oauth"; accessToken: string; organization: string; project: string }
@@ -33,7 +32,7 @@ export async function resolveAdoCaller(
 
   let connection;
   try {
-    connection = await loadUserAdoConnection(userId);
+    connection = await getRepositories().adoConnection.loadByUserId(userId);
   } catch {
     return null;
   }

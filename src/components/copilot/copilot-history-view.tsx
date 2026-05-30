@@ -31,7 +31,7 @@ export function CopilotHistoryView() {
       </section>
 
       <div className="border-border min-h-0 flex-1 overflow-y-auto rounded-lg border">
-        <CopilotHistoryList entries={filtered} />
+        <CopilotHistoryList entries={filtered} totalCount={history.length} />
       </div>
     </div>
   );

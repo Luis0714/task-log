@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
 
 import {
-  getHistoryEntryFilterDate,
+  filterHistoryEntries,
   type CopilotHistoryEntry,
-} from "@/hooks/use-copilot-history";
-import { isWithinDays } from "@/lib/date/date-range";
+} from "@/lib/history/copilot-history-entry";
 
 export type HistoryFilterRange = 1 | 7 | 15 | 30;
 
@@ -26,7 +25,7 @@ export function useHistoryFilter(entries: CopilotHistoryEntry[]) {
   const [range, setRange] = useState<HistoryFilterRange>(DEFAULT_RANGE);
 
   const filtered = useMemo(
-    () => entries.filter((e) => isWithinDays(getHistoryEntryFilterDate(e), range)),
+    () => filterHistoryEntries(entries, range),
     [entries, range],
   );
 

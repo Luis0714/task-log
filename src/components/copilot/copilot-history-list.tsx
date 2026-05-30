@@ -1,64 +1,61 @@
 "use client";
 
 import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
-import {
-  formatDateKey,
-  formatDateTime,
-  isSameCalendarDay,
-} from "@/lib/date/date-range";
+import { getHistoryEntryDisplay } from "@/lib/history/history-entry-display";
 
 export type CopilotHistoryListProps = {
   entries: CopilotHistoryEntry[];
+  totalCount?: number;
 };
 
-export function CopilotHistoryList({ entries }: CopilotHistoryListProps) {
+export function CopilotHistoryList({ entries, totalCount = 0 }: CopilotHistoryListProps) {
   if (entries.length === 0) {
     return (
       <p className="text-muted-foreground py-6 text-center text-sm">
-        Sin ejecuciones en el rango seleccionado.
+        {totalCount > 0
+          ? "Sin ejecuciones en el rango seleccionado."
+          : "Sin ejecuciones guardadas para esta cuenta."}
       </p>
     );
   }
 
   return (
     <ul className="space-y-2 p-3 text-sm">
-      {entries.map((entry) => {
-        const showWorkingDate = Boolean(entry.workingDate);
-        const showExecutedAt =
-          showWorkingDate &&
-          entry.workingDate &&
-          !isSameCalendarDay(entry.workingDate, entry.at);
-
-        return (
-          <li
-            key={entry.id}
-            className="border-border/60 flex flex-col gap-0.5 border-b pb-2 last:border-0 last:pb-0"
-          >
-            {showWorkingDate && entry.workingDate ? (
-              <>
-                <time
-                  className="text-muted-foreground text-xs"
-                  dateTime={entry.workingDate}
-                >
-                  Día de trabajo: {formatDateKey(entry.workingDate)}
-                </time>
-                {showExecutedAt ? (
-                  <span className="text-muted-foreground text-xs">
-                    Registrado: {formatDateTime(entry.at)}
-                  </span>
-                ) : null}
-              </>
-            ) : (
-              <time className="text-muted-foreground text-xs" dateTime={entry.at}>
-                {formatDateTime(entry.at)}
-              </time>
-            )}
-            <span className={entry.ok ? "text-foreground" : "text-destructive"}>
-              {entry.summary}
-            </span>
-          </li>
-        );
-      })}
+      {entries.map((entry) => (
+        <HistoryListItem key={entry.id} entry={entry} />
+      ))}
     </ul>
+  );
+}
+
+type HistoryListItemProps = {
+  entry: CopilotHistoryEntry;
+};
+
+function HistoryListItem({ entry }: HistoryListItemProps) {
+  const display = getHistoryEntryDisplay(entry);
+
+  return (
+    <li className="border-border/60 flex flex-col gap-0.5 border-b pb-2 last:border-0 last:pb-0">
+      {display.workingDateTime ? (
+        <>
+          <time className="text-muted-foreground text-xs" dateTime={display.workingDateTime}>
+            Día de trabajo: {display.workingDateLabel}
+          </time>
+          {display.executedAtLabel ? (
+            <span className="text-muted-foreground text-xs">
+              Registrado: {display.executedAtLabel}
+            </span>
+          ) : null}
+        </>
+      ) : (
+        <time className="text-muted-foreground text-xs" dateTime={display.executedDateTime!}>
+          {display.executedAtLabel}
+        </time>
+      )}
+      <span className={entry.ok ? "text-foreground" : "text-destructive"}>
+        {entry.summary}
+      </span>
+    </li>
   );
 }
