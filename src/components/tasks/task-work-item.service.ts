@@ -18,10 +18,12 @@ export async function patchTaskWorkItem(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const body = (await response.json()) as { error?: string; detail?: string };
+  const body = (await response.json()) as { error?: string };
 
   if (response.ok) return { ok: true };
 
-  const errorMessage = [body.error, body.detail].filter(Boolean).join(" — ");
-  return { ok: false, errorMessage: errorMessage || "No se pudo guardar el estado." };
+  return {
+    ok: false,
+    errorMessage: body.error ?? "No se pudo guardar el estado.",
+  };
 }

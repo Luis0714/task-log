@@ -15,11 +15,13 @@ export async function updateBugInAdo(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const data = (await res.json()) as { error?: string; detail?: string };
+    const data = (await res.json()) as { error?: string };
 
     if (!res.ok) {
-      const message = [data.error, data.detail].filter(Boolean).join(" — ");
-      return { ok: false, message: message || "No se pudo guardar el Bug." };
+      return {
+        ok: false,
+        message: data.error ?? "No se pudo guardar el bug.",
+      };
     }
 
     return { ok: true };

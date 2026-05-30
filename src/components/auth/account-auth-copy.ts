@@ -37,5 +37,9 @@ export const ACCOUNT_AUTH_COPY = {
     continue: "Ir al inicio",
   },
   persistenceUnavailable:
-    "El registro con cuenta guardada no está disponible. El administrador debe configurar DATABASE_URL y ENCRYPTION_KEY.",
+    "El servicio de cuentas no está disponible en este momento. Inténtalo más tarde o contacta al administrador.",
+  patConnectHint:
+    "Guardamos tu conexión con Azure DevOps de forma segura. Crea una cuenta o entra si ya la tienes.",
+  patConnectRegister: "Crear cuenta",
+  patConnectLogin: "Ya tengo cuenta",
 } as const;

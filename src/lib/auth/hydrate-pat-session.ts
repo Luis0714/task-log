@@ -10,7 +10,7 @@ export type PatSessionInput = {
   organization: string;
   project: string;
   team?: string;
-  taskPilotUserId?: string;
+  taskPilotUserId: string;
 };
 
 export async function hydratePatSession(
@@ -24,13 +24,10 @@ export async function hydratePatSession(
 
   clearSessionCredentials(session);
   session.sessionAuthMethod = "pat";
-  session.azdoPat = pat;
+  session.taskPilotUserId = input.taskPilotUserId;
   session.defaultOrg = organization;
   session.defaultProject = project;
   session.defaultTeam = trimmedTeam || undefined;
-  if (input.taskPilotUserId) {
-    session.taskPilotUserId = input.taskPilotUserId;
-  }
 
   const caller = { mode: "pat" as const, organization, project, pat };
   const profile = await fetchCurrentAdoProfile(caller);

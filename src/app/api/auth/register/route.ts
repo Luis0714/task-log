@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { registerLocalPatUser } from "@/lib/auth/register-local-pat-user";
 import { requireUserPersistence } from "@/lib/auth/require-user-persistence";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { connectPatBodySchema } from "@/lib/schemas/connect-pat";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +17,12 @@ export async function POST(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Datos inválidos." }, { status: 400 });
+    return NextResponse.json({ error: USER_MESSAGES.invalidForm }, { status: 400 });
   }
 
   const parsed = connectPatBodySchema.safeParse(body);
   if (!parsed.success) {
-    const message = parsed.error.issues[0]?.message ?? "Datos inválidos.";
+    const message = parsed.error.issues[0]?.message ?? USER_MESSAGES.invalidForm;
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
@@ -40,10 +41,7 @@ export async function POST(req: Request) {
     });
   } catch {
     return NextResponse.json(
-      {
-        error:
-          "No pudimos crear tu cuenta. Inténtalo de nuevo en unos segundos.",
-      },
+      { error: USER_MESSAGES.genericRetry },
       { status: 500 },
     );
   }

@@ -1,38 +1,23 @@
 import "server-only";
 
-import { getAzdoAuthMethod } from "@/lib/auth/auth-method";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
+import { loadUserAdoConnection } from "@/lib/db/load-user-ado-connection";
+import { isUserPersistenceReady } from "@/lib/db/is-persistence-ready";
 
-/** True si el usuario inició sesión en este navegador (no PAT solo en servidor). */
+/** True si hay cuenta TaskPilot en sesión con conexión ADO guardada en BD. */
 export async function hasActiveUserSession(): Promise<boolean> {
-  if (!isIronSessionConfigured()) return false;
+  if (!isIronSessionConfigured() || !isUserPersistenceReady()) {
+    return false;
+  }
 
   const session = await getTaskPilotSession();
-  const deploy = getAzdoAuthMethod();
+  const userId = session.taskPilotUserId?.trim();
+  if (!userId) return false;
 
-  if (session.sessionAuthMethod === "pat") {
-    return Boolean(
-      session.azdoPat?.trim() &&
-        session.defaultOrg?.trim() &&
-        session.defaultProject?.trim(),
-    );
+  try {
+    const connection = await loadUserAdoConnection(userId);
+    return connection !== null;
+  } catch {
+    return false;
   }
-
-  if (session.sessionAuthMethod === "oauth") {
-    return Boolean(
-      session.azdoRefreshToken &&
-        session.defaultOrg?.trim() &&
-        session.defaultProject?.trim(),
-    );
-  }
-
-  if (deploy === "oauth") {
-    return Boolean(
-      session.azdoRefreshToken &&
-        session.defaultOrg?.trim() &&
-        session.defaultProject?.trim(),
-    );
-  }
-
-  return false;
 }

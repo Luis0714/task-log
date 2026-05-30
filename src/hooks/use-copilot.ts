@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 
 import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import type { LogWorkPayload, PreviewResult } from "@/lib/schemas/agent";
 
 type UseCopilotOptions = {
@@ -33,13 +34,13 @@ export function useCopilot({ appendHistory }: UseCopilotOptions) {
       const data = (await res.json()) as { preview?: PreviewResult; error?: string };
 
       if (!res.ok) {
-        setError(data.error ?? "Error al interpretar");
+        setError(data.error ?? USER_MESSAGES.copilotInterpret);
         return;
       }
 
       if (data.preview) setPreview(data.preview);
     } catch {
-      setError("No se pudo contactar al servidor.");
+      setError(USER_MESSAGES.genericRetry);
     } finally {
       setLoadingPreview(false);
     }
@@ -59,14 +60,11 @@ export function useCopilot({ appendHistory }: UseCopilotOptions) {
         const data = (await res.json()) as {
           success?: boolean;
           error?: string;
-          detail?: string;
           newCompletedWork?: number;
         };
 
         if (!res.ok) {
-          setError(
-            [data.error, data.detail].filter(Boolean).join(" — ") || "Error al ejecutar",
-          );
+          setError(data.error ?? USER_MESSAGES.saveFailed);
           appendHistory({
             id: crypto.randomUUID(),
             at: new Date().toISOString(),
@@ -85,7 +83,7 @@ export function useCopilot({ appendHistory }: UseCopilotOptions) {
           ok: true,
         });
       } catch {
-        setError("No se pudo ejecutar la acción.");
+        setError(USER_MESSAGES.genericRetry);
       } finally {
         setLoadingExecute(false);
       }

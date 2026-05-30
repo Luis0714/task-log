@@ -4,7 +4,6 @@ import type { CreateTaskPayload } from "@/lib/schemas/time-log";
 export type CreateTaskApiResponse = {
   success?: boolean;
   error?: string;
-  detail?: string;
   taskId?: number;
   completedWork?: number;
   markedAsDone?: boolean;
@@ -41,10 +40,9 @@ export async function createTaskInAdo(
   const data = (await res.json()) as CreateTaskApiResponse;
 
   if (!res.ok) {
-    const raw = [data.error, data.detail].filter(Boolean).join(" — ") || "Error al ejecutar";
     return {
       ok: false,
-      message: formatAdoErrorMessage(raw),
+      message: formatAdoErrorMessage(data.error ?? "") || "No se pudo crear la tarea.",
     };
   }
 

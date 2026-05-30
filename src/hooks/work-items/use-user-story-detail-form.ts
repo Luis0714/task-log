@@ -202,11 +202,13 @@ export function useUserStoryDetailForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const payload = (await res.json()) as { error?: string; detail?: string };
+      const payload = (await res.json()) as { error?: string };
 
       if (!res.ok) {
-        const message = [payload.error, payload.detail].filter(Boolean).join(" — ");
-        return { ok: false as const, message: message || "No se pudo guardar el estado." };
+        return {
+          ok: false as const,
+          message: payload.error ?? "No se pudo guardar el estado.",
+        };
       }
 
       onSaved?.();

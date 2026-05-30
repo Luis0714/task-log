@@ -4,6 +4,7 @@ import { hydratePatSession } from "@/lib/auth/hydrate-pat-session";
 import { findLocalUserWithPatConnection } from "@/lib/db/repositories/local-user.repository";
 import { getTaskPilotSession } from "@/lib/auth/session";
 import type { LoginLocalBody } from "@/lib/schemas/login-local";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { decryptAdoSecrets, verifyPassword } from "@/lib/security";
 
 export type LoginLocalSuccess = { ok: true };
@@ -26,7 +27,7 @@ export async function loginLocalUser(
     return {
       ok: false,
       reason: "invalid_credentials",
-      message: "Usuario o contraseña incorrectos.",
+      message: USER_MESSAGES.invalidCredentials,
     };
   }
 
@@ -38,7 +39,7 @@ export async function loginLocalUser(
     return {
       ok: false,
       reason: "invalid_credentials",
-      message: "Usuario o contraseña incorrectos.",
+      message: USER_MESSAGES.invalidCredentials,
     };
   }
 
@@ -46,7 +47,7 @@ export async function loginLocalUser(
   if (secrets.kind !== "pat") {
     return {
       ok: false,
-      message: "Esta cuenta no usa código de acceso. Entra con Microsoft.",
+      message: USER_MESSAGES.microsoftUnavailable,
       reason: "microsoft_account",
     };
   }

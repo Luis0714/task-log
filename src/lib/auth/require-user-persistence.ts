@@ -1,5 +1,6 @@
 import "server-only";
 
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
 import { isIronSessionConfigured } from "@/lib/auth/session";
 import { isUserPersistenceReady } from "@/lib/db/is-persistence-ready";
@@ -13,8 +14,7 @@ export function requireUserPersistence(): PersistenceGateResult {
     return {
       ok: false,
       status: 503,
-      message:
-        "La sesión no está configurada en el servidor (IRON_SESSION_PASSWORD).",
+      message: USER_MESSAGES.sessionUnavailable,
     };
   }
 
@@ -23,7 +23,7 @@ export function requireUserPersistence(): PersistenceGateResult {
     return {
       ok: false,
       status: 403,
-      message: "El registro con código de acceso no está disponible.",
+      message: USER_MESSAGES.authUnavailable,
     };
   }
 
@@ -31,8 +31,23 @@ export function requireUserPersistence(): PersistenceGateResult {
     return {
       ok: false,
       status: 503,
-      message:
-        "La base de datos no está configurada (DATABASE_URL y ENCRYPTION_KEY).",
+      message: USER_MESSAGES.persistenceUnavailable,
+    };
+  }
+
+  return { ok: true };
+}
+
+export function requirePersistenceForOAuth(): PersistenceGateResult {
+  const base = requireUserPersistence();
+  if (!base.ok) return base;
+
+  const { oauthReady } = getConnectAuthOptions();
+  if (!oauthReady) {
+    return {
+      ok: false,
+      status: 403,
+      message: USER_MESSAGES.microsoftUnavailable,
     };
   }
 

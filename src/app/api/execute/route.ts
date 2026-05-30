@@ -1,7 +1,11 @@
-import { NextResponse } from "next/server";
 import { ADO_SIGN_IN_REQUIRED_MESSAGE } from "@/lib/auth/ado-auth-messages";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
+import {
+  apiErrorResponse,
+} from "@/lib/errors/api-error-response";
+import { logApiError } from "@/lib/errors/log-api-error";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { logWorkOnWorkItem } from "@/lib/azure-devops/work-items";
 import { executeRequestSchema } from "@/lib/schemas/agent";
 
@@ -10,21 +14,18 @@ export async function POST(req: Request) {
   try {
     raw = await req.json();
   } catch {
-    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+    return apiErrorResponse(USER_MESSAGES.invalidJsonBody, 400);
   }
 
   const parsed = executeRequestSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Payload inválido: solo se puede ejecutar una vista previa de tipo log_work." },
-      { status: 422 },
-    );
+    return apiErrorResponse(USER_MESSAGES.invalidPayload, 422);
   }
 
   const { preview, project } = parsed.data;
   const auth = await resolveAdoCaller({ persistOAuthTokens: true });
   if (!auth) {
-    return NextResponse.json({ error: ADO_SIGN_IN_REQUIRED_MESSAGE }, { status: 401 });
+    return apiErrorResponse(ADO_SIGN_IN_REQUIRED_MESSAGE, 401);
   }
 
   const authForExecute = project ? withAdoProject(auth, project) : auth;
@@ -39,17 +40,14 @@ export async function POST(req: Request) {
   );
 
   if (!result.ok) {
-    return NextResponse.json(
-      {
-        error: "No se pudo registrar en Azure DevOps.",
-        detail: result.body,
-        status: result.status,
-      },
-      { status: result.status >= 400 && result.status < 600 ? result.status : 502 },
+    logApiError("execute POST", { status: result.status, body: result.body });
+    return apiErrorResponse(
+      USER_MESSAGES.saveFailed,
+      result.status >= 400 && result.status < 600 ? result.status : 502,
     );
   }
 
-  return NextResponse.json({
+  return Response.json({
     success: true,
     workItemId: preview.workItemId,
     hours: preview.hours,

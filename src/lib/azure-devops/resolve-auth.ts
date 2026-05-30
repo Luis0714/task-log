@@ -1,113 +1,82 @@
+import "server-only";
+
 import { refreshAccessToken } from "@/lib/auth/entra";
+import { syncOAuthRefreshToDatabase } from "@/lib/auth/sync-oauth-refresh-to-db";
 import {
   clearSessionCredentials,
   getTaskPilotSession,
   isIronSessionConfigured,
 } from "@/lib/auth/session";
+import { loadUserAdoConnection } from "@/lib/db/load-user-ado-connection";
+import { isUserPersistenceReady } from "@/lib/db/is-persistence-ready";
 
 export type AdoCallerAuth =
   | { mode: "oauth"; accessToken: string; organization: string; project: string }
   | { mode: "pat"; organization: string; project: string; pat: string };
-
-function patFromSession(
-  session: Awaited<ReturnType<typeof getTaskPilotSession>>,
-): AdoCallerAuth | null {
-  const pat = session.azdoPat?.trim();
-  const organization = session.defaultOrg?.trim();
-  const project = session.defaultProject?.trim();
-  if (!pat || !organization || !project) return null;
-
-  return {
-    mode: "pat",
-    organization,
-    project,
-    pat,
-  };
-}
 
 export type ResolveAdoCallerOptions = {
   /** Solo en Route Handlers / Server Actions (Next.js no permite escribir cookies en RSC). */
   persistOAuthTokens?: boolean;
 };
 
-async function oauthFromSession(
-  options: ResolveAdoCallerOptions,
+/** Credenciales ADO desde la base de datos (cuenta TaskPilot en sesión). */
+export async function resolveAdoCaller(
+  options: ResolveAdoCallerOptions = {},
 ): Promise<AdoCallerAuth | null> {
-  if (!isIronSessionConfigured()) return null;
-
-  const session = await getTaskPilotSession();
-  if (
-    !session.azdoRefreshToken ||
-    !session.defaultOrg?.trim() ||
-    !session.defaultProject?.trim()
-  ) {
+  if (!isIronSessionConfigured() || !isUserPersistenceReady()) {
     return null;
   }
 
+  const session = await getTaskPilotSession();
+  const userId = session.taskPilotUserId?.trim();
+  if (!userId) return null;
+
+  let connection;
   try {
-    const tokens = await refreshAccessToken(session.azdoRefreshToken);
+    connection = await loadUserAdoConnection(userId);
+  } catch {
+    return null;
+  }
+
+  if (!connection) return null;
+
+  const organization = connection.organization.trim();
+  const project = connection.project.trim();
+  if (!organization || !project) return null;
+
+  if (connection.authMethod === "pat") {
+    return {
+      mode: "pat",
+      organization,
+      project,
+      pat: connection.pat,
+    };
+  }
+
+  try {
+    const tokens = await refreshAccessToken(connection.refreshToken);
     if (tokens.refresh_token && options.persistOAuthTokens) {
-      session.azdoRefreshToken = tokens.refresh_token;
-      await session.save();
+      await syncOAuthRefreshToDatabase(session, tokens.refresh_token);
     }
     return {
       mode: "oauth",
       accessToken: tokens.access_token,
-      organization: session.defaultOrg.trim(),
-      project: session.defaultProject.trim(),
+      organization,
+      project,
     };
   } catch {
     return null;
   }
 }
 
-/** Credenciales ADO solo desde la sesión del usuario (nunca desde variables de entorno). */
-export async function resolveAdoCaller(
-  options: ResolveAdoCallerOptions = {},
-): Promise<AdoCallerAuth | null> {
-  if (!isIronSessionConfigured()) return null;
-
-  const session = await getTaskPilotSession();
-
-  if (session.sessionAuthMethod === "pat") {
-    return patFromSession(session);
-  }
-
-  if (session.sessionAuthMethod === "oauth") {
-    return oauthFromSession(options);
-  }
-
-  if (
-    session.azdoRefreshToken &&
-    session.defaultOrg?.trim() &&
-    session.defaultProject?.trim()
-  ) {
-    return oauthFromSession(options);
-  }
-
-  return null;
-}
-
 export async function isSessionPatReady(): Promise<boolean> {
-  if (!isIronSessionConfigured()) return false;
-  const session = await getTaskPilotSession();
-  return Boolean(
-    session.sessionAuthMethod === "pat" &&
-      session.azdoPat?.trim() &&
-      session.defaultOrg?.trim() &&
-      session.defaultProject?.trim(),
-  );
+  const caller = await resolveAdoCaller();
+  return caller?.mode === "pat";
 }
 
 export async function isSessionOAuthReady(): Promise<boolean> {
-  if (!isIronSessionConfigured()) return false;
-  const session = await getTaskPilotSession();
-  return Boolean(
-    session.sessionAuthMethod === "oauth" &&
-      session.azdoRefreshToken &&
-      session.defaultOrg?.trim() &&
-      session.defaultProject?.trim(),
-  );
+  const caller = await resolveAdoCaller();
+  return caller?.mode === "oauth";
 }
 
 export async function clearUserSessionAuth(): Promise<void> {

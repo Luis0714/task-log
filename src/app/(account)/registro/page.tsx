@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AccountAuthCard } from "@/components/auth/account-auth-card";
 import { ACCOUNT_AUTH_COPY } from "@/components/auth/account-auth-copy";
 import { RegisterPatForm } from "@/components/auth/register-pat-form";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { isUserPersistenceReady } from "@/lib/db/is-persistence-ready";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export default async function RegistroPage() {
         <RegisterPatForm />
       ) : (
         <p className="text-muted-foreground text-sm leading-relaxed">
-          {ACCOUNT_AUTH_COPY.persistenceUnavailable}
+          {USER_MESSAGES.persistenceUnavailable}
         </p>
       )}
       <p className="text-muted-foreground mt-6 text-center text-xs">

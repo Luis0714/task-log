@@ -5,6 +5,7 @@ import { ConnectMethodOauthAction } from "@/components/auth/connect-method-oauth
 import { ConnectMethodOptionSection } from "@/components/auth/connect-method-option-section";
 import { ConnectMethodPatAction } from "@/components/auth/connect-method-pat-action";
 import { ConnectUnavailablePanel } from "@/components/auth/connect-unavailable-panel";
+import { PersistenceUnavailablePanel } from "@/components/auth/persistence-unavailable-panel";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
 import type { SavedConnectionTarget } from "@/lib/auth/server-state";
 import type { SessionAuthMethod } from "@/lib/auth/session-auth-method";
@@ -21,19 +22,21 @@ export type ConnectMethodPickerProps = {
 
 export function ConnectMethodPicker({
   connectOptions,
-  savedConnectionTarget = null,
   selectedMethod,
   onSelectMethod,
-  onConnected,
 }: ConnectMethodPickerProps) {
   const { microsoft, pat, chooseMethodAriaLabel } = CONNECT_ADO_COPY;
 
+  if (!connectOptions.persistenceReady) {
+    return <PersistenceUnavailablePanel />;
+  }
+
+  if (!connectOptions.sessionReady) {
+    return <ConnectUnavailablePanel />;
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      {!connectOptions.sessionReady ? (
-        <ConnectUnavailablePanel connectOptions={connectOptions} />
-      ) : null}
-
       <div
         role="radiogroup"
         aria-label={chooseMethodAriaLabel}
@@ -44,6 +47,11 @@ export function ConnectMethodPicker({
           const copy = isOAuth ? microsoft : pat;
           const ready = isOAuth ? connectOptions.oauthReady : connectOptions.patReady;
           const selected = selectedMethod === method;
+          const disabledHint = !ready
+            ? isOAuth
+              ? "El inicio con Microsoft no está disponible en este entorno."
+              : "El registro con cuenta guardada no está disponible ahora."
+            : undefined;
 
           return (
             <ConnectMethodOptionSection
@@ -54,16 +62,13 @@ export function ConnectMethodPicker({
               description={copy.cardDescription}
               selected={selected}
               disabled={!ready}
-              disabledHint={!ready ? copy.unavailableHint : undefined}
+              disabledHint={disabledHint}
               action={
                 selected && ready ? (
                   isOAuth ? (
                     <ConnectMethodOauthAction />
                   ) : (
-                    <ConnectMethodPatAction
-                      savedConnectionTarget={savedConnectionTarget}
-                      onConnected={onConnected}
-                    />
+                    <ConnectMethodPatAction />
                   )
                 ) : null
               }

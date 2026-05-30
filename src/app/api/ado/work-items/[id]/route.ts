@@ -6,6 +6,13 @@ import { updateBacklogItemState } from "@/lib/azure-devops/update-backlog-item-s
 import { updateWorkItemState } from "@/lib/azure-devops/work-items";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import {
+  apiErrorFromCause,
+  apiErrorResponse,
+} from "@/lib/errors/api-error-response";
+import { logApiError } from "@/lib/errors/log-api-error";
+import { mapAdoWorkItemUpdateError } from "@/lib/errors/map-ado-work-item-update-error";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
+import {
   isBacklogWorkItemUpdate,
   updateWorkItemBodySchema,
 } from "@/lib/schemas/work-item-update";
@@ -19,27 +26,27 @@ export async function PATCH(req: Request, context: RouteContext) {
   const workItemId = Number.parseInt(idParam, 10);
 
   if (!Number.isFinite(workItemId) || workItemId <= 0) {
-    return NextResponse.json({ error: "ID de elemento de trabajo inválido." }, { status: 400 });
+    return apiErrorResponse(USER_MESSAGES.invalidWorkItemId, 400);
   }
 
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Cuerpo JSON inválido." }, { status: 400 });
+    return apiErrorResponse(USER_MESSAGES.invalidJsonBody, 400);
   }
 
   const parsed = updateWorkItemBodySchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Datos inválidos.", detail: parsed.error.flatten() },
-      { status: 400 },
+    return apiErrorResponse(
+      parsed.error.issues[0]?.message ?? USER_MESSAGES.invalidForm,
+      400,
     );
   }
 
   const auth = await resolveAdoCaller({ persistOAuthTokens: true });
   if (!auth) {
-    return NextResponse.json({ error: ADO_SIGN_IN_REQUIRED_MESSAGE }, { status: 401 });
+    return apiErrorResponse(ADO_SIGN_IN_REQUIRED_MESSAGE, 401);
   }
 
   try {
@@ -70,45 +77,20 @@ export async function PATCH(req: Request, context: RouteContext) {
         );
 
     if (!result.ok) {
-      const detail = result.body;
-      const needsWorkingDate =
-        detail.includes("Working Date") || detail.includes("Custom.WorkingDate");
-      const needsCompletedWork =
-        detail.includes("Completed Work") || detail.includes("CompletedWork");
-      const needsStartDate =
-        detail.includes("Start Date") || detail.includes("StartDate");
-      const needsTargetDate =
-        detail.includes("Target Date") || detail.includes("TargetDate");
-      const needsResponsable =
-        detail.includes("Responsable") || detail.includes("Maquetacion");
-      const message =
-        result.status === 403
-          ? "Permisos insuficientes para actualizar este elemento de trabajo."
-          : needsWorkingDate
-            ? "Azure DevOps exige la fecha de trabajo para cambiar el estado."
-            : needsCompletedWork
-              ? "Azure DevOps exige el trabajo completado para cambiar el estado."
-              : needsStartDate
-                ? "Azure DevOps exige la fecha de inicio para este cambio de estado."
-                : needsTargetDate
-                  ? "Azure DevOps exige la fecha objetivo para este cambio de estado."
-                  : needsResponsable
-                    ? "Azure DevOps exige completar los responsables para este cambio de estado."
-                    : result.status === 400 && detail.length < 200
-                      ? detail
-                      : "No se pudo actualizar el estado.";
-      return NextResponse.json(
-        { error: message, detail: result.body },
-        { status: result.status >= 400 && result.status < 600 ? result.status : 502 },
+      logApiError("ado/work-items PATCH", { status: result.status, body: result.body });
+      const message = mapAdoWorkItemUpdateError(result.status, result.body);
+      return apiErrorResponse(
+        message,
+        result.status >= 400 && result.status < 600 ? result.status : 502,
       );
     }
 
     return NextResponse.json({ ok: true, state: result.state });
   } catch (cause) {
-    const detail = cause instanceof Error ? cause.message : "Error desconocido";
-    return NextResponse.json(
-      { error: "No se pudo actualizar el elemento de trabajo.", detail },
-      { status: 502 },
+    return apiErrorFromCause(
+      "ado/work-items PATCH",
+      cause,
+      USER_MESSAGES.workItemUpdateFailed,
     );
   }
 }

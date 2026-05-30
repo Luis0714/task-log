@@ -12,6 +12,8 @@ import type {
   AdoTaskStateDto,
   AdoWorkItemOptionDto,
 } from "@/lib/schemas/ado-catalog";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
+import { logApiError } from "@/lib/errors/log-api-error";
 
 export type SprintDataPart<T> = {
   data: T;
@@ -19,8 +21,8 @@ export type SprintDataPart<T> = {
 };
 
 function formatSprintDataError(cause: unknown): string {
-  const detail = cause instanceof Error ? cause.message : "Error desconocido";
-  return `No se pudieron cargar los datos del sprint. — ${detail}`;
+  logApiError("loadSprintData", cause);
+  return USER_MESSAGES.sprintLoadFailed;
 }
 
 async function resolveScopedAuth(project: string): Promise<AdoCallerAuth | null> {

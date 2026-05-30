@@ -9,6 +9,8 @@ export type ConnectPatResult =
   | { ok: true }
   | { ok: false; errorMessage: string };
 
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
+
 export async function connectWithPat(
   payload: ConnectPatPayload,
 ): Promise<ConnectPatResult> {
@@ -24,7 +26,7 @@ export async function connectWithPat(
 
   return {
     ok: false,
-    errorMessage: body.error ?? "No pudimos conectarte. Revisa los datos e inténtalo de nuevo.",
+    errorMessage: body.error ?? USER_MESSAGES.patConnectDeprecated,
   };
 }
 

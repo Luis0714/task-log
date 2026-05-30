@@ -4,30 +4,26 @@ import {
   buildAuthorizeUrl,
   generateOAuthState,
   generatePkcePair,
-  isEntraOAuthConfigured,
 } from "@/lib/auth/entra";
-import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
-import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
+import { getAuthBaseUrl } from "@/lib/auth/entra";
+import { requirePersistenceForOAuth } from "@/lib/auth/require-user-persistence";
+import { getTaskPilotSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const { oauthReady } = getConnectAuthOptions();
-  if (!oauthReady) {
-    return NextResponse.json(
-      { error: "El inicio con cuenta Microsoft no está disponible." },
-      { status: 403 },
-    );
-  }
+function redirectWithAuthError(detail: string) {
+  const base = getAuthBaseUrl();
+  return NextResponse.redirect(
+    new URL(`/login?azdo_error=auth&detail=${detail}`, base),
+  );
+}
 
-  if (!isEntraOAuthConfigured() || !isIronSessionConfigured()) {
-    return NextResponse.json(
-      {
-        error:
-          "OAuth no configurado. Revisa AUTH_BASE_URL, AZURE_AD_CLIENT_ID, AZURE_AD_CLIENT_SECRET e IRON_SESSION_PASSWORD.",
-      },
-      { status: 503 },
-    );
+export async function GET() {
+  const gate = requirePersistenceForOAuth();
+  if (!gate.ok) {
+    const detail =
+      gate.status === 503 ? "persistence_unavailable" : "microsoft_unavailable";
+    return redirectWithAuthError(detail);
   }
 
   const state = generateOAuthState();

@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
+
 import { interpretUserMessage } from "@/lib/agent/interpret";
+import { mapErrorToUserMessage } from "@/lib/errors/map-error-to-user-message";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
 
 export async function POST(req: Request) {
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+    return NextResponse.json(
+      { error: USER_MESSAGES.invalidForm },
+      { status: 400 },
+    );
   }
 
   const message =
@@ -17,8 +23,13 @@ export async function POST(req: Request) {
   try {
     const preview = await interpretUserMessage(message);
     return NextResponse.json({ preview });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Error al interpretar";
-    return NextResponse.json({ error: msg }, { status: 500 });
+  } catch (error) {
+    console.error("[preview]", error);
+    return NextResponse.json(
+      {
+        error: mapErrorToUserMessage(error, USER_MESSAGES.copilotInterpret),
+      },
+      { status: 500 },
+    );
   }
 }

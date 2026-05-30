@@ -3,9 +3,11 @@ export type AzdoAuthMethod = "pat" | "oauth" | "both";
 export type ConnectAuthOptions = {
   /** Sesión cifrada disponible (IRON_SESSION_PASSWORD). */
   sessionReady: boolean;
-  /** Microsoft Entra configurado y sesión lista. */
+  /** Base de datos y cifrado listos para cuentas guardadas. */
+  persistenceReady: boolean;
+  /** Microsoft Entra configurado y persistencia lista. */
   oauthReady: boolean;
-  /** Código de acceso disponible (requiere sesión). */
+  /** Registro/login con código de acceso (cuenta guardada en BD). */
   patReady: boolean;
 };
 
@@ -40,5 +42,5 @@ export function isSignInUiOffered(): boolean {
 }
 
 export function hasConnectMethod(options: ConnectAuthOptions): boolean {
-  return options.sessionReady;
+  return options.persistenceReady && (options.oauthReady || options.patReady);
 }

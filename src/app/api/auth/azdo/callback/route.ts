@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 
 import {
-  exchangeCodeForTokens,
-  fetchAdoProfile,
-  getAuthBaseUrl,
-  listAdoAccounts,
-  pickDefaultProject,
-} from "@/lib/auth/entra";
-import { attachProcessProfileOnConnect } from "@/lib/azure-devops/persist-process-profile";
-import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
+  completeEntraOAuthSignIn,
+  EntraSignInIncompleteError,
+} from "@/lib/auth/complete-entra-oauth-sign-in";
+import { exchangeCodeForTokens, getAuthBaseUrl } from "@/lib/auth/entra";
+import { requirePersistenceForOAuth } from "@/lib/auth/require-user-persistence";
 import { getTaskPilotSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
@@ -18,20 +15,17 @@ function redirectHome(search: string) {
 }
 
 export async function GET(req: Request) {
-  const { oauthReady } = getConnectAuthOptions();
-  if (!oauthReady) {
-    return redirectHome("?azdo_error=auth&detail=oauth_disabled");
+  const gate = requirePersistenceForOAuth();
+  if (!gate.ok) {
+    const detail =
+      gate.status === 503 ? "persistence_unavailable" : "microsoft_unavailable";
+    return redirectHome(`?azdo_error=auth&detail=${detail}`);
   }
 
   const url = new URL(req.url);
   const err = url.searchParams.get("error");
-  const errDesc = url.searchParams.get("error_description");
   if (err) {
-    const q = new URLSearchParams({
-      azdo_error: "auth",
-      detail: errDesc ?? err,
-    });
-    return redirectHome(`?${q.toString()}`);
+    return redirectHome("?azdo_error=auth");
   }
 
   const code = url.searchParams.get("code");
@@ -60,46 +54,23 @@ export async function GET(req: Request) {
     }
 
     session.pendingOAuth = undefined;
-    session.sessionAuthMethod = "oauth";
-    session.azdoPat = undefined;
-    session.azdoRefreshToken = refresh;
 
-    try {
-      const profile = await fetchAdoProfile(tokens.access_token);
-      session.adoProfile = profile;
-      const accounts = await listAdoAccounts(tokens.access_token, profile.id);
-      const firstOrg = accounts[0]?.accountName;
-      session.defaultOrg = firstOrg;
-      if (firstOrg) {
-        session.defaultProject = await pickDefaultProject(
-          tokens.access_token,
-          firstOrg,
-        );
-      }
-
-      const organization = session.defaultOrg?.trim();
-      const project = session.defaultProject?.trim();
-      if (organization && project) {
-        try {
-          await attachProcessProfileOnConnect(session, {
-            mode: "oauth",
-            accessToken: tokens.access_token,
-            organization,
-            project,
-          });
-        } catch {
-          // OAuth sigue válido; el perfil se resolverá en la primera carga del proyecto.
-        }
-      }
-    } catch {
-      // Tokens válidos; org/proyecto se pueden completar en una siguiente HU.
-    }
+    await completeEntraOAuthSignIn({
+      session,
+      refreshToken: refresh,
+      accessToken: tokens.access_token,
+    });
 
     await session.save();
     return redirectHome("?azdo=connected");
-  } catch {
+  } catch (error) {
     session.pendingOAuth = undefined;
     await session.save().catch(() => undefined);
+
+    if (error instanceof EntraSignInIncompleteError) {
+      return redirectHome("?azdo_error=auth&detail=incomplete_connection");
+    }
+
     return redirectHome("?azdo_error=auth");
   }
 }

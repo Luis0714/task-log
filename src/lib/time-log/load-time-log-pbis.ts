@@ -6,6 +6,8 @@ import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
 import type { TimeLogPbisSnapshot } from "@/lib/time-log/load-time-log-baseline";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { listWorkItemsInSprint } from "@/lib/azure-devops/work-items";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
+import { logApiError } from "@/lib/errors/log-api-error";
 
 export const loadTimeLogPbis = cache(async function loadTimeLogPbis(
   project: string,
@@ -29,10 +31,10 @@ export const loadTimeLogPbis = cache(async function loadTimeLogPbis(
     );
     return { sprintPbis, error: null };
   } catch (cause) {
-    const detail = cause instanceof Error ? cause.message : "Error desconocido";
+    logApiError("loadTimeLogPbis", cause);
     return {
       sprintPbis: [],
-      error: `No se pudieron cargar las historias del sprint. — ${detail}`,
+      error: USER_MESSAGES.timeLogPbisLoadFailed,
     };
   }
 });
