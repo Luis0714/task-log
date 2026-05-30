@@ -5,6 +5,8 @@ import type { StoredAdoProcessProfile } from "@/lib/azure-devops/process-profile
 import type { SessionAuthMethod } from "@/lib/auth/session-auth-method";
 
 export type TaskPilotSessionData = {
+  /** Usuario persistido en BD (registro/login TaskPilot). */
+  taskPilotUserId?: string;
   pendingOAuth?: { state: string; codeVerifier: string };
   sessionAuthMethod?: SessionAuthMethod;
   azdoPat?: string;
@@ -18,6 +20,7 @@ export type TaskPilotSessionData = {
 };
 
 export function clearSessionCredentials(session: TaskPilotSessionData): void {
+  session.taskPilotUserId = undefined;
   session.pendingOAuth = undefined;
   session.sessionAuthMethod = undefined;
   session.azdoPat = undefined;

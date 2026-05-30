@@ -1,4 +1,5 @@
 import { Cloud, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 import { ConnectSignInTrigger } from "@/components/auth/connect-sign-in-trigger";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
@@ -59,11 +60,29 @@ export function SignInRequiredPanel({
         </div>
 
         {showSignIn ? (
-          <ConnectSignInTrigger
-            connectOptions={connectOptions}
-            savedConnectionTarget={savedConnectionTarget}
-            className="min-w-44"
-          />
+          <div className="flex flex-col items-center gap-3">
+            <ConnectSignInTrigger
+              connectOptions={connectOptions}
+              savedConnectionTarget={savedConnectionTarget}
+              className="min-w-44"
+            />
+            <p className="text-muted-foreground text-xs">
+              ¿Cuenta guardada?{" "}
+              <Link
+                href="/login"
+                className="text-primary font-medium underline-offset-4 hover:underline"
+              >
+                Iniciar sesión
+              </Link>
+              {" · "}
+              <Link
+                href="/registro"
+                className="text-primary font-medium underline-offset-4 hover:underline"
+              >
+                Crear cuenta
+              </Link>
+            </p>
+          </div>
         ) : null}
       </div>
     </section>
