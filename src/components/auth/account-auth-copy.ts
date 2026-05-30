@@ -2,9 +2,9 @@ export const ACCOUNT_AUTH_COPY = {
   login: {
     title: "Iniciar sesión",
     description:
-      "Entra con el usuario y la contraseña de TaskPilot que recibiste al registrarte.",
-    usernameLabel: "Usuario TaskPilot",
-    usernamePlaceholder: "tp_…",
+      "Entra con el correo y la contraseña de TaskPilot que recibiste al registrarte.",
+    emailLabel: "Correo TaskPilot",
+    emailPlaceholder: "tu@correo.taskpilot",
     passwordLabel: "Contraseña",
     passwordPlaceholder: "Tu contraseña",
     submit: "Entrar",
@@ -13,11 +13,14 @@ export const ACCOUNT_AUTH_COPY = {
     registerLink: "Crear cuenta",
     microsoftDivider: "o",
     microsoftButton: "Continuar con Microsoft",
+    microsoftHint:
+      "Si aún no tienes cuenta, la crearemos al continuar con Microsoft.",
+    microsoftAdminHint: "Si algo falla, avisa a tu administrador de TI.",
   },
   register: {
     title: "Crear cuenta",
     description:
-      "Configura tu conexión con Azure DevOps. Te daremos un usuario y contraseña de TaskPilot para futuros accesos.",
+      "Configura tu conexión con Azure DevOps. Te daremos un correo y contraseña de TaskPilot para futuros accesos.",
     submit: "Crear cuenta",
     submitting: "Creando cuenta…",
     hasAccount: "¿Ya tienes cuenta?",
@@ -27,9 +30,9 @@ export const ACCOUNT_AUTH_COPY = {
     title: "Guarda tus credenciales",
     description:
       "Son solo para entrar a TaskPilot. No son tu cuenta de Microsoft ni tu código de Azure DevOps.",
-    usernameLabel: "Usuario",
+    emailLabel: "Correo TaskPilot",
     passwordLabel: "Contraseña",
-    copyUsername: "Copiar usuario",
+    copyEmail: "Copiar correo",
     copyPassword: "Copiar contraseña",
     copied: "Copiado",
     warning:

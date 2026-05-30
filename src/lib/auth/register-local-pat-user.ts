@@ -15,7 +15,7 @@ const MAX_USERNAME_ATTEMPTS = 5;
 
 export type RegisterLocalPatSuccess = {
   ok: true;
-  username: string;
+  email: string;
   password: string;
 };
 
@@ -61,7 +61,7 @@ export async function registerLocalPatUser(
 
     try {
       const { userId } = await createLocalPatUser({
-        username: credentials.username,
+        email: credentials.email,
         passwordHash,
         organization,
         project,
@@ -83,7 +83,7 @@ export async function registerLocalPatUser(
 
       return {
         ok: true,
-        username: credentials.username,
+        email: credentials.email,
         password: credentials.password,
       };
     } catch (error) {

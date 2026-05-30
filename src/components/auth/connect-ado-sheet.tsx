@@ -4,7 +4,7 @@ import { Suspense } from "react";
 
 import { ConnectAuthNotice } from "@/components/auth/connect-auth-notice";
 import { CONNECT_ADO_COPY } from "@/components/auth/connect-ado-copy";
-import { ConnectMethodPicker } from "@/components/auth/connect-method-picker";
+import { ConnectSignInPanel } from "@/components/auth/connect-sign-in-panel";
 import {
   Sheet,
   SheetContent,
@@ -13,13 +13,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useAuthNoticeFromUrl } from "@/hooks/auth/use-auth-notice-from-url";
-import { useConnectAdoSheet } from "@/hooks/auth/use-connect-ado-sheet";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
-import type { SavedConnectionTarget } from "@/lib/auth/server-state";
-
 export type ConnectAdoSheetProps = {
   connectOptions: ConnectAuthOptions;
-  savedConnectionTarget?: SavedConnectionTarget | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -32,19 +28,11 @@ function ConnectAuthNoticeSlot() {
 
 export function ConnectAdoSheet({
   connectOptions,
-  savedConnectionTarget = null,
   open,
   onOpenChange,
 }: ConnectAdoSheetProps) {
-  const sheet = useConnectAdoSheet({ open });
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) sheet.resetFlow();
-    onOpenChange(nextOpen);
-  };
-
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="overflow-y-auto sm:max-w-md">
         <SheetHeader>
           <SheetTitle>{CONNECT_ADO_COPY.sheetTitle}</SheetTitle>
@@ -56,12 +44,9 @@ export function ConnectAdoSheet({
             <ConnectAuthNoticeSlot />
           </Suspense>
 
-          <ConnectMethodPicker
+          <ConnectSignInPanel
             connectOptions={connectOptions}
-            savedConnectionTarget={savedConnectionTarget}
-            selectedMethod={sheet.selectedMethod}
-            onSelectMethod={sheet.selectMethod}
-            onConnected={() => handleOpenChange(false)}
+            onConnected={() => onOpenChange(false)}
           />
         </div>
       </SheetContent>

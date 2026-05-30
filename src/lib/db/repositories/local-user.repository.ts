@@ -17,7 +17,7 @@ export type LocalUserWithPatConnection = {
 };
 
 export async function findLocalUserWithPatConnection(
-  username: string,
+  email: string,
 ): Promise<LocalUserWithPatConnection | null> {
   const rows = await getDb()
     .select({
@@ -33,7 +33,7 @@ export async function findLocalUserWithPatConnection(
     })
     .from(users)
     .innerJoin(adoConnections, eq(adoConnections.userId, users.id))
-    .where(eq(users.username, username))
+    .where(eq(users.username, email))
     .limit(1);
 
   const row = rows[0];
@@ -52,7 +52,7 @@ export async function findLocalUserWithPatConnection(
 }
 
 export type CreateLocalPatUserInput = {
-  username: string;
+  email: string;
   passwordHash: string;
   organization: string;
   project: string;
@@ -74,7 +74,8 @@ export async function createLocalPatUser(
     const [user] = await tx
       .insert(users)
       .values({
-        username: input.username,
+        username: input.email,
+        email: input.email,
         passwordHash: input.passwordHash,
         authProvider: "local",
         displayName: input.displayName,

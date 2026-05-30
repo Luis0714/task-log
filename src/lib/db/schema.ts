@@ -20,7 +20,7 @@ export const users = pgTable(
   "users",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    /** Solo usuarios `local` (registro PAT). */
+    /** Correo de inicio de sesión; solo usuarios `local` (registro PAT). */
     username: text("username"),
     /** bcrypt; solo `local`. */
     passwordHash: text("password_hash"),

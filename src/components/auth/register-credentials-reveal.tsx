@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { ACCOUNT_AUTH_COPY } from "@/components/auth/account-auth-copy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import type { RegisterCredentials } from "@/hooks/auth/use-register-pat-form";
 
@@ -28,12 +29,12 @@ export function RegisterCredentialsReveal({
 }: RegisterCredentialsRevealProps) {
   const router = useRouter();
   const copy = ACCOUNT_AUTH_COPY.credentialsReveal;
-  const [copiedField, setCopiedField] = useState<"username" | "password" | null>(
+  const [copiedField, setCopiedField] = useState<"email" | "password" | null>(
     null,
   );
 
   const handleCopy = useCallback(
-    async (field: "username" | "password", value: string) => {
+    async (field: "email" | "password", value: string) => {
       const ok = await copyText(value);
       if (ok) {
         setCopiedField(field);
@@ -58,20 +59,21 @@ export function RegisterCredentialsReveal({
 
       <div className="space-y-3">
         <div className="space-y-1.5">
-          <Label htmlFor="reveal-username">{copy.usernameLabel}</Label>
+          <Label htmlFor="reveal-email">{copy.emailLabel}</Label>
           <div className="flex gap-2">
             <Input
-              id="reveal-username"
+              id="reveal-email"
               readOnly
-              value={credentials.username}
+              type="email"
+              value={credentials.email}
               className="font-mono text-sm"
             />
             <Button
               type="button"
               variant="outline"
-              onClick={() => void handleCopy("username", credentials.username)}
+              onClick={() => void handleCopy("email", credentials.email)}
             >
-              {copiedField === "username" ? copy.copied : copy.copyUsername}
+              {copiedField === "email" ? copy.copied : copy.copyEmail}
             </Button>
           </div>
         </div>
@@ -79,10 +81,9 @@ export function RegisterCredentialsReveal({
         <div className="space-y-1.5">
           <Label htmlFor="reveal-password">{copy.passwordLabel}</Label>
           <div className="flex gap-2">
-            <Input
+            <PasswordInput
               id="reveal-password"
               readOnly
-              type="password"
               value={credentials.password}
               className="font-mono text-sm"
             />

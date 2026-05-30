@@ -34,10 +34,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
-      username: result.username,
+      email: result.email,
       password: result.password,
       notice:
-        "Guarda tu usuario y contraseña de TaskPilot. No volverán a mostrarse.",
+        "Guarda tu correo y contraseña de TaskPilot. No volverán a mostrarse.",
     });
   } catch {
     return NextResponse.json(

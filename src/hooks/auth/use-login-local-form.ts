@@ -5,9 +5,16 @@ import { useRouter } from "next/navigation";
 
 import { loginLocal } from "@/services/auth/login-local.service";
 
-export function useLoginLocalForm() {
+export type UseLoginLocalFormOptions = {
+  onSuccess?: () => void;
+  onUserNotFound?: () => void;
+};
+
+export function useLoginLocalForm(options?: UseLoginLocalFormOptions) {
   const router = useRouter();
-  const [username, setUsername] = useState("");
+  const onSuccess = options?.onSuccess;
+  const onUserNotFound = options?.onUserNotFound;
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -16,24 +23,38 @@ export function useLoginLocalForm() {
     setSubmitting(true);
     setErrorMessage(null);
 
-    const result = await loginLocal({ username, password });
+    const result = await loginLocal({ email, password });
     setSubmitting(false);
 
     if (!result.ok) {
+      if (result.reason === "user_not_found") {
+        if (onUserNotFound) {
+          onUserNotFound();
+        } else {
+          router.push("/registro");
+        }
+        return;
+      }
+
       setErrorMessage(result.errorMessage);
+      return;
+    }
+
+    if (onSuccess) {
+      onSuccess();
       return;
     }
 
     router.push("/");
     router.refresh();
-  }, [password, router, username]);
+  }, [email, onSuccess, onUserNotFound, password, router]);
 
   return {
-    username,
+    email,
     password,
     submitting,
     errorMessage,
-    setUsername,
+    setEmail,
     setPassword,
     submit,
   };

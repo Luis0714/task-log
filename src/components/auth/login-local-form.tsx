@@ -6,25 +6,40 @@ import { ACCOUNT_AUTH_COPY } from "@/components/auth/account-auth-copy";
 import { ConnectMethodOauthAction } from "@/components/auth/connect-method-oauth-action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
-import { useLoginLocalForm } from "@/hooks/auth/use-login-local-form";
+import {
+  useLoginLocalForm,
+  type UseLoginLocalFormOptions,
+} from "@/hooks/auth/use-login-local-form";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
 
 export type LoginLocalFormProps = {
   connectOptions: ConnectAuthOptions;
-};
+  idPrefix?: string;
+  registerHref?: string;
+} & UseLoginLocalFormOptions;
 
-export function LoginLocalForm({ connectOptions }: LoginLocalFormProps) {
+export function LoginLocalForm({
+  connectOptions,
+  idPrefix = "login",
+  registerHref = "/registro",
+  onSuccess,
+  onUserNotFound,
+}: LoginLocalFormProps) {
   const copy = ACCOUNT_AUTH_COPY.login;
   const {
-    username,
+    email,
     password,
     submitting,
     errorMessage,
-    setUsername,
+    setEmail,
     setPassword,
     submit,
-  } = useLoginLocalForm();
+  } = useLoginLocalForm({ onSuccess, onUserNotFound });
+
+  const emailId = `${idPrefix}-email`;
+  const passwordId = `${idPrefix}-password`;
 
   return (
     <div className="space-y-6">
@@ -36,22 +51,23 @@ export function LoginLocalForm({ connectOptions }: LoginLocalFormProps) {
         }}
       >
         <div className="space-y-1.5">
-          <Label htmlFor="login-username">{copy.usernameLabel}</Label>
+          <Label htmlFor={emailId}>{copy.emailLabel}</Label>
           <Input
-            id="login-username"
-            autoComplete="username"
+            id={emailId}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
             spellCheck={false}
-            placeholder={copy.usernamePlaceholder}
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            placeholder={copy.emailPlaceholder}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
           />
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="login-password">{copy.passwordLabel}</Label>
-          <Input
-            id="login-password"
-            type="password"
+          <Label htmlFor={passwordId}>{copy.passwordLabel}</Label>
+          <PasswordInput
+            id={passwordId}
             autoComplete="current-password"
             placeholder={copy.passwordPlaceholder}
             value={password}
@@ -70,24 +86,28 @@ export function LoginLocalForm({ connectOptions }: LoginLocalFormProps) {
         </Button>
       </form>
 
-      <p className="text-center text-sm">
-        {copy.noAccount}{" "}
-        <Link
-          href="/registro"
-          className="text-primary font-medium underline-offset-4 hover:underline"
-        >
-          {copy.registerLink}
-        </Link>
-      </p>
-
       {connectOptions.oauthReady ? (
         <div className="space-y-3">
           <p className="text-muted-foreground text-center text-xs uppercase tracking-wide">
             {copy.microsoftDivider}
           </p>
-          <ConnectMethodOauthAction />
+          <ConnectMethodOauthAction
+            continueLabel={copy.microsoftButton}
+            hint={copy.microsoftHint}
+            adminHint={copy.microsoftAdminHint}
+          />
         </div>
       ) : null}
+
+      <p className="text-center text-sm">
+        {copy.noAccount}{" "}
+        <Link
+          href={registerHref}
+          className="text-primary font-medium underline-offset-4 hover:underline"
+        >
+          {copy.registerLink}
+        </Link>
+      </p>
     </div>
   );
 }

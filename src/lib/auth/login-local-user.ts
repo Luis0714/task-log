@@ -12,7 +12,7 @@ export type LoginLocalSuccess = { ok: true };
 export type LoginLocalFailure = {
   ok: false;
   message: string;
-  reason?: "invalid_credentials" | "microsoft_account";
+  reason?: "invalid_credentials" | "user_not_found" | "microsoft_account";
 };
 
 export type LoginLocalResult = LoginLocalSuccess | LoginLocalFailure;
@@ -20,13 +20,12 @@ export type LoginLocalResult = LoginLocalSuccess | LoginLocalFailure;
 export async function loginLocalUser(
   input: LoginLocalBody,
 ): Promise<LoginLocalResult> {
-  const username = input.username.trim();
-  const record = await findLocalUserWithPatConnection(username);
+  const record = await findLocalUserWithPatConnection(input.email);
 
   if (!record) {
     return {
       ok: false,
-      reason: "invalid_credentials",
+      reason: "user_not_found",
       message: USER_MESSAGES.invalidCredentials,
     };
   }

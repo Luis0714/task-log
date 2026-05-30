@@ -11,14 +11,18 @@ export function ConnectMethodPatAction() {
       <p className="text-muted-foreground text-sm leading-relaxed">
         {ACCOUNT_AUTH_COPY.patConnectHint}
       </p>
-      <Button type="button" className="w-full" render={<Link href="/registro" />}>
+      <Button
+        className="w-full"
+        render={<Link href="/registro" />}
+        nativeButton={false}
+      >
         {ACCOUNT_AUTH_COPY.patConnectRegister}
       </Button>
       <Button
-        type="button"
         variant="outline"
         className="w-full"
         render={<Link href="/login" />}
+        nativeButton={false}
       >
         {ACCOUNT_AUTH_COPY.patConnectLogin}
       </Button>

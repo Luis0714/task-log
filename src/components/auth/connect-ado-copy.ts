@@ -1,6 +1,7 @@
 export const CONNECT_ADO_COPY = {
-  sheetTitle: "Conectar con Azure DevOps",
-  sheetSubtitle: "Elige cómo quieres entrar. Solo necesitas una opción.",
+  sheetTitle: "Iniciar sesión",
+  sheetSubtitle:
+    "Entra con el correo y la contraseña de TaskPilot que recibiste al registrarte.",
   signInButton: "Iniciar sesión",
   back: "Volver",
   chooseMethodAriaLabel: "Método de inicio de sesión",
@@ -39,7 +40,7 @@ export const CONNECT_ADO_COPY = {
     urlLabel: "URL de Azure DevOps (opcional)",
     urlPlaceholder: "https://dev.azure.com/tu-organizacion/tu-proyecto/...",
     urlHint:
-      "De la URL leemos organización (1.er segmento), proyecto (2.º) y equipo si estás en tablero o backlog. Ejemplo: dev.azure.com/mi-organizacion/mi-proyecto/.../taskboard/mi-equipo/...",
+      "Puedes pegar la URL de Azure y sacamos tu organización, proyecto y equipo.",
     organizationLabel: "Organización",
     organizationPlaceholder: "mi-organizacion",
     organizationHint:

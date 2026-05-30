@@ -19,7 +19,7 @@ export type ConnectSignInTriggerProps = {
 
 export function ConnectSignInTrigger({
   connectOptions,
-  savedConnectionTarget = null,
+  savedConnectionTarget: _savedConnectionTarget = null,
   className,
   fullWidth = false,
 }: ConnectSignInTriggerProps) {
@@ -37,7 +37,6 @@ export function ConnectSignInTrigger({
       </Button>
       <ConnectAdoSheet
         connectOptions={connectOptions}
-        savedConnectionTarget={savedConnectionTarget}
         open={open}
         onOpenChange={setOpen}
       />

@@ -1,6 +1,7 @@
 import { CONNECT_ADO_COPY } from "@/components/auth/connect-ado-copy";
 import { ConnectPatTokenHelp } from "@/components/auth/connect-pat-token-help";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 
 export type ConnectPatFormFieldsProps = {
@@ -56,9 +57,8 @@ export function ConnectPatFormFields({
 
       <div className="space-y-1.5">
         <Label htmlFor="connect-pat">{copy.tokenLabel}</Label>
-        <Input
+        <PasswordInput
           id="connect-pat"
-          type="password"
           autoComplete="new-password"
           spellCheck={false}
           placeholder={copy.tokenPlaceholder}

@@ -29,8 +29,14 @@ export async function POST(req: Request) {
   try {
     const result = await loginLocalUser(parsed.data);
     if (!result.ok) {
-      const status = result.reason === "invalid_credentials" ? 401 : 400;
-      return NextResponse.json({ error: result.message }, { status });
+      const status =
+        result.reason === "invalid_credentials" || result.reason === "user_not_found"
+          ? 401
+          : 400;
+      return NextResponse.json(
+        { error: result.message, reason: result.reason },
+        { status },
+      );
     }
 
     return NextResponse.json({ ok: true });

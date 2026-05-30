@@ -7,7 +7,7 @@ import { parseAdoUrl } from "@/lib/auth/parse-ado-url";
 import { registerLocalPat } from "@/services/auth/register-local.service";
 
 export type RegisterCredentials = {
-  username: string;
+  email: string;
   password: string;
   notice: string;
 };
@@ -109,7 +109,7 @@ export function useRegisterPatForm() {
     }
 
     setCredentials({
-      username: result.username,
+      email: result.email,
       password: result.password,
       notice: result.notice,
     });

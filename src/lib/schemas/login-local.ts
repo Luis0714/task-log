@@ -1,7 +1,9 @@
 import { z } from "zod";
 
+import { taskPilotEmailSchema } from "@/lib/schemas/taskpilot-email";
+
 export const loginLocalBodySchema = z.object({
-  username: z.string().trim().min(1, "Indica tu usuario."),
+  email: taskPilotEmailSchema,
   password: z.string().min(1, "Indica tu contraseña."),
 });
 

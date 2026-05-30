@@ -4,7 +4,7 @@ export type RegisterLocalPayload = ConnectPatPayload;
 
 export type RegisterLocalSuccess = {
   ok: true;
-  username: string;
+  email: string;
   password: string;
   notice: string;
 };
@@ -27,20 +27,15 @@ export async function registerLocalPat(
 
   const body = (await response.json()) as {
     error?: string;
-    username?: string;
+    email?: string;
     password?: string;
     notice?: string;
   };
 
-  if (
-    response.ok &&
-    body.username &&
-    body.password &&
-    body.notice
-  ) {
+  if (response.ok && body.email && body.password && body.notice) {
     return {
       ok: true,
-      username: body.username,
+      email: body.email,
       password: body.password,
       notice: body.notice,
     };
