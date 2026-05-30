@@ -1,11 +1,11 @@
 import "server-only";
 
-import { neon } from "@neondatabase/serverless";
-import { drizzle, type NeonHttpDatabase } from "drizzle-orm/neon-http";
+import { drizzle, type NeonDatabase } from "drizzle-orm/neon-serverless";
+import ws from "ws";
 
 import * as schema from "@/lib/db/schema";
 
-type Db = NeonHttpDatabase<typeof schema>;
+type Db = NeonDatabase<typeof schema>;
 
 let cachedDb: Db | undefined;
 
@@ -19,10 +19,14 @@ function requireDatabaseUrl(): string {
   return url;
 }
 
-/** Cliente Drizzle (singleton lazy para no fallar al importar sin env en herramientas). */
+/** Cliente Drizzle con WebSocket (soporta transacciones en Neon). */
 export function getDb(): Db {
   if (!cachedDb) {
-    cachedDb = drizzle(neon(requireDatabaseUrl()), { schema });
+    cachedDb = drizzle({
+      connection: requireDatabaseUrl(),
+      schema,
+      ws,
+    });
   }
   return cachedDb;
 }
