@@ -3,14 +3,21 @@
 import { useCallback, useEffect, useState } from "react";
 
 const HISTORY_KEY = "taskpilot_history_v1";
-const MAX_ENTRIES = 30;
+const MAX_ENTRIES = 100;
 
 export type CopilotHistoryEntry = {
   id: string;
+  /** Momento en que se ejecutó la acción (ISO). */
   at: string;
+  /** Fecha de trabajo registrada en ADO (YYYY-MM-DD), si aplica. */
+  workingDate?: string;
   summary: string;
   ok: boolean;
 };
+
+export function getHistoryEntryFilterDate(entry: CopilotHistoryEntry): string {
+  return entry.workingDate ?? entry.at;
+}
 
 function readHistory(): CopilotHistoryEntry[] {
   if (typeof window === "undefined") return [];
@@ -32,8 +39,26 @@ export function useCopilotHistory() {
   const [history, setHistory] = useState<CopilotHistoryEntry[]>([]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- estado en localStorage
-    setHistory(readHistory());
+    const syncHistory = () => {
+      setHistory(readHistory());
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncHistory();
+      }
+    };
+
+    syncHistory();
+    window.addEventListener("storage", syncHistory);
+    window.addEventListener("focus", syncHistory);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("storage", syncHistory);
+      window.removeEventListener("focus", syncHistory);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   const appendEntry = useCallback((entry: CopilotHistoryEntry) => {

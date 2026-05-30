@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useConnectPatFields } from "@/hooks/auth/use-connect-pat-fields";
+import { completeAuthSession } from "@/lib/auth/complete-auth-session";
 import { registerLocalPat } from "@/services/auth/register-local.service";
 
 export function useRegisterPatForm() {
@@ -67,8 +68,7 @@ export function useRegisterPatForm() {
       return;
     }
 
-    router.push("/");
-    router.refresh();
+    completeAuthSession(router);
   }, [buildPatPayload, clearErrors, email, password, router]);
 
   return {

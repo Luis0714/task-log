@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { loginLocal } from "@/services/auth/login-local.service";
+import { completeAuthSession } from "@/lib/auth/complete-auth-session";
 
 export type UseLoginLocalFormOptions = {
   onSuccess?: () => void;
@@ -40,13 +41,8 @@ export function useLoginLocalForm(options?: UseLoginLocalFormOptions) {
       return;
     }
 
-    if (onSuccess) {
-      onSuccess();
-      return;
-    }
-
-    router.push("/");
-    router.refresh();
+    completeAuthSession(router);
+    onSuccess?.();
   }, [email, onSuccess, onUserNotFound, password, router]);
 
   return {

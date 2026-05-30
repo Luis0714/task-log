@@ -1,4 +1,5 @@
 import { DashboardShellServer } from "@/components/dashboard/dashboard-shell-server";
+import { DashboardAuthTransition } from "@/components/dashboard/dashboard-auth-transition";
 import { DashboardDemoShell } from "@/components/dashboard/dashboard-demo-shell";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
@@ -42,39 +43,41 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   };
 
   return (
-    <AdoContextPageLayout
-      gapClassName="gap-6"
-      shellFallback={<DashboardShellSkeleton />}
-      adoExecutionReady={showLiveData}
-      connectOptions={auth.connectOptions}
-      savedConnectionTarget={auth.savedConnectionTarget}
-      disconnectedFallback={<DashboardMockSections />}
-      shell={
-        showLiveData ? (
-          <DashboardShellServer
-            sp={sp}
-            defaultProject={defaultProject}
-            userSessionActive={auth.userSessionActive}
-            adoExecutionReady={showLiveData}
-            connectOptions={auth.connectOptions}
-            savedConnectionTarget={auth.savedConnectionTarget}
-            header={header}
-            initialSprintDayKey={sprintDayKey}
-          />
-        ) : (
-          <DashboardDemoShell connectOptions={auth.connectOptions} />
-        )
-      }
-      content={
-        showLiveData ? (
-          <DashboardSectionsStreamLoader
-            sp={sp}
-            defaultProject={defaultProject}
-            adoExecutionReady={showLiveData}
-            sprintDayKey={sprintDayKey}
-          />
-        ) : null
-      }
-    />
+    <DashboardAuthTransition showLiveData={showLiveData}>
+      <AdoContextPageLayout
+        gapClassName="gap-6"
+        shellFallback={<DashboardShellSkeleton />}
+        adoExecutionReady={showLiveData}
+        connectOptions={auth.connectOptions}
+        savedConnectionTarget={auth.savedConnectionTarget}
+        disconnectedFallback={<DashboardMockSections />}
+        shell={
+          showLiveData ? (
+            <DashboardShellServer
+              sp={sp}
+              defaultProject={defaultProject}
+              userSessionActive={auth.userSessionActive}
+              adoExecutionReady={showLiveData}
+              connectOptions={auth.connectOptions}
+              savedConnectionTarget={auth.savedConnectionTarget}
+              header={header}
+              initialSprintDayKey={sprintDayKey}
+            />
+          ) : (
+            <DashboardDemoShell connectOptions={auth.connectOptions} />
+          )
+        }
+        content={
+          showLiveData ? (
+            <DashboardSectionsStreamLoader
+              sp={sp}
+              defaultProject={defaultProject}
+              adoExecutionReady={showLiveData}
+              sprintDayKey={sprintDayKey}
+            />
+          ) : null
+        }
+      />
+    </DashboardAuthTransition>
   );
 }

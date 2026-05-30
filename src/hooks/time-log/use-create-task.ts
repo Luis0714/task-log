@@ -64,6 +64,7 @@ export function useCreateTask({
           appendHistory({
             id: crypto.randomUUID(),
             at: new Date().toISOString(),
+            workingDate: payload.workingDate,
             summary: `Tarea en historia #${payload.pbiId} +${payload.hours}h (falló)`,
             ok: false,
           });
@@ -78,6 +79,7 @@ export function useCreateTask({
         appendHistory({
           id: crypto.randomUUID(),
           at: new Date().toISOString(),
+          workingDate: payload.workingDate,
           summary: `Tarea #${result.taskId} +${payload.hours}h · Historia #${payload.pbiId}${doneNote}`,
           ok: true,
         });
