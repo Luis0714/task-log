@@ -27,6 +27,11 @@ export type ControlledSelectFieldProps = {
   error?: string | null;
   triggerClassName?: string;
   displayValue?: ReactNode;
+  /** Texto completo en hover del trigger (p. ej. nombres largos de equipo). */
+  triggerTitle?: string;
+  /** Opciones multilínea en el listado (p. ej. equipos con nombres largos). */
+  itemTextWrap?: boolean;
+  contentClassName?: string;
   onValueChange: (value: string) => void;
 };
 
@@ -40,6 +45,9 @@ export function ControlledSelectField({
   error,
   triggerClassName,
   displayValue,
+  triggerTitle,
+  itemTextWrap = false,
+  contentClassName,
   onValueChange,
 }: ControlledSelectFieldProps) {
   return (
@@ -53,12 +61,19 @@ export function ControlledSelectField({
         }}
         disabled={disabled}
       >
-        <SelectTrigger className={cn("w-full", triggerClassName)}>
-          <SelectValue placeholder={placeholder}>{displayValue}</SelectValue>
+        <SelectTrigger className={cn("w-full min-w-0", triggerClassName)} title={triggerTitle}>
+          <SelectValue placeholder={placeholder}>
+            {displayValue ?? (value ? value : undefined)}
+          </SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className={contentClassName}>
           {options.map((option) => (
-            <SelectItem key={option.key ?? option.value} value={option.value}>
+            <SelectItem
+              key={option.key ?? option.value}
+              value={option.value}
+              textWrap={itemTextWrap}
+              title={typeof option.label === "string" ? option.label : option.value}
+            >
               {option.label}
             </SelectItem>
           ))}

@@ -16,6 +16,15 @@ export type LoadedOAuthConnection = {
 
 export type LoadedAdoConnection = LoadedPatConnection | LoadedOAuthConnection;
 
+export type AdoConnectionContextDefaults = {
+  project: string;
+  team: string;
+};
+
 export interface AdoConnectionRepository {
   loadByUserId(userId: string): Promise<LoadedAdoConnection | null>;
+  updateContextDefaults(
+    userId: string,
+    defaults: AdoConnectionContextDefaults,
+  ): Promise<boolean>;
 }

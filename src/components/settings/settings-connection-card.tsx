@@ -35,7 +35,8 @@ export function SettingsConnectionCard({ connection }: SettingsConnectionCardPro
           </p>
         ) : null}
         <p className="text-muted-foreground text-xs">
-          Para cambiar de organización, desconecta y vuelve a conectar desde el menú de la app.
+          Puedes cambiar el equipo predeterminado desde los filtros de proyecto y sprint en cualquier
+          pantalla. Para cambiar de organización, desconecta y vuelve a conectar desde el menú de la app.
         </p>
       </CardContent>
     </Card>

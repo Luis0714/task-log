@@ -7,6 +7,7 @@ import { SelectedSprintMeta } from "@/components/sprints/selected-sprint-summary
 import { SprintsPageContent } from "@/components/sprints/sprints-page-content";
 import { useSprintGoalEditor } from "@/hooks/sprints/use-sprint-goal-editor";
 import { useSprintSnapshot } from "@/hooks/sprints/use-sprint-snapshot";
+import { useSprintStats } from "@/hooks/sprints/use-sprint-stats";
 import { useSprintViewUrl } from "@/hooks/sprints/use-sprint-view-url";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
@@ -30,6 +31,18 @@ export function SprintsPageShell({
     sprintPath: catalog.sprintPath,
     sprint: currentSprint,
     enabled: Boolean(currentSprint),
+  });
+
+  const statsState = useSprintStats({
+    project: catalog.project,
+    team: catalog.team,
+    sprintPath: catalog.sprintPath,
+    sprintStartDate: currentSprint?.startDate,
+    sprintFinishDate: currentSprint?.finishDate,
+    enabled:
+      Boolean(currentSprint) &&
+      !snapshotState.loading &&
+      !snapshotState.isFinalized,
   });
 
   const showGoalFilters =
@@ -81,13 +94,16 @@ export function SprintsPageShell({
         ) : null
       }
       filtersSummaryExtra={filtersSummaryExtra}
+      filtersDefaultOpen
       catalog={catalog}
       adoExecutionReady={adoExecutionReady}
     >
       <SprintsPageContent
         sprint={currentSprint}
+        project={catalog.project}
         goalEditor={goalEditor}
         snapshotState={snapshotState}
+        statsState={statsState}
       />
     </AdoContextPageShell>
   );

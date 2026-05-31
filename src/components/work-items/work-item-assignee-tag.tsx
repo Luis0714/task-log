@@ -23,3 +23,27 @@ export function WorkItemAssigneeTag({ name, className }: WorkItemAssigneeTagProp
     </span>
   );
 }
+
+export type WorkItemAssigneeLabelProps = {
+  assignee: string | null | undefined;
+  className?: string;
+};
+
+export function WorkItemAssigneeLabel({ assignee, className }: WorkItemAssigneeLabelProps) {
+  const name = assignee?.trim();
+  if (name) {
+    return <WorkItemAssigneeTag name={name} className={className} />;
+  }
+
+  return (
+    <span
+      className={cn(
+        "text-muted-foreground inline-flex shrink-0 items-center gap-1 text-xs whitespace-nowrap",
+        className,
+      )}
+    >
+      <UserRound className="size-3 shrink-0" aria-hidden />
+      <span>Sin asignar</span>
+    </span>
+  );
+}

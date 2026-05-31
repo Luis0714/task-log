@@ -17,9 +17,18 @@ const MARGIN = { top: 12, right: 28, left: 2, bottom: 0 } as const;
 export type HorizontalBarChartProps = {
   bars: readonly PbiStateBar[];
   className?: string;
+  selectedBarKeys?: readonly string[] | null;
+  onBarClick?: (bar: PbiStateBar) => void;
+  tooltipValueLabel?: string;
 };
 
-export function HorizontalBarChart({ bars, className }: HorizontalBarChartProps) {
+export function HorizontalBarChart({
+  bars,
+  className,
+  selectedBarKeys = null,
+  onBarClick,
+  tooltipValueLabel = "historias de usuario",
+}: HorizontalBarChartProps) {
   if (bars.length === 0) return null;
 
   const maxCount = Math.max(...bars.map((b) => b.count), 1);
@@ -47,23 +56,39 @@ export function HorizontalBarChart({ bars, className }: HorizontalBarChartProps)
           content={
             <ConfigChartTooltip
               config={pbiStateChartConfig}
-              formatValue={(value) =>
-                `${value} ${value === 1 ? "historia de usuario" : "historias de usuario"}`
-              }
+              formatValue={(value) => {
+                const count = Number(value);
+                const label = count === 1 ? tooltipValueLabel.replace(/s$/, "") : tooltipValueLabel;
+                return `${value} ${label}`;
+              }}
             />
           }
         />
-        <Bar dataKey="count" name="count" maxBarSize={14} radius={[0, 5, 5, 0]} animationDuration={700}>
+        <Bar
+          dataKey="count"
+          name="count"
+          maxBarSize={14}
+          radius={[0, 5, 5, 0]}
+          animationDuration={700}
+          cursor={onBarClick ? "pointer" : undefined}
+          onClick={(barData) => {
+            const payload = (barData as { payload?: PbiStateBar }).payload;
+            if (payload) onBarClick?.(payload);
+          }}
+        >
           {bars.map((bar) => {
             const isLead = bar.count === maxCount && maxCount > 0;
+            const hasSelection = selectedBarKeys != null && selectedBarKeys.length > 0;
+            const isSelected = hasSelection && selectedBarKeys.includes(bar.state);
+            const isDimmed = hasSelection && !isSelected;
             const fill = getPbiStateChartColor(bar.state);
             return (
               <Cell
                 key={bar.state}
                 fill={fill}
-                fillOpacity={isLead ? 1 : 0.88}
-                stroke={isLead ? fill : "transparent"}
-                strokeWidth={isLead ? 1.5 : 0}
+                fillOpacity={isDimmed ? 0.35 : isLead || isSelected ? 1 : 0.88}
+                stroke={isSelected ? fill : isLead ? fill : "transparent"}
+                strokeWidth={isSelected ? 2 : isLead ? 1.5 : 0}
               />
             );
           })}

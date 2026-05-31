@@ -1,6 +1,7 @@
 import {
   boolean as pgBoolean,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   real,
@@ -174,6 +175,7 @@ export const sprintSnapshots = pgTable(
     goalsNoTargetCount: integer("goals_no_target_count").notNull().default(0),
     storyPointsInGoal: real("story_points_in_goal").notNull().default(0),
     storyPointsAchieved: real("story_points_achieved").notNull().default(0),
+    statsPayload: jsonb("stats_payload"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

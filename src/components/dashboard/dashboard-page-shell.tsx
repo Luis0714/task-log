@@ -8,10 +8,9 @@ import { ConnectSignInTrigger } from "@/components/auth/connect-sign-in-trigger"
 import { DashboardHeaderRow } from "@/components/dashboard/layout/dashboard-header-row";
 import { AdoFiltersSection } from "@/components/filters/ado-filters-section";
 import { SprintDaySelect } from "@/components/filters/sprint-day-select";
-import { useAdoContextUrl } from "@/hooks/use-ado-context-url";
+import { useAdoContextPage } from "@/hooks/filters/use-ado-context-page";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { buildAdoContextQuery } from "@/lib/ado/parse-context-search-params";
-import { resolveCatalogError } from "@/lib/ado/resolve-catalog-error";
 import {
   listSprintWorkingDays,
   resolveEffectiveSprintDayKey,
@@ -51,7 +50,7 @@ export function DashboardPageShell({
     setSprintDayKey(initialSprintDayKey);
   }, [initialSprintDayKey]);
 
-  const context = useAdoContextUrl({
+  const { context, catalogError } = useAdoContextPage({
     catalog,
     adoExecutionReady,
     sprintDay: sprintDayKey,
@@ -104,8 +103,6 @@ export function DashboardPageShell({
     sprintDayKey,
     sprintWorkingDays,
   ]);
-
-  const catalogError = resolveCatalogError(catalog);
 
   const onSprintDayChange = (value: string) => {
     setSprintDayKey(value);

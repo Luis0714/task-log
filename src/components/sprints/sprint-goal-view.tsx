@@ -10,13 +10,15 @@ import { appToast } from "@/lib/toast";
 
 export type SprintGoalViewProps = {
   editor: UseSprintGoalEditorResult;
+  onSaved?: () => void;
 };
 
-export function SprintGoalView({ editor }: SprintGoalViewProps) {
+export function SprintGoalView({ editor, onSaved }: SprintGoalViewProps) {
   async function handleSave() {
     const result = await editor.save();
     if (result.ok) {
       appToast.success("Objetivos del sprint guardados.");
+      onSaved?.();
       return;
     }
     appToast.error(result.message);

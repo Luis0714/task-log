@@ -5,6 +5,7 @@ import { cache } from "react";
 import type { AdoCatalogSnapshot, AdoContextSearchParams } from "@/lib/ado/types";
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
+import { getRepositories, isUserPersistenceReady } from "@/lib/db";
 import { listOrganizationProjects, withAdoProject } from "@/lib/azure-devops/projects";
 import { listTeamSprints } from "@/lib/azure-devops/sprints";
 import { resolveSuggestedTeam } from "@/lib/azure-devops/suggested-team";
@@ -34,7 +35,33 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
   const errors = { projects: null, teams: null, sprints: null } as AdoCatalogSnapshot["errors"];
 
   let projects = EMPTY_ADO_CATALOG.projects;
-  const defaultProject: string | null = caller.auth.project ?? null;
+  let savedDefaultProject: string | null = caller.auth.project ?? null;
+  let savedDefaultTeam: string | null = null;
+
+  if (isIronSessionConfigured()) {
+    const session = await getTaskPilotSession();
+    const sessionProject = session.defaultProject?.trim();
+    const sessionTeam = session.defaultTeam?.trim();
+
+    if (sessionProject) savedDefaultProject = sessionProject;
+    if (sessionTeam) savedDefaultTeam = sessionTeam;
+
+    if (isUserPersistenceReady() && session.taskPilotUserId?.trim()) {
+      try {
+        const connection = await getRepositories().adoConnection.loadByUserId(
+          session.taskPilotUserId.trim(),
+        );
+        if (connection) {
+          savedDefaultProject = sessionProject ?? connection.project.trim();
+          savedDefaultTeam = sessionTeam ?? connection.team?.trim() ?? null;
+        }
+      } catch {
+        // Mantener valores de sesión.
+      }
+    }
+  }
+
+  const defaultProject = savedDefaultProject;
 
   try {
     projects = await listOrganizationProjects(caller.auth);
@@ -56,21 +83,15 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
 
   let teams = EMPTY_ADO_CATALOG.teams;
   let suggestedTeam: string | null = null;
-  let defaultTeam: string | null = null;
+  let defaultTeam: string | null = savedDefaultTeam;
 
   try {
     const scopedAuth = withAdoProject(caller.auth, project);
     teams = await listProjectTeams(scopedAuth);
     suggestedTeam = await resolveSuggestedTeam(scopedAuth, teams);
 
-    let sessionTeam: string | null = null;
-    if (isIronSessionConfigured()) {
-      const session = await getTaskPilotSession();
-      sessionTeam = session.defaultTeam?.trim() ?? null;
-    }
-
     defaultTeam =
-      sessionTeam && teams.some((item) => item.name === sessionTeam) ? sessionTeam : null;
+      defaultTeam && teams.some((item) => item.name === defaultTeam) ? defaultTeam : null;
   } catch (cause) {
     errors.teams = cause instanceof Error ? cause.message : "No se pudieron cargar los equipos.";
     return {

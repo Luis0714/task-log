@@ -24,4 +24,22 @@ export const drizzleAdoConnectionRepository: AdoConnectionRepository = {
     const row = rows[0];
     return row ? mapEncryptedAdoConnectionRow(row) : null;
   },
+
+  async updateContextDefaults(userId, defaults) {
+    const project = defaults.project.trim();
+    const team = defaults.team.trim();
+    if (!project || !team) return false;
+
+    const rows = await getDb()
+      .update(adoConnections)
+      .set({
+        project,
+        team,
+        updatedAt: new Date(),
+      })
+      .where(eq(adoConnections.userId, userId))
+      .returning({ id: adoConnections.id });
+
+    return rows.length > 0;
+  },
 };

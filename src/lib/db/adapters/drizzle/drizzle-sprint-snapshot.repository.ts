@@ -17,9 +17,11 @@ import {
 import { buildSprintSnapshotSummary } from "@/lib/sprints/build-sprint-snapshot-summary";
 import type {
   SprintSnapshotData,
+  SprintSnapshotStatsPayload,
   SprintSnapshotSummary,
   SprintStorySnapshotData,
 } from "@/lib/sprints/sprint-snapshot-types";
+import { parseSprintSnapshotStatsPayloadFromApi } from "@/lib/sprints/parse-sprint-snapshot-stats-payload";
 
 type SnapshotRow = typeof sprintSnapshots.$inferSelect;
 type StoryRow = typeof sprintStorySnapshots.$inferSelect;
@@ -55,6 +57,10 @@ function mapStory(row: StoryRow): SprintStorySnapshotData {
   };
 }
 
+function mapStatsPayload(value: unknown): SprintSnapshotStatsPayload | null {
+  return parseSprintSnapshotStatsPayloadFromApi(value);
+}
+
 function mapSnapshot(row: SnapshotRow, stories: StoryRow[]): SprintSnapshotData {
   return {
     id: row.id,
@@ -69,6 +75,7 @@ function mapSnapshot(row: SnapshotRow, stories: StoryRow[]): SprintSnapshotData 
     sprintFinishDate: row.sprintFinishDate,
     summary: mapSummary(row),
     stories: stories.map(mapStory),
+    statsPayload: mapStatsPayload(row.statsPayload),
   };
 }
 
@@ -94,6 +101,7 @@ async function findLatestSnapshotRow(scope: SprintGoalScope): Promise<SnapshotRo
       goalsNoTargetCount: sprintSnapshots.goalsNoTargetCount,
       storyPointsInGoal: sprintSnapshots.storyPointsInGoal,
       storyPointsAchieved: sprintSnapshots.storyPointsAchieved,
+      statsPayload: sprintSnapshots.statsPayload,
       createdAt: sprintSnapshots.createdAt,
     })
     .from(sprintSnapshots)
@@ -166,6 +174,7 @@ export const drizzleSprintSnapshotRepository: SprintSnapshotRepository = {
           goalsNoTargetCount: summary.goalsNoTargetCount,
           storyPointsInGoal: summary.storyPointsInGoal,
           storyPointsAchieved: summary.storyPointsAchieved,
+          statsPayload: input.statsPayload ?? null,
         })
         .returning();
 

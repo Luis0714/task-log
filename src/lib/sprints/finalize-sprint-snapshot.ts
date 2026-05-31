@@ -3,15 +3,21 @@ import "server-only";
 import {
   firstSprintDataError,
   loadSprintBacklogStates,
+  loadSprintBugs,
+  loadSprintNonWorkingDates,
+  loadSprintTasks,
   loadSprintWorkItems,
 } from "@/lib/ado/load-sprint-data";
 import { fetchWorkItemsByIds } from "@/lib/azure-devops/work-items";
+import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { getRepositories } from "@/lib/db/container";
 import type { SprintGoalScope } from "@/lib/db/ports/sprint-story-goal.repository.port";
 import { buildSprintStorySnapshot } from "@/lib/sprints/build-sprint-story-snapshot";
+import { collectGoalWorkItemIds } from "@/lib/sprints/build-bug-quality-metrics";
+import { buildSprintStatsPayloadBundle } from "@/lib/sprints/build-sprint-operational-metrics";
 import {
   mapGoalsByWorkItemId,
   mergeSprintFinalizeWorkItems,
@@ -57,15 +63,31 @@ export async function finalizeSprintSnapshot(
   }
 
   const scopedAuth = withAdoProject(input.auth, input.scope.project);
-  const [workItemsPart, backlogStatesPart, tagsPart, goals, sprintGoal] = await Promise.all([
-    loadSprintWorkItems(input.scope.project, input.scope.sprintPath, WORK_ITEM_ASSIGNEE_ALL),
-    loadSprintBacklogStates(input.scope.project),
-    loadProjectWorkItemTags(input.scope.project),
-    getRepositories().sprintStoryGoal.listByScope(input.scope),
-    getRepositories().sprintGoal.getByScope(input.scope),
-  ]);
+  const [workItemsPart, bugsPart, tasksPart, backlogStatesPart, tagsPart, nonWorkingDatesPart, assigneeRoster, goals, sprintGoal] =
+    await Promise.all([
+      loadSprintWorkItems(input.scope.project, input.scope.sprintPath, WORK_ITEM_ASSIGNEE_ALL),
+      loadSprintBugs(input.scope.project, input.scope.sprintPath, WORK_ITEM_ASSIGNEE_ALL),
+      loadSprintTasks(input.scope.project, input.scope.sprintPath, WORK_ITEM_ASSIGNEE_ALL),
+      loadSprintBacklogStates(input.scope.project),
+      loadProjectWorkItemTags(input.scope.project),
+      loadSprintNonWorkingDates(input.scope.project, input.scope.team),
+      loadAssigneeFilterMembers(
+        input.scope.project,
+        input.scope.team,
+        input.scope.sprintPath,
+        "workItems",
+      ),
+      getRepositories().sprintStoryGoal.listByScope(input.scope),
+      getRepositories().sprintGoal.getByScope(input.scope),
+    ]);
 
-  const adoError = firstSprintDataError(workItemsPart, backlogStatesPart);
+  const adoError = firstSprintDataError(
+    workItemsPart,
+    bugsPart,
+    tasksPart,
+    backlogStatesPart,
+    nonWorkingDatesPart,
+  );
   if (adoError) {
     return { ok: false, message: adoError };
   }
@@ -91,6 +113,18 @@ export async function finalizeSprintSnapshot(
     }),
   );
 
+  const statsPayload = buildSprintStatsPayloadBundle({
+    workItems,
+    bugs: bugsPart.data,
+    tasks: tasksPart.data,
+    backlogStates: backlogStatesPart.data,
+    goalWorkItemIds: collectGoalWorkItemIds(stories),
+    sprintStartDate: input.sprintStartDate,
+    sprintFinishDate: input.sprintFinishDate,
+    nonWorkingDates: nonWorkingDatesPart.data,
+    assigneeRoster,
+  });
+
   const saveInput: SaveSprintSnapshotInput = {
     source: input.source ?? "manual",
     finalizedByUserId: input.finalizedByUserId ?? null,
@@ -100,6 +134,7 @@ export async function finalizeSprintSnapshot(
     sprintStartDate: input.sprintStartDate ?? null,
     sprintFinishDate: input.sprintFinishDate ?? null,
     stories,
+    statsPayload,
   };
 
   const snapshot = await getRepositories().sprintSnapshot.save(input.scope, saveInput);

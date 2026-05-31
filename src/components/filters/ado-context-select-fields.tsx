@@ -1,6 +1,7 @@
 "use client";
 
 import { ControlledSelectField } from "@/components/time-log/fields/form-select-field";
+import { AdoContextTeamDefaultHint } from "@/components/filters/ado-context-team-default-hint";
 import {
   projectSelectOptions,
   sprintSelectOptions,
@@ -27,6 +28,10 @@ export function AdoContextSelectFields({
   onProjectChange,
   onTeamChange,
   onSprintChange,
+  defaultProject = null,
+  defaultTeam = null,
+  saveDefaultsPending = false,
+  onSaveDefaults,
   sprintDayFilter,
   markRequiredFields = false,
   className,
@@ -49,17 +54,33 @@ export function AdoContextSelectFields({
         error={projectsError}
         options={projectSelectOptions(projects)}
         onValueChange={onProjectChange}
+        triggerTitle={project || undefined}
       />
-      <ControlledSelectField
-        label="Equipo"
-        required={markRequiredFields}
-        value={team}
-        placeholder={placeholders.team}
-        disabled={teamSelectDisabled}
-        error={teamsError}
-        options={teamSelectOptions(teams)}
-        onValueChange={onTeamChange}
-      />
+
+      <div className="min-w-0 space-y-1">
+        <ControlledSelectField
+          label="Equipo"
+          required={markRequiredFields}
+          value={team}
+          placeholder={placeholders.team}
+          disabled={teamSelectDisabled}
+          error={teamsError}
+          options={teamSelectOptions(teams)}
+          onValueChange={onTeamChange}
+          triggerTitle={team || undefined}
+          itemTextWrap
+        />
+        <AdoContextTeamDefaultHint
+          project={project}
+          team={team}
+          defaultProject={defaultProject}
+          defaultTeam={defaultTeam}
+          pending={saveDefaultsPending}
+          disabled={teamSelectDisabled}
+          onSave={onSaveDefaults}
+        />
+      </div>
+
       <ControlledSelectField
         label="Sprint"
         required={markRequiredFields}
@@ -70,6 +91,8 @@ export function AdoContextSelectFields({
         displayValue={selectedSprintLabel}
         options={sprintSelectOptions(sprints)}
         onValueChange={onSprintChange}
+        triggerTitle={selectedSprintLabel ?? undefined}
+        itemTextWrap
       />
       {sprintDayFilter ? sprintDayFilter : null}
     </div>

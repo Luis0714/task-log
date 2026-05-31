@@ -1,4 +1,5 @@
 import type { SprintSnapshotData } from "@/lib/sprints/sprint-snapshot-types";
+import { parseSprintSnapshotStatsPayloadFromApi } from "@/lib/sprints/parse-sprint-snapshot-stats-payload";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -68,6 +69,7 @@ export function parseSprintSnapshotFromApi(value: unknown): SprintSnapshotData |
         observation: typeof story.observation === "string" ? story.observation : null,
       }))
       .filter((story) => story.workItemId > 0 && story.title.length > 0),
+    statsPayload: parseSprintSnapshotStatsPayloadFromApi(value.statsPayload),
   };
 }
 

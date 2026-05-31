@@ -1,3 +1,10 @@
+import type { DashboardDeliveryMetrics } from "@/lib/dashboard/types";
+import type {
+  SprintBugQualityMetrics,
+  SprintTimesMetrics,
+  SprintWorkflowSectionMetrics,
+} from "@/lib/sprints/sprint-stats-types";
+
 export type SprintSnapshotSource = "manual" | "auto";
 
 export type SprintStoryGoalStatus =
@@ -34,6 +41,19 @@ export type SprintStorySnapshotData = {
   observation: string | null;
 };
 
+export type SprintSnapshotOperationalMetrics = {
+  delivery: DashboardDeliveryMetrics;
+  workflow: SprintWorkflowSectionMetrics;
+  bugs: SprintBugQualityMetrics;
+  times: SprintTimesMetrics;
+};
+
+/** Métricas operativas congeladas por alcance (equipo vs historias del objetivo). */
+export type SprintSnapshotStatsPayload = {
+  team: SprintSnapshotOperationalMetrics;
+  goal: SprintSnapshotOperationalMetrics;
+};
+
 export type SprintSnapshotData = {
   id: string;
   version: number;
@@ -47,6 +67,7 @@ export type SprintSnapshotData = {
   sprintFinishDate: string | null;
   summary: SprintSnapshotSummary;
   stories: SprintStorySnapshotData[];
+  statsPayload: SprintSnapshotStatsPayload | null;
 };
 
 export type SaveSprintSnapshotInput = {
@@ -59,4 +80,5 @@ export type SaveSprintSnapshotInput = {
   sprintStartDate?: string | null;
   sprintFinishDate?: string | null;
   stories: SprintStorySnapshotData[];
+  statsPayload?: SprintSnapshotStatsPayload | null;
 };

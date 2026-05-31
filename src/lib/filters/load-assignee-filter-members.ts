@@ -15,6 +15,22 @@ import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 
 export type SprintAssigneeSource = "workItems" | "tasks" | "bugs";
 
+export const loadSprintTeamMembers = cache(async function loadSprintTeamMembers(
+  project: string,
+  team: string,
+): Promise<AdoTeamMemberDto[]> {
+  if (!project.trim() || !team.trim()) return [];
+
+  const auth = await getScopedProjectAuth(project);
+  if (!auth) return [];
+
+  try {
+    return await listTeamMembers(auth, team);
+  } catch {
+    return [];
+  }
+});
+
 /**
  * Única fuente para listas de persona en filtros y selects.
  * Roster del equipo + asignados reales del sprint (p. ej. externos al equipo).

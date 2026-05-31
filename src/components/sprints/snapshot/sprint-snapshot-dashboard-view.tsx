@@ -1,113 +1,82 @@
 "use client";
 
-import { DashboardKpi } from "@/components/dashboard/charts/dashboard-kpi";
+import { useMemo, useState } from "react";
+
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
-import {
-  computeSnapshotGoalAchievementPercent,
-  computeSnapshotStoryPointsPercent,
-} from "@/lib/sprints/sprint-snapshot-display";
+import { SprintStatsDashboardSections } from "@/components/sprints/stats/sprint-stats-dashboard-sections";
+import { SprintGoalProgressSection } from "@/components/sprints/stats/sprint-goal-progress-section";
+import { SprintGoalRiskList } from "@/components/sprints/stats/sprint-goal-risk-list";
+import { SprintStatsScopeToggle } from "@/components/sprints/stats/sprint-stats-scope-toggle";
+import { buildSprintGoalMetricsFromStories } from "@/lib/sprints/build-sprint-goal-metrics-from-stories";
+import { resolveSprintStatsScope } from "@/lib/sprints/filter-sprint-stats-scope";
+import { resolveSnapshotOperationalMetrics } from "@/lib/sprints/parse-sprint-snapshot-stats-payload";
 import type { SprintSnapshotData } from "@/lib/sprints/sprint-snapshot-types";
-import { formatStoryPoints } from "@/lib/dashboard/work-item-selectors";
+import { normalizeSprintStatsScreenData } from "@/lib/sprints/normalize-sprint-stats";
+import type { SprintStatsScreenData } from "@/lib/sprints/sprint-stats-types";
 
 export type SprintSnapshotDashboardViewProps = {
   snapshot: SprintSnapshotData;
+  project: string | null;
 };
 
-export function SprintSnapshotDashboardView({ snapshot }: SprintSnapshotDashboardViewProps) {
-  const { summary } = snapshot;
-  const goalPercent = computeSnapshotGoalAchievementPercent(summary);
-  const storyPointsPercent = computeSnapshotStoryPointsPercent(summary);
+export function SprintSnapshotDashboardView({
+  snapshot,
+  project,
+}: SprintSnapshotDashboardViewProps) {
+  const [goalOnly, setGoalOnly] = useState(false);
+
+  const goal = useMemo(
+    () =>
+      buildSprintGoalMetricsFromStories(
+        snapshot.stories,
+        snapshot.summary,
+        snapshot.generalObjective,
+      ),
+    [snapshot],
+  );
+
+  const stats = useMemo((): SprintStatsScreenData | null => {
+    if (!snapshot.statsPayload) return null;
+
+    const operational = resolveSnapshotOperationalMetrics(
+      snapshot.statsPayload,
+      resolveSprintStatsScope(goalOnly),
+    );
+
+    return normalizeSprintStatsScreenData({ goal, ...operational });
+  }, [goal, goalOnly, snapshot.statsPayload]);
+
+  if (!stats) {
+    return (
+      <div className="flex flex-col gap-6">
+        <SprintGoalProgressSection
+          goal={goal}
+          description="Resultado congelado al cierre del sprint."
+        />
+        <SprintGoalRiskList items={goal.riskItems} />
+
+        <DashboardSection
+          title="Entrega y calidad"
+          description="Esta retrospectiva se guardó antes de congelar métricas operativas."
+        >
+          <p className="text-muted-foreground text-sm">
+            Los sprints finalizados a partir de ahora incluyen entrega, bugs y flujo congelados.
+          </p>
+        </DashboardSection>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-6">
-      <DashboardSection
-        title="Cumplimiento del objetivo"
-        description="Resultado congelado al cierre del sprint."
-      >
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-12">
-          <DashboardKpi
-            size="compact"
-            layout="stack"
-            label="Objetivos cumplidos"
-            value={`${summary.goalsAchievedCount} / ${summary.goalsTotalCount}`}
-            progress={goalPercent}
-            variant={goalPercent >= 75 ? "success" : goalPercent >= 40 ? "warning" : "destructive"}
-            highlight
-            className="min-w-0 lg:col-span-3"
-          />
-          <DashboardKpi
-            size="compact"
-            layout="stack"
-            label="Parciales"
-            value={String(summary.goalsPartialCount)}
-            className="min-w-0 lg:col-span-3"
-          />
-          <DashboardKpi
-            size="compact"
-            layout="stack"
-            label="No cumplidas"
-            value={String(summary.goalsMissedCount)}
-            variant={summary.goalsMissedCount > 0 ? "destructive" : "default"}
-            className="min-w-0 lg:col-span-3"
-          />
-          <DashboardKpi
-            size="compact"
-            layout="stack"
-            label="Story points en objetivo"
-            value={`${formatStoryPoints(summary.storyPointsAchieved)} / ${formatStoryPoints(summary.storyPointsInGoal)} SP`}
-            progress={storyPointsPercent}
-            variant={
-              storyPointsPercent >= 75
-                ? "success"
-                : storyPointsPercent >= 40
-                  ? "warning"
-                  : "default"
-            }
-            className="min-w-0 lg:col-span-3"
-          />
-        </div>
-      </DashboardSection>
+    <div className="flex flex-col gap-4">
+      <SprintStatsScopeToggle goalOnly={goalOnly} onGoalOnlyChange={setGoalOnly} />
 
-      <DashboardSection
-        title="Detalle por estado"
-        description="Distribución de historias según su resultado al cierre."
-      >
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
-          <DashboardKpi
-            size="compact"
-            layout="inline"
-            label="Cumplidas"
-            value={String(summary.goalsAchievedCount)}
-            variant="success"
-          />
-          <DashboardKpi
-            size="compact"
-            layout="inline"
-            label="Parciales"
-            value={String(summary.goalsPartialCount)}
-            variant="warning"
-          />
-          <DashboardKpi
-            size="compact"
-            layout="inline"
-            label="Fallidas"
-            value={String(summary.goalsMissedCount)}
-            variant="destructive"
-          />
-          <DashboardKpi
-            size="compact"
-            layout="inline"
-            label="Excluidas"
-            value={String(summary.goalsExcludedCount)}
-          />
-          <DashboardKpi
-            size="compact"
-            layout="inline"
-            label="Sin meta"
-            value={String(summary.goalsNoTargetCount)}
-          />
-        </div>
-      </DashboardSection>
+      <SprintStatsDashboardSections
+        stats={stats}
+        project={project}
+        goalOnly={goalOnly}
+        goalDescription="Resultado congelado al cierre del sprint."
+      />
     </div>
   );
 }

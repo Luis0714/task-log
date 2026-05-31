@@ -3,12 +3,18 @@
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { SprintGoalView } from "@/components/sprints/sprint-goal-view";
+import {
+  SprintGoalViewSkeleton,
+  SprintSnapshotGoalViewSkeleton,
+} from "@/components/sprints/sprint-goal-view-skeleton";
 import { SprintSnapshotBanner } from "@/components/sprints/snapshot/sprint-snapshot-banner";
 import { SprintSnapshotDashboardView } from "@/components/sprints/snapshot/sprint-snapshot-dashboard-view";
 import { SprintSnapshotGoalView } from "@/components/sprints/snapshot/sprint-snapshot-goal-view";
 import { SprintStatsDashboardView } from "@/components/sprints/sprint-stats-dashboard-view";
+import { SprintStatsDashboardSkeleton } from "@/components/sprints/stats/sprint-stats-dashboard-skeleton";
 import type { UseSprintGoalEditorResult } from "@/hooks/sprints/use-sprint-goal-editor";
 import type { UseSprintSnapshotResult } from "@/hooks/sprints/use-sprint-snapshot";
+import type { UseSprintStatsResult } from "@/hooks/sprints/use-sprint-stats";
 import { useSprintViewUrl } from "@/hooks/sprints/use-sprint-view-url";
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
 import type { SprintViewId } from "@/lib/sprints/sprint-view";
@@ -20,14 +26,18 @@ const SPRINT_VIEW_ITEMS = [
 
 export type SprintsPageContentProps = {
   sprint: AdoSprintDto | null;
+  project: string;
   goalEditor: UseSprintGoalEditorResult;
   snapshotState: UseSprintSnapshotResult;
+  statsState: UseSprintStatsResult;
 };
 
 export function SprintsPageContent({
   sprint,
+  project,
   goalEditor,
   snapshotState,
+  statsState,
 }: SprintsPageContentProps) {
   const { view, setView } = useSprintViewUrl();
 
@@ -65,18 +75,31 @@ export function SprintsPageContent({
 
       {view === "stats" ? (
         snapshotState.loading ? (
-          <p className="text-muted-foreground text-sm">Cargando retrospectiva del sprint…</p>
+          <SprintStatsDashboardSkeleton showScopeToggle />
         ) : showSnapshotViews ? (
-          <SprintSnapshotDashboardView snapshot={snapshotState.snapshot!} />
+          <SprintSnapshotDashboardView
+            snapshot={snapshotState.snapshot!}
+            project={project}
+          />
         ) : (
-          <SprintStatsDashboardView isPastSprint={snapshotState.isPastSprint} />
+          <SprintStatsDashboardView
+            stats={statsState.stats}
+            project={project}
+            loading={statsState.loading}
+            error={statsState.error}
+            isPastSprint={snapshotState.isPastSprint}
+            goalOnly={statsState.goalOnly}
+            onGoalOnlyChange={statsState.setGoalOnly}
+          />
         )
       ) : snapshotState.loading ? (
-        <p className="text-muted-foreground text-sm">Cargando retrospectiva del sprint…</p>
+        <SprintSnapshotGoalViewSkeleton />
       ) : showSnapshotViews ? (
         <SprintSnapshotGoalView snapshot={snapshotState.snapshot!} />
+      ) : goalEditor.loading ? (
+        <SprintGoalViewSkeleton />
       ) : (
-        <SprintGoalView editor={goalEditor} />
+        <SprintGoalView editor={goalEditor} onSaved={statsState.reload} />
       )}
     </div>
   );
