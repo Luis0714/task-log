@@ -70,15 +70,6 @@ export function AdoContextSelectFields({
           triggerTitle={team || undefined}
           itemTextWrap
         />
-        <AdoContextTeamDefaultHint
-          project={project}
-          team={team}
-          defaultProject={defaultProject}
-          defaultTeam={defaultTeam}
-          pending={saveDefaultsPending}
-          disabled={teamSelectDisabled}
-          onSave={onSaveDefaults}
-        />
       </div>
 
       <ControlledSelectField
@@ -95,6 +86,16 @@ export function AdoContextSelectFields({
         itemTextWrap
       />
       {sprintDayFilter ? sprintDayFilter : null}
+
+      <AdoContextTeamDefaultHint
+        project={project}
+        team={team}
+        defaultProject={defaultProject}
+        defaultTeam={defaultTeam}
+        pending={saveDefaultsPending}
+        disabled={teamSelectDisabled || projectSelectDisabled}
+        onSave={onSaveDefaults}
+      />
     </div>
   );
 }

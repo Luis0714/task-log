@@ -26,10 +26,13 @@ export function useSaveAdoContextDefaults({
         project: catalog.project,
         team: catalog.team,
       });
-      appToast.success("Proyecto y equipo guardados como predeterminados.");
+      appToast.success(
+        "Proyecto y equipo predeterminados guardados. Se aplicarán al abrir la app y en todos los filtros.",
+      );
       onSaved?.();
     } catch (cause) {
       appToast.fromError(cause, "No se pudo guardar la conexión predeterminada.");
+      throw cause;
     } finally {
       setPending(false);
     }

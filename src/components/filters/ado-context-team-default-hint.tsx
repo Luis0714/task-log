@@ -1,8 +1,17 @@
 "use client";
 
-import { Bookmark, BookmarkPlus, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 export type AdoContextTeamDefaultHintProps = {
@@ -12,22 +21,20 @@ export type AdoContextTeamDefaultHintProps = {
   defaultTeam: string | null;
   pending?: boolean;
   disabled?: boolean;
-  onSave?: () => void;
+  onSave?: () => void | Promise<void>;
   className?: string;
 };
 
-function buildSaveLabel(
+const DEFAULT_SCOPE_COPY =
+  "Dashboard, registro de tiempo, tareas, bugs, historias de usuario y análisis de sprints.";
+
+function isContextFullyDefault(
   project: string,
   team: string,
   defaultProject: string | null,
   defaultTeam: string | null,
-): string {
-  const projectChanged = project !== (defaultProject ?? "");
-  const teamChanged = team !== (defaultTeam ?? "");
-
-  if (projectChanged && teamChanged) return "Guardar proyecto y equipo como predeterminados";
-  if (projectChanged) return "Guardar proyecto como predeterminado";
-  return "Guardar equipo como predeterminado";
+): boolean {
+  return project === (defaultProject ?? "") && team === (defaultTeam ?? "");
 }
 
 export function AdoContextTeamDefaultHint({
@@ -40,43 +47,90 @@ export function AdoContextTeamDefaultHint({
   onSave,
   className,
 }: AdoContextTeamDefaultHintProps) {
-  if (!team) return null;
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const isDefaultTeam = team === (defaultTeam ?? "");
-  const isDefaultProject = project === (defaultProject ?? "");
-  const isFullyDefault = isDefaultTeam && isDefaultProject;
+  if (!project || !team || !onSave) return null;
 
-  if (isFullyDefault) {
-    return (
-      <p
-        className={cn(
-          "text-muted-foreground flex items-start gap-1.5 text-xs leading-snug",
-          className,
-        )}
-      >
-        <Bookmark className="text-primary mt-0.5 size-3.5 shrink-0" aria-hidden />
-        <span>Este es tu equipo y proyecto predeterminados al abrir la app.</span>
-      </p>
-    );
+  const isFullyDefault = isContextFullyDefault(project, team, defaultProject, defaultTeam);
+  const controlsDisabled = disabled || pending;
+
+  async function handleConfirm() {
+    try {
+      await onSave?.();
+      setDialogOpen(false);
+    } catch {
+      // El hook ya muestra el toast de error.
+    }
   }
 
-  if (!onSave) return null;
-
   return (
-    <Button
-      type="button"
-      variant="link"
-      size="sm"
-      className={cn("h-auto min-h-0 justify-start px-0 py-0 text-xs", className)}
-      disabled={disabled || pending}
-      onClick={onSave}
-    >
-      {pending ? (
-        <Loader2 className="size-3.5 animate-spin" aria-hidden />
-      ) : (
-        <BookmarkPlus className="size-3.5" aria-hidden />
-      )}
-      {pending ? "Guardando…" : buildSaveLabel(project, team, defaultProject, defaultTeam)}
-    </Button>
+    <>
+      <div className={cn("col-span-full space-y-1 pt-0.5", className)}>
+        {isFullyDefault ? (
+          <p className="text-muted-foreground text-xs leading-snug">
+            Este proyecto y equipo son tu selección predeterminada al abrir la app.
+          </p>
+        ) : null}
+        <button
+          type="button"
+          className={cn(
+            "text-primary inline-flex items-center gap-1.5 text-xs font-medium underline underline-offset-2 transition-colors",
+            "hover:text-primary/80 disabled:cursor-not-allowed disabled:opacity-50",
+          )}
+          disabled={controlsDisabled}
+          onClick={() => setDialogOpen(true)}
+        >
+          {pending ? (
+            <>
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              Guardando…
+            </>
+          ) : (
+            "Establecer como predeterminado"
+          )}
+        </button>
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Establecer como predeterminado</DialogTitle>
+            <DialogDescription>
+              {isFullyDefault
+                ? "Estos valores ya son tu selección predeterminada. Puedes confirmarlos de nuevo si lo deseas."
+                : "Se guardará tu selección actual como contexto inicial en toda la aplicación."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <ul className="list-disc space-y-1 pl-5">
+              <li>
+                <span className="text-foreground font-medium">Proyecto:</span> {project}
+              </li>
+              <li>
+                <span className="text-foreground font-medium">Equipo:</span> {team}
+              </li>
+            </ul>
+            <p>
+              Al abrir la app o entrar a una pantalla con filtros, estos valores se aplicarán por
+              defecto en {DEFAULT_SCOPE_COPY} Podrás cambiarlos en cualquier momento sin perder tu
+              predeterminado guardado.
+            </p>
+          </div>
+          <DialogFooter showCloseButton={false}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={pending}
+            >
+              Cancelar
+            </Button>
+            <Button type="button" onClick={handleConfirm} disabled={pending}>
+              {pending ? "Guardando…" : "Aceptar y guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -23,7 +23,7 @@ export type AdoContextSelectFieldsProps = {
   defaultProject?: string | null;
   defaultTeam?: string | null;
   saveDefaultsPending?: boolean;
-  onSaveDefaults?: () => void;
+  onSaveDefaults?: () => void | Promise<void>;
   /** Filtro opcional (p. ej. día del sprint) junto al select de sprint. */
   sprintDayFilter?: React.ReactNode;
   /** Muestra asterisco rojo en las etiquetas de proyecto, equipo y sprint. */
