@@ -6,17 +6,21 @@ import { drizzleLocalUserRepository } from "@/lib/db/adapters/drizzle/drizzle-lo
 import type { AdoConnectionRepository } from "@/lib/db/ports/ado-connection.repository.port";
 import type { EntraUserRepository } from "@/lib/db/ports/entra-user.repository.port";
 import type { LocalUserRepository } from "@/lib/db/ports/local-user.repository.port";
+import { drizzleSprintStoryGoalRepository } from "@/lib/db/adapters/drizzle/drizzle-sprint-story-goal.repository";
+import type { SprintStoryGoalRepository } from "@/lib/db/ports/sprint-story-goal.repository.port";
 
 export type Repositories = {
   localUser: LocalUserRepository;
   entraUser: EntraUserRepository;
   adoConnection: AdoConnectionRepository;
+  sprintStoryGoal: SprintStoryGoalRepository;
 };
 
 const defaultRepositories: Repositories = {
   localUser: drizzleLocalUserRepository,
   entraUser: drizzleEntraUserRepository,
   adoConnection: drizzleAdoConnectionRepository,
+  sprintStoryGoal: drizzleSprintStoryGoalRepository,
 };
 
 let repositories: Repositories = defaultRepositories;

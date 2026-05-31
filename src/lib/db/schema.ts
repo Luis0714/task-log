@@ -1,4 +1,5 @@
 import {
+  integer,
   pgEnum,
   pgTable,
   text,
@@ -69,7 +70,42 @@ export const adoConnections = pgTable(
   (table) => [uniqueIndex("ado_connections_user_id_unique").on(table.userId)],
 );
 
+/** Objetivo por HU dentro de un sprint (estado/TAC/observación esperados). */
+export const sprintStoryGoals = pgTable(
+  "sprint_story_goals",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organization: text("organization").notNull(),
+    project: text("project").notNull(),
+    team: text("team").notNull(),
+    sprintPath: text("sprint_path").notNull(),
+    workItemId: integer("work_item_id").notNull(),
+    targetStateName: text("target_state_name"),
+    targetTacTagName: text("target_tac_tag_name"),
+    baselineStateName: text("baseline_state_name"),
+    baselineTacTagName: text("baseline_tac_tag_name"),
+    observation: text("observation"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("sprint_story_goals_scope_work_item_unique").on(
+      table.organization,
+      table.project,
+      table.team,
+      table.sprintPath,
+      table.workItemId,
+    ),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type AdoConnection = typeof adoConnections.$inferSelect;
 export type NewAdoConnection = typeof adoConnections.$inferInsert;
+export type SprintStoryGoal = typeof sprintStoryGoals.$inferSelect;
+export type NewSprintStoryGoal = typeof sprintStoryGoals.$inferInsert;

@@ -15,10 +15,17 @@ const SPRINT_VIEW_ITEMS = [
 
 export type SprintsPageContentProps = {
   project: string;
+  team: string;
+  sprintPath: string;
   sprint: AdoSprintDto | null;
 };
 
-export function SprintsPageContent({ project, sprint }: SprintsPageContentProps) {
+export function SprintsPageContent({
+  project,
+  team,
+  sprintPath,
+  sprint,
+}: SprintsPageContentProps) {
   const { view, setView } = useSprintViewUrl();
 
   if (!sprint) {
@@ -45,7 +52,12 @@ export function SprintsPageContent({ project, sprint }: SprintsPageContentProps)
       {view === "stats" ? (
         <SprintStatsDashboardView />
       ) : (
-        <SprintGoalView project={project} sprintName={sprint.name} />
+        <SprintGoalView
+          project={project}
+          team={team}
+          sprintPath={sprintPath}
+          sprintName={sprint.name}
+        />
       )}
     </div>
   );

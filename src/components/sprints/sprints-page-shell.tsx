@@ -24,7 +24,12 @@ export function SprintsPageShell({
       catalog={catalog}
       adoExecutionReady={adoExecutionReady}
     >
-      <SprintsPageContent project={catalog.project} sprint={currentSprint} />
+      <SprintsPageContent
+        project={catalog.project}
+        team={catalog.team}
+        sprintPath={catalog.sprintPath}
+        sprint={currentSprint}
+      />
     </AdoContextPageShell>
   );
 }
