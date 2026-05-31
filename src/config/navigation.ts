@@ -3,6 +3,8 @@ import {
   Bug,
   CheckSquare,
   Clock,
+  Flag,
+  FolderKanban,
   History,
   LayoutDashboard,
   ListTodo,
@@ -37,6 +39,13 @@ export const MAIN_NAVIGATION: NavGroupConfig[] = [
       { href: "/work-items", label: "Historias de usuario", icon: ListTodo },
       { href: "/tasks", label: "Tareas", icon: CheckSquare },
       { href: "/bugs", label: "Bugs", icon: Bug },
+    ],
+  },
+  {
+    title: "Análisis",
+    items: [
+      { href: "/analisis/proyecto", label: "Proyecto", icon: FolderKanban },
+      { href: "/analisis/sprints", label: "Sprints", icon: Flag },
     ],
   },
   {

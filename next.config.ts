@@ -8,6 +8,16 @@ const nextConfig: NextConfig = {
         destination: "/bugs",
         permanent: true,
       },
+      {
+        source: "/sprints",
+        destination: "/analisis/sprints",
+        permanent: false,
+      },
+      {
+        source: "/proyecto",
+        destination: "/analisis/proyecto",
+        permanent: false,
+      },
     ];
   },
 };

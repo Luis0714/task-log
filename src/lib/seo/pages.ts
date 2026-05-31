@@ -29,6 +29,18 @@ export const PAGE_SEO = {
       "Registra horas de trabajo en tareas del sprint con contexto de proyecto, equipo y fecha de trabajo en Azure DevOps.",
     path: "/time-log",
   },
+  sprints: {
+    title: "Sprints",
+    description:
+      "Consulta y gestiona los sprints del equipo conectado a Azure DevOps.",
+    path: "/analisis/sprints",
+  },
+  proyecto: {
+    title: "Proyecto",
+    description:
+      "Análisis y visibilidad del proyecto conectado a Azure DevOps.",
+    path: "/analisis/proyecto",
+  },
   workItems: {
     title: "Historias de usuario",
     description:
