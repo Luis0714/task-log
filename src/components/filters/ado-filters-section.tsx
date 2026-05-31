@@ -16,6 +16,8 @@ export type AdoFiltersSectionProps = {
   workItems?: Omit<WorkItemFiltersPanelProps, "filters"> & {
     filters: WorkItemFilters;
   } | null;
+  extra?: React.ReactNode;
+  summaryExtra?: string;
   defaultOpen?: boolean;
   collapsibleTitle?: string;
   className?: string;
@@ -24,6 +26,8 @@ export type AdoFiltersSectionProps = {
 export function AdoFiltersSection({
   context,
   workItems = null,
+  extra = null,
+  summaryExtra,
   defaultOpen = false,
   collapsibleTitle = "Filtros",
   className,
@@ -35,6 +39,7 @@ export function AdoFiltersSection({
     workItemFilters: workItems?.filters,
     filteredCount: workItems?.filteredCount,
     totalCount: workItems?.totalCount,
+    extraParts: summaryExtra ? [summaryExtra] : undefined,
   });
 
   return (
@@ -61,6 +66,7 @@ export function AdoFiltersSection({
           onStatesChange={workItems.onStatesChange}
         />
       ) : null}
+      {extra}
     </AdoFiltersCollapsible>
   );
 }

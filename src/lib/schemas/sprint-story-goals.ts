@@ -18,6 +18,7 @@ export const sprintStoryGoalsPutBodySchema = z.object({
   project: z.string().trim().min(1).max(200),
   team: z.string().trim().min(1).max(200),
   sprintPath: z.string().trim().min(1).max(500),
+  generalObjective: z.string().trim().max(2000).optional().default(""),
   goals: z.array(sprintStoryGoalDraftSchema),
 });
 

@@ -15,6 +15,9 @@ export type AdoContextPageShellProps = {
   catalog: AdoCatalogSnapshot;
   adoExecutionReady: boolean;
   headerAction?: ReactNode;
+  headerMeta?: ReactNode;
+  filtersExtra?: ReactNode;
+  filtersSummaryExtra?: string;
   filtersDefaultOpen?: boolean;
   filtersTitle?: string;
   filtersClassName?: string;
@@ -27,6 +30,9 @@ export function AdoContextPageShell({
   catalog,
   adoExecutionReady,
   headerAction,
+  headerMeta,
+  filtersExtra,
+  filtersSummaryExtra,
   filtersDefaultOpen = false,
   filtersTitle = "Filtros",
   filtersClassName,
@@ -39,13 +45,20 @@ export function AdoContextPageShell({
 
   return (
     <div className="flex w-full flex-col gap-6 pb-6">
-      <PageHeader title={title} description={description} action={headerAction} />
+      <PageHeader
+        title={title}
+        description={description}
+        meta={headerMeta}
+        action={headerAction}
+      />
 
       {catalogError ? <CopilotErrorAlert message={catalogError} /> : null}
 
       {adoExecutionReady ? (
         <AdoFiltersSection
           context={context}
+          extra={filtersExtra}
+          summaryExtra={filtersSummaryExtra}
           defaultOpen={filtersDefaultOpen}
           collapsibleTitle={filtersTitle}
           className={cn("max-w-3xl", filtersClassName)}

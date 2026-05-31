@@ -23,9 +23,43 @@ const sprintStoryGoalSortAccessors = {
   state: (row: SprintStoryGoalRowModel) => row.workItem.state ?? "",
 } as const;
 
+function partitionByIncludedInGoal(
+  rows: readonly SprintStoryGoalRowModel[],
+): {
+  included: SprintStoryGoalRowModel[];
+  excluded: SprintStoryGoalRowModel[];
+} {
+  const included: SprintStoryGoalRowModel[] = [];
+  const excluded: SprintStoryGoalRowModel[] = [];
+
+  for (const row of rows) {
+    if (row.draft.includedInGoal) {
+      included.push(row);
+    } else {
+      excluded.push(row);
+    }
+  }
+
+  return { included, excluded };
+}
+
+export function partitionSprintStoryGoalRowsByInclusion(
+  rows: readonly SprintStoryGoalRowModel[],
+): {
+  included: SprintStoryGoalRowModel[];
+  excluded: SprintStoryGoalRowModel[];
+} {
+  return partitionByIncludedInGoal(rows);
+}
+
 export function sortSprintStoryGoalRows(
   rows: readonly SprintStoryGoalRowModel[],
   spec: DataTableSortSpec<SprintStoryGoalSortField> | null,
 ): SprintStoryGoalRowModel[] {
-  return sortDataTableRows(rows, spec, sprintStoryGoalSortAccessors);
+  const { included, excluded } = partitionByIncludedInGoal(rows);
+
+  return [
+    ...sortDataTableRows(included, spec, sprintStoryGoalSortAccessors),
+    ...sortDataTableRows(excluded, spec, sprintStoryGoalSortAccessors),
+  ];
 }

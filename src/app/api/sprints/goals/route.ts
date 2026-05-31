@@ -42,6 +42,7 @@ export async function PUT(req: Request) {
         sprintPath: parsed.data.sprintPath,
       },
       parsed.data.goals,
+      parsed.data.generalObjective,
     );
     if (!result.ok) {
       return apiErrorResponse(result.message, 400);

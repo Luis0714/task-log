@@ -15,10 +15,12 @@ export type SprintGoalScreenResponse = {
   rows: SprintStoryGoalRowModel[];
   backlogStates: AdoTaskStateDto[];
   catalogTags: AdoWorkItemTagDto[];
+  generalObjective: string;
   persistenceReady: boolean;
 };
 
 export type SaveSprintStoryGoalsPayload = SprintGoalScreenQuery & {
+  generalObjective?: string;
   goals: SprintStoryGoalDraftDto[];
 };
 
@@ -62,6 +64,7 @@ export async function fetchSprintGoalScreen(
     rows: data.rows ?? [],
     backlogStates: data.backlogStates ?? [],
     catalogTags: data.catalogTags ?? [],
+    generalObjective: data.generalObjective ?? "",
     persistenceReady: Boolean(data.persistenceReady),
   };
 }

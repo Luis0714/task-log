@@ -59,6 +59,7 @@ function toUpsertInput(
 export async function saveSprintStoryGoals(
   scope: SprintGoalScope,
   drafts: readonly SprintStoryGoalDraftDto[],
+  generalObjective = "",
 ): Promise<SaveSprintStoryGoalsResult> {
   if (!isDatabaseConfigured()) {
     return {
@@ -100,7 +101,13 @@ export async function saveSprintStoryGoals(
       )
       .filter((goal): goal is SprintStoryGoalUpsertInput => goal !== null);
 
-    await getRepositories().sprintStoryGoal.replaceScopeGoals(scope, goals);
+    await Promise.all([
+      getRepositories().sprintStoryGoal.replaceScopeGoals(scope, goals),
+      getRepositories().sprintGoal.upsertGeneralObjective(
+        scope,
+        generalObjective.trim() || null,
+      ),
+    ]);
     return { ok: true };
   } catch {
     return { ok: false, message: "No se pudieron guardar los objetivos del sprint." };

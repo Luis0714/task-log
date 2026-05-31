@@ -1,7 +1,14 @@
 "use client";
 
 import { AdoContextPageShell } from "@/components/filters/ado-context-page-shell";
+import { SprintGoalFiltersPanel } from "@/components/sprints/goal/sprint-goal-filters-panel";
+import { SelectedSprintMeta } from "@/components/sprints/selected-sprint-summary";
 import { SprintsPageContent } from "@/components/sprints/sprints-page-content";
+import {
+  useSprintGoalEditor,
+  type UseSprintGoalEditorResult,
+} from "@/hooks/sprints/use-sprint-goal-editor";
+import { useSprintViewUrl } from "@/hooks/sprints/use-sprint-view-url";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
 import { PAGE_SEO } from "@/lib/seo/pages";
@@ -15,21 +22,45 @@ export function SprintsPageShell({
   catalog,
   adoExecutionReady,
 }: SprintsPageShellProps) {
+  const { view } = useSprintViewUrl();
   const currentSprint = resolveCurrentSprint(catalog);
+  const showGoalFilters = view === "goal" && currentSprint !== null;
+
+  const goalEditor = useSprintGoalEditor({
+    project: catalog.project,
+    team: catalog.team,
+    sprintPath: catalog.sprintPath,
+    enabled: showGoalFilters,
+  });
+
+  const filtersSummaryExtra =
+    showGoalFilters && goalEditor.storySearch.trim().length > 0
+      ? "búsqueda de historias"
+      : undefined;
 
   return (
     <AdoContextPageShell
       title={PAGE_SEO.sprints.title}
       description={PAGE_SEO.sprints.description}
+      headerMeta={
+        currentSprint ? <SelectedSprintMeta sprint={currentSprint} /> : null
+      }
+      filtersExtra={
+        showGoalFilters ? (
+          <SprintGoalFiltersPanel
+            storySearch={goalEditor.storySearch}
+            sortSpec={goalEditor.sortSpec}
+            disabled={goalEditor.loading || goalEditor.saving}
+            onStorySearchChange={goalEditor.setStorySearch}
+            onSortSpecChange={goalEditor.setSortSpec}
+          />
+        ) : null
+      }
+      filtersSummaryExtra={filtersSummaryExtra}
       catalog={catalog}
       adoExecutionReady={adoExecutionReady}
     >
-      <SprintsPageContent
-        project={catalog.project}
-        team={catalog.team}
-        sprintPath={catalog.sprintPath}
-        sprint={currentSprint}
-      />
+      <SprintsPageContent sprint={currentSprint} goalEditor={goalEditor} />
     </AdoContextPageShell>
   );
 }

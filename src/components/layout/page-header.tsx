@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 export type PageHeaderProps = {
   title: string;
   description?: string;
+  meta?: ReactNode;
   action?: ReactNode;
   className?: string;
 };
@@ -12,6 +13,7 @@ export type PageHeaderProps = {
 export function PageHeader({
   title,
   description,
+  meta,
   action,
   className,
 }: PageHeaderProps) {
@@ -29,6 +31,7 @@ export function PageHeader({
         {description ? (
           <p className="text-muted-foreground text-sm text-pretty">{description}</p>
         ) : null}
+        {meta ? <div className="pt-1.5">{meta}</div> : null}
       </div>
       {action ? (
         <div className="shrink-0 self-start sm:self-center">{action}</div>

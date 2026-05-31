@@ -71,6 +71,33 @@ export const adoConnections = pgTable(
   (table) => [uniqueIndex("ado_connections_user_id_unique").on(table.userId)],
 );
 
+/** Objetivo general del sprint (texto libre opcional por alcance). */
+export const sprintGoals = pgTable(
+  "sprint_goals",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organization: text("organization").notNull(),
+    project: text("project").notNull(),
+    team: text("team").notNull(),
+    sprintPath: text("sprint_path").notNull(),
+    generalObjective: text("general_objective"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("sprint_goals_scope_unique").on(
+      table.organization,
+      table.project,
+      table.team,
+      table.sprintPath,
+    ),
+  ],
+);
+
 /** Objetivo por HU dentro de un sprint (estado/TAC/observación esperados). */
 export const sprintStoryGoals = pgTable(
   "sprint_story_goals",
@@ -111,3 +138,5 @@ export type AdoConnection = typeof adoConnections.$inferSelect;
 export type NewAdoConnection = typeof adoConnections.$inferInsert;
 export type SprintStoryGoal = typeof sprintStoryGoals.$inferSelect;
 export type NewSprintStoryGoal = typeof sprintStoryGoals.$inferInsert;
+export type SprintGoal = typeof sprintGoals.$inferSelect;
+export type NewSprintGoal = typeof sprintGoals.$inferInsert;

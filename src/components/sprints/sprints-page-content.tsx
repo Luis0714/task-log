@@ -1,12 +1,11 @@
 "use client";
 
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { SelectedSprintSummary } from "@/components/sprints/selected-sprint-summary";
 import { SprintGoalView } from "@/components/sprints/sprint-goal-view";
 import { SprintStatsDashboardView } from "@/components/sprints/sprint-stats-dashboard-view";
+import type { UseSprintGoalEditorResult } from "@/hooks/sprints/use-sprint-goal-editor";
 import { useSprintViewUrl } from "@/hooks/sprints/use-sprint-view-url";
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
-import type { SprintViewId } from "@/lib/sprints/sprint-view";
 
 const SPRINT_VIEW_ITEMS = [
   { value: "stats" as const, label: "Estadísticas" },
@@ -14,20 +13,15 @@ const SPRINT_VIEW_ITEMS = [
 ] satisfies readonly { value: SprintViewId; label: string }[];
 
 export type SprintsPageContentProps = {
-  project: string;
-  team: string;
-  sprintPath: string;
   sprint: AdoSprintDto | null;
+  goalEditor: UseSprintGoalEditorResult;
 };
 
 export function SprintsPageContent({
-  project,
-  team,
-  sprintPath,
   sprint,
+  goalEditor,
 }: SprintsPageContentProps) {
   const { view, setView } = useSprintViewUrl();
-
   if (!sprint) {
     return (
       <p className="text-muted-foreground text-sm">
@@ -38,8 +32,6 @@ export function SprintsPageContent({
 
   return (
     <div className="flex flex-col gap-6">
-      <SelectedSprintSummary sprint={sprint} />
-
       <SegmentedControl
         items={SPRINT_VIEW_ITEMS}
         value={view}
@@ -52,12 +44,7 @@ export function SprintsPageContent({
       {view === "stats" ? (
         <SprintStatsDashboardView />
       ) : (
-        <SprintGoalView
-          project={project}
-          team={team}
-          sprintPath={sprintPath}
-          sprintName={sprint.name}
-        />
+        <SprintGoalView editor={goalEditor} />
       )}
     </div>
   );

@@ -48,6 +48,7 @@ export async function GET(req: Request) {
       rows: snapshot.rows,
       backlogStates: snapshot.backlogStates,
       catalogTags: snapshot.catalogTags,
+      generalObjective: snapshot.generalObjective,
       persistenceReady: snapshot.persistenceReady,
     });
   } catch (cause) {

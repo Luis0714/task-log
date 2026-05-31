@@ -24,6 +24,7 @@ export type SprintGoalScreenSnapshot = {
   rows: SprintStoryGoalRowModel[];
   backlogStates: AdoTaskStateDto[];
   catalogTags: AdoWorkItemTagDto[];
+  generalObjective: string;
   persistenceReady: boolean;
   error: string | null;
 };
@@ -42,11 +43,17 @@ export const loadSprintGoalScreen = cache(async function loadSprintGoalScreen(
   const error = adoError ?? tagsError;
 
   let goals: SprintStoryGoalRecord[] = [];
+  let generalObjective = "";
   let persistenceReady = isDatabaseConfigured();
 
   if (persistenceReady) {
     try {
-      goals = await getRepositories().sprintStoryGoal.listByScope(scope);
+      const [storyGoals, sprintGoal] = await Promise.all([
+        getRepositories().sprintStoryGoal.listByScope(scope),
+        getRepositories().sprintGoal.getByScope(scope),
+      ]);
+      goals = storyGoals;
+      generalObjective = sprintGoal?.generalObjective?.trim() ?? "";
     } catch (cause) {
       logApiError("loadSprintGoalScreen/goals", cause);
       persistenceReady = false;
@@ -57,6 +64,7 @@ export const loadSprintGoalScreen = cache(async function loadSprintGoalScreen(
     rows: buildSprintStoryGoalRows(workItemsPart.data, goals),
     backlogStates: backlogStatesPart.data,
     catalogTags: tagsPart.tags,
+    generalObjective,
     persistenceReady,
     error,
   };

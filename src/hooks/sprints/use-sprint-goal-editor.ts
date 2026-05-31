@@ -37,6 +37,8 @@ export type UseSprintGoalEditorResult = {
   setStorySearch: (value: string) => void;
   sortSpec: DataTableSortSpec<SprintStoryGoalSortField>;
   setSortSpec: (value: DataTableSortSpec<SprintStoryGoalSortField>) => void;
+  generalObjective: string;
+  setGeneralObjective: (value: string) => void;
   drafts: SprintStoryGoalDraft[];
   backlogStates: AdoTaskStateDto[];
   catalogTags: AdoWorkItemTagDto[];
@@ -47,6 +49,8 @@ export type UseSprintGoalEditorResult = {
   isDirty: boolean;
   canSave: boolean;
   goalsCount: number;
+  includedStoryCount: number;
+  excludedStoryCount: number;
   updateDraft: (workItemId: number, patch: Partial<Omit<SprintStoryGoalDraft, "workItemId">>) => void;
   discardChanges: () => void;
   save: () => Promise<{ ok: true } | { ok: false; message: string }>;
@@ -67,6 +71,8 @@ export function useSprintGoalEditor({
   const [rows, setRows] = useState<SprintStoryGoalRowModel[]>([]);
   const [drafts, setDrafts] = useState<SprintStoryGoalDraft[]>([]);
   const [initialDrafts, setInitialDrafts] = useState<SprintStoryGoalDraft[]>([]);
+  const [generalObjective, setGeneralObjective] = useState("");
+  const [initialGeneralObjective, setInitialGeneralObjective] = useState("");
   const [backlogStates, setBacklogStates] = useState<AdoTaskStateDto[]>([]);
   const [catalogTags, setCatalogTags] = useState<AdoWorkItemTagDto[]>([]);
   const [persistenceReady, setPersistenceReady] = useState(false);
@@ -89,6 +95,8 @@ export function useSprintGoalEditor({
       setRows([]);
       setDrafts([]);
       setInitialDrafts([]);
+      setGeneralObjective("");
+      setInitialGeneralObjective("");
       setLoading(false);
       setError(null);
       return;
@@ -105,6 +113,8 @@ export function useSprintGoalEditor({
         setRows(snapshot.rows);
         setDrafts(nextDrafts);
         setInitialDrafts(nextDrafts);
+        setGeneralObjective(snapshot.generalObjective);
+        setInitialGeneralObjective(snapshot.generalObjective);
         setBacklogStates(snapshot.backlogStates);
         setCatalogTags(snapshot.catalogTags);
         setPersistenceReady(snapshot.persistenceReady);
@@ -114,6 +124,8 @@ export function useSprintGoalEditor({
         setRows([]);
         setDrafts([]);
         setInitialDrafts([]);
+        setGeneralObjective("");
+        setInitialGeneralObjective("");
         setError(
           cause instanceof Error
             ? cause.message
@@ -137,17 +149,20 @@ export function useSprintGoalEditor({
     [rows, storySearch],
   );
 
-  const displayRows = useMemo(
-    () => sortSprintStoryGoalRows(filteredRows, sortSpec),
-    [filteredRows, sortSpec],
-  );
-
   const draftByWorkItemId = useMemo(
     () => new Map(drafts.map((draft) => [draft.workItemId, draft])),
     [drafts],
   );
 
-  const isDirty = useMemo(() => {
+  const displayRows = useMemo(() => {
+    const rowsWithCurrentDrafts = filteredRows.map((row) => ({
+      ...row,
+      draft: draftByWorkItemId.get(row.workItem.id) ?? row.draft,
+    }));
+    return sortSprintStoryGoalRows(rowsWithCurrentDrafts, sortSpec);
+  }, [filteredRows, sortSpec, draftByWorkItemId]);
+
+  const storyDraftsDirty = useMemo(() => {
     const initialById = new Map(initialDrafts.map((draft) => [draft.workItemId, draft]));
     return drafts.some((draft) => {
       const initial = initialById.get(draft.workItemId);
@@ -155,15 +170,34 @@ export function useSprintGoalEditor({
     });
   }, [drafts, initialDrafts]);
 
+  const generalObjectiveDirty = generalObjective !== initialGeneralObjective;
+
+  const isDirty = storyDraftsDirty || generalObjectiveDirty;
+
   const invalidDraft = useMemo(
     () =>
       drafts.find((draft) => draft.includedInGoal && !isSprintStoryGoalDraftValid(draft)) ?? null,
     [drafts],
   );
 
-  const canSave = isDirty && !invalidDraft && persistenceReady && !loading && !saving;
+  const canSave =
+    isDirty &&
+    persistenceReady &&
+    !loading &&
+    !saving &&
+    (!invalidDraft || !storyDraftsDirty);
 
   const goalsCount = useMemo(() => countSprintStoryGoals(drafts), [drafts]);
+
+  const includedStoryCount = useMemo(
+    () => displayRows.filter((row) => row.draft.includedInGoal).length,
+    [displayRows],
+  );
+
+  const excludedStoryCount = useMemo(
+    () => displayRows.filter((row) => !row.draft.includedInGoal).length,
+    [displayRows],
+  );
 
   const updateDraft = useCallback(
     (workItemId: number, patch: Partial<Omit<SprintStoryGoalDraft, "workItemId">>) => {
@@ -178,7 +212,8 @@ export function useSprintGoalEditor({
 
   const discardChanges = useCallback(() => {
     setDrafts(initialDrafts.map((draft) => ({ ...draft })));
-  }, [initialDrafts]);
+    setGeneralObjective(initialGeneralObjective);
+  }, [initialDrafts, initialGeneralObjective]);
 
   const getRowValidationMessage = useCallback(
     (workItemId: number) => {
@@ -204,6 +239,7 @@ export function useSprintGoalEditor({
 
       const result = await saveSprintStoryGoals({
         ...query,
+        generalObjective,
         goals,
       });
 
@@ -212,11 +248,18 @@ export function useSprintGoalEditor({
       }
 
       setInitialDrafts(drafts.map((draft) => ({ ...draft })));
+      setInitialGeneralObjective(generalObjective);
+      setRows((current) =>
+        current.map((row) => {
+          const draft = drafts.find((item) => item.workItemId === row.workItem.id);
+          return draft ? { ...row, draft: { ...draft } } : row;
+        }),
+      );
       return { ok: true };
     } finally {
       setSaving(false);
     }
-  }, [canSave, drafts, query]);
+  }, [canSave, drafts, generalObjective, query]);
 
   const reload = useCallback(() => {
     setReloadToken((token) => token + 1);
@@ -230,6 +273,8 @@ export function useSprintGoalEditor({
     setStorySearch,
     sortSpec,
     setSortSpec,
+    generalObjective,
+    setGeneralObjective,
     drafts,
     backlogStates,
     catalogTags,
@@ -240,6 +285,8 @@ export function useSprintGoalEditor({
     isDirty,
     canSave,
     goalsCount,
+    includedStoryCount,
+    excludedStoryCount,
     updateDraft,
     discardChanges,
     save,
