@@ -95,9 +95,20 @@ export const adoBacklogStatesResponseSchema = z.object({
   workItemType: z.string(),
 });
 
+export const adoWorkItemTagSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  lastUpdated: z.string().optional(),
+});
+
+export const adoWorkItemTagsResponseSchema = z.object({
+  tags: z.array(adoWorkItemTagSchema),
+});
+
 export type AdoProjectDto = z.infer<typeof adoProjectSchema>;
 export type AdoTeamDto = z.infer<typeof adoTeamSchema>;
 export type AdoSprintDto = z.infer<typeof adoSprintSchema>;
 export type AdoWorkItemOptionDto = z.infer<typeof adoWorkItemOptionSchema>;
 export type AdoTaskStateDto = z.infer<typeof adoTaskStateSchema>;
 export type AdoTeamMemberDto = z.infer<typeof adoTeamMemberSchema>;
+export type AdoWorkItemTagDto = z.infer<typeof adoWorkItemTagSchema>;
