@@ -38,3 +38,34 @@ export function buildAdoContextQuery(params: {
   const query = search.toString();
   return query ? `?${query}` : "";
 }
+
+function applyAdoContextParam(
+  params: URLSearchParams,
+  key: "project" | "team" | "sprint" | "assignee" | "sprintDay",
+  value: string | undefined,
+) {
+  if (value === undefined) return;
+  const trimmed = value.trim();
+  if (trimmed) params.set(key, trimmed);
+  else params.delete(key);
+}
+
+export function mergeAdoContextIntoSearchParams(
+  current: URLSearchParams,
+  context: {
+    project?: string;
+    team?: string;
+    sprint?: string;
+    assignee?: string;
+    sprintDay?: string;
+  },
+): string {
+  const params = new URLSearchParams(current.toString());
+  applyAdoContextParam(params, "project", context.project);
+  applyAdoContextParam(params, "team", context.team);
+  applyAdoContextParam(params, "sprint", context.sprint);
+  applyAdoContextParam(params, "assignee", context.assignee);
+  applyAdoContextParam(params, "sprintDay", context.sprintDay);
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}

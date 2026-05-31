@@ -23,7 +23,6 @@ export function SprintsPageShell({
       description={PAGE_SEO.sprints.description}
       catalog={catalog}
       adoExecutionReady={adoExecutionReady}
-      filtersDefaultOpen
     >
       <SprintsPageContent sprint={currentSprint} />
     </AdoContextPageShell>

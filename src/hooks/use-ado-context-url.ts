@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { catalogToContextFields } from "@/lib/ado/catalog-context-fields";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
-import { buildAdoContextQuery } from "@/lib/ado/parse-context-search-params";
+import { mergeAdoContextIntoSearchParams } from "@/lib/ado/parse-context-search-params";
+import { resolveAdoContextUrlSyncTarget } from "@/lib/ado/sync-context-url";
 import type { AdoContextSelectFieldsProps } from "@/lib/filters/context-selection-types";
 
 export type UseAdoContextUrlOptions = {
@@ -29,6 +30,32 @@ export function useAdoContextUrl({
 }: UseAdoContextUrlOptions): AdoContextUrlResult {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (!adoExecutionReady) return;
+
+    const syncTarget = resolveAdoContextUrlSyncTarget(catalog, {
+      project: searchParams.get("project"),
+      team: searchParams.get("team"),
+      sprint: searchParams.get("sprint"),
+    });
+
+    if (!syncTarget?.shouldSync) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("project", catalog.project);
+    params.set("team", catalog.team);
+    params.set("sprint", syncTarget.sprintPath);
+
+    router.replace(`${pathname}?${params.toString()}`);
+  }, [
+    adoExecutionReady,
+    catalog,
+    pathname,
+    router,
+    searchParams,
+  ]);
 
   const pushContext = useCallback(
     (next: {
@@ -38,18 +65,32 @@ export function useAdoContextUrl({
       assignee?: string;
       sprintDay?: string;
     }) => {
+      const resolvedSprint =
+        next.sprint === ""
+          ? undefined
+          : (next.sprint ?? catalog.sprintPath);
+
       router.push(
-        `${pathname}${buildAdoContextQuery({
+        `${pathname}${mergeAdoContextIntoSearchParams(searchParams, {
           project: next.project ?? catalog.project,
           team: next.team ?? catalog.team,
-          sprint: next.sprint ?? catalog.sprintPath,
+          sprint: resolvedSprint,
           assignee: next.assignee ?? assignee,
           sprintDay:
             next.sprintDay !== undefined ? next.sprintDay : sprintDay,
         })}`,
       );
     },
-    [assignee, catalog.project, catalog.sprintPath, catalog.team, pathname, router, sprintDay],
+    [
+      assignee,
+      catalog.project,
+      catalog.sprintPath,
+      catalog.team,
+      pathname,
+      router,
+      searchParams,
+      sprintDay,
+    ],
   );
 
   const refreshContext = useCallback(() => {
