@@ -50,7 +50,8 @@ export function useSprintSnapshot({
     Boolean(sprintPath) &&
     persistenceReady &&
     !loading &&
-    !finalizing;
+    !finalizing &&
+    !isFinalized;
 
   useEffect(() => {
     if (!enabled || !sprintPath) {

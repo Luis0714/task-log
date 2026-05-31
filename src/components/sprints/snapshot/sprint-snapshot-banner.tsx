@@ -50,8 +50,8 @@ export function SprintSnapshotBanner({
             {sourceLabel}
           </p>
           <p className="mt-1">
-            Estás viendo el resultado congelado del sprint. Los cambios actuales en Azure DevOps
-            no alteran esta vista.
+            Vista de solo lectura. Los objetivos y la retrospectiva no se pueden editar ni
+            volver a finalizar.
           </p>
         </AlertDescription>
       </Alert>

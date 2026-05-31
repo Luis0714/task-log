@@ -17,6 +17,8 @@ import {
   isSprintStoryGoalDraftEmpty,
   isSprintStoryGoalDraftValid,
 } from "@/lib/sprints/sprint-story-goal";
+import { isSprintScopeFinalized } from "@/lib/sprints/is-sprint-scope-finalized";
+import { SPRINT_FINALIZED_READ_ONLY_MESSAGE } from "@/lib/sprints/sprint-finalized-messages";
 
 export type SaveSprintStoryGoalsResult =
   | { ok: true }
@@ -66,6 +68,10 @@ export async function saveSprintStoryGoals(
       ok: false,
       message: "No se pudieron guardar los objetivos del sprint.",
     };
+  }
+
+  if (await isSprintScopeFinalized(scope)) {
+    return { ok: false, message: SPRINT_FINALIZED_READ_ONLY_MESSAGE };
   }
 
   for (const draft of drafts) {

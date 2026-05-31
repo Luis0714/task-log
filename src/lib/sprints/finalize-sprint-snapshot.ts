@@ -18,6 +18,8 @@ import {
   resolveOrphanGoalWorkItemIds,
 } from "@/lib/sprints/merge-sprint-finalize-work-items";
 import { loadProjectWorkItemTags } from "@/lib/sprints/load-project-work-item-tags";
+import { isSprintScopeFinalized } from "@/lib/sprints/is-sprint-scope-finalized";
+import { SPRINT_ALREADY_FINALIZED_MESSAGE } from "@/lib/sprints/sprint-finalized-messages";
 import type {
   SaveSprintSnapshotInput,
   SprintSnapshotData,
@@ -48,6 +50,10 @@ export async function finalizeSprintSnapshot(
       ok: false,
       message: "No se pudo guardar la retrospectiva del sprint.",
     };
+  }
+
+  if (await isSprintScopeFinalized(input.scope)) {
+    return { ok: false, message: SPRINT_ALREADY_FINALIZED_MESSAGE };
   }
 
   const scopedAuth = withAdoProject(input.auth, input.scope.project);

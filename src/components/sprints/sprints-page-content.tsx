@@ -64,11 +64,15 @@ export function SprintsPageContent({
       />
 
       {view === "stats" ? (
-        showSnapshotViews ? (
+        snapshotState.loading ? (
+          <p className="text-muted-foreground text-sm">Cargando retrospectiva del sprint…</p>
+        ) : showSnapshotViews ? (
           <SprintSnapshotDashboardView snapshot={snapshotState.snapshot!} />
         ) : (
           <SprintStatsDashboardView isPastSprint={snapshotState.isPastSprint} />
         )
+      ) : snapshotState.loading ? (
+        <p className="text-muted-foreground text-sm">Cargando retrospectiva del sprint…</p>
       ) : showSnapshotViews ? (
         <SprintSnapshotGoalView snapshot={snapshotState.snapshot!} />
       ) : (

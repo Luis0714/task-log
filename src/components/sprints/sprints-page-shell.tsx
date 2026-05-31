@@ -33,7 +33,10 @@ export function SprintsPageShell({
   });
 
   const showGoalFilters =
-    view === "goal" && currentSprint !== null && !snapshotState.isFinalized;
+    view === "goal" &&
+    currentSprint !== null &&
+    !snapshotState.loading &&
+    !snapshotState.isFinalized;
 
   const goalEditor = useSprintGoalEditor({
     project: catalog.project,
@@ -48,21 +51,12 @@ export function SprintsPageShell({
       : undefined;
 
   const headerAction =
-    currentSprint && snapshotState.persistenceReady ? (
+    currentSprint &&
+    snapshotState.persistenceReady &&
+    !snapshotState.isFinalized ? (
       <SprintFinalizeDialog
         finalizing={snapshotState.finalizing}
         disabled={!snapshotState.canFinalize}
-        buttonLabel={
-          snapshotState.isFinalized ? "Actualizar retrospectiva" : "Finalizar sprint"
-        }
-        dialogTitle={
-          snapshotState.isFinalized ? "Actualizar retrospectiva" : "Finalizar sprint"
-        }
-        dialogDescription={
-          snapshotState.isFinalized
-            ? "Se creará una nueva versión de la retrospectiva con el estado actual de las historias y objetivos."
-            : "Se guardará una fotografía del objetivo y del estado final de cada historia. Podrás consultarla más adelante aunque las HUs cambien de sprint o de estado en Azure DevOps."
-        }
         onConfirm={snapshotState.finalize}
       />
     ) : null;
