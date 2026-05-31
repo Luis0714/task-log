@@ -6,6 +6,8 @@ export type SprintGoalRecord = {
 
 export type SprintGoalRepository = {
   getByScope(scope: SprintGoalScope): Promise<SprintGoalRecord | null>;
+  /** Garantiza fila padre en `sprint_goals` para el alcance; devuelve su id. */
+  ensureByScope(scope: SprintGoalScope): Promise<string>;
   upsertGeneralObjective(
     scope: SprintGoalScope,
     generalObjective: string | null,

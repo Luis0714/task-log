@@ -103,10 +103,9 @@ export const sprintStoryGoals = pgTable(
   "sprint_story_goals",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    organization: text("organization").notNull(),
-    project: text("project").notNull(),
-    team: text("team").notNull(),
-    sprintPath: text("sprint_path").notNull(),
+    sprintGoalId: uuid("sprint_goal_id")
+      .notNull()
+      .references(() => sprintGoals.id, { onDelete: "cascade" }),
     workItemId: integer("work_item_id").notNull(),
     targetStateName: text("target_state_name"),
     targetTacTagName: text("target_tac_tag_name"),
@@ -122,11 +121,8 @@ export const sprintStoryGoals = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("sprint_story_goals_scope_work_item_unique").on(
-      table.organization,
-      table.project,
-      table.team,
-      table.sprintPath,
+    uniqueIndex("sprint_story_goals_sprint_goal_work_item_unique").on(
+      table.sprintGoalId,
       table.workItemId,
     ),
   ],
