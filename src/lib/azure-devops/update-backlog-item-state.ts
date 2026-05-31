@@ -18,6 +18,7 @@ import {
 import { listTeamMembers } from "@/lib/azure-devops/work-item-type-states";
 import { toWorkingDateKey } from "@/lib/azure-devops/working-date-field";
 import {
+  buildWorkItemTagsPatchOp,
   buildWorkflowTagPatchOp,
   SYSTEM_TAGS_FIELD,
 } from "@/lib/work-items/patch-user-story-workflow-tag";
@@ -35,6 +36,7 @@ export type UpdateBacklogItemStateParams = {
   responsableIntegrador?: string;
   responsableQA?: string;
   workflowTag?: UserStoryWorkflowTagOption;
+  tags?: readonly string[];
 };
 
 export type UpdateBacklogItemStateResult =
@@ -167,7 +169,13 @@ export async function updateBacklogItemState(
     responsableFields,
   );
 
-  if (params.workflowTag !== undefined) {
+  if (params.tags !== undefined) {
+    const existingTags =
+      typeof wi.fields?.[SYSTEM_TAGS_FIELD] === "string"
+        ? wi.fields[SYSTEM_TAGS_FIELD]
+        : undefined;
+    patchOps.push(buildWorkItemTagsPatchOp(existingTags, params.tags));
+  } else if (params.workflowTag !== undefined) {
     const existingTags =
       typeof wi.fields?.[SYSTEM_TAGS_FIELD] === "string"
         ? wi.fields[SYSTEM_TAGS_FIELD]

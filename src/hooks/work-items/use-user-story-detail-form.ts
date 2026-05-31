@@ -14,10 +14,7 @@ import {
   requiresCommittedDates,
   requiresQaResponsables,
 } from "@/lib/work-items/pbi-state-transition";
-import {
-  resolveUserStoryWorkflowTagOption,
-  type UserStoryWorkflowTagOption,
-} from "@/lib/work-items/user-story-workflow-tags";
+import { areWorkItemTagsEqual } from "@/lib/work-items/ado-work-item-tags";
 
 export type UseUserStoryDetailFormOptions = {
   workItem: DashboardWorkItem | null;
@@ -42,6 +39,10 @@ function resolveSchedulingDraftDate(value: string | undefined): string {
   return readStoredSchedulingDate(value) || getTodayDateKey();
 }
 
+function readWorkItemTags(tags: readonly string[] | undefined): string[] {
+  return tags ? [...tags] : [];
+}
+
 export function useUserStoryDetailForm({
   workItem,
   project,
@@ -59,7 +60,7 @@ export function useUserStoryDetailForm({
   const [draftMaquetacion, setDraftMaquetacion] = useState("");
   const [draftIntegrador, setDraftIntegrador] = useState("");
   const [draftQa, setDraftQa] = useState("");
-  const [draftWorkflowTag, setDraftWorkflowTag] = useState<UserStoryWorkflowTagOption>("none");
+  const [draftTags, setDraftTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   const transitionKind = useMemo(
@@ -99,7 +100,7 @@ export function useUserStoryDetailForm({
         false,
       ),
     );
-    setDraftWorkflowTag(resolveUserStoryWorkflowTagOption(workItem.tags));
+    setDraftTags(readWorkItemTags(workItem.tags));
   }, [workItem, currentUserDisplayName, members]);
 
   useEffect(() => {
@@ -130,13 +131,14 @@ export function useUserStoryDetailForm({
         members,
         false,
       ),
-      workflowTag: resolveUserStoryWorkflowTagOption(workItem.tags),
+      tags: readWorkItemTags(workItem.tags),
     };
   }, [workItem, currentUserDisplayName, members]);
 
   const isStateDirty = Boolean(workItem && draftState !== workItem.state);
-  const isWorkflowTagDirty =
-    Boolean(workItem) && draftWorkflowTag !== initialSnapshot?.workflowTag;
+  const isTagsDirty =
+    Boolean(workItem) &&
+    !areWorkItemTagsEqual(draftTags, initialSnapshot?.tags ?? []);
   const isDatesDirty =
     Boolean(workItem) &&
     (draftStartDate !== initialSnapshot?.startDate ||
@@ -147,7 +149,7 @@ export function useUserStoryDetailForm({
       draftIntegrador !== initialSnapshot?.integrador ||
       draftQa !== initialSnapshot?.qa);
 
-  const isDirty = isStateDirty || isWorkflowTagDirty || isDatesDirty || isResponsablesDirty;
+  const isDirty = isStateDirty || isTagsDirty || isDatesDirty || isResponsablesDirty;
 
   const committedValid =
     !requiresCommittedDates(draftState) ||
@@ -175,7 +177,7 @@ export function useUserStoryDetailForm({
 
     setSaving(true);
     try {
-      const body: Record<string, string> = {
+      const body: Record<string, unknown> = {
         project,
         state: draftState,
         workItemKind: "backlog",
@@ -193,8 +195,8 @@ export function useUserStoryDetailForm({
         body.responsableQA = draftQa.trim();
       }
 
-      if (isWorkflowTagDirty) {
-        body.workflowTag = draftWorkflowTag;
+      if (isTagsDirty) {
+        body.tags = draftTags;
       }
 
       const res = await fetch(`/api/ado/work-items/${workItem.id}`, {
@@ -232,8 +234,8 @@ export function useUserStoryDetailForm({
     draftQa,
     isDatesDirty,
     isResponsablesDirty,
-    isWorkflowTagDirty,
-    draftWorkflowTag,
+    isTagsDirty,
+    draftTags,
     hasResponsableFields,
     onSaved,
     onClose,
@@ -252,8 +254,8 @@ export function useUserStoryDetailForm({
     setDraftIntegrador,
     draftQa,
     setDraftQa,
-    draftWorkflowTag,
-    setDraftWorkflowTag,
+    draftTags,
+    setDraftTags,
     transitionKind,
     hasResponsableFields,
     saving,

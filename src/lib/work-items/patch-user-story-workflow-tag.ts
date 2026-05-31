@@ -23,6 +23,13 @@ export function buildWorkflowTagPatchOp(
     workflowTagOptionToAdoTag(workflowTag),
   );
 
+  return buildWorkItemTagsPatchOp(existingTagsRaw, nextTags);
+}
+
+export function buildWorkItemTagsPatchOp(
+  existingTagsRaw: string | undefined,
+  nextTags: readonly string[],
+): WorkItemFieldPatchOp {
   const hadValue = Boolean(existingTagsRaw?.trim());
 
   return {

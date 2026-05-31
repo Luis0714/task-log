@@ -24,6 +24,18 @@ export function workItemHasTag(tags: readonly string[], target: string): boolean
   return tags.some((tag) => normalizeWorkItemTag(tag) === normalizedTarget);
 }
 
+export function areWorkItemTagsEqual(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
+  if (left.length !== right.length) return false;
+
+  const normalizedLeft = left.map(normalizeWorkItemTag).sort();
+  const normalizedRight = right.map(normalizeWorkItemTag).sort();
+
+  return normalizedLeft.every((tag, index) => tag === normalizedRight[index]);
+}
+
 export function mergeWorkflowTags(
   existingTags: readonly string[],
   workflowTagValues: readonly string[],

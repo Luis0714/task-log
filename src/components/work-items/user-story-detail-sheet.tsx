@@ -162,8 +162,9 @@ export function UserStoryDetailSheet({
                 </section>
 
                 <UserStoryWorkflowTagField
-                  value={form.draftWorkflowTag}
-                  onChange={form.setDraftWorkflowTag}
+                  project={project}
+                  value={form.draftTags}
+                  onChange={form.setDraftTags}
                   disabled={form.saving}
                 />
 

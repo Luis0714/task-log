@@ -31,6 +31,8 @@ export const updateWorkItemBodySchema = z.object({
   responsableQA: z.string().trim().min(1).max(200).optional(),
   /** Tag de flujo de la HU (EN DESARROLLO / DESARROLLADA). */
   workflowTag: userStoryWorkflowTagSchema.optional(),
+  /** Tags completos de la HU (`System.Tags`). */
+  tags: z.array(z.string().trim().min(1).max(200)).optional(),
 });
 
 export function isBacklogWorkItemUpdate(body: UpdateWorkItemBody): boolean {

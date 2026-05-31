@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
-import { SprintWorkItemTagSelect } from "@/components/sprints/sprint-work-item-tag-select";
+import { TagsCombobox } from "@/components/tags/tags-combobox";
 import { useSprintWorkItemTags } from "@/hooks/sprints/use-sprint-work-item-tags";
+import { mapAdoWorkItemTagsToOptions } from "@/lib/tags/tag-combobox-option";
 
 export type SprintGoalViewProps = {
   project: string;
@@ -14,7 +15,8 @@ export type SprintGoalViewProps = {
 
 export function SprintGoalView({ project, sprintName }: SprintGoalViewProps) {
   const { tags, loading, error } = useSprintWorkItemTags(project);
-  const [selectedTagId, setSelectedTagId] = useState("");
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const tagOptions = useMemo(() => mapAdoWorkItemTagsToOptions(tags), [tags]);
 
   return (
     <DashboardSection
@@ -24,11 +26,16 @@ export function SprintGoalView({ project, sprintName }: SprintGoalViewProps) {
       <div className="flex max-w-2xl flex-col gap-4">
         {error ? <CopilotErrorAlert message={error} /> : null}
 
-        <SprintWorkItemTagSelect
-          tags={tags}
-          value={selectedTagId}
+        <TagsCombobox
+          label="TAC objetivo"
+          options={tagOptions}
+          value={selectedTagIds}
           loading={loading}
-          onValueChange={setSelectedTagId}
+          multiple={false}
+          placeholder="Selecciona un tag"
+          searchPlaceholder="Buscar tag…"
+          emptyMessage="No se encontraron tags en el proyecto."
+          onValueChange={setSelectedTagIds}
         />
 
         {!loading && !error && tags.length === 0 ? (
