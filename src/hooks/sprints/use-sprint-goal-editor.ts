@@ -14,6 +14,12 @@ import {
   type SprintStoryGoalRowModel,
 } from "@/lib/sprints/sprint-story-goal";
 import {
+  DEFAULT_SPRINT_STORY_GOAL_SORT,
+  sortSprintStoryGoalRows,
+  type SprintStoryGoalSortField,
+} from "@/lib/sprints/sort-sprint-story-goal-rows";
+import type { DataTableSortSpec } from "@/lib/data-table/data-table-sort";
+import {
   fetchSprintGoalScreen,
   saveSprintStoryGoals,
   type SprintGoalScreenQuery,
@@ -26,8 +32,11 @@ export type UseSprintGoalEditorOptions = SprintGoalScreenQuery & {
 export type UseSprintGoalEditorResult = {
   rows: SprintStoryGoalRowModel[];
   filteredRows: SprintStoryGoalRowModel[];
+  displayRows: SprintStoryGoalRowModel[];
   storySearch: string;
   setStorySearch: (value: string) => void;
+  sortSpec: DataTableSortSpec<SprintStoryGoalSortField>;
+  setSortSpec: (value: DataTableSortSpec<SprintStoryGoalSortField>) => void;
   drafts: SprintStoryGoalDraft[];
   backlogStates: AdoTaskStateDto[];
   catalogTags: AdoWorkItemTagDto[];
@@ -65,6 +74,7 @@ export function useSprintGoalEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [storySearch, setStorySearch] = useState("");
+  const [sortSpec, setSortSpec] = useState(DEFAULT_SPRINT_STORY_GOAL_SORT);
   const [reloadToken, setReloadToken] = useState(0);
 
   const query = useMemo(
@@ -119,11 +129,17 @@ export function useSprintGoalEditor({
 
   useEffect(() => {
     setStorySearch("");
+    setSortSpec(DEFAULT_SPRINT_STORY_GOAL_SORT);
   }, [query.project, query.team, query.sprintPath]);
 
   const filteredRows = useMemo(
     () => filterSprintStoryGoalRows(rows, storySearch),
     [rows, storySearch],
+  );
+
+  const displayRows = useMemo(
+    () => sortSprintStoryGoalRows(filteredRows, sortSpec),
+    [filteredRows, sortSpec],
   );
 
   const draftByWorkItemId = useMemo(
@@ -140,7 +156,8 @@ export function useSprintGoalEditor({
   }, [drafts, initialDrafts]);
 
   const invalidDraft = useMemo(
-    () => drafts.find((draft) => !isSprintStoryGoalDraftValid(draft)) ?? null,
+    () =>
+      drafts.find((draft) => draft.includedInGoal && !isSprintStoryGoalDraftValid(draft)) ?? null,
     [drafts],
   );
 
@@ -166,7 +183,7 @@ export function useSprintGoalEditor({
   const getRowValidationMessage = useCallback(
     (workItemId: number) => {
       const draft = draftByWorkItemId.get(workItemId);
-      if (!draft) return null;
+      if (!draft || !draft.includedInGoal) return null;
       return sprintStoryGoalDraftValidationMessage(draft);
     },
     [draftByWorkItemId],
@@ -208,8 +225,11 @@ export function useSprintGoalEditor({
   return {
     rows,
     filteredRows,
+    displayRows,
     storySearch,
     setStorySearch,
+    sortSpec,
+    setSortSpec,
     drafts,
     backlogStates,
     catalogTags,

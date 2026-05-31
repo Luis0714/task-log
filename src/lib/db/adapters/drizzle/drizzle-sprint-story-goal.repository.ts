@@ -26,6 +26,7 @@ function mapRow(row: typeof sprintStoryGoals.$inferSelect): SprintStoryGoalRecor
     targetTacTagName: row.targetTacTagName,
     baselineStateName: row.baselineStateName,
     baselineTacTagName: row.baselineTacTagName,
+    includedInGoal: row.includedInGoal,
     observation: row.observation,
   };
 }
@@ -57,6 +58,7 @@ export const drizzleSprintStoryGoalRepository: SprintStoryGoalRepository = {
           targetTacTagName: goal.targetTacTagName,
           baselineStateName: goal.baselineStateName,
           baselineTacTagName: goal.baselineTacTagName,
+          includedInGoal: goal.includedInGoal,
           observation: goal.observation,
         })),
       );

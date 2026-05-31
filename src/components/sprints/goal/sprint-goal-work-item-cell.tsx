@@ -7,9 +7,11 @@ import { WorkItemPriorityBadge } from "@/components/work-items/work-item-priorit
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import { WorkItemTagsReadonly } from "@/components/work-items/work-item-tags-readonly";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import { cn } from "@/lib/utils";
 
 export type SprintGoalWorkItemCellProps = {
   workItem: AdoWorkItemOptionDto;
+  muted?: boolean;
 };
 
 function SprintGoalWorkItemAssignee({ assignedTo }: { assignedTo?: string }) {
@@ -25,12 +27,12 @@ function SprintGoalWorkItemAssignee({ assignedTo }: { assignedTo?: string }) {
   );
 }
 
-export function SprintGoalWorkItemCell({ workItem }: SprintGoalWorkItemCellProps) {
+export function SprintGoalWorkItemCell({ workItem, muted = false }: SprintGoalWorkItemCellProps) {
   const hasPriority = workItem.priority !== undefined && Number.isFinite(workItem.priority);
   const hasEffort = workItem.effort !== undefined && Number.isFinite(workItem.effort);
 
   return (
-    <div className="flex min-w-80 flex-col gap-1.5">
+    <div className={cn("flex min-w-80 flex-col gap-1.5", muted && "opacity-60")}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <WorkItemId id={workItem.id} className="shrink-0" />
         {workItem.state ? (

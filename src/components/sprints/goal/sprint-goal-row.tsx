@@ -5,6 +5,7 @@ import {
   SprintGoalStateObjectiveField,
   SprintGoalTacObjectiveField,
 } from "@/components/sprints/goal/sprint-goal-objective-fields";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { AdoTaskStateDto, AdoWorkItemTagDto } from "@/lib/schemas/ado-catalog";
 import type { SprintStoryGoalDraft } from "@/lib/sprints/sprint-story-goal";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
@@ -29,10 +30,18 @@ export function SprintGoalRow({
   validationMessage,
   onDraftChange,
 }: SprintGoalRowProps) {
+  const fieldsDisabled = disabled || !draft.includedInGoal;
+
   return (
-    <tr className={cn("border-b border-border/60 align-top", validationMessage && "bg-destructive/5")}>
+    <tr
+      className={cn(
+        "border-b border-border/60 align-top",
+        validationMessage && "bg-destructive/5",
+        !draft.includedInGoal && "bg-muted/20",
+      )}
+    >
       <td className="px-3 py-3 align-top">
-        <SprintGoalWorkItemCell workItem={workItem} />
+        <SprintGoalWorkItemCell workItem={workItem} muted={!draft.includedInGoal} />
       </td>
 
       <td className="min-w-40 px-3 py-3 align-top">
@@ -40,7 +49,7 @@ export function SprintGoalRow({
           draft={draft}
           backlogStates={backlogStates}
           catalogTags={catalogTags}
-          disabled={disabled}
+          disabled={fieldsDisabled}
           onDraftChange={onDraftChange}
         />
       </td>
@@ -50,10 +59,24 @@ export function SprintGoalRow({
           draft={draft}
           backlogStates={backlogStates}
           catalogTags={catalogTags}
-          disabled={disabled}
+          disabled={fieldsDisabled}
           validationMessage={validationMessage}
           onDraftChange={onDraftChange}
         />
+      </td>
+
+      <td className="w-16 px-2 py-3 text-center align-top">
+        <div className="flex justify-center pt-1">
+          <Checkbox
+            checked={draft.includedInGoal}
+            disabled={disabled}
+            aria-label={`Incluir historia #${workItem.id} en el objetivo del sprint`}
+            title="Incluida en el objetivo"
+            onCheckedChange={(checked) =>
+              onDraftChange({ includedInGoal: checked === true })
+            }
+          />
+        </div>
       </td>
     </tr>
   );

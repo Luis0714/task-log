@@ -3,10 +3,12 @@
 import { useMemo } from "react";
 
 import { TagsCombobox } from "@/components/tags/tags-combobox";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -14,6 +16,8 @@ import { WorkItemStateLabel } from "@/components/work-items/work-item-state-labe
 import type { AdoTaskStateDto, AdoWorkItemTagDto } from "@/lib/schemas/ado-catalog";
 import { mergeWorkItemTagOptions } from "@/lib/tags/tag-combobox-option";
 import type { SprintStoryGoalDraft } from "@/lib/sprints/sprint-story-goal";
+import { isSelectClearValue, SELECT_CLEAR_VALUE } from "@/lib/ui/select-clear-value";
+import { XIcon } from "lucide-react";
 
 export type SprintGoalObjectiveFieldsProps = {
   draft: SprintStoryGoalDraft;
@@ -63,7 +67,13 @@ export function SprintGoalStateObjectiveField({
     <Select
       value={draft.targetStateName || null}
       disabled={disabled || stateOptions.length === 0}
-      onValueChange={(value) => onDraftChange({ targetStateName: value ?? "" })}
+      onValueChange={(value) => {
+        if (isSelectClearValue(value)) {
+          onDraftChange({ targetStateName: "" });
+          return;
+        }
+        onDraftChange({ targetStateName: value ?? "" });
+      }}
     >
       <SelectTrigger id={id} className="w-full min-w-36">
         <SelectValue placeholder="Estado objetivo">
@@ -73,6 +83,10 @@ export function SprintGoalStateObjectiveField({
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
+        <SelectItem value={SELECT_CLEAR_VALUE} className="text-muted-foreground">
+          Sin objetivo
+        </SelectItem>
+        <SelectSeparator />
         {stateOptions.map((state) => (
           <SelectItem key={state} value={state}>
             <WorkItemStateLabel state={state} />
@@ -99,17 +113,34 @@ export function SprintGoalTacObjectiveField({
 
   return (
     <div className="min-w-44 space-y-1">
-      <TagsCombobox
-        id={id}
-        options={tagOptions}
-        value={draft.targetTacTagName ? [draft.targetTacTagName] : []}
-        multiple={false}
-        disabled={disabled}
-        placeholder="TAC objetivo"
-        searchPlaceholder="Buscar TAC…"
-        emptyMessage="Sin tags en el proyecto."
-        onValueChange={(values) => onDraftChange({ targetTacTagName: values[0] ?? "" })}
-      />
+      <div className="flex items-start gap-1">
+        <div className="min-w-0 flex-1">
+          <TagsCombobox
+            id={id}
+            options={tagOptions}
+            value={draft.targetTacTagName ? [draft.targetTacTagName] : []}
+            multiple={false}
+            disabled={disabled}
+            placeholder="TAC objetivo"
+            searchPlaceholder="Buscar TAC…"
+            emptyMessage="Sin tags en el proyecto."
+            onValueChange={(values) => onDraftChange({ targetTacTagName: values[0] ?? "" })}
+          />
+        </div>
+        {draft.targetTacTagName && !disabled ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            className="mt-1 shrink-0"
+            title="Sin TAC objetivo"
+            aria-label="Quitar TAC objetivo"
+            onClick={() => onDraftChange({ targetTacTagName: "" })}
+          >
+            <XIcon className="size-3.5" aria-hidden />
+          </Button>
+        ) : null}
+      </div>
       {validationMessage ? (
         <p className="text-destructive text-xs">{validationMessage}</p>
       ) : null}

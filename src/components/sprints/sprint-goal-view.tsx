@@ -40,26 +40,28 @@ export function SprintGoalView({
         {editor.error ? <CopilotErrorAlert message={editor.error} /> : null}
 
         <SprintGoalToolbar
-          storyCount={editor.filteredRows.length}
+          storyCount={editor.displayRows.length}
           totalStoryCount={editor.rows.length}
           goalsCount={editor.goalsCount}
           storySearch={editor.storySearch}
+          sortSpec={editor.sortSpec}
           isDirty={editor.isDirty}
           canSave={editor.canSave}
           saving={editor.saving}
           disabled={editor.loading}
           onStorySearchChange={editor.setStorySearch}
+          onSortSpecChange={editor.setSortSpec}
           onSave={handleSave}
           onDiscard={editor.discardChanges}
         />
 
-        {editor.filteredRows.length === 0 && editor.rows.length > 0 ? (
+        {editor.displayRows.length === 0 && editor.rows.length > 0 ? (
           <p className="text-muted-foreground text-sm">
             Ninguna historia coincide con la búsqueda.
           </p>
         ) : (
           <SprintGoalTable
-            rows={editor.filteredRows}
+            rows={editor.displayRows}
             drafts={editor.drafts}
             backlogStates={editor.backlogStates}
             catalogTags={editor.catalogTags}

@@ -1,4 +1,5 @@
 import {
+  boolean as pgBoolean,
   integer,
   pgEnum,
   pgTable,
@@ -84,6 +85,7 @@ export const sprintStoryGoals = pgTable(
     targetTacTagName: text("target_tac_tag_name"),
     baselineStateName: text("baseline_state_name"),
     baselineTacTagName: text("baseline_tac_tag_name"),
+    includedInGoal: pgBoolean("included_in_goal").notNull().default(true),
     observation: text("observation"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

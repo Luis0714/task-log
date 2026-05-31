@@ -11,6 +11,7 @@ export type SprintStoryGoalRecord = {
   targetTacTagName: string | null;
   baselineStateName: string | null;
   baselineTacTagName: string | null;
+  includedInGoal: boolean;
   observation: string | null;
 };
 
@@ -20,6 +21,7 @@ export type SprintStoryGoalUpsertInput = {
   targetTacTagName: string | null;
   baselineStateName: string | null;
   baselineTacTagName: string | null;
+  includedInGoal: boolean;
   observation: string | null;
 };
 

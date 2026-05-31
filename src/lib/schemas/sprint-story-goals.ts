@@ -9,6 +9,7 @@ export const sprintGoalScopeSchema = z.object({
 
 export const sprintStoryGoalDraftSchema = z.object({
   workItemId: z.number().int().positive(),
+  includedInGoal: z.boolean().optional().default(true),
   targetStateName: z.string().trim().max(100).optional().default(""),
   targetTacTagName: z.string().trim().max(200).optional().default(""),
 });

@@ -28,6 +28,18 @@ function toUpsertInput(
   workItem: AdoWorkItemOptionDto | undefined,
   catalogTags: readonly AdoWorkItemTagDto[],
 ): SprintStoryGoalUpsertInput | null {
+  if (draft.includedInGoal === false) {
+    return {
+      workItemId: draft.workItemId,
+      targetStateName: null,
+      targetTacTagName: null,
+      baselineStateName: null,
+      baselineTacTagName: null,
+      includedInGoal: false,
+      observation: null,
+    };
+  }
+
   if (isSprintStoryGoalDraftEmpty(draft)) return null;
   if (!isSprintStoryGoalDraftValid(draft)) return null;
 
@@ -39,6 +51,7 @@ function toUpsertInput(
     targetTacTagName: draft.targetTacTagName.trim() || null,
     baselineStateName: baseline.baselineStateName,
     baselineTacTagName: baseline.baselineTacTagName,
+    includedInGoal: true,
     observation: null,
   };
 }
@@ -55,6 +68,7 @@ export async function saveSprintStoryGoals(
   }
 
   for (const draft of drafts) {
+    if (draft.includedInGoal === false) continue;
     if (!isSprintStoryGoalDraftValid(draft)) {
       return {
         ok: false,

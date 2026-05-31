@@ -59,6 +59,7 @@ export function SprintGoalTable({
               <th className="min-w-80 px-3 py-2 font-medium">Historia</th>
               <th className="min-w-40 px-3 py-2 font-medium">Estado objetivo</th>
               <th className="min-w-48 px-3 py-2 font-medium">TAC objetivo</th>
+              <th className="w-16 px-2 py-2 text-center font-medium">Incluida</th>
             </tr>
           </thead>
           <tbody>

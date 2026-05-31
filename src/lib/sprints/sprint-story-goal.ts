@@ -10,6 +10,7 @@ export type SprintStoryGoalBaseline = {
 
 export type SprintStoryGoalDraft = {
   workItemId: number;
+  includedInGoal: boolean;
   targetStateName: string;
   targetTacTagName: string;
 };
@@ -23,6 +24,7 @@ export type SprintStoryGoalRowModel = {
 export function createEmptySprintStoryGoalDraft(workItemId: number): SprintStoryGoalDraft {
   return {
     workItemId,
+    includedInGoal: true,
     targetStateName: "",
     targetTacTagName: "",
   };
@@ -44,6 +46,7 @@ export function sprintStoryGoalRecordToDraft(
 ): SprintStoryGoalDraft {
   return {
     workItemId: record.workItemId,
+    includedInGoal: record.includedInGoal,
     targetStateName: record.targetStateName?.trim() ?? "",
     targetTacTagName: record.targetTacTagName?.trim() ?? "",
   };
@@ -56,14 +59,15 @@ export function isSprintStoryGoalDraftEmpty(
 }
 
 export function isSprintStoryGoalDraftValid(
-  draft: Pick<SprintStoryGoalDraft, "targetStateName" | "targetTacTagName">,
+  draft: Pick<SprintStoryGoalDraft, "includedInGoal" | "targetStateName" | "targetTacTagName">,
 ): boolean {
+  if (!draft.includedInGoal) return true;
   if (isSprintStoryGoalDraftEmpty(draft)) return true;
   return Boolean(draft.targetStateName.trim() || draft.targetTacTagName.trim());
 }
 
 export function sprintStoryGoalDraftValidationMessage(
-  draft: Pick<SprintStoryGoalDraft, "targetStateName" | "targetTacTagName">,
+  draft: Pick<SprintStoryGoalDraft, "includedInGoal" | "targetStateName" | "targetTacTagName">,
 ): string | null {
   if (isSprintStoryGoalDraftValid(draft)) return null;
   return "Indica al menos un estado objetivo o un TAC objetivo.";
@@ -75,6 +79,7 @@ export function areSprintStoryGoalDraftsEqual(
 ): boolean {
   return (
     left.workItemId === right.workItemId &&
+    left.includedInGoal === right.includedInGoal &&
     left.targetStateName.trim() === right.targetStateName.trim() &&
     left.targetTacTagName.trim() === right.targetTacTagName.trim()
   );
@@ -101,11 +106,21 @@ export function buildSprintStoryGoalRows(
 export function normalizeSprintStoryGoalDraftForSave(
   draft: SprintStoryGoalDraft,
 ): SprintStoryGoalDraftDto | null {
+  if (!draft.includedInGoal) {
+    return {
+      workItemId: draft.workItemId,
+      includedInGoal: false,
+      targetStateName: "",
+      targetTacTagName: "",
+    };
+  }
+
   if (!isSprintStoryGoalDraftValid(draft)) return null;
   if (isSprintStoryGoalDraftEmpty(draft)) return null;
 
   return {
     workItemId: draft.workItemId,
+    includedInGoal: true,
     targetStateName: draft.targetStateName.trim(),
     targetTacTagName: draft.targetTacTagName.trim(),
   };
@@ -114,7 +129,9 @@ export function normalizeSprintStoryGoalDraftForSave(
 export function countSprintStoryGoals(
   drafts: readonly SprintStoryGoalDraft[],
 ): number {
-  return drafts.filter((draft) => !isSprintStoryGoalDraftEmpty(draft)).length;
+  return drafts.filter(
+    (draft) => draft.includedInGoal && !isSprintStoryGoalDraftEmpty(draft),
+  ).length;
 }
 
 export function filterSprintStoryGoalRows(

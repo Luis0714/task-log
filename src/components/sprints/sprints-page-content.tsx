@@ -10,7 +10,7 @@ import type { SprintViewId } from "@/lib/sprints/sprint-view";
 
 const SPRINT_VIEW_ITEMS = [
   { value: "stats" as const, label: "Estadísticas" },
-  { value: "goal" as const, label: "Objetivo del sprint" },
+  { value: "goal" as const, label: "Objetivo" },
 ] satisfies readonly { value: SprintViewId; label: string }[];
 
 export type SprintsPageContentProps = {
