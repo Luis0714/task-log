@@ -1,7 +1,7 @@
 "use client";
 
 import { AdoContextPageShell } from "@/components/filters/ado-context-page-shell";
-import { SelectedSprintSummary } from "@/components/sprints/selected-sprint-summary";
+import { SprintsPageContent } from "@/components/sprints/sprints-page-content";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
 import { PAGE_SEO } from "@/lib/seo/pages";
@@ -25,7 +25,7 @@ export function SprintsPageShell({
       adoExecutionReady={adoExecutionReady}
       filtersDefaultOpen
     >
-      {currentSprint ? <SelectedSprintSummary sprint={currentSprint} /> : null}
+      <SprintsPageContent sprint={currentSprint} />
     </AdoContextPageShell>
   );
 }
