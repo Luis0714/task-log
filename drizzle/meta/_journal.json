@@ -43,6 +43,13 @@
       "when": 1780300000000,
       "tag": "0005_sprint_story_goals_sprint_goal_fk",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780300000001,
+      "tag": "0006_sprint_snapshots",
+      "breakpoints": true
     }
   ]
 }

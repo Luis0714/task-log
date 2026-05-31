@@ -427,6 +427,13 @@ async function fetchWorkItemDetails(
   return items.sort((a, b) => a.title.localeCompare(b.title, "es"));
 }
 
+export async function fetchWorkItemsByIds(
+  auth: AdoCallerAuth,
+  ids: readonly number[],
+): Promise<AdoWorkItemOption[]> {
+  return fetchWorkItemDetails(auth, [...ids]);
+}
+
 export async function listWorkItemsInSprint(
   auth: AdoCallerAuth,
   iterationPath: string,

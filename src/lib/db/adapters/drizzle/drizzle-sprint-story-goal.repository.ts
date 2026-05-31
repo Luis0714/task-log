@@ -3,10 +3,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 
 import { getDb } from "@/lib/db/client";
-import type {
-  SprintGoalScope,
-  SprintStoryGoalRepository,
-} from "@/lib/db/ports/sprint-story-goal.repository.port";
+import type { SprintStoryGoalRepository } from "@/lib/db/ports/sprint-story-goal.repository.port";
 import {
   ensureSprintGoalIdByScope,
   sprintGoalScopeConditions,

@@ -3,6 +3,7 @@ import {
   integer,
   pgEnum,
   pgTable,
+  real,
   text,
   timestamp,
   uniqueIndex,
@@ -17,6 +18,21 @@ export const userAuthProviderEnum = pgEnum("user_auth_provider", [
 
 /** Cómo la app llama a Azure DevOps para este usuario. */
 export const adoAuthMethodEnum = pgEnum("ado_auth_method", ["pat", "oauth"]);
+
+/** Origen del cierre de retrospectiva del sprint. */
+export const sprintSnapshotSourceEnum = pgEnum("sprint_snapshot_source", [
+  "manual",
+  "auto",
+]);
+
+/** Resultado de cumplimiento por HU al finalizar el sprint. */
+export const sprintStoryGoalStatusEnum = pgEnum("sprint_story_goal_status", [
+  "achieved",
+  "partial",
+  "missed",
+  "excluded",
+  "no_target",
+]);
 
 export const users = pgTable(
   "users",
@@ -128,6 +144,78 @@ export const sprintStoryGoals = pgTable(
   ],
 );
 
+/**
+ * Retrospectiva congelada de un sprint (una fila por versión de cierre).
+ * Permite consultar dashboard/objetivo histórico sin depender del ADO actual.
+ */
+export const sprintSnapshots = pgTable(
+  "sprint_snapshots",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sprintGoalId: uuid("sprint_goal_id")
+      .notNull()
+      .references(() => sprintGoals.id, { onDelete: "cascade" }),
+    version: integer("version").notNull().default(1),
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }).notNull(),
+    finalizedByUserId: uuid("finalized_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    finalizedByDisplayName: text("finalized_by_display_name"),
+    source: sprintSnapshotSourceEnum("source").notNull(),
+    generalObjective: text("general_objective"),
+    sprintName: text("sprint_name"),
+    sprintStartDate: text("sprint_start_date"),
+    sprintFinishDate: text("sprint_finish_date"),
+    goalsTotalCount: integer("goals_total_count").notNull().default(0),
+    goalsAchievedCount: integer("goals_achieved_count").notNull().default(0),
+    goalsPartialCount: integer("goals_partial_count").notNull().default(0),
+    goalsMissedCount: integer("goals_missed_count").notNull().default(0),
+    goalsExcludedCount: integer("goals_excluded_count").notNull().default(0),
+    goalsNoTargetCount: integer("goals_no_target_count").notNull().default(0),
+    storyPointsInGoal: real("story_points_in_goal").notNull().default(0),
+    storyPointsAchieved: real("story_points_achieved").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("sprint_snapshots_sprint_goal_version_unique").on(
+      table.sprintGoalId,
+      table.version,
+    ),
+  ],
+);
+
+/** Estado congelado de cada HU incluida en la retrospectiva del sprint. */
+export const sprintStorySnapshots = pgTable(
+  "sprint_story_snapshots",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sprintSnapshotId: uuid("sprint_snapshot_id")
+      .notNull()
+      .references(() => sprintSnapshots.id, { onDelete: "cascade" }),
+    workItemId: integer("work_item_id").notNull(),
+    title: text("title").notNull(),
+    assignedTo: text("assigned_to"),
+    effort: real("effort"),
+    includedInGoal: pgBoolean("included_in_goal").notNull().default(true),
+    baselineStateName: text("baseline_state_name"),
+    baselineTacTagName: text("baseline_tac_tag_name"),
+    targetStateName: text("target_state_name"),
+    targetTacTagName: text("target_tac_tag_name"),
+    finalStateName: text("final_state_name"),
+    finalTacTagName: text("final_tac_tag_name"),
+    goalStatus: sprintStoryGoalStatusEnum("goal_status").notNull(),
+    observation: text("observation"),
+  },
+  (table) => [
+    uniqueIndex("sprint_story_snapshots_snapshot_work_item_unique").on(
+      table.sprintSnapshotId,
+      table.workItemId,
+    ),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type AdoConnection = typeof adoConnections.$inferSelect;
@@ -136,3 +224,7 @@ export type SprintStoryGoal = typeof sprintStoryGoals.$inferSelect;
 export type NewSprintStoryGoal = typeof sprintStoryGoals.$inferInsert;
 export type SprintGoal = typeof sprintGoals.$inferSelect;
 export type NewSprintGoal = typeof sprintGoals.$inferInsert;
+export type SprintSnapshot = typeof sprintSnapshots.$inferSelect;
+export type NewSprintSnapshot = typeof sprintSnapshots.$inferInsert;
+export type SprintStorySnapshot = typeof sprintStorySnapshots.$inferSelect;
+export type NewSprintStorySnapshot = typeof sprintStorySnapshots.$inferInsert;

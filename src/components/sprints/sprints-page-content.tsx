@@ -1,11 +1,17 @@
 "use client";
 
+import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { SprintGoalView } from "@/components/sprints/sprint-goal-view";
+import { SprintSnapshotBanner } from "@/components/sprints/snapshot/sprint-snapshot-banner";
+import { SprintSnapshotDashboardView } from "@/components/sprints/snapshot/sprint-snapshot-dashboard-view";
+import { SprintSnapshotGoalView } from "@/components/sprints/snapshot/sprint-snapshot-goal-view";
 import { SprintStatsDashboardView } from "@/components/sprints/sprint-stats-dashboard-view";
 import type { UseSprintGoalEditorResult } from "@/hooks/sprints/use-sprint-goal-editor";
+import type { UseSprintSnapshotResult } from "@/hooks/sprints/use-sprint-snapshot";
 import { useSprintViewUrl } from "@/hooks/sprints/use-sprint-view-url";
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
+import type { SprintViewId } from "@/lib/sprints/sprint-view";
 
 const SPRINT_VIEW_ITEMS = [
   { value: "stats" as const, label: "Dashboard" },
@@ -15,13 +21,16 @@ const SPRINT_VIEW_ITEMS = [
 export type SprintsPageContentProps = {
   sprint: AdoSprintDto | null;
   goalEditor: UseSprintGoalEditorResult;
+  snapshotState: UseSprintSnapshotResult;
 };
 
 export function SprintsPageContent({
   sprint,
   goalEditor,
+  snapshotState,
 }: SprintsPageContentProps) {
   const { view, setView } = useSprintViewUrl();
+
   if (!sprint) {
     return (
       <p className="text-muted-foreground text-sm">
@@ -30,8 +39,21 @@ export function SprintsPageContent({
     );
   }
 
+  const showSnapshotViews = snapshotState.isFinalized && snapshotState.snapshot !== null;
+
   return (
     <div className="flex flex-col gap-6">
+      <SprintSnapshotBanner
+        snapshot={snapshotState.snapshot}
+        isPastSprint={snapshotState.isPastSprint}
+        loading={snapshotState.loading}
+        finalizing={snapshotState.finalizing}
+        canFinalize={snapshotState.canFinalize}
+        onFinalize={snapshotState.finalize}
+      />
+
+      {snapshotState.error ? <CopilotErrorAlert message={snapshotState.error} /> : null}
+
       <SegmentedControl
         items={SPRINT_VIEW_ITEMS}
         value={view}
@@ -42,7 +64,13 @@ export function SprintsPageContent({
       />
 
       {view === "stats" ? (
-        <SprintStatsDashboardView />
+        showSnapshotViews ? (
+          <SprintSnapshotDashboardView snapshot={snapshotState.snapshot!} />
+        ) : (
+          <SprintStatsDashboardView isPastSprint={snapshotState.isPastSprint} />
+        )
+      ) : showSnapshotViews ? (
+        <SprintSnapshotGoalView snapshot={snapshotState.snapshot!} />
       ) : (
         <SprintGoalView editor={goalEditor} />
       )}
