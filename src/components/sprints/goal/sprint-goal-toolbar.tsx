@@ -1,21 +1,23 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 export type SprintGoalToolbarProps = {
   storyCount: number;
   totalStoryCount: number;
-  includedStoryCount: number;
   excludedStoryCount: number;
   goalsCount: number;
   storySearch: string;
+  actions?: ReactNode;
 };
 
 export function SprintGoalToolbar({
   storyCount,
   totalStoryCount,
-  includedStoryCount,
   excludedStoryCount,
   goalsCount,
   storySearch,
+  actions,
 }: SprintGoalToolbarProps) {
   const isFiltering = storySearch.trim().length > 0;
   const storyCountLabel =
@@ -24,14 +26,16 @@ export function SprintGoalToolbar({
       : `${storyCount} historia${storyCount === 1 ? "" : "s"}`;
 
   return (
-    <p className="text-muted-foreground text-sm">
-      {storyCountLabel} · {includedStoryCount} incluida
-      {includedStoryCount === 1 ? "" : "s"}
-      {excludedStoryCount > 0
-        ? ` · ${excludedStoryCount} no incluida${excludedStoryCount === 1 ? "" : "s"}`
-        : ""}
-      {" · "}
-      {goalsCount} con objetivo
-    </p>
+    <div className="flex items-center justify-between gap-3">
+      <p className="text-muted-foreground min-w-0 text-sm">
+        {storyCountLabel}
+        {excludedStoryCount > 0
+          ? ` · ${excludedStoryCount} no incluida${excludedStoryCount === 1 ? "" : "s"}`
+          : ""}
+        {" · "}
+        {goalsCount} con objetivo
+      </p>
+      {actions ? <div className="shrink-0">{actions}</div> : null}
+    </div>
   );
 }

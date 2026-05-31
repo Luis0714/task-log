@@ -4,6 +4,7 @@ import {
   formatSprintGoalShareDate,
   formatSprintGoalShareDateTime,
 } from "@/lib/sprints/format-sprint-goal-share";
+import { SPRINT_GOAL_SHARE_FONT_FAMILY } from "@/lib/sprints/load-sprint-goal-share-fonts";
 import { SPRINT_GOAL_SHARE_MAX_VISIBLE_STORIES } from "@/lib/sprints/sprint-goal-share-types";
 import type { SprintGoalSharePayload } from "@/lib/sprints/sprint-goal-share-types";
 
@@ -97,7 +98,7 @@ export function SprintGoalShareImage({ payload }: { payload: SprintGoalSharePayl
         flexDirection: "column",
         backgroundColor: colors.background,
         color: colors.text,
-        fontFamily: "Satoshi",
+        fontFamily: SPRINT_GOAL_SHARE_FONT_FAMILY,
       }}
     >
       <div

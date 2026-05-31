@@ -51,7 +51,11 @@ export async function fetchSprintGoalShareImageBlob(
       throw new Error(readApiError(payload, "No se pudo generar la imagen."));
     }
 
-    throw new Error("No se pudo generar la imagen del objetivo del sprint.");
+    throw new Error(
+      res.status === 500
+        ? "Error del servidor al generar la imagen. Inténtalo de nuevo."
+        : "No se pudo generar la imagen del objetivo del sprint.",
+    );
   }
 
   return res.blob();

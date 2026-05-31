@@ -14,6 +14,7 @@ export type TagsComboboxChipsProps = {
   id?: string;
   placeholder: string;
   hasSelection: boolean;
+  showChipRemove?: boolean;
 };
 
 export function TagsComboboxChips({
@@ -21,6 +22,7 @@ export function TagsComboboxChips({
   id,
   placeholder,
   hasSelection,
+  showChipRemove = true,
 }: TagsComboboxChipsProps) {
   return (
     <ComboboxChips ref={anchor} className="w-full max-w-md">
@@ -29,7 +31,12 @@ export function TagsComboboxChips({
           const selectedItems = coerceTagComboboxSelectedItems(selectedValue);
 
           return selectedItems.map((item, index) => (
-            <ComboboxChip key={`${item.value}-${index}`}>{item.label}</ComboboxChip>
+            <ComboboxChip
+              key={`${item.value}-${index}`}
+              showRemove={showChipRemove}
+            >
+              {item.label}
+            </ComboboxChip>
           ));
         }}
       </ComboboxValue>

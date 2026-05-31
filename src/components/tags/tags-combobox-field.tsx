@@ -41,21 +41,19 @@ export function TagsComboboxField({
   onValueChange,
 }: TagsComboboxFieldProps) {
   const anchor = useComboboxAnchor();
-  const comboboxValue = multiple
-    ? selectedOptions
-    : (selectedOptions[0] ?? null);
 
   return (
     <div className={cn("space-y-2", className)}>
       {label ? <Label htmlFor={id}>{label}</Label> : null}
 
       <Combobox
-        multiple={multiple}
+        multiple
         items={options}
-        value={comboboxValue}
+        value={selectedOptions}
         disabled={isDisabled}
         onValueChange={(nextValue) => {
-          onValueChange(extractTagComboboxValues(nextValue));
+          const values = extractTagComboboxValues(nextValue);
+          onValueChange(multiple ? values : values.slice(-1));
         }}
       >
         <TagsComboboxChips
@@ -63,6 +61,7 @@ export function TagsComboboxField({
           id={id}
           placeholder={placeholder}
           hasSelection={selectedOptions.length > 0}
+          showChipRemove={multiple}
         />
         <TagsComboboxPopup
           anchor={anchor}

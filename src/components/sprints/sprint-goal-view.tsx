@@ -49,10 +49,20 @@ export function SprintGoalView({
       <SprintGoalToolbar
         storyCount={editor.displayRows.length}
         totalStoryCount={editor.rows.length}
-        includedStoryCount={editor.includedStoryCount}
         excludedStoryCount={editor.excludedStoryCount}
         goalsCount={editor.goalsCount}
         storySearch={editor.storySearch}
+        actions={
+          <SprintGoalShareActions
+            project={project}
+            team={team}
+            sprintPath={sprint.path}
+            sprintName={sprint.name}
+            sprintStartDate={sprint.startDate}
+            sprintFinishDate={sprint.finishDate}
+            canShare={canShare}
+          />
+        }
       />
 
       <SprintGoalGeneralObjectiveField
@@ -78,24 +88,13 @@ export function SprintGoalView({
         />
       )}
 
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <SprintGoalShareActions
-          project={project}
-          team={team}
-          sprintPath={sprint.path}
-          sprintName={sprint.name}
-          sprintStartDate={sprint.startDate}
-          sprintFinishDate={sprint.finishDate}
-          canShare={canShare}
-        />
-        <SprintGoalSaveActions
-          isDirty={editor.isDirty}
-          canSave={editor.canSave}
-          saving={editor.saving}
-          onSave={handleSave}
-          onDiscard={editor.discardChanges}
-        />
-      </div>
+      <SprintGoalSaveActions
+        isDirty={editor.isDirty}
+        canSave={editor.canSave}
+        saving={editor.saving}
+        onSave={handleSave}
+        onDiscard={editor.discardChanges}
+      />
     </div>
   );
 }
