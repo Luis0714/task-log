@@ -11,6 +11,7 @@ import { SprintDaySelect } from "@/components/filters/sprint-day-select";
 import { useAdoContextUrl } from "@/hooks/use-ado-context-url";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { buildAdoContextQuery } from "@/lib/ado/parse-context-search-params";
+import { resolveCatalogError } from "@/lib/ado/resolve-catalog-error";
 import {
   listSprintWorkingDays,
   resolveEffectiveSprintDayKey,
@@ -104,11 +105,7 @@ export function DashboardPageShell({
     sprintWorkingDays,
   ]);
 
-  const catalogError =
-    catalog.errors.projects ??
-    catalog.errors.teams ??
-    catalog.errors.sprints ??
-    null;
+  const catalogError = resolveCatalogError(catalog);
 
   const onSprintDayChange = (value: string) => {
     setSprintDayKey(value);

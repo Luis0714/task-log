@@ -1,5 +1,5 @@
-import { PageHeaderSkeleton } from "@/components/skeletons/page-header-skeleton";
+import { TimeLogShellSkeleton } from "@/components/skeletons/time-log-shell-skeleton";
 
 export default function SprintsLoading() {
-  return <PageHeaderSkeleton />;
+  return <TimeLogShellSkeleton />;
 }

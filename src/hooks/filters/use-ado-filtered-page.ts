@@ -2,12 +2,11 @@
 
 import { useMemo } from "react";
 
-import { useAdoContextUrl } from "@/hooks/use-ado-context-url";
+import { useAdoContextPage } from "@/hooks/filters/use-ado-context-page";
 import { usePushWorkItemAssigneeUrl } from "@/hooks/filters/use-push-work-item-assignee-url";
 import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-panel";
 import { useWorkItemsFiltersContext } from "@/components/work-items/work-items-filters-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
-import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
 import type { AdoFilterMeta } from "@/lib/filters/ado-filter-meta";
 
 export type UseAdoFilteredPageOptions = {
@@ -27,14 +26,12 @@ export function useAdoFilteredPage({
   const { filters, setSearch, setAssignee, setStates, resetFilters } =
     useWorkItemsFiltersContext();
 
-  const context = useAdoContextUrl({
+  const { context, currentSprint, catalogError } = useAdoContextPage({
     catalog,
     adoExecutionReady,
     assignee: filters.assignee,
     workItemsCount,
   });
-
-  const currentSprint = useMemo(() => resolveCurrentSprint(catalog), [catalog]);
 
   const workItemStates = useMemo(
     () => filterMeta.states.map((state) => state.name),
@@ -63,12 +60,6 @@ export function useAdoFilteredPage({
     totalCount: 0,
     filteredCount: 0,
   });
-
-  const catalogError =
-    catalog.errors.projects ??
-    catalog.errors.teams ??
-    catalog.errors.sprints ??
-    null;
 
   return { context, currentSprint, filtersPanel, catalogError };
 }

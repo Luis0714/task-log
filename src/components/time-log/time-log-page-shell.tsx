@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { PageHeader } from "@/components/layout/page-header";
+import { resolveCatalogError } from "@/lib/ado/resolve-catalog-error";
 import { PAGE_SEO } from "@/lib/seo/pages";
 import type { TimeLogServerBaseline } from "@/lib/time-log/load-time-log-baseline";
 
@@ -18,11 +19,7 @@ export function TimeLogPageShell({
 }: TimeLogPageShellProps) {
   const { catalog } = serverBaseline;
 
-  const catalogError =
-    catalog.errors.projects ??
-    catalog.errors.teams ??
-    catalog.errors.sprints ??
-    null;
+  const catalogError = resolveCatalogError(catalog);
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-5">
