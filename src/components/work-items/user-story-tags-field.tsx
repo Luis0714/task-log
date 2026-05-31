@@ -3,23 +3,23 @@
 import { useMemo } from "react";
 
 import { TagsCombobox } from "@/components/tags/tags-combobox";
-import { useSprintWorkItemTags } from "@/hooks/sprints/use-sprint-work-item-tags";
+import { useProjectWorkItemTags } from "@/hooks/tags/use-project-work-item-tags";
 import { mergeWorkItemTagOptions } from "@/lib/tags/tag-combobox-option";
 
-export type UserStoryWorkflowTagFieldProps = {
+export type UserStoryTagsFieldProps = {
   project: string | null;
   value: readonly string[];
   onChange: (value: string[]) => void;
   disabled?: boolean;
 };
 
-export function UserStoryWorkflowTagField({
+export function UserStoryTagsField({
   project,
   value,
   onChange,
   disabled = false,
-}: UserStoryWorkflowTagFieldProps) {
-  const { tags, loading, error } = useSprintWorkItemTags(project ?? "");
+}: UserStoryTagsFieldProps) {
+  const { tags, loading, error } = useProjectWorkItemTags(project ?? "");
   const options = useMemo(
     () => mergeWorkItemTagOptions(tags, value),
     [tags, value],
@@ -28,7 +28,7 @@ export function UserStoryWorkflowTagField({
   return (
     <div className="space-y-2">
       <TagsCombobox
-        id="user-story-workflow-tag"
+        id="user-story-tags"
         label="Tags"
         options={options}
         value={Array.isArray(value) ? value : []}

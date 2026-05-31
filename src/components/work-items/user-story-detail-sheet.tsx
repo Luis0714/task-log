@@ -8,7 +8,7 @@ import { UserStoryResponsableFields } from "@/components/work-items/user-story-r
 import { UserStorySchedulingFields } from "@/components/work-items/user-story-scheduling-fields";
 import { UserStorySummaryCard } from "@/components/work-items/user-story-summary-card";
 import { WorkItemAdoQuickLinks } from "@/components/work-items/work-item-ado-quick-links";
-import { UserStoryWorkflowTagField } from "@/components/work-items/user-story-workflow-tag-field";
+import { UserStoryTagsField } from "@/components/work-items/user-story-tags-field";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -161,7 +161,7 @@ export function UserStoryDetailSheet({
                   )}
                 </section>
 
-                <UserStoryWorkflowTagField
+                <UserStoryTagsField
                   project={project}
                   value={form.draftTags}
                   onChange={form.setDraftTags}

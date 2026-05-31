@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { TagsCombobox } from "@/components/tags/tags-combobox";
-import { useSprintWorkItemTags } from "@/hooks/sprints/use-sprint-work-item-tags";
+import { useProjectWorkItemTags } from "@/hooks/tags/use-project-work-item-tags";
 import { mapAdoWorkItemTagsToOptions } from "@/lib/tags/tag-combobox-option";
 
 export type SprintGoalViewProps = {
@@ -14,7 +14,7 @@ export type SprintGoalViewProps = {
 };
 
 export function SprintGoalView({ project, sprintName }: SprintGoalViewProps) {
-  const { tags, loading, error } = useSprintWorkItemTags(project);
+  const { tags, loading, error } = useProjectWorkItemTags(project);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const tagOptions = useMemo(() => mapAdoWorkItemTagsToOptions(tags), [tags]);
 

@@ -6,20 +6,14 @@ export type TagComboboxOption = {
   label: string;
 };
 
+export type TagComboboxValueKey = "id" | "name";
+
 export function mapAdoWorkItemTagsToOptions(
   tags: readonly AdoWorkItemTagDto[],
+  valueKey: TagComboboxValueKey = "id",
 ): TagComboboxOption[] {
   return tags.map((tag) => ({
-    value: tag.id,
-    label: tag.name,
-  }));
-}
-
-export function mapAdoWorkItemTagsToNameOptions(
-  tags: readonly AdoWorkItemTagDto[],
-): TagComboboxOption[] {
-  return tags.map((tag) => ({
-    value: tag.name,
+    value: valueKey === "id" ? tag.id : tag.name,
     label: tag.name,
   }));
 }

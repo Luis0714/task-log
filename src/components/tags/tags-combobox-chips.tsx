@@ -1,0 +1,39 @@
+"use client";
+
+import {
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxValue,
+  useComboboxAnchor,
+} from "@/components/ui/combobox";
+import { coerceTagComboboxSelectedItems } from "@/lib/tags/tag-combobox-option";
+
+export type TagsComboboxChipsProps = {
+  anchor: ReturnType<typeof useComboboxAnchor>;
+  id?: string;
+  placeholder: string;
+  hasSelection: boolean;
+};
+
+export function TagsComboboxChips({
+  anchor,
+  id,
+  placeholder,
+  hasSelection,
+}: TagsComboboxChipsProps) {
+  return (
+    <ComboboxChips ref={anchor} className="w-full max-w-md">
+      <ComboboxValue>
+        {(selectedValue) => {
+          const selectedItems = coerceTagComboboxSelectedItems(selectedValue);
+
+          return selectedItems.map((item, index) => (
+            <ComboboxChip key={`${item.value}-${index}`}>{item.label}</ComboboxChip>
+          ));
+        }}
+      </ComboboxValue>
+      <ComboboxChipsInput id={id} placeholder={hasSelection ? "" : placeholder} />
+    </ComboboxChips>
+  );
+}
