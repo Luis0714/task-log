@@ -3,17 +3,35 @@
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { SprintGoalGeneralObjectiveField } from "@/components/sprints/goal/sprint-goal-general-objective-field";
 import { SprintGoalSaveActions } from "@/components/sprints/goal/sprint-goal-save-actions";
+import { SprintGoalShareActions } from "@/components/sprints/goal/sprint-goal-share-actions";
 import { SprintGoalTable } from "@/components/sprints/goal/sprint-goal-table";
 import { SprintGoalToolbar } from "@/components/sprints/goal/sprint-goal-toolbar";
 import type { UseSprintGoalEditorResult } from "@/hooks/sprints/use-sprint-goal-editor";
+import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
 import { appToast } from "@/lib/toast";
 
 export type SprintGoalViewProps = {
   editor: UseSprintGoalEditorResult;
+  project: string;
+  team: string;
+  sprint: AdoSprintDto;
   onSaved?: () => void;
 };
 
-export function SprintGoalView({ editor, onSaved }: SprintGoalViewProps) {
+export function SprintGoalView({
+  editor,
+  project,
+  team,
+  sprint,
+  onSaved,
+}: SprintGoalViewProps) {
+  const canShare =
+    editor.persistenceReady &&
+    !editor.loading &&
+    !editor.saving &&
+    !editor.isDirty &&
+    editor.goalsCount > 0;
+
   async function handleSave() {
     const result = await editor.save();
     if (result.ok) {
@@ -60,13 +78,24 @@ export function SprintGoalView({ editor, onSaved }: SprintGoalViewProps) {
         />
       )}
 
-      <SprintGoalSaveActions
-        isDirty={editor.isDirty}
-        canSave={editor.canSave}
-        saving={editor.saving}
-        onSave={handleSave}
-        onDiscard={editor.discardChanges}
-      />
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <SprintGoalShareActions
+          project={project}
+          team={team}
+          sprintPath={sprint.path}
+          sprintName={sprint.name}
+          sprintStartDate={sprint.startDate}
+          sprintFinishDate={sprint.finishDate}
+          canShare={canShare}
+        />
+        <SprintGoalSaveActions
+          isDirty={editor.isDirty}
+          canSave={editor.canSave}
+          saving={editor.saving}
+          onSave={handleSave}
+          onDiscard={editor.discardChanges}
+        />
+      </div>
     </div>
   );
 }

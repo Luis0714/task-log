@@ -27,6 +27,7 @@ const SPRINT_VIEW_ITEMS = [
 export type SprintsPageContentProps = {
   sprint: AdoSprintDto | null;
   project: string;
+  team: string;
   goalEditor: UseSprintGoalEditorResult;
   snapshotState: UseSprintSnapshotResult;
   statsState: UseSprintStatsResult;
@@ -35,6 +36,7 @@ export type SprintsPageContentProps = {
 export function SprintsPageContent({
   sprint,
   project,
+  team,
   goalEditor,
   snapshotState,
   statsState,
@@ -95,11 +97,22 @@ export function SprintsPageContent({
       ) : snapshotState.loading ? (
         <SprintSnapshotGoalViewSkeleton />
       ) : showSnapshotViews ? (
-        <SprintSnapshotGoalView snapshot={snapshotState.snapshot!} />
+        <SprintSnapshotGoalView
+          snapshot={snapshotState.snapshot!}
+          project={project}
+          team={team}
+          sprintPath={sprint.path}
+        />
       ) : goalEditor.loading ? (
         <SprintGoalViewSkeleton />
       ) : (
-        <SprintGoalView editor={goalEditor} onSaved={statsState.reload} />
+        <SprintGoalView
+          editor={goalEditor}
+          project={project}
+          team={team}
+          sprint={sprint}
+          onSaved={statsState.reload}
+        />
       )}
     </div>
   );

@@ -101,6 +101,7 @@ export function SprintsPageShell({
       <SprintsPageContent
         sprint={currentSprint}
         project={catalog.project}
+        team={catalog.team}
         goalEditor={goalEditor}
         snapshotState={snapshotState}
         statsState={statsState}
