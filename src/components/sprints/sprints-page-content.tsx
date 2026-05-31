@@ -8,7 +8,7 @@ import { useSprintViewUrl } from "@/hooks/sprints/use-sprint-view-url";
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
 
 const SPRINT_VIEW_ITEMS = [
-  { value: "stats" as const, label: "Estadísticas" },
+  { value: "stats" as const, label: "Dashboard" },
   { value: "goal" as const, label: "Objetivo" },
 ] satisfies readonly { value: SprintViewId; label: string }[];
 
