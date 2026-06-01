@@ -18,7 +18,7 @@ import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
 import { buildSprintOperationalMetrics } from "@/lib/sprints/build-sprint-operational-metrics";
 import { buildSprintGoalMetrics } from "@/lib/sprints/build-sprint-goal-metrics";
-import { resolveSprintStatsScope } from "@/lib/sprints/filter-sprint-stats-scope";
+import { resolveSprintStatsScope, SPRINT_STATS_GOAL_ONLY_DEFAULT } from "@/lib/sprints/filter-sprint-stats-scope";
 import { isSprintScopeFinalized } from "@/lib/sprints/is-sprint-scope-finalized";
 import { loadProjectWorkItemTags } from "@/lib/sprints/load-project-work-item-tags";
 import type { SprintStatsScreenData } from "@/lib/sprints/sprint-stats-types";
@@ -40,7 +40,7 @@ export const loadSprintStatsScreen = cache(async function loadSprintStatsScreen(
   scope: SprintGoalScope,
   options: LoadSprintStatsScreenOptions = {},
 ): Promise<SprintStatsScreenSnapshot> {
-  const goalOnly = options.goalOnly ?? false;
+  const goalOnly = options.goalOnly ?? SPRINT_STATS_GOAL_ONLY_DEFAULT;
   const persistenceReady = isDatabaseConfigured();
   let isFinalized = false;
 

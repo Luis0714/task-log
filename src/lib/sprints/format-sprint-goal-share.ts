@@ -1,3 +1,6 @@
+import type { SprintGoalShareFormat } from "@/lib/sprints/sprint-goal-share-format";
+import { getSprintGoalShareFileExtension } from "@/lib/sprints/sprint-goal-share-format";
+
 const shareDateFormatter = new Intl.DateTimeFormat("es", {
   day: "numeric",
   month: "short",
@@ -20,6 +23,12 @@ export function formatSprintGoalShareDateTime(date: Date): string {
   return shareDateTimeFormatter.format(date);
 }
 
+export function truncateSprintGoalShareText(value: string, maxLength: number): string {
+  const trimmed = value.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+  return `${trimmed.slice(0, maxLength - 1)}…`;
+}
+
 export function sanitizeSprintGoalShareFilename(value: string): string {
   const sanitized = value
     .normalize("NFKD")
@@ -33,8 +42,10 @@ export function sanitizeSprintGoalShareFilename(value: string): string {
 
 export function buildSprintGoalShareDownloadFilename(
   sprintName: string,
-  generatedAt: Date,
+  format: SprintGoalShareFormat,
+  generatedAt: Date = new Date(),
 ): string {
   const datePart = generatedAt.toISOString().slice(0, 10);
-  return `${sanitizeSprintGoalShareFilename(sprintName)}-${datePart}.png`;
+  const extension = getSprintGoalShareFileExtension(format);
+  return `${sanitizeSprintGoalShareFilename(sprintName)}-${datePart}.${extension}`;
 }

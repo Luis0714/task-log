@@ -15,6 +15,7 @@ export async function createSprintGoalShareImageResponse(
   const imageSize = getSprintGoalShareImageSize(payload);
   const filename = buildSprintGoalShareDownloadFilename(
     payload.sprintName,
+    "image",
     payload.generatedAt,
   );
 

@@ -8,6 +8,7 @@ import { SprintGoalTable } from "@/components/sprints/goal/sprint-goal-table";
 import { SprintGoalToolbar } from "@/components/sprints/goal/sprint-goal-toolbar";
 import type { UseSprintGoalEditorResult } from "@/hooks/sprints/use-sprint-goal-editor";
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
+import { canShareSprintGoalFromEditor } from "@/lib/sprints/sprint-goal-share-eligibility";
 import { appToast } from "@/lib/toast";
 
 export type SprintGoalViewProps = {
@@ -25,12 +26,13 @@ export function SprintGoalView({
   sprint,
   onSaved,
 }: SprintGoalViewProps) {
-  const canShare =
-    editor.persistenceReady &&
-    !editor.loading &&
-    !editor.saving &&
-    !editor.isDirty &&
-    editor.goalsCount > 0;
+  const canShare = canShareSprintGoalFromEditor({
+    persistenceReady: editor.persistenceReady,
+    loading: editor.loading,
+    saving: editor.saving,
+    isDirty: editor.isDirty,
+    goalsCount: editor.goalsCount,
+  });
 
   async function handleSave() {
     const result = await editor.save();

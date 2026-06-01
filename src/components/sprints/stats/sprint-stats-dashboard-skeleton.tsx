@@ -1,5 +1,10 @@
 import { DashboardKpi } from "@/components/dashboard/charts/dashboard-kpi";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
+import { ProgressRingSkeleton } from "@/components/dashboard/metrics/progress-ring/progress-ring-skeleton";
+import {
+  PROGRESS_RING_PAIR_CELL_CLASS,
+  ProgressRingPairGrid,
+} from "@/components/dashboard/metrics/progress-ring/progress-ring-pair-grid";
 import {
   DashboardDeliverySectionSkeleton,
   DashboardWorkflowSectionSkeleton,
@@ -25,43 +30,30 @@ export function SprintGoalProgressSectionSkeleton() {
     <DashboardSection
       title="Cumplimiento del objetivo"
       description="Avance del equipo respecto al objetivo definido para este sprint."
+      contentClassName="flex flex-col gap-3"
     >
-      <Skeleton className="mb-2 h-4 w-full max-w-xl" />
+      <Skeleton className="h-4 w-full max-w-xl" />
 
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-12">
+      <ProgressRingPairGrid>
+        <div
+          className={cn(
+            PROGRESS_RING_PAIR_CELL_CLASS,
+            "rounded-lg border border-border/60 p-3",
+          )}
+        >
+          <ProgressRingSkeleton />
+        </div>
+
         <DashboardKpi
-          size="compact"
+          size="featured"
           layout="stack"
-          label="Objetivos cumplidos"
+          label="Cumplidas / comprometidas"
           value="—"
+          hint="— SP"
           loading
-          className="min-w-0 lg:col-span-3"
+          className={PROGRESS_RING_PAIR_CELL_CLASS}
         />
-        <DashboardKpi
-          size="compact"
-          layout="stack"
-          label="Parciales"
-          value="—"
-          loading
-          className="min-w-0 lg:col-span-3"
-        />
-        <DashboardKpi
-          size="compact"
-          layout="stack"
-          label="No cumplidas"
-          value="—"
-          loading
-          className="min-w-0 lg:col-span-3"
-        />
-        <DashboardKpi
-          size="compact"
-          layout="stack"
-          label="Story points en objetivo"
-          value="—"
-          loading
-          className="min-w-0 lg:col-span-3"
-        />
-      </div>
+      </ProgressRingPairGrid>
     </DashboardSection>
   );
 }
@@ -85,48 +77,25 @@ export function SprintBugQualitySectionSkeleton() {
       description="Estado de bugs del equipo y su relación con historias del objetivo."
     >
       <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-12">
+        <ProgressRingPairGrid>
+          <div
+            className={cn(
+              PROGRESS_RING_PAIR_CELL_CLASS,
+              "rounded-lg border border-border/60 p-3",
+            )}
+          >
+            <ProgressRingSkeleton />
+          </div>
+
           <DashboardKpi
-            size="compact"
-            layout="stack"
-            label="Bugs totales"
-            value="—"
-            loading
-            className="min-w-0 lg:col-span-2"
-          />
-          <DashboardKpi
-            size="compact"
-            layout="stack"
-            label="Abiertos"
-            value="—"
-            loading
-            className="min-w-0 lg:col-span-2"
-          />
-          <DashboardKpi
-            size="compact"
-            layout="stack"
-            label="Atendidos"
-            value="—"
-            loading
-            className="min-w-0 lg:col-span-2"
-          />
-          <DashboardKpi
-            size="compact"
-            layout="stack"
-            label="Sin asignar"
-            value="—"
-            loading
-            className="min-w-0 lg:col-span-2"
-          />
-          <DashboardKpi
-            size="compact"
+            size="featured"
             layout="stack"
             label="Bugs en HUs del objetivo"
             value="—"
             loading
-            className="min-w-0 lg:col-span-4"
+            className={PROGRESS_RING_PAIR_CELL_CLASS}
           />
-        </div>
+        </ProgressRingPairGrid>
 
         <div className="grid gap-3 lg:grid-cols-12">
           <Skeleton className="h-52 rounded-xl lg:col-span-7" />

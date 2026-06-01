@@ -1,3 +1,4 @@
+import { DASHBOARD_KPI_FEATURED_CLASSES } from "@/components/dashboard/charts/dashboard-kpi.constants";
 import type {
   DashboardKpiLayout,
   DashboardKpiSize,
@@ -6,6 +7,7 @@ import type {
 
 export type DashboardKpiViewModel = {
   compact: boolean;
+  featured: boolean;
   inline: boolean;
   clampedProgress?: number;
   hasHoursBreakdown: boolean;
@@ -13,23 +15,30 @@ export type DashboardKpiViewModel = {
   progressBarMarginClass: string;
   hintClassName: string;
   containerSpacingClass: string;
+  featuredLabelClass?: string;
+  featuredValueClass?: string;
+  featuredSkeletonClass?: string;
+  featuredProgressBarWrapperClass?: string;
   highlightClassName?: string;
 };
 
 function resolveProgressBarMarginClass({
   hasHoursBreakdown,
   compact,
+  featured,
   inline,
   hasHint,
 }: {
   hasHoursBreakdown: boolean;
   compact: boolean;
+  featured: boolean;
   inline: boolean;
   hasHint: boolean;
 }) {
-  if (hasHoursBreakdown) return compact ? "mt-0.5" : "mt-1.5";
+  if (hasHoursBreakdown) return compact || featured ? "mt-0.5" : "mt-1.5";
   if (inline && !hasHint) return "mt-1";
   if (inline && hasHint) return "mt-0.5";
+  if (featured) return DASHBOARD_KPI_FEATURED_CLASSES.progressBarMargin;
   if (compact) return "mt-0.5";
   return "mt-1.5";
 }
@@ -58,6 +67,7 @@ export function buildDashboardKpiViewModel({
   variant: DashboardKpiVariant;
   highlight: boolean;
 }): DashboardKpiViewModel {
+  const featured = size === "featured";
   const compact = size === "compact";
   const inline = layout === "inline";
   const hasHoursBreakdown = Boolean(hoursBreakdown);
@@ -66,23 +76,37 @@ export function buildDashboardKpiViewModel({
 
   return {
     compact,
+    featured,
     inline,
     clampedProgress,
     hasHoursBreakdown,
     progressBarHeightClass:
-      hasHoursBreakdown ? "h-2" : compact || inline ? "h-1" : "h-2",
+      hasHoursBreakdown ? "h-2" : compact || featured || inline ? "h-1" : "h-2",
     progressBarMarginClass: resolveProgressBarMarginClass({
       hasHoursBreakdown,
       compact,
+      featured,
       inline,
       hasHint: Boolean(hint),
     }),
-    hintClassName: compact || inline ? "text-[9px]" : "mt-0.5 text-[10px]",
+    hintClassName: featured
+      ? "text-center text-[10px] tabular-nums sm:text-[11px]"
+      : compact || inline
+        ? "text-[9px]"
+        : "mt-0.5 text-[10px]",
     containerSpacingClass: inline
       ? "gap-1 px-2 py-1.5"
-      : compact
-        ? "min-h-0 justify-between gap-0.5 px-2 py-1.5"
-        : "min-h-[52px] justify-between gap-0 px-2.5 py-2",
+      : featured
+        ? DASHBOARD_KPI_FEATURED_CLASSES.container
+        : compact
+          ? "min-h-0 justify-between gap-0.5 px-2 py-1.5"
+          : "min-h-[52px] justify-between gap-0 px-2.5 py-2",
+    featuredLabelClass: featured ? DASHBOARD_KPI_FEATURED_CLASSES.label : undefined,
+    featuredValueClass: featured ? DASHBOARD_KPI_FEATURED_CLASSES.value : undefined,
+    featuredSkeletonClass: featured ? DASHBOARD_KPI_FEATURED_CLASSES.skeleton : undefined,
+    featuredProgressBarWrapperClass: featured
+      ? DASHBOARD_KPI_FEATURED_CLASSES.progressBarWrapper
+      : undefined,
     highlightClassName: resolveHighlightClassName(variant, highlight),
   };
 }

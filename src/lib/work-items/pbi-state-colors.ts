@@ -134,3 +134,85 @@ export function getPbiStateColorPresentation(state: string): PbiStateColorPresen
 export function getPbiStateChartColor(state: string): string {
   return getPbiStateColorPresentation(state).chartColor;
 }
+
+export type PbiStateExportBadgeStyle = PbiStateBadgeStyle & {
+  dotColor: string;
+};
+
+/**
+ * Equivalentes hex del tema claro (`:root` en globals.css) para exportación
+ * (OG image, PDF) donde no aplican variables CSS.
+ */
+const PBI_STATE_EXPORT_BADGE_STYLES: Record<PbiStateSlug, PbiStateExportBadgeStyle> = {
+  new: {
+    borderColor: "#c5c9d4",
+    backgroundColor: "#f2f3f6",
+    color: "#525868",
+    dotColor: "#828899",
+  },
+  approved: {
+    borderColor: "#d4d4d4",
+    backgroundColor: "#fafafa",
+    color: "#404040",
+    dotColor: "#a3a3a3",
+  },
+  committed: {
+    borderColor: "#3b82f6",
+    backgroundColor: "#eff6ff",
+    color: "#1e40af",
+    dotColor: "#2563eb",
+  },
+  impediment: {
+    borderColor: "#ef4444",
+    backgroundColor: "#fef2f2",
+    color: "#991b1b",
+    dotColor: "#dc2626",
+  },
+  reopened: {
+    borderColor: "#f59e0b",
+    backgroundColor: "#fffbeb",
+    color: "#92400e",
+    dotColor: "#d97706",
+  },
+  qa: {
+    borderColor: "#ca8a04",
+    backgroundColor: "#fefce8",
+    color: "#854d0e",
+    dotColor: "#eab308",
+  },
+  "review-po": {
+    borderColor: "#db2777",
+    backgroundColor: "#fdf2f8",
+    color: "#9d174d",
+    dotColor: "#ec4899",
+  },
+  "in-stage": {
+    borderColor: "#0891b2",
+    backgroundColor: "#ecfeff",
+    color: "#155e75",
+    dotColor: "#06b6d4",
+  },
+  done: {
+    borderColor: "#16a34a",
+    backgroundColor: "#f0fdf4",
+    color: "#166534",
+    dotColor: "#22c55e",
+  },
+  unknown: {
+    borderColor: "#d4d4d4",
+    backgroundColor: "#f5f5f5",
+    color: "#737373",
+    dotColor: "#a3a3a3",
+  },
+};
+
+export function isPbiStateBadgeRenderable(state: string): boolean {
+  const trimmed = state.trim();
+  return Boolean(trimmed && trimmed !== "—");
+}
+
+/** Estilos de badge con colores sólidos para imagen/PDF. */
+export function getPbiStateExportBadgeStyle(state: string): PbiStateExportBadgeStyle {
+  const slug = resolvePbiStateSlug(state);
+  return PBI_STATE_EXPORT_BADGE_STYLES[slug];
+}

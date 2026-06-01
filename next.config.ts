@@ -10,13 +10,23 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/sprints",
-        destination: "/analisis/sprints",
+        destination: "/analysis/sprints",
         permanent: false,
       },
       {
         source: "/proyecto",
-        destination: "/analisis/proyecto",
+        destination: "/analysis/proyecto",
         permanent: false,
+      },
+      {
+        source: "/analisis/sprints",
+        destination: "/analysis/sprints",
+        permanent: true,
+      },
+      {
+        source: "/analisis/proyecto",
+        destination: "/analysis/proyecto",
+        permanent: true,
       },
     ];
   },

@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
+import { useSprintShareExport } from "@/hooks/sprints/use-sprint-share-export";
+import { buildSprintGoalShareDownloadFilename } from "@/lib/sprints/format-sprint-goal-share";
+import type { SprintGoalShareFormat } from "@/lib/sprints/sprint-goal-share-format";
+import { getSprintGoalShareMimeType } from "@/lib/sprints/sprint-goal-share-format";
+import { normalizeSprintShareScope } from "@/lib/sprints/sprint-share-scope";
 import {
-  buildSprintGoalShareDownloadFilename,
-} from "@/lib/sprints/format-sprint-goal-share";
-import {
-  buildSprintGoalShareImageUrl,
-  fetchSprintGoalShareImageBlob,
+  buildSprintGoalShareUrl,
+  fetchSprintGoalShareBlob,
   type SprintGoalShareQuery,
 } from "@/services/sprints/sprint-goal-share.service";
 
@@ -15,40 +17,19 @@ export type UseSprintGoalShareOptions = SprintGoalShareQuery & {
   canShare: boolean;
 };
 
-export type UseSprintGoalShareResult = {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-  previewUrl: string | null;
-  loading: boolean;
-  error: string | null;
-  canShareNative: boolean;
-  downloadImage: () => Promise<void>;
-  shareImage: () => Promise<void>;
+export type UseSprintGoalShareResult = ReturnType<typeof useSprintShareExport> & {
+  format: SprintGoalShareFormat;
+  setFormat: (format: SprintGoalShareFormat) => void;
 };
-
-function revokeObjectUrl(url: string | null) {
-  if (url) URL.revokeObjectURL(url);
-}
 
 export function useSprintGoalShare({
   canShare,
   ...query
 }: UseSprintGoalShareOptions): UseSprintGoalShareResult {
-  const [open, setOpen] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [imageBlob, setImageBlob] = useState<Blob | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [format, setFormat] = useState<SprintGoalShareFormat>("image");
 
   const shareQuery = useMemo(
-    () => ({
-      project: query.project.trim(),
-      team: query.team.trim(),
-      sprintPath: query.sprintPath.trim(),
-      sprintName: query.sprintName.trim(),
-      sprintStartDate: query.sprintStartDate?.trim(),
-      sprintFinishDate: query.sprintFinishDate?.trim(),
-    }),
+    () => normalizeSprintShareScope(query),
     [
       query.project,
       query.team,
@@ -59,104 +40,69 @@ export function useSprintGoalShare({
     ],
   );
 
-  const downloadFilename = useMemo(
-    () => buildSprintGoalShareDownloadFilename(shareQuery.sprintName, new Date()),
-    [shareQuery.sprintName],
+  const messages = useMemo(
+    () => ({
+      fetch:
+        format === "pdf"
+          ? "No se pudo generar el PDF del objetivo del sprint."
+          : "No se pudo generar la imagen del objetivo del sprint.",
+      download:
+        format === "pdf" ? "No se pudo descargar el PDF." : "No se pudo descargar la imagen.",
+      share:
+        format === "pdf" ? "No se pudo compartir el PDF." : "No se pudo compartir la imagen.",
+      copy: "No se pudo copiar la imagen al portapapeles.",
+      copySuccess: "Imagen copiada al portapapeles.",
+    }),
+    [format],
   );
 
-  const canShareNative = useMemo(() => {
-    if (typeof navigator === "undefined" || !navigator.share) return false;
-    return typeof navigator.canShare === "function";
-  }, []);
+  const fetchBlob = useCallback(
+    (signal?: AbortSignal) => fetchSprintGoalShareBlob(shareQuery, format, signal),
+    [shareQuery, format],
+  );
 
-  useEffect(() => {
-    if (!open || !canShare) return;
+  const buildFilename = useCallback(
+    () => buildSprintGoalShareDownloadFilename(shareQuery.sprintName, format),
+    [shareQuery.sprintName, format],
+  );
 
-    const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-    setImageBlob(null);
-    setPreviewUrl((current) => {
-      revokeObjectUrl(current);
-      return null;
-    });
+  const buildUrl = useCallback(
+    () => buildSprintGoalShareUrl(shareQuery, format),
+    [shareQuery, format],
+  );
 
-    void fetchSprintGoalShareImageBlob(shareQuery, controller.signal)
-      .then((blob) => {
-        if (controller.signal.aborted) return;
-        const nextUrl = URL.createObjectURL(blob);
-        setImageBlob(blob);
-        setPreviewUrl(nextUrl);
-      })
-      .catch((cause) => {
-        if (controller.signal.aborted) return;
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : "No se pudo generar la imagen del objetivo del sprint.",
-        );
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
+  const reloadKey = useMemo(
+    () =>
+      [
+        shareQuery.project,
+        shareQuery.team,
+        shareQuery.sprintPath,
+        shareQuery.sprintName,
+        shareQuery.sprintStartDate,
+        shareQuery.sprintFinishDate,
+        format,
+      ] as const,
+    [shareQuery, format],
+  );
 
-    return () => {
-      controller.abort();
-    };
-  }, [open, canShare, shareQuery]);
-
-  useEffect(() => {
-    return () => {
-      revokeObjectUrl(previewUrl);
-    };
-  }, [previewUrl]);
-
-  const downloadImage = useCallback(async () => {
-    if (imageBlob) {
-      const url = URL.createObjectURL(imageBlob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = downloadFilename;
-      anchor.click();
-      URL.revokeObjectURL(url);
-      return;
-    }
-
-    const anchor = document.createElement("a");
-    anchor.href = buildSprintGoalShareImageUrl(shareQuery);
-    anchor.download = downloadFilename;
-    anchor.click();
-  }, [downloadFilename, imageBlob, shareQuery]);
-
-  const shareImage = useCallback(async () => {
-    const blob =
-      imageBlob ?? (await fetchSprintGoalShareImageBlob(shareQuery));
-
-    const file = new File([blob], downloadFilename, { type: "image/png" });
-
-    if (
-      typeof navigator.canShare === "function" &&
-      navigator.canShare({ files: [file] })
-    ) {
-      await navigator.share({
-        files: [file],
-        title: `Objetivo del sprint — ${shareQuery.sprintName}`,
-        text: `Objetivo del sprint ${shareQuery.sprintName}`,
-      });
-      return;
-    }
-
-    await downloadImage();
-  }, [downloadFilename, downloadImage, imageBlob, shareQuery]);
+  const exportResult = useSprintShareExport({
+    canShare,
+    reloadKey,
+    fetchBlob,
+    buildFilename,
+    buildUrl,
+    mimeType: getSprintGoalShareMimeType(format),
+    messages,
+    shareMeta: {
+      title: `Objetivo del sprint — ${shareQuery.sprintName}`,
+      text: `Objetivo del sprint ${shareQuery.sprintName}`,
+    },
+    copyEnabled: format === "image",
+  });
 
   return {
-    open,
-    setOpen,
-    previewUrl,
-    loading,
-    error,
-    canShareNative,
-    downloadImage,
-    shareImage,
+    ...exportResult,
+    format,
+    setFormat,
   };
 }

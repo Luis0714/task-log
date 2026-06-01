@@ -44,8 +44,8 @@ export const MAIN_NAVIGATION: NavGroupConfig[] = [
   {
     title: "Análisis",
     items: [
-      { href: "/analisis/proyecto", label: "Proyecto", icon: FolderKanban },
-      { href: "/analisis/sprints", label: "Sprints", icon: Flag },
+      { href: "/analysis/proyecto", label: "Proyecto", icon: FolderKanban },
+      { href: "/analysis/sprints", label: "Sprints", icon: Flag },
     ],
   },
   {

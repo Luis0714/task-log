@@ -14,7 +14,7 @@ export type DashboardKpiVariant =
   | "accent"
   | "destructive";
 
-export type DashboardKpiSize = "default" | "compact";
+export type DashboardKpiSize = "default" | "compact" | "featured";
 
 export type DashboardKpiLayout = "stack" | "inline";
 
@@ -36,6 +36,8 @@ export type DashboardKpiProps = {
   /** Horas pendientes mostradas junto al desglose task/bug */
   hoursPending?: number;
   className?: string;
+  labelClassName?: string;
+  valueClassName?: string;
 };
 
 export function DashboardKpi({
@@ -51,6 +53,8 @@ export function DashboardKpi({
   hoursBreakdown,
   hoursPending,
   className,
+  labelClassName,
+  valueClassName,
 }: DashboardKpiProps) {
   const styles = DASHBOARD_KPI_VARIANT_STYLES[variant];
   const viewModel = buildDashboardKpiViewModel({
@@ -79,7 +83,9 @@ export function DashboardKpi({
         breakdown={hoursBreakdown}
         showWhenEmpty
         pendingHours={hoursPending}
-        className={cn(viewModel.inline ? "mt-0.5" : viewModel.compact ? "mt-0.5" : "mt-1")}
+        className={cn(
+          viewModel.inline ? "mt-0.5" : viewModel.featured || viewModel.compact ? "mt-0.5" : "mt-1",
+        )}
       />
     ) : null;
 
@@ -87,7 +93,8 @@ export function DashboardKpi({
     hint && !loading ? (
       <p
         className={cn(
-          "text-muted-foreground truncate leading-tight",
+          "text-muted-foreground leading-tight",
+          viewModel.featured ? "max-w-full" : "truncate",
           viewModel.hintClassName,
         )}
       >
@@ -134,25 +141,40 @@ export function DashboardKpi({
           <p
             className={cn(
               "text-muted-foreground font-medium leading-tight",
-                viewModel.compact ? "line-clamp-2 text-[10px]" : "text-[11px]",
+              viewModel.featuredLabelClass,
+              viewModel.compact && !viewModel.featured ? "line-clamp-2 text-[10px]" : null,
+              !viewModel.featured && !viewModel.compact ? "text-[11px]" : null,
+              labelClassName,
             )}
           >
             {label}
           </p>
           {loading ? (
-            <Skeleton className={cn(viewModel.compact ? "mt-0 h-5 w-12" : "mt-0.5 h-6 w-16")} />
+            <Skeleton
+              className={cn(
+                viewModel.featuredSkeletonClass,
+                !viewModel.featured && viewModel.compact ? "mt-0 h-5 w-12" : null,
+                !viewModel.featured && !viewModel.compact ? "mt-0.5 h-6 w-16" : null,
+                valueClassName,
+              )}
+            />
           ) : (
             <p
               className={cn(
                 "font-heading font-semibold leading-none tracking-tight tabular-nums",
-                viewModel.compact ? "text-base" : "text-lg",
+                viewModel.featuredValueClass,
+                viewModel.compact && !viewModel.featured ? "text-base" : null,
+                !viewModel.featured && !viewModel.compact ? "text-lg" : null,
                 styles.value,
+                valueClassName,
               )}
             >
               {value}
             </p>
           )}
-          {progressBar}
+          {progressBar ? (
+            <div className={viewModel.featuredProgressBarWrapperClass}>{progressBar}</div>
+          ) : null}
           {breakdownEl}
           {hintEl}
         </>

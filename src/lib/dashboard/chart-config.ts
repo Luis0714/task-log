@@ -12,6 +12,10 @@ export const CHART_HEIGHT_DEFAULT = "h-[180px]";
 export const CHART_HEIGHT_INLINE = "h-[120px]";
 export const CHART_WIDTH_INLINE_RING = "w-[100px]";
 
+/** Anillo de progreso PBI: escala con el viewport en layouts emparejados */
+export const PROGRESS_RING_CHART_RESPONSIVE_CLASS =
+  "h-[88px] w-[72px] sm:h-[100px] sm:w-[88px] md:h-[120px] md:w-[100px]";
+
 /** Anillo compacto compartido (mezcla horas, progreso PBI, etc.) */
 export const INLINE_PIE_RING = {
   innerRadius: 34,

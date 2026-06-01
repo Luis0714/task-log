@@ -1,0 +1,15 @@
+export const SPRINT_GOAL_SHARE_LABELS = {
+  sprintObjective: "Objetivo del sprint",
+  generalObjective: "Objetivo general",
+  storiesInGoal: "Historias en el objetivo",
+  stateObjective: "Estados objetivo",
+  tagObjective: "TAG objetivo",
+  userStoryColumn: "Historia de usuario",
+  stateColumn: "Estado objetivo",
+  tagColumn: "TAG objetivo",
+  generatedOn: "Generado el",
+  overflowStories: "historia",
+  overflowStoriesPlural: "historias",
+  overflowSuffix: "adicional",
+  overflowSuffixPlural: "adicionales",
+} as const;

@@ -33,13 +33,13 @@ export const PAGE_SEO = {
     title: "Sprints",
     description:
       "Consulta y analiza sprints del equipo con filtros por proyecto, equipo y sprint en Azure DevOps.",
-    path: "/analisis/sprints",
+    path: "/analysis/sprints",
   },
   proyecto: {
     title: "Proyecto",
     description:
       "Análisis y visibilidad del proyecto conectado a Azure DevOps.",
-    path: "/analisis/proyecto",
+    path: "/analysis/proyecto",
   },
   workItems: {
     title: "Historias de usuario",

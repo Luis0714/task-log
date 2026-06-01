@@ -2,6 +2,9 @@ import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
 export type SprintStatsScope = "team" | "goal";
 
+/** Valor inicial del filtro «Solo historias del objetivo» en estadísticas del sprint. */
+export const SPRINT_STATS_GOAL_ONLY_DEFAULT = true;
+
 export function filterWorkItemsToGoalScope(
   workItems: readonly AdoWorkItemOptionDto[],
   goalWorkItemIds: ReadonlySet<number>,

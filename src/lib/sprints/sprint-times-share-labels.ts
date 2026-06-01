@@ -1,0 +1,18 @@
+export const SPRINT_TIMES_SHARE_LABELS = {
+  sectionTitle: "Tiempos del sprint",
+  assigneeColumn: "Persona",
+  sprintTotalColumn: "Tiempo sprint",
+  weekTotalColumn: "Total semana",
+  development: "Desarrollo",
+  bugs: "Bugs",
+  total: "Total",
+  teamTotal: "Total equipo",
+  generatedOn: "Generado el",
+  legendDevelopment: "Tiempo desarrollo",
+  legendBugs: "Tiempo en bugs",
+  legendSprintTotal: "Total sprint",
+  liveDataSource: "Datos en vivo",
+  frozenDataSource: "Retrospectiva congelada al cierre",
+  scopeTeam: "Equipo completo",
+  scopeGoal: "Solo historias del objetivo",
+} as const;

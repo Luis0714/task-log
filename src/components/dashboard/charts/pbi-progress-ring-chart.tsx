@@ -7,6 +7,7 @@ import {
   CHART_HEIGHT_INLINE,
   CHART_WIDTH_INLINE_RING,
   INLINE_PIE_RING,
+  PROGRESS_RING_CHART_RESPONSIVE_CLASS,
   chartContainerClass,
   pbiProgressChartConfig,
 } from "@/lib/dashboard/chart-config";
@@ -36,7 +37,12 @@ export function PbiProgressRingChart({ percent, className }: PbiProgressRingChar
       config={pbiProgressChartConfig}
       className={chartContainerClass(
         CHART_HEIGHT_INLINE,
-        cn(CHART_WIDTH_INLINE_RING, "shrink-0", className),
+        cn(
+          CHART_WIDTH_INLINE_RING,
+          PROGRESS_RING_CHART_RESPONSIVE_CLASS,
+          "shrink-0",
+          className,
+        ),
       )}
       role="img"
       aria-label={`Progreso del sprint: ${clamped} por ciento`}

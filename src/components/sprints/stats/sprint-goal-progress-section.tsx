@@ -1,8 +1,13 @@
 "use client";
 
-import { DashboardKpi } from "@/components/dashboard/charts/dashboard-kpi";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
-import { formatStoryPoints } from "@/lib/dashboard/work-item-selectors";
+import { ProgressRingKpi } from "@/components/dashboard/metrics/progress-ring/progress-ring-kpi";
+import {
+  PROGRESS_RING_PAIR_CELL_CLASS,
+  ProgressRingPairGrid,
+} from "@/components/dashboard/metrics/progress-ring/progress-ring-pair-grid";
+import { SprintGoalProgressCard } from "@/components/dashboard/metrics/sprint-goal-progress-card";
+import { buildGoalAchievementKpiViewModel } from "@/lib/dashboard/progress-ring/build-view-models";
 import type { SprintGoalMetrics } from "@/lib/sprints/sprint-stats-types";
 
 export type SprintGoalProgressSectionProps = {
@@ -16,66 +21,27 @@ export function SprintGoalProgressSection({
   description = "Avance del equipo respecto al objetivo definido para este sprint.",
   loading = false,
 }: SprintGoalProgressSectionProps) {
-  const { summary } = goal;
+  const achievementKpi = buildGoalAchievementKpiViewModel(goal);
 
   return (
-    <DashboardSection title="Cumplimiento del objetivo" description={description}>
+    <DashboardSection
+      title="Cumplimiento del objetivo"
+      description={description}
+      contentClassName="flex flex-col gap-3"
+    >
       {goal.generalObjective ? (
-        <p className="text-muted-foreground mb-1 text-sm text-pretty">{goal.generalObjective}</p>
+        <p className="text-muted-foreground text-sm text-pretty">{goal.generalObjective}</p>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-12">
-        <DashboardKpi
-          size="compact"
-          layout="stack"
-          label="Objetivos cumplidos"
-          value={`${summary.goalsAchievedCount} / ${summary.goalsTotalCount}`}
-          progress={goal.achievementPercent}
-          variant={
-            goal.achievementPercent >= 75
-              ? "success"
-              : goal.achievementPercent >= 40
-                ? "warning"
-                : "destructive"
-          }
-          highlight
+      <ProgressRingPairGrid>
+        <SprintGoalProgressCard
+          goal={goal}
           loading={loading}
-          className="min-w-0 lg:col-span-3"
+          className={PROGRESS_RING_PAIR_CELL_CLASS}
         />
-        <DashboardKpi
-          size="compact"
-          layout="stack"
-          label="Parciales"
-          value={String(summary.goalsPartialCount)}
-          loading={loading}
-          className="min-w-0 lg:col-span-3"
-        />
-        <DashboardKpi
-          size="compact"
-          layout="stack"
-          label="No cumplidas"
-          value={String(summary.goalsMissedCount)}
-          variant={summary.goalsMissedCount > 0 ? "destructive" : "default"}
-          loading={loading}
-          className="min-w-0 lg:col-span-3"
-        />
-        <DashboardKpi
-          size="compact"
-          layout="stack"
-          label="Story points en objetivo"
-          value={`${formatStoryPoints(summary.storyPointsAchieved)} / ${formatStoryPoints(summary.storyPointsInGoal)} SP`}
-          progress={goal.storyPointsPercent}
-          variant={
-            goal.storyPointsPercent >= 75
-              ? "success"
-              : goal.storyPointsPercent >= 40
-                ? "warning"
-                : "default"
-          }
-          loading={loading}
-          className="min-w-0 lg:col-span-3"
-        />
-      </div>
+
+        <ProgressRingKpi model={achievementKpi} loading={loading} />
+      </ProgressRingPairGrid>
     </DashboardSection>
   );
 }

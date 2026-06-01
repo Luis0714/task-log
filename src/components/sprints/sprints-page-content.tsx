@@ -53,6 +53,16 @@ export function SprintsPageContent({
 
   const showSnapshotViews = snapshotState.isFinalized && snapshotState.snapshot !== null;
 
+  const timesShareScope = {
+    project,
+    team,
+    sprintPath: sprint.path,
+    sprintName: sprint.name,
+    sprintStartDate: sprint.startDate,
+    sprintFinishDate: sprint.finishDate,
+    goalOnly: statsState.goalOnly,
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <SprintSnapshotBanner
@@ -82,6 +92,7 @@ export function SprintsPageContent({
           <SprintSnapshotDashboardView
             snapshot={snapshotState.snapshot!}
             project={project}
+            timesShareScope={timesShareScope}
           />
         ) : (
           <SprintStatsDashboardView
@@ -92,6 +103,7 @@ export function SprintsPageContent({
             isPastSprint={snapshotState.isPastSprint}
             goalOnly={statsState.goalOnly}
             onGoalOnlyChange={statsState.setGoalOnly}
+            timesShareScope={timesShareScope}
           />
         )
       ) : snapshotState.loading ? (

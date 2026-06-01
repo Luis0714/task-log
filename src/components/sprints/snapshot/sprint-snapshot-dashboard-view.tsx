@@ -8,22 +8,25 @@ import { SprintGoalProgressSection } from "@/components/sprints/stats/sprint-goa
 import { SprintGoalRiskList } from "@/components/sprints/stats/sprint-goal-risk-list";
 import { SprintStatsScopeToggle } from "@/components/sprints/stats/sprint-stats-scope-toggle";
 import { buildSprintGoalMetricsFromStories } from "@/lib/sprints/build-sprint-goal-metrics-from-stories";
-import { resolveSprintStatsScope } from "@/lib/sprints/filter-sprint-stats-scope";
+import { resolveSprintStatsScope, SPRINT_STATS_GOAL_ONLY_DEFAULT } from "@/lib/sprints/filter-sprint-stats-scope";
 import { resolveSnapshotOperationalMetrics } from "@/lib/sprints/parse-sprint-snapshot-stats-payload";
 import type { SprintSnapshotData } from "@/lib/sprints/sprint-snapshot-types";
+import type { SprintTimesShareScope } from "@/lib/sprints/sprint-times-share-scope";
 import { normalizeSprintStatsScreenData } from "@/lib/sprints/normalize-sprint-stats";
 import type { SprintStatsScreenData } from "@/lib/sprints/sprint-stats-types";
 
 export type SprintSnapshotDashboardViewProps = {
   snapshot: SprintSnapshotData;
   project: string | null;
+  timesShareScope?: SprintTimesShareScope;
 };
 
 export function SprintSnapshotDashboardView({
   snapshot,
   project,
+  timesShareScope,
 }: SprintSnapshotDashboardViewProps) {
-  const [goalOnly, setGoalOnly] = useState(false);
+  const [goalOnly, setGoalOnly] = useState(SPRINT_STATS_GOAL_ONLY_DEFAULT);
 
   const goal = useMemo(
     () =>
@@ -53,7 +56,6 @@ export function SprintSnapshotDashboardView({
           goal={goal}
           description="Resultado congelado al cierre del sprint."
         />
-        <SprintGoalRiskList items={goal.riskItems} />
 
         <DashboardSection
           title="Entrega y calidad"
@@ -63,6 +65,8 @@ export function SprintSnapshotDashboardView({
             Los sprints finalizados a partir de ahora incluyen entrega, bugs y flujo congelados.
           </p>
         </DashboardSection>
+
+        <SprintGoalRiskList items={goal.riskItems} />
       </div>
     );
   }
@@ -76,6 +80,11 @@ export function SprintSnapshotDashboardView({
         project={project}
         goalOnly={goalOnly}
         goalDescription="Resultado congelado al cierre del sprint."
+        timesShareScope={
+          timesShareScope
+            ? { ...timesShareScope, goalOnly }
+            : undefined
+        }
       />
     </div>
   );

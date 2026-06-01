@@ -19,6 +19,9 @@ import type {
   SprintTimesPersonRow,
   SprintTimesWeekColumn,
 } from "@/lib/sprints/sprint-stats-types";
+import { SprintTimesShareActions } from "@/components/sprints/stats/sprint-times-share-actions";
+import type { SprintTimesShareScope } from "@/lib/sprints/sprint-times-share-scope";
+import { canShareSprintTimes } from "@/lib/sprints/sprint-times-share-eligibility";
 import { cn } from "@/lib/utils";
 
 export type SprintTimesSectionProps = {
@@ -26,6 +29,7 @@ export type SprintTimesSectionProps = {
   description?: string;
   loading?: boolean;
   className?: string;
+  shareScope?: SprintTimesShareScope;
 };
 
 const TABLE_GRID =
@@ -186,6 +190,7 @@ export function SprintTimesSection({
   description = "Horas registradas por persona, desglosadas por semana y tipo de trabajo.",
   loading = false,
   className,
+  shareScope,
 }: SprintTimesSectionProps) {
   const week1 = times.weeks[0] ?? defaultWeekMeta(0);
   const week2 = times.weeks[1] ?? defaultWeekMeta(1);
@@ -207,6 +212,15 @@ export function SprintTimesSection({
       title="Tiempos del sprint"
       description={description}
       className={className}
+      action={
+        shareScope && !loading ? (
+          <SprintTimesShareActions
+            {...shareScope}
+            times={times}
+            canShare={canShareSprintTimes(times)}
+          />
+        ) : null
+      }
     >
       <div className="flex flex-col gap-3">
         <SprintTimesLegend />

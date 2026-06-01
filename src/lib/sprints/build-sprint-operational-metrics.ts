@@ -63,6 +63,7 @@ export function buildSprintOperationalMetrics(
       sprintStartDate: input.sprintStartDate,
       sprintFinishDate: input.sprintFinishDate,
       nonWorkingDates: input.nonWorkingDates,
+      assigneeRoster: input.assigneeRoster,
     }),
   };
 }

@@ -1,4 +1,5 @@
-export const SPRINT_GOAL_SHARE_MAX_VISIBLE_STORIES = 8;
+/** Máximo de filas renderizadas; por encima se muestra aviso de overflow. */
+export const SPRINT_GOAL_SHARE_MAX_RENDERED_STORIES = 50;
 
 export type SprintGoalShareStoryRow = {
   workItemId: number;

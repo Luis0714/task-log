@@ -9,7 +9,9 @@ import {
   formatSprintWeekDateRange,
   splitSprintIntoWeeks,
 } from "@/lib/dashboard/sprint-weeks";
-import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import { findTeamMemberByAssigneeName } from "@/lib/filters/person-name";
+import { mergeTeamMembersWithWorkItemAssignees } from "@/lib/filters/merge-team-members-with-assignees";
+import type { AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import {
   resolveSprintBugAssigneeLabel,
   SPRINT_BUG_UNASSIGNED_LABEL,
@@ -26,6 +28,8 @@ export type BuildSprintTimesMetricsInput = {
   sprintStartDate?: string | null;
   sprintFinishDate?: string | null;
   nonWorkingDates?: readonly string[];
+  /** Roster del equipo + asignados del sprint (misma fuente que filtros de HUs y bugs). */
+  assigneeRoster?: readonly AdoTeamMemberDto[];
 };
 
 export const EMPTY_SPRINT_TIMES_METRICS: SprintTimesMetrics = {
@@ -33,12 +37,22 @@ export const EMPTY_SPRINT_TIMES_METRICS: SprintTimesMetrics = {
   rows: [],
 };
 
+function resolveTimesAssigneeLabel(
+  roster: readonly AdoTeamMemberDto[],
+  assignedTo: string | undefined | null,
+): string {
+  const trimmed = assignedTo?.trim();
+  if (!trimmed) return SPRINT_BUG_UNASSIGNED_LABEL;
+  return findTeamMemberByAssigneeName(roster, trimmed)?.displayName ?? trimmed;
+}
+
 function filterItemsByAssignee<T extends { assignedTo?: string }>(
   items: readonly T[],
   assigneeLabel: string,
+  roster: readonly AdoTeamMemberDto[],
 ): T[] {
   return items.filter(
-    (item) => resolveSprintBugAssigneeLabel(item.assignedTo ?? null) === assigneeLabel,
+    (item) => resolveTimesAssigneeLabel(roster, item.assignedTo) === assigneeLabel,
   );
 }
 
@@ -59,12 +73,13 @@ function buildPersonRow(
   assignee: string,
   tasks: readonly AdoWorkItemOptionDto[],
   bugs: readonly AdoWorkItemOptionDto[],
+  roster: readonly AdoTeamMemberDto[],
   week1DayKeys: readonly string[],
   week2DayKeys: readonly string[],
   sprintEndKey: string,
 ): SprintTimesPersonRow {
-  const personTasks = filterItemsByAssignee(tasks, assignee);
-  const personBugs = filterItemsByAssignee(bugs, assignee);
+  const personTasks = filterItemsByAssignee(tasks, assignee, roster);
+  const personBugs = filterItemsByAssignee(bugs, assignee, roster);
 
   const week1EndKey = week1DayKeys[week1DayKeys.length - 1] ?? "";
   const week2EndKey = week2DayKeys[week2DayKeys.length - 1] ?? "";
@@ -100,7 +115,7 @@ function sortPersonRows(rows: SprintTimesPersonRow[]): SprintTimesPersonRow[] {
   });
 }
 
-function collectAssigneeLabels(
+function collectAssigneeLabelsFromWorkItems(
   tasks: readonly AdoWorkItemOptionDto[],
   bugs: readonly AdoWorkItemOptionDto[],
 ): string[] {
@@ -111,6 +126,39 @@ function collectAssigneeLabels(
   }
 
   return [...labels];
+}
+
+function collectTimesAssigneeLabels(
+  tasks: readonly AdoWorkItemOptionDto[],
+  bugs: readonly AdoWorkItemOptionDto[],
+  assigneeRoster: readonly AdoTeamMemberDto[],
+): string[] {
+  const scopedItems = [...tasks, ...bugs];
+  const roster = mergeTeamMembersWithWorkItemAssignees(
+    assigneeRoster,
+    scopedItems.map((item) => ({ assignedTo: item.assignedTo })),
+  );
+
+  const assignees = roster.map((member) => member.displayName);
+
+  const hasUnassigned = scopedItems.some((item) => !item.assignedTo?.trim());
+  if (hasUnassigned) {
+    assignees.push(SPRINT_BUG_UNASSIGNED_LABEL);
+  }
+
+  return assignees;
+}
+
+function resolveAssigneeLabels(
+  tasks: readonly AdoWorkItemOptionDto[],
+  bugs: readonly AdoWorkItemOptionDto[],
+  assigneeRoster: readonly AdoTeamMemberDto[],
+): string[] {
+  if (assigneeRoster.length === 0) {
+    return collectAssigneeLabelsFromWorkItems(tasks, bugs);
+  }
+
+  return collectTimesAssigneeLabels(tasks, bugs, assigneeRoster);
 }
 
 export function buildSprintTimesMetrics(
@@ -136,20 +184,25 @@ export function buildSprintTimesMetrics(
     buildWeekColumn(secondWeekDays, "Semana 2"),
   ].filter((week): week is SprintTimesWeekColumn => week !== null);
 
-  const assignees = collectAssigneeLabels(input.tasks, input.bugs);
+  const assigneeRoster = input.assigneeRoster ?? [];
+  const scopedItems = [...input.tasks, ...input.bugs];
+  const roster = mergeTeamMembersWithWorkItemAssignees(
+    assigneeRoster,
+    scopedItems.map((item) => ({ assignedTo: item.assignedTo })),
+  );
+  const assignees = resolveAssigneeLabels(input.tasks, input.bugs, assigneeRoster);
   const rows = sortPersonRows(
-    assignees
-      .map((assignee) =>
-        buildPersonRow(
-          assignee,
-          input.tasks,
-          input.bugs,
-          week1DayKeys,
-          week2DayKeys,
-          sprintEndKey,
-        ),
-      )
-      .filter((row) => totalHoursBreakdown(row.sprint) > 0),
+    assignees.map((assignee) =>
+      buildPersonRow(
+        assignee,
+        input.tasks,
+        input.bugs,
+        roster,
+        week1DayKeys,
+        week2DayKeys,
+        sprintEndKey,
+      ),
+    ),
   );
 
   return { weeks, rows };

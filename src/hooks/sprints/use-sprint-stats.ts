@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { SPRINT_STATS_GOAL_ONLY_DEFAULT } from "@/lib/sprints/filter-sprint-stats-scope";
 import type { SprintStatsScreenData } from "@/lib/sprints/sprint-stats-types";
 import {
   fetchSprintStats,
@@ -32,7 +33,7 @@ export function useSprintStats({
   const [stats, setStats] = useState<SprintStatsScreenData | null>(null);
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
-  const [goalOnly, setGoalOnly] = useState(false);
+  const [goalOnly, setGoalOnly] = useState(SPRINT_STATS_GOAL_ONLY_DEFAULT);
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
@@ -77,7 +78,7 @@ export function useSprintStats({
   }, [enabled, sprintPath, project, team, goalOnly, sprintStartDate, sprintFinishDate, reloadToken]);
 
   useEffect(() => {
-    setGoalOnly(false);
+    setGoalOnly(SPRINT_STATS_GOAL_ONLY_DEFAULT);
   }, [project, team, sprintPath]);
 
   const reload = useCallback(() => {

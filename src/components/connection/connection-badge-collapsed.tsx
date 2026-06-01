@@ -20,7 +20,7 @@ export function ConnectionBadgeCollapsed({
   return (
     <div className={cn("flex flex-col items-center gap-2 py-1", className)}>
       <CompactConnectionBadge {...badgeProps} />
-      <div className="flex items-center gap-0.5">
+      <div className="flex flex-col items-center gap-1">
         <ThemeToggleButton />
         {canLogout ? <LogoutButton /> : null}
       </div>

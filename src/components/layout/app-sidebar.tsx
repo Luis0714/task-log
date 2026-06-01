@@ -1,6 +1,7 @@
 "use client";
 
 import { SidebarBrand } from "@/components/layout/sidebar-brand";
+import { SidebarFloatingExpandTrigger } from "@/components/layout/sidebar-floating-expand-trigger";
 import { AdoConnectionBadge } from "@/components/connection/ado-connection-badge";
 import { NavMenu } from "@/components/navigation/nav-menu";
 import { MAIN_NAVIGATION } from "@/config/navigation";
@@ -29,7 +30,7 @@ function SidebarHeaderContent() {
   return (
     <div
       className={cn(
-        "flex items-center gap-2",
+        "flex w-full items-center gap-2",
         collapsed && !isMobile ? "justify-center" : "justify-between",
       )}
     >
@@ -55,6 +56,7 @@ export function AppSidebar({ connection, connectionFooter, activePath }: AppSide
       </SidebarFooter>
 
       <SidebarRail />
+      <SidebarFloatingExpandTrigger />
     </Sidebar>
   );
 }

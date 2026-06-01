@@ -1,20 +1,9 @@
 "use client";
 
-import { Share2 } from "lucide-react";
-
-import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { SprintGoalShareFormatControl } from "@/components/sprints/goal/sprint-goal-share-format-control";
+import { ShareExportDialog } from "@/components/sprints/share-export-dialog";
+import { ShareExportPreview } from "@/components/sprints/share-export-preview";
 import type { UseSprintGoalShareResult } from "@/hooks/sprints/use-sprint-goal-share";
-import { appToast } from "@/lib/toast";
 
 export type SprintGoalShareDialogProps = {
   canShare: boolean;
@@ -22,93 +11,50 @@ export type SprintGoalShareDialogProps = {
 };
 
 export function SprintGoalShareDialog({ canShare, share }: SprintGoalShareDialogProps) {
-  async function handleDownload() {
-    try {
-      await share.downloadImage();
-    } catch (cause) {
-      appToast.error(
-        cause instanceof Error
-          ? cause.message
-          : "No se pudo descargar la imagen.",
-      );
-    }
-  }
-
-  async function handleShare() {
-    try {
-      await share.shareImage();
-    } catch (cause) {
-      if (cause instanceof DOMException && cause.name === "AbortError") return;
-      appToast.error(
-        cause instanceof Error
-          ? cause.message
-          : "No se pudo compartir la imagen.",
-      );
-    }
-  }
+  const hasPreview = Boolean(share.previewUrl) && !share.loading && !share.error;
+  const isImage = share.format === "image";
 
   return (
-    <Dialog open={share.open} onOpenChange={share.setOpen}>
-      <DialogTrigger
-        render={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={!canShare}
-          >
-            <Share2 className="size-4" aria-hidden />
-            Compartir
-          </Button>
-        }
-      />
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Compartir objetivo del sprint</DialogTitle>
-          <DialogDescription>
-            Imagen resumen con el objetivo general y las historias comprometidas.
-            Descárgala o compártela en Teams, WhatsApp o correo.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex min-h-48 items-center justify-center overflow-hidden rounded-lg border bg-muted/20 p-4">
-          {share.loading ? (
-            <p className="text-muted-foreground text-sm">Generando imagen…</p>
-          ) : share.error ? (
-            <CopilotErrorAlert message={share.error} />
-          ) : share.previewUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- blob preview from generated PNG
-            <img
-              src={share.previewUrl}
-              alt="Vista previa del objetivo del sprint"
-              className="max-h-[420px] w-full object-contain"
-            />
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              No hay vista previa disponible.
-            </p>
-          )}
-        </div>
-
-        <DialogFooter showCloseButton={false}>
-          <Button variant="outline" onClick={() => share.setOpen(false)}>
-            Cerrar
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleDownload}
-            disabled={share.loading || Boolean(share.error) || !share.previewUrl}
-          >
-            Descargar imagen
-          </Button>
-          <Button
-            onClick={handleShare}
-            disabled={share.loading || Boolean(share.error) || !share.previewUrl}
-          >
-            {share.canShareNative ? "Compartir" : "Descargar y compartir"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ShareExportDialog
+      canShare={canShare}
+      open={share.open}
+      onOpenChange={share.setOpen}
+      title="Compartir objetivo del sprint"
+      description={
+        <>
+          Exporta el objetivo general y las historias comprometidas como imagen o PDF.
+          {isImage
+            ? " También puedes copiar la imagen al portapapeles para pegarla en Teams o chat."
+            : " El PDF es ideal para imprimir o adjuntar en correo."}
+        </>
+      }
+      selector={
+        <SprintGoalShareFormatControl
+          format={share.format}
+          disabled={share.loading}
+          onFormatChange={share.setFormat}
+        />
+      }
+      loading={share.loading}
+      preview={
+        <ShareExportPreview
+          kind={isImage ? "image" : "pdf"}
+          loading={share.loading}
+          progress={share.progress}
+          error={share.error}
+          previewUrl={share.previewUrl}
+          imageAlt="Vista previa del objetivo del sprint"
+          pdfTitle="Vista previa del PDF del objetivo del sprint"
+        />
+      }
+      downloadLabel={isImage ? "Descargar imagen" : "Descargar PDF"}
+      showCopyImage={isImage}
+      canCopyImage={share.canCopyImage}
+      canShareNative={share.canShareNative}
+      hasPreview={hasPreview}
+      onDownload={share.download}
+      onShare={share.share}
+      onCopyImage={share.copyImage}
+    />
   );
 }

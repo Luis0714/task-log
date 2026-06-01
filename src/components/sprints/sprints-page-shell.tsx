@@ -94,7 +94,6 @@ export function SprintsPageShell({
         ) : null
       }
       filtersSummaryExtra={filtersSummaryExtra}
-      filtersDefaultOpen
       catalog={catalog}
       adoExecutionReady={adoExecutionReady}
     >

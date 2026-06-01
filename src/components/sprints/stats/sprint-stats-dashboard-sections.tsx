@@ -7,14 +7,17 @@ import { SprintBugQualitySection } from "@/components/sprints/stats/sprint-bug-q
 import { SprintGoalProgressSection } from "@/components/sprints/stats/sprint-goal-progress-section";
 import { SprintGoalRiskList } from "@/components/sprints/stats/sprint-goal-risk-list";
 import { SprintTimesSection } from "@/components/sprints/stats/sprint-times-section";
-import type { SprintStatsScreenData } from "@/lib/sprints/sprint-stats-types";
+import { SPRINT_STATS_GOAL_ONLY_DEFAULT } from "@/lib/sprints/filter-sprint-stats-scope";
+import type { SprintTimesShareScope } from "@/lib/sprints/sprint-times-share-scope";
 import { normalizeSprintStatsScreenData } from "@/lib/sprints/normalize-sprint-stats";
+import type { SprintStatsScreenData } from "@/lib/sprints/sprint-stats-types";
 
 export type SprintStatsDashboardSectionsProps = {
   stats: SprintStatsScreenData;
   project: string | null;
   goalDescription?: string;
   goalOnly?: boolean;
+  timesShareScope?: SprintTimesShareScope;
 };
 
 function deliveryDescription(goalOnly: boolean): string {
@@ -39,7 +42,8 @@ export function SprintStatsDashboardSections({
   stats,
   project,
   goalDescription,
-  goalOnly = false,
+  goalOnly = SPRINT_STATS_GOAL_ONLY_DEFAULT,
+  timesShareScope,
   loading = false,
 }: SprintStatsDashboardSectionsProps & { loading?: boolean }) {
   const normalizedStats = normalizeSprintStatsScreenData(stats);
@@ -48,13 +52,13 @@ export function SprintStatsDashboardSections({
   return (
     <div className="flex flex-col gap-6">
       <SprintGoalProgressSection goal={normalizedStats.goal} description={goalDescription} />
-      <SprintGoalRiskList items={normalizedStats.goal.riskItems} />
       <SprintBugQualitySection bugs={normalizedStats.bugs} project={project} loading={loading} />
 
       <SprintTimesSection
         times={normalizedStats.times}
         description={timesDescription(goalOnly)}
         loading={loading}
+        shareScope={timesShareScope}
       />
 
       <DashboardSection title="Entrega del sprint" description={deliveryDescription(goalOnly)}>
@@ -64,6 +68,8 @@ export function SprintStatsDashboardSections({
       <DashboardSection title="Trabajo por estado" description={workflowDescription(goalOnly)}>
         <SprintWorkflowSection metrics={normalizedStats.workflow} />
       </DashboardSection>
+
+      <SprintGoalRiskList items={normalizedStats.goal.riskItems} />
     </div>
   );
 }

@@ -6,6 +6,8 @@ import { SprintStatsDashboardSections } from "@/components/sprints/stats/sprint-
 import { SprintStatsDashboardSkeleton } from "@/components/sprints/stats/sprint-stats-dashboard-skeleton";
 import { SprintStatsScopeToggle } from "@/components/sprints/stats/sprint-stats-scope-toggle";
 import type { SprintStatsScreenData } from "@/lib/sprints/sprint-stats-types";
+import type { SprintTimesShareScope } from "@/lib/sprints/sprint-times-share-scope";
+import { SPRINT_STATS_GOAL_ONLY_DEFAULT } from "@/lib/sprints/filter-sprint-stats-scope";
 
 export type SprintStatsDashboardViewProps = {
   stats: SprintStatsScreenData | null;
@@ -15,6 +17,7 @@ export type SprintStatsDashboardViewProps = {
   isPastSprint?: boolean;
   goalOnly?: boolean;
   onGoalOnlyChange?: (value: boolean) => void;
+  timesShareScope?: SprintTimesShareScope;
 };
 
 export function SprintStatsDashboardView({
@@ -23,8 +26,9 @@ export function SprintStatsDashboardView({
   loading = false,
   error = null,
   isPastSprint = false,
-  goalOnly = false,
+  goalOnly = SPRINT_STATS_GOAL_ONLY_DEFAULT,
   onGoalOnlyChange,
+  timesShareScope,
 }: SprintStatsDashboardViewProps) {
   if (error) {
     return <CopilotErrorAlert message={error} />;
@@ -61,7 +65,12 @@ export function SprintStatsDashboardView({
         <SprintStatsScopeToggle goalOnly={goalOnly} onGoalOnlyChange={onGoalOnlyChange} />
       ) : null}
 
-      <SprintStatsDashboardSections stats={stats} project={project} goalOnly={goalOnly} />
+      <SprintStatsDashboardSections
+        stats={stats}
+        project={project}
+        goalOnly={goalOnly}
+        timesShareScope={timesShareScope}
+      />
     </div>
   );
 }

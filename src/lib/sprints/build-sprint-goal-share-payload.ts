@@ -6,7 +6,7 @@ import type {
   SprintGoalSharePayload,
   SprintGoalShareStoryRow,
 } from "@/lib/sprints/sprint-goal-share-types";
-import { SPRINT_GOAL_SHARE_MAX_VISIBLE_STORIES } from "@/lib/sprints/sprint-goal-share-types";
+import { SPRINT_GOAL_SHARE_MAX_RENDERED_STORIES } from "@/lib/sprints/sprint-goal-share-types";
 
 type GoalStorySource = {
   workItemId: number;
@@ -75,7 +75,7 @@ function buildPayloadFromSources(
 
   if (storiesInGoal.length === 0) return null;
 
-  const visibleStories = storiesInGoal.slice(0, SPRINT_GOAL_SHARE_MAX_VISIBLE_STORIES);
+  const visibleStories = storiesInGoal.slice(0, SPRINT_GOAL_SHARE_MAX_RENDERED_STORIES);
   const overflowCount = Math.max(storiesInGoal.length - visibleStories.length, 0);
 
   return {

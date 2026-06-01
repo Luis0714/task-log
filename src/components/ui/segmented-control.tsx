@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -8,6 +8,8 @@ export type SegmentedControlItem<T extends string = string> = {
   value: T;
   label: string;
   disabled?: boolean;
+  icon?: ReactNode;
+  iconClassName?: string;
 };
 
 export type SegmentedControlProps<T extends string = string> = {
@@ -61,7 +63,7 @@ export function SegmentedControl<T extends string = string>({
             disabled={item.disabled}
             onClick={() => onValueChange(item.value)}
             className={cn(
-              "relative rounded-full font-medium transition-all outline-none select-none",
+              "relative inline-flex items-center justify-center gap-1.5 rounded-full font-medium transition-all outline-none select-none",
               "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               "disabled:pointer-events-none disabled:opacity-50",
               size === "sm" ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm",
@@ -71,7 +73,19 @@ export function SegmentedControl<T extends string = string>({
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {item.label}
+            {item.icon ? (
+              <span
+                className={cn(
+                  "inline-flex shrink-0 [&>svg]:size-3.5",
+                  item.iconClassName,
+                  !isSelected && "opacity-80",
+                )}
+                aria-hidden
+              >
+                {item.icon}
+              </span>
+            ) : null}
+            <span>{item.label}</span>
           </button>
         );
       })}
