@@ -4,6 +4,7 @@ import { PbiProgressRingChart } from "@/components/dashboard/charts/pbi-progress
 import { ProgressRingBreakdownRow } from "@/components/dashboard/metrics/progress-ring/progress-ring-breakdown-row";
 import { ProgressRingSkeleton } from "@/components/dashboard/metrics/progress-ring/progress-ring-skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { PROGRESS_RING_CHART_SIZE_CLASS } from "@/lib/dashboard/chart-config";
 import type { ProgressRingViewModel } from "@/lib/dashboard/progress-ring/types";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +39,7 @@ export function ProgressRingCard({
     >
       <CardContent className="flex h-full flex-1 flex-col justify-center gap-2 pt-0">
         {model.title ? (
-          <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
+          <p className="text-muted-foreground line-clamp-2 text-[11px] leading-snug font-medium tracking-wide uppercase">
             {model.title}
           </p>
         ) : null}
@@ -48,9 +49,14 @@ export function ProgressRingCard({
         ) : !hasItems ? (
           <p className="text-muted-foreground text-sm">{model.emptyMessage}</p>
         ) : (
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="relative flex shrink-0 items-center justify-center">
-              <PbiProgressRingChart percent={model.percent} />
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div
+              className={cn(
+                "relative mx-auto flex shrink-0 items-center justify-center sm:mx-0",
+                PROGRESS_RING_CHART_SIZE_CLASS,
+              )}
+            >
+              <PbiProgressRingChart percent={model.percent} className="size-full" />
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                 <span className="font-heading text-lg font-semibold leading-none tracking-tight tabular-nums sm:text-xl md:text-[22px]">
                   {model.percent}%

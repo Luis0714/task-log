@@ -4,10 +4,8 @@ import { Cell, Pie, PieChart } from "recharts";
 
 import { ChartContainer } from "@/components/ui/chart";
 import {
-  CHART_HEIGHT_INLINE,
-  CHART_WIDTH_INLINE_RING,
-  INLINE_PIE_RING,
-  PROGRESS_RING_CHART_RESPONSIVE_CLASS,
+  PROGRESS_RING_CHART_SIZE_CLASS,
+  PROGRESS_RING_PIE,
   chartContainerClass,
   pbiProgressChartConfig,
 } from "@/lib/dashboard/chart-config";
@@ -35,14 +33,10 @@ export function PbiProgressRingChart({ percent, className }: PbiProgressRingChar
   return (
     <ChartContainer
       config={pbiProgressChartConfig}
+      initialDimension={{ width: 96, height: 96 }}
       className={chartContainerClass(
-        CHART_HEIGHT_INLINE,
-        cn(
-          CHART_WIDTH_INLINE_RING,
-          PROGRESS_RING_CHART_RESPONSIVE_CLASS,
-          "shrink-0",
-          className,
-        ),
+        undefined,
+        cn(PROGRESS_RING_CHART_SIZE_CLASS, "aspect-square min-h-0 min-w-0", className),
       )}
       role="img"
       aria-label={`Progreso del sprint: ${clamped} por ciento`}
@@ -55,7 +49,7 @@ export function PbiProgressRingChart({ percent, className }: PbiProgressRingChar
           startAngle={90}
           endAngle={-270}
           isAnimationActive
-          {...INLINE_PIE_RING}
+          {...PROGRESS_RING_PIE}
         >
           {slices.map((slice) => (
             <Cell key={slice.key} fill={`var(--color-${slice.key})`} />

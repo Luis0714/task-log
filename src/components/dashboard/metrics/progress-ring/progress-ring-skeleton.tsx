@@ -1,9 +1,11 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { PROGRESS_RING_CHART_SIZE_CLASS } from "@/lib/dashboard/chart-config";
+import { cn } from "@/lib/utils";
 
 export function ProgressRingSkeleton({ rowCount = 3 }: { rowCount?: number }) {
   return (
-    <div className="flex items-center gap-3 sm:gap-4">
-      <Skeleton className="size-[72px] shrink-0 rounded-full sm:size-[88px] md:size-[100px]" />
+    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+      <Skeleton className={cn("mx-auto rounded-full sm:mx-0", PROGRESS_RING_CHART_SIZE_CLASS)} />
       <div className="flex-1 space-y-1.5">
         {Array.from({ length: rowCount }).map((_, index) => (
           <Skeleton
