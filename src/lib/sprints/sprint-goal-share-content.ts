@@ -27,7 +27,7 @@ export function buildSprintGoalShareMetrics(
     },
     {
       label: SPRINT_GOAL_SHARE_LABELS.tagObjective,
-      value: summary.uniqueTargetTacs,
+      value: summary.uniqueTargetTags,
     },
   ];
 }
@@ -51,4 +51,17 @@ export function formatSprintGoalShareStoryTitle(
   maxTitleLength: number,
 ): string {
   return `#${workItemId} · ${truncateSprintGoalShareText(title, maxTitleLength)}`;
+}
+
+export function formatSprintGoalShareState(state: string): string {
+  return state.trim() || "—";
+}
+
+export function formatSprintGoalShareTags(
+  tags: readonly string[],
+  maxLength = 120,
+): string {
+  const normalized = tags.map((tag) => tag.trim()).filter(Boolean);
+  if (normalized.length === 0) return "—";
+  return truncateSprintGoalShareText(normalized.join(", "), maxLength);
 }

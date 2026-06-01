@@ -7,6 +7,7 @@ import { WorkItemEffortBadge } from "@/components/work-items/work-item-effort-ba
 import { WorkItemId } from "@/components/work-items/work-item-id";
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import { WorkItemTagsReadonly } from "@/components/work-items/work-item-tags-readonly";
+import { parseGoalTagNames } from "@/lib/sprints/goal-tags-serialization";
 import type { SprintStorySnapshotData } from "@/lib/sprints/sprint-snapshot-types";
 import { cn } from "@/lib/utils";
 
@@ -46,9 +47,30 @@ function SnapshotFieldValue({
   );
 }
 
+function SnapshotTagsField({
+  label,
+  serialized,
+}: {
+  label: string;
+  serialized: string | null;
+}) {
+  const tags = parseGoalTagNames(serialized);
+
+  return (
+    <div className="space-y-1">
+      <p className="text-muted-foreground text-xs">{label}</p>
+      {tags.length > 0 ? (
+        <WorkItemTagsReadonly tags={tags} />
+      ) : (
+        <p className="text-muted-foreground text-sm">—</p>
+      )}
+    </div>
+  );
+}
+
 export function SprintSnapshotGoalRow({ story }: SprintSnapshotGoalRowProps) {
   const hasEffort = story.effort !== null && Number.isFinite(story.effort);
-  const finalTags = story.finalTacTagName ? [story.finalTacTagName] : [];
+  const finalTags = parseGoalTagNames(story.finalTacTagName);
 
   return (
     <tr
@@ -94,15 +116,15 @@ export function SprintSnapshotGoalRow({ story }: SprintSnapshotGoalRowProps) {
       </td>
 
       <td className="min-w-36 px-3 py-3 align-top">
-        <SnapshotFieldValue label="TAC baseline" value={story.baselineTacTagName} />
+        <SnapshotTagsField label="Tags iniciales" serialized={story.baselineTacTagName} />
       </td>
 
       <td className="min-w-36 px-3 py-3 align-top">
-        <SnapshotFieldValue label="TAC objetivo" value={story.targetTacTagName} />
+        <SnapshotTagsField label="Tags objetivo" serialized={story.targetTacTagName} />
       </td>
 
       <td className="min-w-36 px-3 py-3 align-top">
-        <SnapshotFieldValue label="TAC final" value={story.finalTacTagName} />
+        <SnapshotTagsField label="Tags finales" serialized={story.finalTacTagName} />
       </td>
     </tr>
   );

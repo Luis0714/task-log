@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { AdoTaskStateDto, AdoWorkItemTagDto } from "@/lib/schemas/ado-catalog";
 import type { SprintStoryGoalDraft } from "@/lib/sprints/sprint-story-goal";
 import type { SprintStoryGoalRowModel } from "@/lib/sprints/sprint-story-goal";
+import { resolveSprintStoryGoalRowBaseline } from "@/lib/sprints/sprint-story-goal";
 import { partitionSprintStoryGoalRowsByInclusion } from "@/lib/sprints/sort-sprint-story-goal-rows";
 
 export type SprintGoalTableProps = {
@@ -55,19 +56,24 @@ function SprintGoalTableSection({
             <thead>
               <tr className="border-b border-border/60 bg-muted/30 text-left">
                 <th className="min-w-80 px-3 py-2 font-medium">Historia</th>
+                <th className="min-w-36 px-3 py-2 font-medium">Estado inicial</th>
                 <th className="min-w-40 px-3 py-2 font-medium">Estado objetivo</th>
-                <th className="min-w-48 px-3 py-2 font-medium">TAC objetivo</th>
+                <th className="min-w-44 px-3 py-2 font-medium">Tags iniciales</th>
+                <th className="min-w-48 px-3 py-2 font-medium">Tags objetivo</th>
+                <th className="min-w-36 px-3 py-2 font-medium">Estado actual</th>
                 <th className="w-16 px-2 py-2 text-center font-medium">Incluida</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => {
                 const draft = draftByWorkItemId.get(row.workItem.id) ?? row.draft;
+                const baseline = resolveSprintStoryGoalRowBaseline(row);
                 return (
                   <SprintGoalRow
                     key={row.workItem.id}
                     workItem={row.workItem}
                     draft={draft}
+                    baseline={baseline}
                     backlogStates={backlogStates}
                     catalogTags={catalogTags}
                     disabled={disabled}

@@ -2,6 +2,7 @@ export type TaskUpdatePayload = {
   project: string;
   state: string;
   workingDate: string;
+  workingTime: string;
 };
 
 export type TaskUpdateResponse = {

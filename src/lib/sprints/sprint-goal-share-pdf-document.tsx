@@ -16,7 +16,7 @@ export type SprintGoalSharePdfDocumentProps = {
 export function SprintGoalSharePdfDocument({ payload }: SprintGoalSharePdfDocumentProps) {
   return (
     <Document>
-      <Page size="A4" wrap style={sprintGoalSharePdfStyles.page}>
+      <Page size="A4" orientation="landscape" wrap style={sprintGoalSharePdfStyles.page}>
         <SprintGoalSharePdfHeader payload={payload} />
         <SprintGoalSharePdfSummarySection payload={payload} />
         <SprintGoalSharePdfTableSection payload={payload} />

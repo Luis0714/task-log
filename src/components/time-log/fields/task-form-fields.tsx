@@ -12,7 +12,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DatePickerTime } from "@/components/ui/date-picker-time";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
@@ -71,26 +71,6 @@ export function TaskFormFields({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="workingDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel required>Fecha de trabajo</FormLabel>
-              <FormControl>
-                <DatePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={disabled}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
         <FormSelectField
           control={form.control}
           name="activity"
@@ -103,7 +83,44 @@ export function TaskFormFields({
             label: TASK_ACTIVITY_LABELS[activity],
           }))}
         />
+      </div>
 
+      <FormField
+        control={form.control}
+        name="workingDate"
+        render={({ field: dateField }) => (
+          <FormField
+            control={form.control}
+            name="workingTime"
+            render={({ field: timeField }) => (
+              <FormItem>
+                <FormLabel required>Fecha y hora de trabajo</FormLabel>
+                <FormControl>
+                  <DatePickerTime
+                    dateValue={dateField.value}
+                    timeValue={timeField.value}
+                    onDateChange={dateField.onChange}
+                    onTimeChange={timeField.onChange}
+                    disabled={disabled}
+                  />
+                </FormControl>
+                {form.formState.errors.workingDate?.message ? (
+                  <p className="text-destructive text-sm font-medium">
+                    {form.formState.errors.workingDate.message}
+                  </p>
+                ) : null}
+                {form.formState.errors.workingTime?.message ? (
+                  <p className="text-destructive text-sm font-medium">
+                    {form.formState.errors.workingTime.message}
+                  </p>
+                ) : null}
+              </FormItem>
+            )}
+          />
+        )}
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <TaskStateSelectField
           form={form}
           taskStates={taskStates}

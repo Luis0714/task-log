@@ -44,8 +44,15 @@ export function normalizeSprintStatsScreenData(
 ): SprintStatsScreenData | null {
   if (!stats) return null;
 
+  const objectiveItems = stats.goal.objectiveItems ?? stats.goal.riskItems ?? [];
+
   return {
     ...stats,
+    goal: {
+      ...stats.goal,
+      objectiveItems,
+      riskItems: objectiveItems,
+    },
     bugs: normalizeSprintBugQualityMetrics(stats.bugs),
     times: normalizeSprintTimesMetrics(stats.times),
     workflow: {

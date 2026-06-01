@@ -1,4 +1,4 @@
-import { buildSprintGoalRiskItems } from "@/lib/sprints/build-sprint-goal-risk-items";
+import { buildSprintGoalObjectiveItems } from "@/lib/sprints/build-sprint-goal-objective-items";
 import { collectGoalWorkItemIds } from "@/lib/sprints/build-bug-quality-metrics";
 import {
   computeSnapshotGoalAchievementPercent,
@@ -20,7 +20,8 @@ export function buildSprintGoalMetricsFromStories(
     summary,
     achievementPercent: computeSnapshotGoalAchievementPercent(summary),
     storyPointsPercent: computeSnapshotStoryPointsPercent(summary),
-    riskItems: buildSprintGoalRiskItems(stories),
+    objectiveItems: buildSprintGoalObjectiveItems(stories),
+    riskItems: buildSprintGoalObjectiveItems(stories),
     goalWorkItemIds: [...collectGoalWorkItemIds(stories)],
   };
 }

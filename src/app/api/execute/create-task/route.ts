@@ -42,6 +42,7 @@ export async function POST(req: Request) {
       description: task.description,
       activity: task.activity as TaskActivity,
       workingDate: task.workingDate,
+      workingTime: task.workingTime,
       state: task.state,
       sprintPath: task.sprintPath,
       markAsDone: task.markAsDone,

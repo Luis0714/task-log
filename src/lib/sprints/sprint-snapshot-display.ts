@@ -15,7 +15,7 @@ const finalizedAtFormatter = new Intl.DateTimeFormat("es", {
 
 const GOAL_STATUS_LABEL: Record<SprintStoryGoalStatus, string> = {
   achieved: "Cumplida",
-  partial: "Parcial",
+  partial: "En proceso",
   missed: "No cumplida",
   excluded: "Excluida",
   no_target: "Sin meta",

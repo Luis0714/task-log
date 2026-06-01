@@ -12,6 +12,7 @@ import {
   mapTimeLogFormToPayload,
   type TimeLogFormValues,
 } from "@/lib/schemas/time-log";
+import { getDefaultWorkingTime } from "@/lib/time-log/task-constants";
 import { appToast } from "@/lib/toast";
 
 type UseCreateTaskOptions = {
@@ -31,6 +32,7 @@ function clearTaskFields(
   form.setValue("description", "");
   form.setValue("activity", TIME_LOG_TASK_STEP_DEFAULTS.activity);
   form.setValue("workingDate", getDefaultWorkingDate());
+  form.setValue("workingTime", getDefaultWorkingTime());
   form.setValue("taskState", getDefaultTaskState());
   form.setValue("autoMarkAsDone", TIME_LOG_TASK_STEP_DEFAULTS.autoMarkAsDone);
   resetTaskStepFields(form);

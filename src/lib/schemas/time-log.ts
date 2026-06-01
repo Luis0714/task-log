@@ -1,8 +1,10 @@
 import { z } from "zod";
 
+import { WORKING_TIME_PATTERN } from "@/lib/date/ado-datetime";
 import {
   DEFAULT_TASK_ACTIVITY,
   getDefaultWorkingDate,
+  getDefaultWorkingTime,
   TASK_ACTIVITY_OPTIONS,
 } from "@/lib/time-log/task-constants";
 
@@ -51,6 +53,11 @@ export const timeLogTaskStepSchema = z.object({
     .trim()
     .min(1, "Selecciona la fecha de trabajo.")
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida."),
+  workingTime: z
+    .string()
+    .trim()
+    .min(1, "Indica la hora de trabajo.")
+    .regex(WORKING_TIME_PATTERN, "Hora inválida (usa formato 24 h, p. ej. 09:30)."),
   taskState: z.string().trim().min(1, "Selecciona un estado."),
   autoMarkAsDone: z.boolean(),
 });
@@ -68,6 +75,7 @@ export type CreateTaskPayload = {
   description: string;
   activity: (typeof TASK_ACTIVITY_OPTIONS)[number];
   workingDate: string;
+  workingTime: string;
   state: string;
   markAsDone: boolean;
   sprintPath: string;
@@ -89,6 +97,7 @@ export function createTimeLogFormDefaults(
     description: "",
     activity: DEFAULT_TASK_ACTIVITY,
     workingDate: getDefaultWorkingDate(),
+    workingTime: getDefaultWorkingTime(),
     taskState: "",
     autoMarkAsDone: true,
   };
@@ -101,6 +110,7 @@ export const TIME_LOG_TASK_STEP_DEFAULTS: Pick<
   | "description"
   | "activity"
   | "workingDate"
+  | "workingTime"
   | "taskState"
   | "autoMarkAsDone"
 > = {
@@ -109,6 +119,7 @@ export const TIME_LOG_TASK_STEP_DEFAULTS: Pick<
   description: "",
   activity: DEFAULT_TASK_ACTIVITY,
   workingDate: getDefaultWorkingDate(),
+  workingTime: getDefaultWorkingTime(),
   taskState: "",
   autoMarkAsDone: true,
 };
@@ -129,6 +140,7 @@ export function mapTimeLogFormToPayload(
     description: values.description.trim(),
     activity: values.activity,
     workingDate: values.workingDate,
+    workingTime: values.workingTime,
     state: values.taskState,
     markAsDone: values.autoMarkAsDone,
   };

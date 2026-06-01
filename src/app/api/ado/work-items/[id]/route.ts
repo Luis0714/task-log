@@ -72,6 +72,7 @@ export async function PATCH(req: Request, context: RouteContext) {
             workItemId,
             state: parsed.data.state,
             workingDate: parsed.data.workingDate,
+            workingTime: parsed.data.workingTime,
             completedWork: parsed.data.completedWork,
           },
           scopedAuth,

@@ -66,7 +66,7 @@ export function SprintSnapshotDashboardView({
           </p>
         </DashboardSection>
 
-        <SprintGoalRiskList items={goal.riskItems} />
+        <SprintGoalRiskList items={goal.objectiveItems} />
       </div>
     );
   }

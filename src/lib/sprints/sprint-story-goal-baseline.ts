@@ -1,5 +1,6 @@
 import type { AdoWorkItemOptionDto, AdoWorkItemTagDto } from "@/lib/schemas/ado-catalog";
 import type { SprintStoryGoalRecord } from "@/lib/db/ports/sprint-story-goal.repository.port";
+import { serializeGoalTagNames } from "@/lib/sprints/goal-tags-serialization";
 import { normalizeWorkItemTag } from "@/lib/work-items/ado-work-item-tags";
 
 export function resolveBaselineTacTagName(
@@ -21,7 +22,7 @@ export function resolveBaselineTacTagName(
 
 export function resolveSprintStoryGoalBaseline(
   workItem: AdoWorkItemOptionDto | undefined,
-  catalogTags: readonly AdoWorkItemTagDto[],
+  _catalogTags: readonly AdoWorkItemTagDto[],
   existingGoal: SprintStoryGoalRecord | undefined,
 ): { baselineStateName: string | null; baselineTacTagName: string | null } {
   if (existingGoal?.baselineStateName || existingGoal?.baselineTacTagName) {
@@ -31,8 +32,10 @@ export function resolveSprintStoryGoalBaseline(
     };
   }
 
+  const initialTags = (workItem?.tags ?? []).map((tag) => tag.trim()).filter(Boolean);
+
   return {
     baselineStateName: workItem?.state?.trim() || null,
-    baselineTacTagName: resolveBaselineTacTagName(workItem?.tags, catalogTags),
+    baselineTacTagName: serializeGoalTagNames(initialTags) || null,
   };
 }

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { WORKING_TIME_PATTERN } from "@/lib/date/ado-datetime";
+
 export const previewActionSchema = z.enum(["log_work", "needs_clarification", "unsupported"]);
 
 export const logWorkPayloadSchema = z.object({
@@ -37,6 +39,7 @@ export const createTaskRequestSchema = z.object({
   description: z.string().trim().min(1).max(2000),
   activity: z.string().min(1).max(100),
   workingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  workingTime: z.string().regex(WORKING_TIME_PATTERN),
   state: z.string().trim().min(1).max(100),
   markAsDone: z.boolean().optional().default(false),
   sprintPath: z.string().min(1).max(500),

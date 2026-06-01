@@ -1,4 +1,5 @@
 import type { SprintStoryGoalStatus } from "@/lib/sprints/sprint-snapshot-types";
+import { parseGoalTagNames } from "@/lib/sprints/goal-tags-serialization";
 import { isSprintStoryGoalDraftEmpty } from "@/lib/sprints/sprint-story-goal";
 
 export type EvaluateStoryGoalStatusInput = {
@@ -9,6 +10,7 @@ export type EvaluateStoryGoalStatusInput = {
   targetTacTagName: string | null;
   finalStateName: string | null;
   finalTacTagName: string | null;
+  finalTagNames?: readonly string[];
   backlogStateOrder: readonly string[];
 };
 
@@ -54,8 +56,16 @@ function isTargetDefined(
 ): boolean {
   return !isSprintStoryGoalDraftEmpty({
     targetStateName: targetStateName ?? "",
-    targetTacTagName: targetTacTagName ?? "",
+    targetTagNames: parseGoalTagNames(targetTacTagName),
   });
+}
+
+function resolveFinalTagNames(input: EvaluateStoryGoalStatusInput): string[] {
+  if (input.finalTagNames?.length) {
+    return input.finalTagNames.map((tag) => tag.trim()).filter(Boolean);
+  }
+  const single = input.finalTacTagName?.trim();
+  return single ? [single] : [];
 }
 
 function isStateTargetMet(input: EvaluateStoryGoalStatusInput): boolean {
@@ -67,14 +77,16 @@ function isStateTargetMet(input: EvaluateStoryGoalStatusInput): boolean {
 }
 
 function isTacTargetMet(input: EvaluateStoryGoalStatusInput): boolean {
-  const targetTac = input.targetTacTagName?.trim() ?? "";
-  if (!targetTac) return false;
-  return normalizeText(input.finalTacTagName) === normalizeText(targetTac);
+  const targetTags = parseGoalTagNames(input.targetTacTagName);
+  if (targetTags.length === 0) return false;
+
+  const finalTags = new Set(resolveFinalTagNames(input).map((tag) => normalizeText(tag)));
+  return targetTags.every((tag) => finalTags.has(normalizeText(tag)));
 }
 
 function isTargetAchieved(input: EvaluateStoryGoalStatusInput): boolean {
   const stateRequired = Boolean(input.targetStateName?.trim());
-  const tacRequired = Boolean(input.targetTacTagName?.trim());
+  const tacRequired = parseGoalTagNames(input.targetTacTagName).length > 0;
   const stateMet = isStateTargetMet(input);
   const tacMet = isTacTargetMet(input);
 
@@ -102,18 +114,22 @@ function hasStateProgressFromBaseline(input: EvaluateStoryGoalStatusInput): bool
 }
 
 function hasTacProgressFromBaseline(input: EvaluateStoryGoalStatusInput): boolean {
-  const targetTac = normalizeText(input.targetTacTagName);
-  const finalTac = normalizeText(input.finalTacTagName);
-  const baselineTac = normalizeText(input.baselineTacTagName);
+  const targetTags = parseGoalTagNames(input.targetTacTagName);
+  if (targetTags.length === 0) return false;
 
-  return Boolean(targetTac && finalTac && finalTac !== baselineTac);
+  const baselineTags = new Set(
+    parseGoalTagNames(input.baselineTacTagName).map((tag) => normalizeText(tag)),
+  );
+  const finalTags = resolveFinalTagNames(input).map((tag) => normalizeText(tag));
+
+  return finalTags.some((tag) => tag && !baselineTags.has(tag));
 }
 
 function isGoalPartiallyMet(input: EvaluateStoryGoalStatusInput): boolean {
   if (isTargetAchieved(input)) return false;
 
   const stateRequired = Boolean(input.targetStateName?.trim());
-  const tacRequired = Boolean(input.targetTacTagName?.trim());
+  const tacRequired = parseGoalTagNames(input.targetTacTagName).length > 0;
   const stateMet = isStateTargetMet(input);
   const tacMet = isTacTargetMet(input);
 

@@ -24,7 +24,15 @@ export function resetTaskStepFields(form: UseFormReturn<TimeLogFormValues>) {
   form.setValue("taskTitle", "");
   form.setValue("hours", "");
   form.setValue("description", "");
-  form.clearErrors(["taskTitle", "hours", "description", "activity", "workingDate", "taskState"]);
+  form.clearErrors([
+    "taskTitle",
+    "hours",
+    "description",
+    "activity",
+    "workingDate",
+    "workingTime",
+    "taskState",
+  ]);
 }
 
 export function resolvePreferredProject(

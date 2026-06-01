@@ -26,6 +26,7 @@ const badgeStyles = StyleSheet.create({
     fontSize: 9,
     color: sprintGoalShareTheme.muted,
     lineHeight: 1,
+    textAlign: "center",
   },
 });
 

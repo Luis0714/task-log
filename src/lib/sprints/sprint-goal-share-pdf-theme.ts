@@ -56,14 +56,29 @@ export const sprintGoalSharePdfStyles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
   },
-  colStory: { width: "52%" },
+  colStory: {
+    flex: 2,
+    textAlign: "center",
+  },
   colStateCell: {
-    width: "24%",
+    flex: 0.95,
     alignItems: "center",
     justifyContent: "center",
   },
-  colState: { width: "24%" },
-  colTag: { width: "24%" },
+  colTagsCell: {
+    flex: 1.05,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  colTags: {
+    fontSize: 8,
+    color: sprintGoalShareTheme.text,
+    textAlign: "center",
+  },
+  colHeaderText: {
+    fontSize: 8,
+    textAlign: "center",
+  },
   overflowNote: {
     marginTop: 8,
     color: sprintGoalShareTheme.muted,

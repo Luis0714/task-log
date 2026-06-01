@@ -1,19 +1,23 @@
 "use client";
 
+import { SprintGoalReadonlyStateTacCell } from "@/components/sprints/goal/sprint-goal-readonly-state-tac-cell";
+import { SprintGoalReadonlyTagsCell } from "@/components/sprints/goal/sprint-goal-readonly-tags-cell";
 import { SprintGoalWorkItemCell } from "@/components/sprints/goal/sprint-goal-work-item-cell";
 import {
   SprintGoalStateObjectiveField,
-  SprintGoalTacObjectiveField,
+  SprintGoalTagsObjectiveField,
 } from "@/components/sprints/goal/sprint-goal-objective-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { AdoTaskStateDto, AdoWorkItemTagDto } from "@/lib/schemas/ado-catalog";
-import type { SprintStoryGoalDraft } from "@/lib/sprints/sprint-story-goal";
+import type { SprintStoryGoalBaseline, SprintStoryGoalDraft } from "@/lib/sprints/sprint-story-goal";
+import { resolveSprintStoryGoalRowCurrentTags } from "@/lib/sprints/sprint-story-goal";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import { cn } from "@/lib/utils";
 
 export type SprintGoalRowProps = {
   workItem: AdoWorkItemOptionDto;
   draft: SprintStoryGoalDraft;
+  baseline: SprintStoryGoalBaseline;
   backlogStates: readonly AdoTaskStateDto[];
   catalogTags: readonly AdoWorkItemTagDto[];
   disabled?: boolean;
@@ -24,6 +28,7 @@ export type SprintGoalRowProps = {
 export function SprintGoalRow({
   workItem,
   draft,
+  baseline,
   backlogStates,
   catalogTags,
   disabled = false,
@@ -31,6 +36,7 @@ export function SprintGoalRow({
   onDraftChange,
 }: SprintGoalRowProps) {
   const fieldsDisabled = disabled || !draft.includedInGoal;
+  const currentTags = resolveSprintStoryGoalRowCurrentTags(workItem);
 
   return (
     <tr
@@ -44,6 +50,14 @@ export function SprintGoalRow({
         <SprintGoalWorkItemCell workItem={workItem} muted={!draft.includedInGoal} />
       </td>
 
+      <td className="min-w-36 px-3 py-3 align-top">
+        <SprintGoalReadonlyStateTacCell
+          stateName={baseline.stateName}
+          tacTagName={null}
+          className={!draft.includedInGoal ? "opacity-60" : undefined}
+        />
+      </td>
+
       <td className="min-w-40 px-3 py-3 align-top">
         <SprintGoalStateObjectiveField
           draft={draft}
@@ -54,14 +68,33 @@ export function SprintGoalRow({
         />
       </td>
 
+      <td className="min-w-44 px-3 py-3 align-top">
+        <SprintGoalReadonlyTagsCell
+          tagNames={baseline.tagNames}
+          className={!draft.includedInGoal ? "opacity-60" : undefined}
+        />
+      </td>
+
       <td className="min-w-48 px-3 py-3 align-top">
-        <SprintGoalTacObjectiveField
+        <SprintGoalTagsObjectiveField
           draft={draft}
           backlogStates={backlogStates}
           catalogTags={catalogTags}
           disabled={fieldsDisabled}
           validationMessage={validationMessage}
           onDraftChange={onDraftChange}
+        />
+      </td>
+
+      <td className="min-w-36 px-3 py-3 align-top">
+        <SprintGoalReadonlyStateTacCell
+          stateName={workItem.state ?? null}
+          tacTagName={null}
+          className={!draft.includedInGoal ? "opacity-60" : undefined}
+        />
+        <SprintGoalReadonlyTagsCell
+          tagNames={currentTags}
+          className={cn("mt-1.5", !draft.includedInGoal && "opacity-60")}
         />
       </td>
 

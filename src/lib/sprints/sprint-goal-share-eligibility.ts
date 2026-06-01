@@ -1,3 +1,4 @@
+import { parseGoalTagNames } from "@/lib/sprints/goal-tags-serialization";
 import type { SprintStorySnapshotData } from "@/lib/sprints/sprint-snapshot-types";
 
 export type SprintGoalEditorShareState = {
@@ -10,7 +11,9 @@ export type SprintGoalEditorShareState = {
 
 function isSnapshotStoryInGoal(story: SprintStorySnapshotData): boolean {
   if (!story.includedInGoal) return false;
-  return Boolean(story.targetStateName?.trim() || story.targetTacTagName?.trim());
+  return Boolean(
+    story.targetStateName?.trim() || parseGoalTagNames(story.targetTacTagName).length > 0,
+  );
 }
 
 export function canShareSprintGoalFromEditor(

@@ -2,13 +2,13 @@ import type { SprintGoalSharePayload } from "@/lib/sprints/sprint-goal-share-typ
 import { truncateSprintGoalShareText } from "@/lib/sprints/format-sprint-goal-share";
 import { sprintGoalShareTheme } from "@/lib/sprints/sprint-goal-share-theme";
 
-export const SPRINT_GOAL_SHARE_IMAGE_WIDTH = 1200;
+export const SPRINT_GOAL_SHARE_IMAGE_WIDTH = 1600;
 
 export const SPRINT_GOAL_SHARE_IMAGE_LAYOUT = {
   headerHeight: 168,
   summaryHeight: 220,
   tableHeaderHeight: 44,
-  tableRowHeight: 56,
+  tableRowHeight: 60,
   overflowHeight: 36,
   footerHeight: 96,
   horizontalPadding: 48,

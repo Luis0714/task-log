@@ -11,6 +11,7 @@ import {
   readShareActionError,
   readShareFetchError,
 } from "@/lib/sprints/read-share-fetch-error";
+import { triggerBlobDownload, triggerDirectDownload } from "@/lib/sprints/trigger-blob-download";
 import { appToast } from "@/lib/toast";
 
 export type SprintShareExportMessages = {
@@ -33,6 +34,8 @@ export type UseSprintShareExportOptions = {
   buildFilename: () => string;
   buildUrl: () => string;
   mimeType: string;
+  /** Descarga vía URL del API (Content-Disposition). Recomendado para PDF. */
+  preferDirectDownload?: boolean;
   messages: SprintShareExportMessages;
   shareMeta: SprintShareExportShareMeta;
   copyEnabled?: boolean;
@@ -56,15 +59,6 @@ function revokeObjectUrl(url: string | null) {
   if (url) URL.revokeObjectURL(url);
 }
 
-function triggerBlobDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
-
 export function useSprintShareExport({
   canShare,
   reloadKey,
@@ -72,6 +66,7 @@ export function useSprintShareExport({
   buildFilename,
   buildUrl,
   mimeType,
+  preferDirectDownload = false,
   messages,
   shareMeta,
   copyEnabled = true,
@@ -132,26 +127,31 @@ export function useSprintShareExport({
   }, [previewUrl]);
 
   const downloadArtifact = useCallback(
-    (blob: Blob) => triggerBlobDownload(blob, buildFilename()),
-    [buildFilename],
+    (blob: Blob) => triggerBlobDownload(blob, buildFilename(), mimeType),
+    [buildFilename, mimeType],
   );
 
   const download = useCallback(async () => {
     try {
-      if (artifactBlob) {
-        downloadArtifact(artifactBlob);
+      if (preferDirectDownload) {
+        triggerDirectDownload(buildUrl());
         return;
       }
 
-      const anchor = document.createElement("a");
-      anchor.href = buildUrl();
-      anchor.download = buildFilename();
-      anchor.click();
+      const blob = artifactBlob ?? (await fetchBlob());
+      downloadArtifact(blob);
     } catch (cause) {
       const message = readShareActionError(cause, messages.download);
       if (message) appToast.error(message);
     }
-  }, [artifactBlob, buildFilename, buildUrl, downloadArtifact, messages.download]);
+  }, [
+    artifactBlob,
+    buildUrl,
+    downloadArtifact,
+    fetchBlob,
+    messages.download,
+    preferDirectDownload,
+  ]);
 
   const share = useCallback(async () => {
     try {
@@ -170,6 +170,11 @@ export function useSprintShareExport({
         return;
       }
 
+      if (preferDirectDownload) {
+        triggerDirectDownload(buildUrl());
+        return;
+      }
+
       downloadArtifact(blob);
     } catch (cause) {
       const message = readShareActionError(cause, messages.share);
@@ -178,10 +183,12 @@ export function useSprintShareExport({
   }, [
     artifactBlob,
     buildFilename,
+    buildUrl,
     downloadArtifact,
     fetchBlob,
     messages.share,
     mimeType,
+    preferDirectDownload,
     shareMeta.text,
     shareMeta.title,
   ]);

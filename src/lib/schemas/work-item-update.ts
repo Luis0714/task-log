@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { WORKING_TIME_PATTERN } from "@/lib/date/ado-datetime";
+
 const dateKeySchema = z
   .string()
   .trim()
@@ -20,6 +22,12 @@ export const updateWorkItemBodySchema = z.object({
   team: z.string().trim().min(1).max(200).optional(),
   /** Fecha de trabajo (tasks/bugs); si falta, el servidor infiere o usa hoy. */
   workingDate: dateKeySchema.optional(),
+  /** Hora de trabajo (HH:mm), en la zona del proyecto. */
+  workingTime: z
+    .string()
+    .trim()
+    .regex(WORKING_TIME_PATTERN, "La hora debe tener formato HH:mm (24 h).")
+    .optional(),
   /** Horas en Completed Work (bugs y tasks). */
   completedWork: z.coerce.number().min(0).max(9999).optional(),
   /** PBI/HU → Committed */

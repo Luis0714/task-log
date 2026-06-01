@@ -15,9 +15,10 @@ import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 import type { TaskActivity } from "@/lib/time-log/task-constants";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import {
-  resolveWorkingDateKeyFromFields,
-  toWorkingDateKey,
-} from "@/lib/azure-devops/working-date-field";
+  resolveAdoWorkingDateFieldValue,
+  resolveWorkingTimeFromFields,
+} from "@/lib/date/ado-datetime";
+import { resolveWorkingDateKeyFromFields } from "@/lib/azure-devops/working-date-field";
 import {
   fetchWorkItemsBatchWithFieldFallback,
   filterFieldsToProject,
@@ -57,6 +58,7 @@ export type CreateTaskParams = {
   description?: string;
   activity: TaskActivity;
   workingDate: string;
+  workingTime: string;
   state: string;
   sprintPath: string;
   markAsDone?: boolean;
@@ -120,6 +122,12 @@ export async function createTaskUnderPbi(
   if (!pbiContext.ok) return pbiContext;
 
   const processProfile = await resolveProcessProfile(auth);
+  const adoWorkingDateValue =
+    resolveAdoWorkingDateFieldValue(
+      params.workingDate,
+      params.workingTime,
+      processProfile.timezone,
+    ) ?? params.workingDate;
   const assignedTo = await resolveAssignedToValue(auth);
   const pbiUrl = `${adoOrgBase(auth)}/_apis/wit/workitems/${params.pbiId}`;
   const iterationPath = params.sprintPath.trim() || pbiContext.iterationPath;
@@ -150,7 +158,7 @@ export async function createTaskUnderPbi(
     {
       op: "add",
       path: `/fields/${processProfile.workingDateField}`,
-      value: params.workingDate,
+      value: adoWorkingDateValue,
     },
     {
       op: "add",
@@ -200,6 +208,7 @@ export async function createTaskUnderPbi(
       workItemId: created.id,
       state: doneState,
       workingDate: params.workingDate,
+      workingTime: params.workingTime,
       completedWork: params.hours,
     },
     auth,
@@ -414,6 +423,11 @@ async function fetchWorkItemDetails(
           processProfile.workItemDateFieldNames,
           processProfile.timezone,
         ),
+        workingTime: resolveWorkingTimeFromFields(
+          workItem.fields,
+          processProfile.workingDateField,
+          processProfile.timezone,
+        ),
         tags: parseAdoWorkItemTags(
           typeof workItem.fields?.[SYSTEM_TAGS] === "string"
             ? workItem.fields[SYSTEM_TAGS]
@@ -539,6 +553,7 @@ export async function updateWorkItemState(
     workItemId: number;
     state: string;
     workingDate?: string;
+    workingTime?: string;
     completedWork?: number;
   },
   auth: AdoCallerAuth,
@@ -582,7 +597,11 @@ export async function updateWorkItemState(
   };
 
   const dateValue =
-    toWorkingDateKey(params.workingDate, processProfile.timezone) ??
+    resolveAdoWorkingDateFieldValue(
+      params.workingDate,
+      params.workingTime,
+      processProfile.timezone,
+    ) ??
     resolveWorkingDateKeyFromFields(
       wi.fields,
       processProfile.workItemDateFieldNames,

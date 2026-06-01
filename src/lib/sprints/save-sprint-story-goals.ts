@@ -13,9 +13,11 @@ import type { SprintStoryGoalDraftDto } from "@/lib/schemas/sprint-story-goals";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 import { loadProjectWorkItemTags } from "@/lib/sprints/load-project-work-item-tags";
 import { resolveSprintStoryGoalBaseline } from "@/lib/sprints/sprint-story-goal-baseline";
+import { serializeGoalTagNames } from "@/lib/sprints/goal-tags-serialization";
 import {
   isSprintStoryGoalDraftEmpty,
   isSprintStoryGoalDraftValid,
+  sprintStoryGoalDraftDtoToDraft,
 } from "@/lib/sprints/sprint-story-goal";
 import { isSprintScopeFinalized } from "@/lib/sprints/is-sprint-scope-finalized";
 import { SPRINT_FINALIZED_READ_ONLY_MESSAGE } from "@/lib/sprints/sprint-finalized-messages";
@@ -25,14 +27,16 @@ export type SaveSprintStoryGoalsResult =
   | { ok: false; message: string };
 
 function toUpsertInput(
-  draft: SprintStoryGoalDraftDto,
+  draftDto: SprintStoryGoalDraftDto,
   existingGoal: SprintStoryGoalRecord | undefined,
   workItem: AdoWorkItemOptionDto | undefined,
   catalogTags: readonly AdoWorkItemTagDto[],
 ): SprintStoryGoalUpsertInput | null {
+  const draft = sprintStoryGoalDraftDtoToDraft(draftDto);
+
   if (draft.includedInGoal === false) {
     return {
-      workItemId: draft.workItemId,
+      workItemId: draftDto.workItemId,
       targetStateName: null,
       targetTacTagName: null,
       baselineStateName: null,
@@ -50,7 +54,7 @@ function toUpsertInput(
   return {
     workItemId: draft.workItemId,
     targetStateName: draft.targetStateName.trim() || null,
-    targetTacTagName: draft.targetTacTagName.trim() || null,
+    targetTacTagName: serializeGoalTagNames(draft.targetTagNames) || null,
     baselineStateName: baseline.baselineStateName,
     baselineTacTagName: baseline.baselineTacTagName,
     includedInGoal: true,
@@ -74,12 +78,13 @@ export async function saveSprintStoryGoals(
     return { ok: false, message: SPRINT_FINALIZED_READ_ONLY_MESSAGE };
   }
 
-  for (const draft of drafts) {
+  for (const draftDto of drafts) {
+    const draft = sprintStoryGoalDraftDtoToDraft(draftDto);
     if (draft.includedInGoal === false) continue;
     if (!isSprintStoryGoalDraftValid(draft)) {
       return {
         ok: false,
-        message: `La historia #${draft.workItemId} necesita al menos un estado o TAC objetivo.`,
+        message: `La historia #${draft.workItemId} necesita al menos un estado o tag objetivo.`,
       };
     }
   }

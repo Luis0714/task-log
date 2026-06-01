@@ -2,17 +2,18 @@ import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { SprintStoryGoalDraftDto } from "@/lib/schemas/sprint-story-goals";
 import type { SprintStoryGoalRecord } from "@/lib/db/ports/sprint-story-goal.repository.port";
 import { filterWorkItemsByClientCriteria } from "@/lib/azure-devops/work-items-filters";
+import { parseGoalTagNames, serializeGoalTagNames } from "@/lib/sprints/goal-tags-serialization";
 
 export type SprintStoryGoalBaseline = {
   stateName: string | null;
-  tacTagName: string | null;
+  tagNames: string[];
 };
 
 export type SprintStoryGoalDraft = {
   workItemId: number;
   includedInGoal: boolean;
   targetStateName: string;
-  targetTacTagName: string;
+  targetTagNames: string[];
 };
 
 export type SprintStoryGoalRowModel = {
@@ -26,7 +27,7 @@ export function createEmptySprintStoryGoalDraft(workItemId: number): SprintStory
     workItemId,
     includedInGoal: true,
     targetStateName: "",
-    targetTacTagName: "",
+    targetTagNames: [],
   };
 }
 
@@ -34,11 +35,22 @@ export function sprintStoryGoalRecordToBaseline(
   record: SprintStoryGoalRecord,
 ): SprintStoryGoalBaseline | null {
   const stateName = record.baselineStateName?.trim() || null;
-  const tacTagName = record.baselineTacTagName?.trim() || null;
+  const tagNames = parseGoalTagNames(record.baselineTacTagName);
 
-  if (!stateName && !tacTagName) return null;
+  if (!stateName && tagNames.length === 0) return null;
 
-  return { stateName, tacTagName };
+  return { stateName, tagNames };
+}
+
+export function sprintStoryGoalDraftDtoToDraft(
+  dto: SprintStoryGoalDraftDto,
+): SprintStoryGoalDraft {
+  return {
+    workItemId: dto.workItemId,
+    includedInGoal: dto.includedInGoal ?? true,
+    targetStateName: dto.targetStateName ?? "",
+    targetTagNames: parseGoalTagNames(dto.targetTacTagName),
+  };
 }
 
 export function sprintStoryGoalRecordToDraft(
@@ -48,29 +60,29 @@ export function sprintStoryGoalRecordToDraft(
     workItemId: record.workItemId,
     includedInGoal: record.includedInGoal,
     targetStateName: record.targetStateName?.trim() ?? "",
-    targetTacTagName: record.targetTacTagName?.trim() ?? "",
+    targetTagNames: parseGoalTagNames(record.targetTacTagName),
   };
 }
 
 export function isSprintStoryGoalDraftEmpty(
-  draft: Pick<SprintStoryGoalDraft, "targetStateName" | "targetTacTagName">,
+  draft: Pick<SprintStoryGoalDraft, "targetStateName" | "targetTagNames">,
 ): boolean {
-  return !draft.targetStateName.trim() && !draft.targetTacTagName.trim();
+  return !draft.targetStateName.trim() && draft.targetTagNames.length === 0;
 }
 
 export function isSprintStoryGoalDraftValid(
-  draft: Pick<SprintStoryGoalDraft, "includedInGoal" | "targetStateName" | "targetTacTagName">,
+  draft: Pick<SprintStoryGoalDraft, "includedInGoal" | "targetStateName" | "targetTagNames">,
 ): boolean {
   if (!draft.includedInGoal) return true;
   if (isSprintStoryGoalDraftEmpty(draft)) return true;
-  return Boolean(draft.targetStateName.trim() || draft.targetTacTagName.trim());
+  return Boolean(draft.targetStateName.trim() || draft.targetTagNames.length > 0);
 }
 
 export function sprintStoryGoalDraftValidationMessage(
-  draft: Pick<SprintStoryGoalDraft, "includedInGoal" | "targetStateName" | "targetTacTagName">,
+  draft: Pick<SprintStoryGoalDraft, "includedInGoal" | "targetStateName" | "targetTagNames">,
 ): string | null {
   if (isSprintStoryGoalDraftValid(draft)) return null;
-  return "Indica al menos un estado objetivo o un TAC objetivo.";
+  return "Indica al menos un estado objetivo o un tag objetivo.";
 }
 
 export function areSprintStoryGoalDraftsEqual(
@@ -81,8 +93,25 @@ export function areSprintStoryGoalDraftsEqual(
     left.workItemId === right.workItemId &&
     left.includedInGoal === right.includedInGoal &&
     left.targetStateName.trim() === right.targetStateName.trim() &&
-    left.targetTacTagName.trim() === right.targetTacTagName.trim()
+    left.targetTagNames.length === right.targetTagNames.length &&
+    left.targetTagNames.every((tag, index) => tag === right.targetTagNames[index])
   );
+}
+
+/** Punto de partida guardado o, si aún no se guardó, estado/tag actuales de ADO. */
+export function resolveSprintStoryGoalRowBaseline(
+  row: Pick<SprintStoryGoalRowModel, "workItem" | "baseline">,
+): SprintStoryGoalBaseline {
+  if (row.baseline) return row.baseline;
+
+  return {
+    stateName: row.workItem.state?.trim() || null,
+    tagNames: (row.workItem.tags ?? []).map((tag) => tag.trim()).filter(Boolean),
+  };
+}
+
+export function resolveSprintStoryGoalRowCurrentTags(workItem: AdoWorkItemOptionDto): string[] {
+  return (workItem.tags ?? []).map((tag) => tag.trim()).filter(Boolean);
 }
 
 export function buildSprintStoryGoalRows(
@@ -122,7 +151,7 @@ export function normalizeSprintStoryGoalDraftForSave(
     workItemId: draft.workItemId,
     includedInGoal: true,
     targetStateName: draft.targetStateName.trim(),
-    targetTacTagName: draft.targetTacTagName.trim(),
+    targetTacTagName: serializeGoalTagNames(draft.targetTagNames),
   };
 }
 

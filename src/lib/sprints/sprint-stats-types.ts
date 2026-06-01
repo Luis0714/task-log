@@ -6,22 +6,30 @@ import type {
   SprintStoryGoalStatus,
 } from "@/lib/sprints/sprint-snapshot-types";
 
-export type SprintGoalRiskItem = {
+export type SprintGoalObjectiveItem = {
   workItemId: number;
   title: string;
   assignedTo: string | null;
   effort: number | null;
   goalStatus: SprintStoryGoalStatus;
   targetStateName: string | null;
+  targetTacTagName: string | null;
   finalStateName: string | null;
+  finalTacTagName: string | null;
 };
+
+/** @deprecated Usa SprintGoalObjectiveItem */
+export type SprintGoalRiskItem = SprintGoalObjectiveItem;
 
 export type SprintGoalMetrics = {
   generalObjective: string;
   summary: SprintSnapshotSummary;
   achievementPercent: number;
   storyPointsPercent: number;
-  riskItems: SprintGoalRiskItem[];
+  /** Historias comprometidas en el objetivo (cumplida, parcial/en proceso, no cumplida). */
+  objectiveItems: SprintGoalObjectiveItem[];
+  /** @deprecated Usa objectiveItems */
+  riskItems: SprintGoalObjectiveItem[];
   goalWorkItemIds: number[];
 };
 

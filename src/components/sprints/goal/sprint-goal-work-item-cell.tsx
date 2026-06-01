@@ -4,7 +4,6 @@ import { WorkItemAssigneeTag } from "@/components/work-items/work-item-assignee-
 import { WorkItemEffortBadge } from "@/components/work-items/work-item-effort-badge";
 import { WorkItemId } from "@/components/work-items/work-item-id";
 import { WorkItemPriorityBadge } from "@/components/work-items/work-item-priority-badge";
-import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import { WorkItemTagsReadonly } from "@/components/work-items/work-item-tags-readonly";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import { cn } from "@/lib/utils";
@@ -35,11 +34,6 @@ export function SprintGoalWorkItemCell({ workItem, muted = false }: SprintGoalWo
     <div className={cn("flex min-w-80 flex-col gap-1.5", muted && "opacity-60")}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <WorkItemId id={workItem.id} className="shrink-0" />
-        {workItem.state ? (
-          <WorkItemStateBadge state={workItem.state} className="shrink-0" />
-        ) : (
-          <span className="text-muted-foreground shrink-0 text-xs whitespace-nowrap">Sin estado</span>
-        )}
         <SprintGoalWorkItemAssignee assignedTo={workItem.assignedTo} />
         {hasPriority ? (
           <WorkItemPriorityBadge priority={workItem.priority!} className="shrink-0" />

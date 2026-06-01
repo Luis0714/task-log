@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import { computeDraftCanSave } from "@/lib/forms/can-submit";
 import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import { DEFAULT_WORKING_TIME, isValidWorkingTime } from "@/lib/date/ado-datetime";
 import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
 import { isDateKeyValid } from "@/lib/validation/date-key";
 
@@ -39,6 +40,7 @@ export function useTaskDetailDraftController({
 }) {
   const [draftState, setDraftState] = useState("");
   const [draftWorkingDate, setDraftWorkingDate] = useState("");
+  const [draftWorkingTime, setDraftWorkingTime] = useState(DEFAULT_WORKING_TIME);
 
   const stateOptions = useMemo(() => taskStates.map((state) => state.name), [taskStates]);
   const statesReady = !statesLoading && stateOptions.length > 0;
@@ -52,15 +54,18 @@ export function useTaskDetailDraftController({
 
     setDraftState(task.state);
     setDraftWorkingDate(task.workingDate?.trim() || getDefaultWorkingDate());
-  }, [task?.id, task?.state, task?.workingDate]);
+    setDraftWorkingTime(task.workingTime?.trim() || DEFAULT_WORKING_TIME);
+  }, [task?.id, task?.state, task?.workingDate, task?.workingTime]);
 
   const initialWorkingDate = task?.workingDate?.trim() ?? "";
+  const initialWorkingTime = task?.workingTime?.trim() || DEFAULT_WORKING_TIME;
   const isStateDirty = Boolean(task && draftState !== task.state);
   const isDateDirty = Boolean(task && draftWorkingDate !== initialWorkingDate);
-  const isDirty = isStateDirty || isDateDirty;
+  const isTimeDirty = Boolean(task && draftWorkingTime !== initialWorkingTime);
+  const isDirty = isStateDirty || isDateDirty || isTimeDirty;
   const canSave = computeDraftCanSave({
     isDirty,
-    isValid: isDateKeyValid(draftWorkingDate),
+    isValid: isDateKeyValid(draftWorkingDate) && isValidWorkingTime(draftWorkingTime),
     externalReady: statesReady && Boolean(project),
     isSubmitting: saving,
   });
@@ -70,6 +75,8 @@ export function useTaskDetailDraftController({
     setDraftState,
     draftWorkingDate,
     setDraftWorkingDate,
+    draftWorkingTime,
+    setDraftWorkingTime,
     stateOptions,
     statesReady,
     sprintDateBounds,

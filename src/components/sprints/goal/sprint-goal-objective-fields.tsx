@@ -39,12 +39,8 @@ function useSprintGoalObjectiveOptions(
   );
 
   const tagOptions = useMemo(
-    () =>
-      mergeWorkItemTagOptions(
-        catalogTags,
-        draft.targetTacTagName ? [draft.targetTacTagName] : [],
-      ),
-    [catalogTags, draft.targetTacTagName],
+    () => mergeWorkItemTagOptions(catalogTags, draft.targetTagNames),
+    [catalogTags, draft.targetTagNames],
   );
 
   return { stateOptions, tagOptions };
@@ -97,7 +93,7 @@ export function SprintGoalStateObjectiveField({
   );
 }
 
-export function SprintGoalTacObjectiveField({
+export function SprintGoalTagsObjectiveField({
   draft,
   backlogStates,
   catalogTags,
@@ -118,24 +114,24 @@ export function SprintGoalTacObjectiveField({
           <TagsCombobox
             id={id}
             options={tagOptions}
-            value={draft.targetTacTagName ? [draft.targetTacTagName] : []}
-            multiple={false}
+            value={draft.targetTagNames}
+            multiple
             disabled={disabled}
-            placeholder="TAC objetivo"
-            searchPlaceholder="Buscar TAC…"
+            placeholder="Tags objetivo"
+            searchPlaceholder="Buscar tag…"
             emptyMessage="Sin tags en el proyecto."
-            onValueChange={(values) => onDraftChange({ targetTacTagName: values[0] ?? "" })}
+            onValueChange={(values) => onDraftChange({ targetTagNames: values })}
           />
         </div>
-        {draft.targetTacTagName && !disabled ? (
+        {draft.targetTagNames.length > 0 && !disabled ? (
           <Button
             type="button"
             variant="ghost"
             size="icon-xs"
             className="mt-1 shrink-0"
-            title="Sin TAC objetivo"
-            aria-label="Quitar TAC objetivo"
-            onClick={() => onDraftChange({ targetTacTagName: "" })}
+            title="Quitar tags objetivo"
+            aria-label="Quitar tags objetivo"
+            onClick={() => onDraftChange({ targetTagNames: [] })}
           >
             <XIcon className="size-3.5" aria-hidden />
           </Button>
@@ -147,3 +143,6 @@ export function SprintGoalTacObjectiveField({
     </div>
   );
 }
+
+/** @deprecated Usa SprintGoalTagsObjectiveField */
+export const SprintGoalTacObjectiveField = SprintGoalTagsObjectiveField;

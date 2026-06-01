@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 
 import { buildSprintGoalShareDownloadFilename } from "@/lib/sprints/format-sprint-goal-share";
+import { buildShareContentDisposition } from "@/lib/sprints/share-content-disposition";
 import { loadSprintGoalShareFonts } from "@/lib/sprints/load-sprint-goal-share-fonts";
 import {
   getSprintGoalShareImageSize,
@@ -23,7 +24,7 @@ export async function createSprintGoalShareImageResponse(
     ...imageSize,
     fonts,
     headers: {
-      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Disposition": buildShareContentDisposition(filename),
       "Cache-Control": "no-store",
     },
   });

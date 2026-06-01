@@ -1,5 +1,7 @@
 import { resolveDefaultWorkingDate } from "@/lib/time-log/working-date-default";
 
+export { DEFAULT_WORKING_TIME, getDefaultWorkingTime } from "@/lib/date/ado-datetime";
+
 /** Valores de Activity en Tasks (proceso Scrum Azure DevOps). */
 export const TASK_ACTIVITY_OPTIONS = [
   "Deployment",

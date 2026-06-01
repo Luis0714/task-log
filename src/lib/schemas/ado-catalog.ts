@@ -50,6 +50,8 @@ export const adoWorkItemOptionSchema = z.object({
   estimatedHours: z.number().optional(),
   /** Fecha de trabajo (YYYY-MM-DD), desde el campo configurado en ADO. */
   workingDate: z.string().optional(),
+  /** Hora del campo de fecha de trabajo (HH:mm), en la zona del proyecto. */
+  workingTime: z.string().optional(),
   /** Start Date del PBI/HU (YYYY-MM-DD). */
   startDate: z.string().optional(),
   /** Target Date del PBI/HU (YYYY-MM-DD). */

@@ -8,7 +8,7 @@ import { WorkItemAdoQuickLinks } from "@/components/work-items/work-item-ado-qui
 import { WorkItemDescriptionBlock } from "@/components/work-items/work-item-description-block";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { Button } from "@/components/ui/button";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DatePickerTime } from "@/components/ui/date-picker-time";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -59,6 +59,8 @@ export function TaskDetailSheet({
     setDraftState,
     draftWorkingDate,
     setDraftWorkingDate,
+    draftWorkingTime,
+    setDraftWorkingTime,
     stateOptions,
     statesReady,
     sprintDateBounds,
@@ -81,6 +83,7 @@ export function TaskDetailSheet({
         project,
         state: draftState,
         workingDate: draftWorkingDate,
+        workingTime: draftWorkingTime,
       });
 
       if (!response.ok) {
@@ -132,17 +135,20 @@ export function TaskDetailSheet({
                 ) : null}
 
                 <section className="space-y-2">
-                  <Label htmlFor="task-working-date">Fecha de trabajo</Label>
-                  <DatePicker
-                    id="task-working-date"
-                    value={draftWorkingDate}
+                  <Label htmlFor="task-working-date">Fecha y hora de trabajo</Label>
+                  <DatePickerTime
+                    dateId="task-working-date"
+                    timeId="task-working-time"
+                    dateValue={draftWorkingDate}
+                    timeValue={draftWorkingTime}
                     min={sprintDateBounds.min}
                     max={sprintDateBounds.max}
                     disabled={saving}
-                    onChange={setDraftWorkingDate}
+                    onDateChange={setDraftWorkingDate}
+                    onTimeChange={setDraftWorkingTime}
                   />
                   <p className="text-muted-foreground text-xs">
-                    Fecha de trabajo en Azure DevOps. Obligatoria al cambiar el estado.
+                    Día y hora en Azure DevOps (zona del proyecto). Obligatorios al cambiar el estado.
                   </p>
                 </section>
 

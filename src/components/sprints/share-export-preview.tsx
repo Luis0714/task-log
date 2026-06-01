@@ -51,11 +51,17 @@ export function ShareExportPreview({
 
   if (kind === "pdf") {
     return (
-      <iframe
-        src={previewUrl}
-        title={pdfTitle}
-        className={cn(PDF_PREVIEW_MIN_HEIGHT_CLASS, "w-full rounded-md border-0 bg-white")}
-      />
+      <div className="flex min-h-0 flex-1 flex-col gap-2">
+        <iframe
+          src={previewUrl}
+          title={pdfTitle}
+          className={cn(PDF_PREVIEW_MIN_HEIGHT_CLASS, "w-full flex-1 rounded-md border-0 bg-white")}
+        />
+        <p className="text-muted-foreground shrink-0 text-center text-xs">
+          Usa «Descargar PDF» abajo para guardar con el nombre del sprint. El botón del visor
+          puede generar un nombre aleatorio.
+        </p>
+      </div>
     );
   }
 

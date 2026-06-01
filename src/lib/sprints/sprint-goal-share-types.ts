@@ -4,14 +4,21 @@ export const SPRINT_GOAL_SHARE_MAX_RENDERED_STORIES = 50;
 export type SprintGoalShareStoryRow = {
   workItemId: number;
   title: string;
+  /** Punto de partida al comprometer la historia. */
+  originalState: string;
+  originalTags: string;
+  /** Meta definida para el sprint. */
   targetState: string;
-  targetTac: string;
+  targetTags: string;
+  /** Situación actual en ADO al exportar. */
+  currentState: string;
+  currentTags: string;
 };
 
 export type SprintGoalShareSummary = {
   totalStoriesInGoal: number;
   uniqueTargetStates: number;
-  uniqueTargetTacs: number;
+  uniqueTargetTags: number;
 };
 
 export type SprintGoalSharePayload = {

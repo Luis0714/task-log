@@ -28,6 +28,7 @@ export async function createTaskInAdo(
         description: payload.description,
         activity: payload.activity,
         workingDate: payload.workingDate,
+        workingTime: payload.workingTime,
         state: payload.state,
         markAsDone: payload.markAsDone,
         sprintPath: payload.sprintPath,

@@ -1,10 +1,8 @@
 import type { AdoWorkItemOptionDto, AdoWorkItemTagDto } from "@/lib/schemas/ado-catalog";
 import type { SprintStoryGoalRecord } from "@/lib/db/ports/sprint-story-goal.repository.port";
 import { evaluateSprintStoryGoalStatus } from "@/lib/sprints/evaluate-sprint-story-goal-status";
-import {
-  resolveBaselineTacTagName,
-  resolveSprintStoryGoalBaseline,
-} from "@/lib/sprints/sprint-story-goal-baseline";
+import { serializeGoalTagNames } from "@/lib/sprints/goal-tags-serialization";
+import { resolveSprintStoryGoalBaseline } from "@/lib/sprints/sprint-story-goal-baseline";
 import type { SprintStorySnapshotData } from "@/lib/sprints/sprint-snapshot-types";
 
 export type BuildSprintStorySnapshotInput = {
@@ -29,7 +27,8 @@ export function buildSprintStorySnapshot(
   const targetStateName = goal?.targetStateName ?? null;
   const targetTacTagName = goal?.targetTacTagName ?? null;
   const finalStateName = workItem.state?.trim() || null;
-  const finalTacTagName = resolveBaselineTacTagName(workItem.tags, catalogTags);
+  const finalTagNames = (workItem.tags ?? []).map((tag) => tag.trim()).filter(Boolean);
+  const finalTacTagName = serializeGoalTagNames(finalTagNames) || null;
 
   const goalStatus = evaluateSprintStoryGoalStatus({
     includedInGoal,
@@ -39,6 +38,7 @@ export function buildSprintStorySnapshot(
     targetTacTagName,
     finalStateName,
     finalTacTagName,
+    finalTagNames: (workItem.tags ?? []).map((tag) => tag.trim()).filter(Boolean),
     backlogStateOrder,
   });
 

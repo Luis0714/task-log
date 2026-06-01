@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { BugDetailSheet } from "@/components/bugs/bug-detail-sheet";
+import { SprintLoggedHoursBadge } from "@/components/dashboard/metrics/sprint-logged-hours-badge";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { SprintItemList } from "@/components/sprint-items/sprint-item-list";
 import { TaskDetailSheet } from "@/components/tasks/task-detail-sheet";
@@ -12,6 +13,7 @@ import type { SprintItemsKind } from "@/lib/sprint-items/types";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
+import { sumTaskLoggedHours } from "@/lib/dashboard/task-hours";
 
 const COPY: Record<
   SprintItemsKind,
@@ -50,6 +52,10 @@ export function SprintItemsLists({
 }: SprintItemsListsProps) {
   const { filteredItems } = useSprintItemsLists(snapshot, filters, dayKey);
   const copy = COPY[kind];
+  const totalTaskHours = useMemo(
+    () => (kind === "tasks" ? sumTaskLoggedHours(filteredItems) : 0),
+    [filteredItems, kind],
+  );
 
   const [selectedItem, setSelectedItem] = useState<AdoWorkItemOptionDto | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -66,7 +72,13 @@ export function SprintItemsLists({
 
   return (
     <>
-      <DashboardSection title={copy.sectionTitle} description={copy.sectionDescription}>
+      <DashboardSection
+        title={copy.sectionTitle}
+        description={copy.sectionDescription}
+        action={
+          kind === "tasks" ? <SprintLoggedHoursBadge hours={totalTaskHours} /> : undefined
+        }
+      >
         <SprintItemList
           items={filteredItems}
           emptyMessage={copy.emptyMessage}

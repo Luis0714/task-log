@@ -69,7 +69,7 @@ export function SprintStatsDashboardSections({
         <SprintWorkflowSection metrics={normalizedStats.workflow} />
       </DashboardSection>
 
-      <SprintGoalRiskList items={normalizedStats.goal.riskItems} />
+      <SprintGoalRiskList items={normalizedStats.goal.objectiveItems} />
     </div>
   );
 }

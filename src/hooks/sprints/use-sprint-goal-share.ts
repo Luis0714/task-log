@@ -92,6 +92,7 @@ export function useSprintGoalShare({
     buildFilename,
     buildUrl,
     mimeType: getSprintGoalShareMimeType(format),
+    preferDirectDownload: format === "pdf",
     messages,
     shareMeta: {
       title: `Objetivo del sprint — ${shareQuery.sprintName}`,

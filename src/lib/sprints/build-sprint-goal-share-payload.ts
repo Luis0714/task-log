@@ -1,6 +1,14 @@
 import { SITE_NAME } from "@/lib/seo/site";
 import { formatSprintDateRange } from "@/lib/time-log/format-options";
+import {
+  formatSprintGoalShareState,
+  formatSprintGoalShareTags,
+} from "@/lib/sprints/sprint-goal-share-content";
 import type { SprintStoryGoalRowModel } from "@/lib/sprints/sprint-story-goal";
+import {
+  resolveSprintStoryGoalRowBaseline,
+  resolveSprintStoryGoalRowCurrentTags,
+} from "@/lib/sprints/sprint-story-goal";
 import type {
   SprintGoalShareContext,
   SprintGoalSharePayload,
@@ -12,24 +20,29 @@ type GoalStorySource = {
   workItemId: number;
   title: string;
   includedInGoal: boolean;
+  originalStateName: string;
+  originalTagNames: string[];
   targetStateName: string;
-  targetTacTagName: string;
+  targetTagNames: string[];
+  currentStateName: string;
+  currentTagNames: string[];
 };
 
 function isStoryInGoal(source: GoalStorySource): boolean {
   if (!source.includedInGoal) return false;
-  return Boolean(source.targetStateName.trim() || source.targetTacTagName.trim());
+  return Boolean(source.targetStateName.trim() || source.targetTagNames.length > 0);
 }
 
 function toShareStoryRow(source: GoalStorySource): SprintGoalShareStoryRow {
-  const targetState = source.targetStateName.trim();
-  const targetTac = source.targetTacTagName.trim();
-
   return {
     workItemId: source.workItemId,
     title: source.title.trim(),
-    targetState: targetState || "—",
-    targetTac: targetTac || "—",
+    originalState: formatSprintGoalShareState(source.originalStateName),
+    originalTags: formatSprintGoalShareTags(source.originalTagNames),
+    targetState: formatSprintGoalShareState(source.targetStateName),
+    targetTags: formatSprintGoalShareTags(source.targetTagNames),
+    currentState: formatSprintGoalShareState(source.currentStateName),
+    currentTags: formatSprintGoalShareTags(source.currentTagNames),
   };
 }
 
@@ -40,7 +53,10 @@ function sortShareStories(
   return left.workItemId - right.workItemId;
 }
 
-function collectUniqueValues(stories: readonly SprintGoalShareStoryRow[], key: "targetState" | "targetTac"): number {
+function collectUniqueValues(
+  stories: readonly SprintGoalShareStoryRow[],
+  key: "targetState" | "targetTags",
+): number {
   const values = new Set<string>();
 
   for (const story of stories) {
@@ -54,13 +70,21 @@ function collectUniqueValues(stories: readonly SprintGoalShareStoryRow[], key: "
 function storySourcesFromSavedRows(
   rows: readonly SprintStoryGoalRowModel[],
 ): GoalStorySource[] {
-  return rows.map((row) => ({
-    workItemId: row.workItem.id,
-    title: row.workItem.title,
-    includedInGoal: row.draft.includedInGoal,
-    targetStateName: row.draft.targetStateName,
-    targetTacTagName: row.draft.targetTacTagName,
-  }));
+  return rows.map((row) => {
+    const baseline = resolveSprintStoryGoalRowBaseline(row);
+
+    return {
+      workItemId: row.workItem.id,
+      title: row.workItem.title,
+      includedInGoal: row.draft.includedInGoal,
+      originalStateName: baseline.stateName ?? "",
+      originalTagNames: baseline.tagNames,
+      targetStateName: row.draft.targetStateName,
+      targetTagNames: row.draft.targetTagNames,
+      currentStateName: row.workItem.state?.trim() ?? "",
+      currentTagNames: resolveSprintStoryGoalRowCurrentTags(row.workItem),
+    };
+  });
 }
 
 function buildPayloadFromSources(
@@ -89,7 +113,7 @@ function buildPayloadFromSources(
     summary: {
       totalStoriesInGoal: storiesInGoal.length,
       uniqueTargetStates: collectUniqueValues(storiesInGoal, "targetState"),
-      uniqueTargetTacs: collectUniqueValues(storiesInGoal, "targetTac"),
+      uniqueTargetTags: collectUniqueValues(storiesInGoal, "targetTags"),
     },
     visibleStories,
     overflowCount,
