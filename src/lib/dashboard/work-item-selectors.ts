@@ -31,6 +31,7 @@ import {
   selectInProgressWorkItems,
   selectUpcomingWorkItems,
 } from "@/lib/azure-devops/work-items-filters";
+import { resolveStateIndexInBacklogOrder } from "@/lib/sprints/evaluate-sprint-story-goal-status";
 
 function normalizeState(state: string): string {
   return state.trim().toLowerCase();
@@ -87,9 +88,8 @@ export function isSprintPbiCompletedByWorkflow(
     return isQaState(state) || isDoneState(state);
   }
 
-  const normalized = normalizeState(state);
-  const stateIndex = stateOrder.findIndex((candidate) => normalizeState(candidate) === normalized);
-  if (stateIndex < 0) {
+  const stateIndex = resolveStateIndexInBacklogOrder(state, stateOrder);
+  if (stateIndex === null) {
     return isQaState(state) || isDoneState(state);
   }
 

@@ -16,7 +16,7 @@ function normalizeText(value: string | null | undefined): string {
   return value?.trim().toLowerCase() ?? "";
 }
 
-function resolveStateIndex(
+export function resolveStateIndexInBacklogOrder(
   stateName: string | null | undefined,
   backlogStateOrder: readonly string[],
 ): number | null {
@@ -29,6 +29,25 @@ function resolveStateIndex(
   return index >= 0 ? index : null;
 }
 
+/** Estado actual en o después del objetivo según el orden del backlog de ADO. */
+export function isStateAtLeastTarget(
+  finalStateName: string | null | undefined,
+  targetStateName: string | null | undefined,
+  backlogStateOrder: readonly string[],
+): boolean {
+  const targetState = targetStateName?.trim() ?? "";
+  if (!targetState) return false;
+
+  const finalStateIndex = resolveStateIndexInBacklogOrder(finalStateName, backlogStateOrder);
+  const targetStateIndex = resolveStateIndexInBacklogOrder(targetState, backlogStateOrder);
+
+  return (
+    finalStateIndex !== null &&
+    targetStateIndex !== null &&
+    finalStateIndex >= targetStateIndex
+  );
+}
+
 function isTargetDefined(
   targetStateName: string | null,
   targetTacTagName: string | null,
@@ -39,49 +58,75 @@ function isTargetDefined(
   });
 }
 
-function isTargetAchieved(input: EvaluateStoryGoalStatusInput): boolean {
-  const targetState = input.targetStateName?.trim() ?? "";
+function isStateTargetMet(input: EvaluateStoryGoalStatusInput): boolean {
+  return isStateAtLeastTarget(
+    input.finalStateName,
+    input.targetStateName,
+    input.backlogStateOrder,
+  );
+}
+
+function isTacTargetMet(input: EvaluateStoryGoalStatusInput): boolean {
   const targetTac = input.targetTacTagName?.trim() ?? "";
-  const finalStateIndex = resolveStateIndex(input.finalStateName, input.backlogStateOrder);
-  const targetStateIndex = resolveStateIndex(targetState, input.backlogStateOrder);
+  if (!targetTac) return false;
+  return normalizeText(input.finalTacTagName) === normalizeText(targetTac);
+}
 
-  const stateMet =
-    Boolean(targetState) &&
-    finalStateIndex !== null &&
-    targetStateIndex !== null &&
-    finalStateIndex >= targetStateIndex;
+function isTargetAchieved(input: EvaluateStoryGoalStatusInput): boolean {
+  const stateRequired = Boolean(input.targetStateName?.trim());
+  const tacRequired = Boolean(input.targetTacTagName?.trim());
+  const stateMet = isStateTargetMet(input);
+  const tacMet = isTacTargetMet(input);
 
-  const tacMet =
-    Boolean(targetTac) &&
-    normalizeText(input.finalTacTagName) === normalizeText(targetTac);
-
-  if (targetState && targetTac) return stateMet || tacMet;
-  if (targetState) return stateMet;
-  if (targetTac) return tacMet;
+  if (stateRequired && tacRequired) return stateMet && tacMet;
+  if (stateRequired) return stateMet;
+  if (tacRequired) return tacMet;
   return false;
 }
 
-function hasProgressFromBaseline(input: EvaluateStoryGoalStatusInput): boolean {
-  const baselineStateIndex = resolveStateIndex(
+function hasStateProgressFromBaseline(input: EvaluateStoryGoalStatusInput): boolean {
+  const baselineStateIndex = resolveStateIndexInBacklogOrder(
     input.baselineStateName,
     input.backlogStateOrder,
   );
-  const finalStateIndex = resolveStateIndex(input.finalStateName, input.backlogStateOrder);
+  const finalStateIndex = resolveStateIndexInBacklogOrder(
+    input.finalStateName,
+    input.backlogStateOrder,
+  );
 
-  if (
+  return (
     baselineStateIndex !== null &&
     finalStateIndex !== null &&
     finalStateIndex > baselineStateIndex
-  ) {
-    return true;
+  );
+}
+
+function hasTacProgressFromBaseline(input: EvaluateStoryGoalStatusInput): boolean {
+  const targetTac = normalizeText(input.targetTacTagName);
+  const finalTac = normalizeText(input.finalTacTagName);
+  const baselineTac = normalizeText(input.baselineTacTagName);
+
+  return Boolean(targetTac && finalTac && finalTac !== baselineTac);
+}
+
+function isGoalPartiallyMet(input: EvaluateStoryGoalStatusInput): boolean {
+  if (isTargetAchieved(input)) return false;
+
+  const stateRequired = Boolean(input.targetStateName?.trim());
+  const tacRequired = Boolean(input.targetTacTagName?.trim());
+  const stateMet = isStateTargetMet(input);
+  const tacMet = isTacTargetMet(input);
+
+  if (stateRequired && tacRequired) {
+    return stateMet || tacMet || hasStateProgressFromBaseline(input) || hasTacProgressFromBaseline(input);
   }
 
-  const baselineTac = normalizeText(input.baselineTacTagName);
-  const finalTac = normalizeText(input.finalTacTagName);
-  const targetTac = normalizeText(input.targetTacTagName);
+  if (stateRequired) {
+    return hasStateProgressFromBaseline(input);
+  }
 
-  if (targetTac && finalTac && finalTac !== baselineTac) {
-    return true;
+  if (tacRequired) {
+    return hasTacProgressFromBaseline(input);
   }
 
   return false;
@@ -93,6 +138,6 @@ export function evaluateSprintStoryGoalStatus(
   if (!input.includedInGoal) return "excluded";
   if (!isTargetDefined(input.targetStateName, input.targetTacTagName)) return "no_target";
   if (isTargetAchieved(input)) return "achieved";
-  if (hasProgressFromBaseline(input)) return "partial";
+  if (isGoalPartiallyMet(input)) return "partial";
   return "missed";
 }
