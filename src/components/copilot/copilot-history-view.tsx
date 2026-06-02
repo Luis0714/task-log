@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { History } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
@@ -10,7 +12,11 @@ import { useHistoryFilter } from "@/hooks/use-history-filter";
 import { CopilotHistoryList } from "@/components/copilot/copilot-history-list";
 import { HistoryFilterChips } from "@/components/copilot/history-filter-chips";
 
-export function CopilotHistoryView() {
+export type CopilotHistoryViewProps = {
+ readonly children?: ReactNode;
+};
+
+export function CopilotHistoryView({ children }: CopilotHistoryViewProps = {}) {
   const { history } = useCopilotHistory();
   const { range, setRange, filtered } = useHistoryFilter(history);
 
@@ -20,6 +26,8 @@ export function CopilotHistoryView() {
         title={PAGE_SEO.history.title}
         description={PAGE_SEO.history.description}
       />
+
+      {children}
 
       <section className="flex flex-col gap-2">
         <div className="text-muted-foreground flex items-center gap-2 text-sm font-medium">

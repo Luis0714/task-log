@@ -1,6 +1,5 @@
 import { DashboardShellSkeleton } from "@/components/skeletons/dashboard-shell-skeleton";
 import {
-  DashboardDailySectionSkeleton,
   DashboardDeliverySectionSkeleton,
   DashboardHoursSectionSkeleton,
   DashboardWorkflowSectionSkeleton,
@@ -20,7 +19,6 @@ export function DashboardPageSkeleton({ className }: DashboardPageSkeletonProps)
         <DashboardDeliverySectionSkeleton />
         <DashboardHoursSectionSkeleton />
         <DashboardWorkflowSectionSkeleton />
-        <DashboardDailySectionSkeleton />
       </div>
     </div>
   );
