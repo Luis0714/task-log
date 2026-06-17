@@ -10,19 +10,23 @@ import {
 
 const REHYDRATION_TIMEOUT_MS = 15_000;
 
-function readInitialRehydrating(): boolean {
-  if (typeof window === "undefined") return false;
-  return readAuthRehydratingFlag();
-}
-
 /** True mientras el dashboard espera datos reales tras login/registro. */
 export function useAuthRehydration(showLiveData: boolean): boolean {
-  const [rehydrating, setRehydrating] = useState(readInitialRehydrating);
+  const [rehydrating, setRehydrating] = useState(false);
 
   useEffect(() => {
     const handleStart = () => setRehydrating(true);
-    window.addEventListener(AUTH_REHYDRATION_EVENT, handleStart);
-    return () => window.removeEventListener(AUTH_REHYDRATION_EVENT, handleStart);
+    globalThis.addEventListener(AUTH_REHYDRATION_EVENT, handleStart);
+
+    if (readAuthRehydratingFlag()) {
+      queueMicrotask(() => {
+        globalThis.dispatchEvent(new Event(AUTH_REHYDRATION_EVENT));
+      });
+    }
+
+    return () => {
+      globalThis.removeEventListener(AUTH_REHYDRATION_EVENT, handleStart);
+    };
   }, []);
 
   useEffect(() => {
@@ -30,16 +34,16 @@ export function useAuthRehydration(showLiveData: boolean): boolean {
 
     if (showLiveData) {
       clearAuthRehydratingFlag();
-      setRehydrating(false);
+      queueMicrotask(() => setRehydrating(false));
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
+    const timeoutId = globalThis.setTimeout(() => {
       clearAuthRehydratingFlag();
       setRehydrating(false);
     }, REHYDRATION_TIMEOUT_MS);
 
-    return () => window.clearTimeout(timeoutId);
+    return () => globalThis.clearTimeout(timeoutId);
   }, [rehydrating, showLiveData]);
 
   return rehydrating;

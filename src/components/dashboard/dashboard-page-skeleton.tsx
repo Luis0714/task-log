@@ -6,14 +6,17 @@ import {
 } from "@/components/skeletons/dashboard-section-skeletons";
 import { cn } from "@/lib/utils";
 
+const BASE_CLASS_NAME = "flex min-h-0 w-full flex-1 flex-col gap-6 pb-6";
+
 export type DashboardPageSkeletonProps = {
   className?: string;
 };
-
-/** Shell + secciones del dashboard mientras carga la sesión o el catálogo ADO. */
-export function DashboardPageSkeleton({ className }: DashboardPageSkeletonProps) {
+export function DashboardPageSkeleton({
+  className,
+}: Readonly<DashboardPageSkeletonProps>) {
+  const wrapperClassName = className ? cn(BASE_CLASS_NAME, className) : BASE_CLASS_NAME;
   return (
-    <div className={cn("flex min-h-0 w-full flex-1 flex-col gap-6 pb-6", className)}>
+    <div className={wrapperClassName}>
       <DashboardShellSkeleton />
       <div className="flex flex-col gap-6">
         <DashboardDeliverySectionSkeleton />

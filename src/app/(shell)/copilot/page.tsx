@@ -1,7 +1,12 @@
+import { Suspense } from "react";
+
+import { AdoCatalogGate } from "@/components/ado/ado-catalog-gate";
 import { AuthRequiredPageLayout } from "@/components/auth/auth-required-page-layout";
+import { CopilotDailySectionServer } from "@/components/copilot/copilot-daily-section-server";
+import { CopilotDailySectionSkeleton } from "@/components/copilot/copilot-daily-section-skeleton";
 import { CopilotView } from "@/components/copilot/copilot-view";
 import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
-import { getServerAuthBootstrap } from "@/lib/auth/server-state";
+import { resolvePageAuth } from "@/lib/auth/resolve-page-auth";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
 
@@ -12,8 +17,13 @@ export const dynamic = "force-dynamic";
 const COPILOT_DESCRIPTION =
   "Describe qué hiciste en lenguaje natural. Siempre verás una vista previa antes de ejecutar en Azure DevOps.";
 
-export default async function CopilotPage() {
-  const auth = await getServerAuthBootstrap();
+type PageProps = {
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function CopilotPage({ searchParams }: PageProps) {
+  const { searchParams: sp, auth, defaultProject } =
+    await resolvePageAuth(searchParams);
 
   if (!canLoadLiveAdoContent(auth)) {
     return (
@@ -27,9 +37,26 @@ export default async function CopilotPage() {
   }
 
   return (
-    <CopilotView
+    <AdoCatalogGate
       adoExecutionReady
-      authMethod={auth.authMethod}
-    />
+      defaultProject={defaultProject}
+      searchParams={sp}
+      requiresSprint
+    >
+      {(catalog) => (
+        <CopilotView
+          adoExecutionReady
+          authMethod={auth.authMethod}
+          dailySection={
+            <Suspense
+              key={`${catalog.project}|${catalog.team}|${catalog.sprintPath}`}
+              fallback={<CopilotDailySectionSkeleton />}
+            >
+              <CopilotDailySectionServer catalog={catalog} />
+            </Suspense>
+          }
+        />
+      )}
+    </AdoCatalogGate>
   );
 }

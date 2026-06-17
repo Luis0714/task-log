@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { CopilotInput } from "@/components/copilot/copilot-input";
 import { CopilotPreviewCard } from "@/components/copilot/copilot-preview-card";
@@ -15,13 +17,19 @@ import {
 import { useCopilot } from "@/hooks/use-copilot";
 import { useCopilotHistory } from "@/hooks/use-copilot-history";
 import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
+import { cn } from "@/lib/utils";
 
 export type CopilotViewProps = {
   adoExecutionReady: boolean;
   authMethod: AzdoAuthMethod;
+  dailySection?: ReactNode;
 };
 
-export function CopilotView({ adoExecutionReady, authMethod }: CopilotViewProps) {
+export function CopilotView({
+  adoExecutionReady,
+  authMethod,
+  dailySection,
+}: Readonly<CopilotViewProps>) {
   const { appendEntry } = useCopilotHistory();
   const copilot = useCopilot({ appendHistory: appendEntry });
 
@@ -30,7 +38,11 @@ export function CopilotView({ adoExecutionReady, authMethod }: CopilotViewProps)
     copilot.preview.action !== "log_work";
 
   return (
-    <div className="flex w-full flex-col gap-5">
+    <div
+      className={cn(
+        "mx-auto flex w-full min-w-0 max-w-2xl flex-col gap-5 xl:max-w-3xl",
+      )}
+    >
       <PageHeader
         title="Copiloto IA"
         description="Describe qué hiciste en lenguaje natural. Siempre verás una vista previa antes de ejecutar en Azure DevOps."
@@ -52,6 +64,8 @@ export function CopilotView({ adoExecutionReady, authMethod }: CopilotViewProps)
           />
         </CardContent>
       </Card>
+
+      {dailySection}
 
       {copilot.error && <CopilotErrorAlert message={copilot.error} />}
 
