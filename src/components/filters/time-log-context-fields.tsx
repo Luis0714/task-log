@@ -6,10 +6,10 @@ import { AdoContextSelectFields } from "@/components/filters/ado-context-select-
 import type { TimeLogCatalog } from "@/lib/time-log/catalog-types";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 
-export type TimeLogContextFieldsProps = {
+export type TimeLogContextFieldsProps = Readonly<{
   form: UseFormReturn<TimeLogFormValues>;
   catalog: TimeLogCatalog;
-};
+}>;
 
 export function TimeLogContextFields({ form, catalog }: TimeLogContextFieldsProps) {
   return (
@@ -29,6 +29,12 @@ export function TimeLogContextFields({ form, catalog }: TimeLogContextFieldsProp
       projectsError={catalog.projectsError}
       teamsError={catalog.teamsError}
       sprintsError={catalog.sprintsError}
+      teamsLoading={catalog.teamsLoading}
+      sprintsLoading={catalog.sprintsLoading}
+      defaultProject={catalog.defaultProject}
+      defaultTeam={catalog.defaultTeam}
+      saveDefaultsPending={catalog.saveDefaultsPending}
+      onSaveDefaults={catalog.onSaveDefaults}
       onProjectChange={(value) => {
         form.setValue("project", value, { shouldValidate: true });
         catalog.onProjectChange();

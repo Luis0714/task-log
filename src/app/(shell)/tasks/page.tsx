@@ -9,9 +9,14 @@ import { SprintItemsShellSkeleton } from "@/components/skeletons/sprint-items-sh
 import { Button } from "@/components/ui/button";
 import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
 import { resolvePageAuth } from "@/lib/auth/resolve-page-auth";
+import { resolveFilterDefaults } from "@/services/user/resolve-filter-defaults";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
-import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
+import {
+  DEFAULT_WORK_ITEM_FILTERS,
+  type WorkItemFilters,
+} from "@/lib/schemas/work-item-filters";
+import { USER_FILTER_SCOPES } from "@/lib/filters/user-filter-scopes";
 
 export const metadata = buildPageMetadata(PAGE_SEO.tasks);
 
@@ -26,6 +31,13 @@ export default async function TasksPage({ searchParams }: PageProps) {
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
   const showLiveData = canLoadLiveAdoContent(auth);
+
+  const { filters: savedFilters } = await resolveFilterDefaults(USER_FILTER_SCOPES.tasks);
+  const initialFilters: Partial<WorkItemFilters> = {
+    ...savedFilters,
+    assignee: urlAssignee,
+  };
+
   const headerAction = showLiveData ? (
     <Button
       render={<Link href="/time-log?create=1" />}
@@ -38,7 +50,7 @@ export default async function TasksPage({ searchParams }: PageProps) {
   ) : null;
 
   return (
-    <SprintItemsSharedProviders initialAssignee={urlAssignee}>
+    <SprintItemsSharedProviders initialFilters={initialFilters}>
       <AdoContextPageLayout
         shellFallback={<SprintItemsShellSkeleton />}
         adoExecutionReady={showLiveData}

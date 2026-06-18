@@ -136,9 +136,10 @@ export function DashboardPageShell({
 
       {adoExecutionReady ? (
         <AdoFiltersSection
-          className="max-w-3xl"
+          className="w-full"
           context={{
             ...context,
+            markRequiredFields: true,
             sprintDayFilter:
               sprintWorkingDays.length > 0 ? (
                 <SprintDaySelect
@@ -151,7 +152,7 @@ export function DashboardPageShell({
               ) : null,
           }}
           defaultOpen={false}
-          collapsibleTitle="Contexto"
+          collapsibleTitle="Contexto y filtros"
         />
       ) : null}
 

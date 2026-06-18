@@ -127,8 +127,6 @@ export function useAdoContextUrl({
 
   return {
     ...base,
-    teamSelectDisabled: teamsLoading || base.teamSelectDisabled,
-    sprintSelectDisabled: sprintsLoading || base.sprintSelectDisabled,
     teamsLoading,
     sprintsLoading,
     onProjectChange,

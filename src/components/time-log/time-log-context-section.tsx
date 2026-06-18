@@ -42,7 +42,6 @@ export function TimeLogContextSection({ form, catalog }: TimeLogContextSectionPr
           onSearchChange={catalog.onWorkItemSearchChange}
           onAssigneeChange={catalog.onWorkItemAssigneeChange}
           onStatesChange={catalog.onWorkItemStatesChange}
-          onSaveAsDefaults={catalog.onWorkItemSaveAsDefaults}
           title="Filtros de historias de usuario"
         />
       ) : null}

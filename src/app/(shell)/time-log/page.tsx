@@ -16,6 +16,7 @@ import {
   WORK_ITEM_ASSIGNEE_ALL,
   type WorkItemFilters,
 } from "@/lib/schemas/work-item-filters";
+import { USER_FILTER_SCOPES } from "@/lib/filters/user-filter-scopes";
 
 export const metadata = buildPageMetadata(PAGE_SEO.timeLog);
 
@@ -45,7 +46,7 @@ export default async function TimeLogPage({ searchParams }: PageProps) {
     );
   }
 
-  const { filters: savedFilters } = await resolveFilterDefaults("time-log");
+  const { filters: savedFilters } = await resolveFilterDefaults(USER_FILTER_SCOPES.timeLog);
 
   const initialWorkItemFilters: Partial<WorkItemFilters> = {
     ...savedFilters,

@@ -1,6 +1,7 @@
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
+import type { UserFilterScope } from "@/lib/filters/user-filter-scopes";
 
-export type UserFilterScope = "work-items" | "time-log";
+export type { UserFilterScope } from "@/lib/filters/user-filter-scopes";
 
 export type UserFilterPreferencesRow = {
   scope: UserFilterScope;

@@ -89,13 +89,13 @@ export const drizzleEntraUserRepository: EntraUserRepository = {
           })
           .where(eq(users.id, userId));
 
+        // Solo actualiza credenciales/auth — NUNCA project/team predeterminados
+        // del usuario. Esos se preservan entre logins y solo cambian cuando
+        // el usuario hace clic en "Establecer como predeterminado".
         await tx
           .update(adoConnections)
           .set({
             authMethod: "oauth",
-            organization: input.organization.trim(),
-            project: input.project.trim(),
-            team: input.team?.trim() || null,
             encryptedSecrets,
             adoProfileId: input.adoProfileId,
             updatedAt: now,

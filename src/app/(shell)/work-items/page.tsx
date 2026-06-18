@@ -18,6 +18,7 @@ import { resolveFilterDefaults } from "@/services/user/resolve-filter-defaults";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
 import { DEFAULT_WORK_ITEM_FILTERS, type WorkItemFilters } from "@/lib/schemas/work-item-filters";
+import { USER_FILTER_SCOPES } from "@/lib/filters/user-filter-scopes";
 
 export const metadata = buildPageMetadata(PAGE_SEO.workItems);
 
@@ -34,7 +35,7 @@ export default async function WorkItemsPage({ searchParams }: PageProps) {
   const profileFields = showLiveData ? profile : emptyServerProfileFields;
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
-  const { filters: savedFilters } = await resolveFilterDefaults("work-items");
+  const { filters: savedFilters } = await resolveFilterDefaults(USER_FILTER_SCOPES.userHistories);
 
   const initialFilters: Partial<WorkItemFilters> = {
     ...savedFilters,

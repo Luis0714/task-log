@@ -292,7 +292,7 @@ export const userFilterPreferences = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    /** Identificador del feature: "work-items" | "time-log" | futuro. */
+    /** Identificador del feature (ver USER_FILTER_SCOPES en lib/filters/user-filter-scopes.ts). */
     scope: text("scope").notNull(),
     /** WorkItemFilters validado por workItemFiltersSchema (jsonb). */
     filters: jsonb("filters").notNull(),

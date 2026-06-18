@@ -9,12 +9,15 @@ import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-p
 import { useWorkItemsFiltersContext } from "@/components/work-items/work-items-filters-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import type { AdoFilterMeta } from "@/lib/filters/ado-filter-meta";
+import type { UserFilterScope } from "@/lib/filters/user-filter-scopes";
 
 export type UseAdoFilteredPageOptions = {
   catalog: AdoCatalogSnapshot;
   filterMeta: AdoFilterMeta;
   adoExecutionReady: boolean;
   workItemsCount?: number;
+  /** Scope usado al guardar los defaults (per-scope) de este feature. */
+  scope: UserFilterScope;
 };
 
 export function useAdoFilteredPage({
@@ -22,6 +25,7 @@ export function useAdoFilteredPage({
   filterMeta,
   adoExecutionReady,
   workItemsCount = 0,
+  scope,
 }: UseAdoFilteredPageOptions) {
   const { pushAssignee } = usePushWorkItemAssigneeUrl();
   const { filters, setSearch, setAssignee, setStates, resetFilters, startAssigneeNavigation } =
@@ -37,7 +41,7 @@ export function useAdoFilteredPage({
   const { save: savePageDefaults } = useSavePageDefaults({
     project: catalog.project,
     team: catalog.team,
-    scope: "work-items",
+    scope,
     filters,
   });
 

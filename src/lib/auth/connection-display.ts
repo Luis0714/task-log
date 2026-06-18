@@ -19,6 +19,7 @@ export type AdoConnectionDisplay = {
   userDisplayName: string | null;
   userInitials: string | null;
   userAvatarUrl: string | null;
+  userRole: string | null;
 };
 
 export function mapAuthStateToConnectionDisplay(
@@ -40,5 +41,6 @@ export function mapAuthStateToConnectionDisplay(
     userDisplayName: signedIn ? auth.profileDisplayName : null,
     userInitials: signedIn ? auth.profileInitials : null,
     userAvatarUrl: signedIn ? auth.profileAvatarUrl : null,
+    userRole: signedIn ? auth.userRole : null,
   };
 }

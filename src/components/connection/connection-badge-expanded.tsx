@@ -23,10 +23,16 @@ export function ConnectionBadgeExpanded({
   userDisplayName,
   userInitials,
   userAvatarUrl,
+  userRole,
   className,
 }: ConnectionBadgeExpandedProps) {
   const showUser = Boolean(isConnected && userDisplayName && userInitials);
-  const metaLine = buildConnectionMetaLine(organization, authMethod, isConnected);
+  const metaLine = buildConnectionMetaLine(
+    organization,
+    authMethod,
+    isConnected,
+    userRole,
+  );
 
   return (
     <section

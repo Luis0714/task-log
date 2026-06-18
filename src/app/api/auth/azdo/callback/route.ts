@@ -3,7 +3,11 @@ import {
   EntraSignInDisabledError,
   EntraSignInIncompleteError,
 } from "@/lib/auth/complete-entra-oauth-sign-in";
-import { exchangeCodeForTokens, getAuthBaseUrl } from "@/lib/auth/entra";
+import {
+  exchangeCodeForTokens,
+  extractEmailFromIdToken,
+  getAuthBaseUrl,
+} from "@/lib/auth/entra";
 import { oauthRedirect } from "@/lib/auth/oauth-http";
 import { requirePersistenceForOAuth } from "@/lib/auth/require-user-persistence";
 import { destroyTaskPilotSession, getTaskPilotSession } from "@/lib/auth/session";
@@ -67,6 +71,7 @@ export async function GET(req: Request) {
       return redirectLogin("no_refresh_token_admin_consent");
     }
 
+    const email = extractEmailFromIdToken(tokens.id_token);
     const selectedRole = pending.selectedRole;
     session.pendingOAuth = undefined;
 
@@ -74,6 +79,7 @@ export async function GET(req: Request) {
       session,
       refreshToken: refresh,
       accessToken: tokens.access_token,
+      email,
       selectedRole,
     });
 

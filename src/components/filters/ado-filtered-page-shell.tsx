@@ -14,6 +14,7 @@ import {
   pickDefaultSprintDayKey,
 } from "@/lib/dashboard/sprint-days";
 import type { AdoFilterMeta } from "@/lib/filters/ado-filter-meta";
+import type { UserFilterScope } from "@/lib/db/ports/user-filter-preferences.repository.port";
 import { SPRINT_DAY_ALL } from "@/lib/sprint-items/filter-by-criteria";
 
 export type AdoFilteredPageShellProps = {
@@ -26,6 +27,7 @@ export type AdoFilteredPageShellProps = {
   workItemsCount?: number;
   sprintDayFilter?: boolean;
   nonWorkingDates?: readonly string[];
+  scope: UserFilterScope;
   children?: ReactNode;
 };
 
@@ -39,6 +41,7 @@ export function AdoFilteredPageShell({
   workItemsCount = 0,
   sprintDayFilter = false,
   nonWorkingDates = [],
+  scope,
   children = null,
 }: AdoFilteredPageShellProps) {
   const { context, currentSprint, filtersPanel, catalogError } = useAdoFilteredPage({
@@ -46,6 +49,7 @@ export function AdoFilteredPageShell({
     filterMeta,
     adoExecutionReady,
     workItemsCount,
+    scope,
   });
 
   const sprintDayContext = useSprintItemsDayContext();

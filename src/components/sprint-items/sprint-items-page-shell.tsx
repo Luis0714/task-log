@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { AdoFilteredPageShell } from "@/components/filters/ado-filtered-page-shell";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import type { AdoFilterMeta } from "@/lib/filters/ado-filter-meta";
+import { USER_FILTER_SCOPES, type UserFilterScope } from "@/lib/filters/user-filter-scopes";
 import type { SprintItemsKind } from "@/lib/sprint-items/types";
 
 const PAGE_COPY: Record<
@@ -21,7 +22,12 @@ const PAGE_COPY: Record<
   },
 };
 
-export type SprintItemsPageShellProps = {
+const SCOPE_BY_KIND: Record<SprintItemsKind, UserFilterScope> = {
+  bugs: USER_FILTER_SCOPES.bugs,
+  tasks: USER_FILTER_SCOPES.tasks,
+};
+
+export type SprintItemsPageShellProps = Readonly<{
   kind: SprintItemsKind;
   catalog: AdoCatalogSnapshot;
   filterMeta: AdoFilterMeta;
@@ -29,7 +35,7 @@ export type SprintItemsPageShellProps = {
   adoExecutionReady: boolean;
   headerAction?: ReactNode;
   children?: ReactNode;
-};
+}>;
 
 export function SprintItemsPageShell({
   kind,
@@ -52,6 +58,7 @@ export function SprintItemsPageShell({
       headerAction={headerAction}
       sprintDayFilter
       nonWorkingDates={nonWorkingDates}
+      scope={SCOPE_BY_KIND[kind]}
     >
       {children}
     </AdoFilteredPageShell>

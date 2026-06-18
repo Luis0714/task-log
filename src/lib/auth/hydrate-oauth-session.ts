@@ -1,6 +1,7 @@
 import "server-only";
 
 import { attachProcessProfileOnConnect } from "@/lib/azure-devops/persist-process-profile";
+import { applyContextDefaultsToSession } from "@/lib/auth/apply-context-defaults-to-session";
 import type { TaskPilotSessionData } from "@/lib/auth/session";
 import { clearSessionCredentials } from "@/lib/auth/session";
 
@@ -16,7 +17,6 @@ export type OAuthSessionInput = {
   team?: string;
   taskPilotUserId: string;
   adoProfile?: AdoProfileSession;
-  /** Solo para detectar perfil de proceso al conectar (no se guarda en cookie). */
   accessToken?: string;
 };
 
@@ -37,6 +37,8 @@ export async function hydrateOAuthSession(
   if (input.adoProfile) {
     session.adoProfile = input.adoProfile;
   }
+
+  await applyContextDefaultsToSession(session);
 
   if (input.accessToken) {
     try {

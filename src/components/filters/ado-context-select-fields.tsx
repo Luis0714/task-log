@@ -38,12 +38,15 @@ export function AdoContextSelectFields({
   markRequiredFields = false,
   className,
 }: AdoContextSelectFieldsProps) {
+  const teamPlaceholder = teamsLoading ? "Cargando equipos..." : placeholders.team;
+  const sprintPlaceholder = sprintsLoading ? "Cargando sprints..." : placeholders.sprint;
+
   return (
     <div
       className={cn(
         "grid w-full min-w-0 grid-cols-1 gap-4 sm:grid-cols-2",
         sprintDayFilter ? "xl:grid-cols-4" : "xl:grid-cols-3",
-        "[&>*]:min-w-0",
+        "*:min-w-0",
         className,
       )}
     >
@@ -64,7 +67,7 @@ export function AdoContextSelectFields({
           label="Equipo"
           required={markRequiredFields}
           value={team}
-          placeholder={placeholders.team}
+          placeholder={teamPlaceholder}
           disabled={teamSelectDisabled}
           loading={teamsLoading}
           error={teamsError}
@@ -79,7 +82,7 @@ export function AdoContextSelectFields({
         label="Sprint"
         required={markRequiredFields}
         value={sprintPath}
-        placeholder={placeholders.sprint}
+        placeholder={sprintPlaceholder}
         disabled={sprintSelectDisabled}
         loading={sprintsLoading}
         error={sprintsError}

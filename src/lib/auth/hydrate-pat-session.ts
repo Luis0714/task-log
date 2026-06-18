@@ -2,6 +2,7 @@ import "server-only";
 
 import { attachProcessProfileOnConnect } from "@/lib/azure-devops/persist-process-profile";
 import { fetchCurrentAdoProfile } from "@/lib/azure-devops/profile";
+import { applyContextDefaultsToSession } from "@/lib/auth/apply-context-defaults-to-session";
 import type { TaskPilotSessionData } from "@/lib/auth/session";
 import { clearSessionCredentials } from "@/lib/auth/session";
 
@@ -28,6 +29,8 @@ export async function hydratePatSession(
   session.defaultOrg = organization;
   session.defaultProject = project;
   session.defaultTeam = trimmedTeam || undefined;
+
+  await applyContextDefaultsToSession(session);
 
   const caller = { mode: "pat" as const, organization, project, pat };
   const profile = await fetchCurrentAdoProfile(caller);

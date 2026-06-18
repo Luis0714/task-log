@@ -33,6 +33,7 @@ import type {
 } from "@/lib/time-log/load-time-log-baseline";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
+import { USER_FILTER_SCOPES } from "@/lib/filters/user-filter-scopes";
 
 type UseTimeLogCatalogOptions = {
   form: UseFormReturn<TimeLogFormValues>;
@@ -169,12 +170,13 @@ export function useTimeLogCatalog({
     [sprintPbis, workItemFilters.search, workItemFilters.states],
   );
 
-  const { save: savePageDefaults } = useSavePageDefaults({
-    project,
-    team,
-    scope: "time-log",
-    filters: workItemFilters,
-  });
+  const { save: savePageDefaults, pending: saveDefaultsPending } =
+    useSavePageDefaults({
+      project,
+      team,
+      scope: USER_FILTER_SCOPES.timeLog,
+      filters: workItemFilters,
+    });
 
   useWorkItemFiltersPanel({
     filters: workItemFiltersWithUrlAssignee,
@@ -308,6 +310,10 @@ export function useTimeLogCatalog({
     },
     onWorkItemStatesChange: setWorkItemStates,
     onWorkItemSaveAsDefaults: savePageDefaults,
+    defaultProject: catalog.defaultProject,
+    defaultTeam: catalog.defaultTeam,
+    saveDefaultsPending,
+    onSaveDefaults: savePageDefaults,
     isTaskCreationMode,
   };
 }

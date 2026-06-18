@@ -30,6 +30,7 @@ export type CompleteEntraOAuthInput = {
   session: TaskPilotSessionData;
   refreshToken: string;
   accessToken: string;
+  email?: string | null;
   selectedRole?: string;
 };
 
@@ -43,25 +44,25 @@ export type CompleteEntraOAuthResult = {
 export async function completeEntraOAuthSignIn(
   input: CompleteEntraOAuthInput,
 ): Promise<CompleteEntraOAuthResult> {
-  const { session, refreshToken, accessToken, selectedRole } = input;
+  const { session, refreshToken, accessToken, email, selectedRole } = input;
 
   const adoProfile = await fetchAdoProfile(accessToken);
   const profile: AdoProfileSession = adoProfile;
   const accounts = await listAdoAccounts(accessToken, adoProfile.id);
-  let organization = accounts[0]?.accountName?.trim() || null;
-  let project = organization
-    ? (await pickDefaultProject(accessToken, organization))?.trim() || null
+  const detectedOrganization = accounts[0]?.accountName?.trim() || null;
+  const detectedProject = detectedOrganization
+    ? (await pickDefaultProject(accessToken, detectedOrganization))?.trim() || null
     : null;
 
   const { entraUser } = getRepositories();
 
-  if (!organization || !project) {
-    const existing = await entraUser.findWithOAuthConnection(adoProfile.id);
-    if (existing) {
-      organization = organization ?? existing.organization;
-      project = project ?? existing.project;
-    }
-  }
+  // Si el usuario ya existe, SIEMPRE respetamos su conexión persistida
+  // (incluyendo project/team predeterminados). El detectedProject solo se usa
+  // como fallback cuando es la primera conexión.
+  const existing = await entraUser.findWithOAuthConnection(adoProfile.id);
+
+  const organization = existing?.organization ?? detectedOrganization;
+  const project = existing?.project ?? detectedProject;
 
   if (!organization || !project) {
     throw new EntraSignInIncompleteError();
@@ -73,6 +74,7 @@ export async function completeEntraOAuthSignIn(
     organization,
     project,
     displayName: adoProfile.displayName,
+    email: email ?? undefined,
     adoProfileId: adoProfile.id,
     selectedRole,
   });

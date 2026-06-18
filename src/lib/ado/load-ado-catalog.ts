@@ -2,10 +2,10 @@ import "server-only";
 
 import { cache } from "react";
 
+import { applyContextDefaultsToSession } from "@/lib/auth/apply-context-defaults-to-session";
 import type { AdoCatalogSnapshot, AdoContextSearchParams } from "@/lib/ado/types";
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
-import { getRepositories, isUserPersistenceReady } from "@/lib/db";
 import { listOrganizationProjects, withAdoProject } from "@/lib/azure-devops/projects";
 import { listTeamSprints } from "@/lib/azure-devops/sprints";
 import { resolveSuggestedTeam } from "@/lib/azure-devops/suggested-team";
@@ -25,6 +25,48 @@ export const EMPTY_ADO_CATALOG: AdoCatalogSnapshot = {
   errors: { projects: null, teams: null, sprints: null },
 };
 
+type ResolvedDefaults = {
+  defaultProject: string | null;
+  defaultTeam: string | null;
+};
+
+/**
+ * Resuelve los defaults de proyecto/equipo del usuario con la jerarquía:
+ * 1. Sesión actual (incluye sync desde BD la primera vez).
+ * 2. Registro adoConnections en BD (cross-scope fallback).
+ * 3. caller.auth.project (PAT/OAuth del usuario).
+ */
+async function resolveContextDefaults(
+  callerProject: string,
+): Promise<ResolvedDefaults> {
+  if (!isIronSessionConfigured()) {
+    return { defaultProject: callerProject, defaultTeam: null };
+  }
+
+  const session = await getTaskPilotSession();
+
+  if (session.taskPilotUserId?.trim()) {
+    const { connection, changed } = await applyContextDefaultsToSession(session);
+    if (changed) {
+      await session.save();
+    }
+
+    if (connection?.project?.trim()) {
+      const projectFromSession = session.defaultProject?.trim();
+      const teamFromSession = session.defaultTeam?.trim();
+      return {
+        defaultProject: projectFromSession || connection.project.trim(),
+        defaultTeam: teamFromSession || (connection.team?.trim() ?? null),
+      };
+    }
+  }
+
+  return {
+    defaultProject: session.defaultProject?.trim() || callerProject,
+    defaultTeam: session.defaultTeam?.trim() || null,
+  };
+}
+
 export const loadAdoCatalog = cache(async function loadAdoCatalog(
   preferredProject: string | null,
   searchParams: AdoContextSearchParams = {},
@@ -34,34 +76,10 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
 
   const errors = { projects: null, teams: null, sprints: null } as AdoCatalogSnapshot["errors"];
 
+  const { defaultProject, defaultTeam: savedDefaultTeam } =
+    await resolveContextDefaults(caller.auth.project ?? "");
+
   let projects = EMPTY_ADO_CATALOG.projects;
-  let savedDefaultProject: string | null = caller.auth.project ?? null;
-  let savedDefaultTeam: string | null = null;
-
-  if (isIronSessionConfigured()) {
-    const session = await getTaskPilotSession();
-    const sessionProject = session.defaultProject?.trim();
-    const sessionTeam = session.defaultTeam?.trim();
-
-    if (sessionProject) savedDefaultProject = sessionProject;
-    if (sessionTeam) savedDefaultTeam = sessionTeam;
-
-    if (isUserPersistenceReady() && session.taskPilotUserId?.trim()) {
-      try {
-        const connection = await getRepositories().adoConnection.loadByUserId(
-          session.taskPilotUserId.trim(),
-        );
-        if (connection) {
-          savedDefaultProject = sessionProject ?? connection.project.trim();
-          savedDefaultTeam = sessionTeam ?? connection.team?.trim() ?? null;
-        }
-      } catch {
-        // Mantener valores de sesión.
-      }
-    }
-  }
-
-  const defaultProject = savedDefaultProject;
 
   try {
     projects = await listOrganizationProjects(caller.auth);

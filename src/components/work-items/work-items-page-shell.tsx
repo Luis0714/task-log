@@ -5,13 +5,14 @@ import type { ReactNode } from "react";
 import { AdoFilteredPageShell } from "@/components/filters/ado-filtered-page-shell";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import type { AdoFilterMeta } from "@/lib/filters/ado-filter-meta";
+import { USER_FILTER_SCOPES } from "@/lib/filters/user-filter-scopes";
 
-export type WorkItemsPageShellProps = {
+export type WorkItemsPageShellProps = Readonly<{
   catalog: AdoCatalogSnapshot;
   filterMeta: AdoFilterMeta;
   adoExecutionReady: boolean;
   children?: ReactNode;
-};
+}>;
 
 export function WorkItemsPageShell({
   catalog,
@@ -26,6 +27,7 @@ export function WorkItemsPageShell({
       catalog={catalog}
       filterMeta={filterMeta}
       adoExecutionReady={adoExecutionReady}
+      scope={USER_FILTER_SCOPES.userHistories}
     >
       {children}
     </AdoFilteredPageShell>

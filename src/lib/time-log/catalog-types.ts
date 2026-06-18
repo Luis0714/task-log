@@ -50,6 +50,10 @@ export type TimeLogCatalog = {
   onWorkItemAssigneeChange: (value: string) => void;
   onWorkItemStatesChange: (value: string[]) => void;
   onWorkItemSaveAsDefaults: () => Promise<void>;
+  defaultProject: string | null;
+  defaultTeam: string | null;
+  saveDefaultsPending: boolean;
+  onSaveDefaults: () => Promise<void>;
   /**
    * `true` cuando el usuario llegó desde "Nueva tarea" (?create=1) y debe
    * poder elegir el estado inicial. `false` en modo time-log puro, donde la

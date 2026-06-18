@@ -10,10 +10,11 @@ import {
   type WorkItemFilters,
 } from "@/lib/schemas/work-item-filters";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
+import { USER_FILTER_SCOPE_VALUES } from "@/lib/filters/user-filter-scopes";
 
 export const dynamic = "force-dynamic";
 
-const scopeSchema = z.enum(["work-items", "time-log"]);
+const scopeSchema = z.enum(USER_FILTER_SCOPE_VALUES);
 
 const putBodySchema = z.object({
   scope: scopeSchema,

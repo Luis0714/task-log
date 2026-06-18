@@ -10,9 +10,11 @@ export function buildConnectionMetaLine(
   organization: string | null,
   authMethod: AzdoAuthMethod,
   isConnected: boolean,
+  userRole: string | null = null,
 ): string {
   if (!isConnected) return "Inicia sesión para conectar";
-  const label = getAuthMethodLabel(authMethod).toLowerCase();
+  const role = userRole?.trim();
+  const label = role || getAuthMethodLabel(authMethod).toLowerCase();
   if (!organization) return label;
   return `${organization.toLowerCase()} · ${label}`;
 }

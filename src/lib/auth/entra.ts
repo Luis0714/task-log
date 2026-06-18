@@ -31,6 +31,7 @@ export function buildAuthorizeUrl(params: { state: string; codeChallenge: string
     "offline_access",
     "openid",
     "profile",
+    "email",
   ].join(" ");
 
   const u = new URL(
@@ -61,6 +62,7 @@ export function generateOAuthState(): string {
 type TokenResponse = {
   access_token: string;
   refresh_token?: string;
+  id_token?: string;
   expires_in: number;
   token_type: string;
   error?: string;
@@ -115,6 +117,24 @@ export async function refreshAccessToken(refreshToken: string): Promise<TokenRes
     refresh_token: refreshToken,
     scope: [`${AZDO_RESOURCE_APP_ID}/.default`, "offline_access"].join(" "),
   });
+}
+
+/**
+ * Extrae el email del `id_token` JWT (sin verificar firma, solo para mostrar).
+ * Confiamos en que el token viene directamente del endpoint /token de Microsoft.
+ */
+export function extractEmailFromIdToken(idToken: string | undefined): string | null {
+  if (!idToken) return null;
+  const parts = idToken.split(".");
+  if (parts.length < 2) return null;
+  try {
+    const payload = JSON.parse(
+      Buffer.from(parts[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"),
+    ) as { email?: string; preferred_username?: string; upn?: string };
+    return payload.email ?? payload.preferred_username ?? payload.upn ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchAdoProfile(accessToken: string): Promise<{
