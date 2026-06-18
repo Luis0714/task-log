@@ -33,6 +33,11 @@ export const ACCOUNT_AUTH_COPY = {
     hasAccount: "¿Ya tienes cuenta?",
     loginLink: "Iniciar sesión",
   },
+  registerDisabled: {
+    message:
+      "Registro temporalmente deshabilitado. Por favor, inicia sesión con Microsoft.",
+    action: "Ir a iniciar sesión",
+  },
   persistenceUnavailable:
     "El servicio de cuentas no está disponible en este momento. Inténtalo más tarde o contacta al administrador.",
   patConnectHint:

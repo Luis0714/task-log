@@ -18,13 +18,17 @@ import { appToast } from "@/lib/toast";
 type UseCreateTaskOptions = {
   form: UseFormReturn<TimeLogFormValues>;
   appendHistory: (entry: CopilotHistoryEntry) => void;
+  isTaskCreationMode: boolean;
   getDefaultTaskState: () => string;
+  getDefaultCompletedTaskState: () => string;
   getDefaultWorkingDate: () => string;
 };
 
 function clearTaskFields(
   form: UseFormReturn<TimeLogFormValues>,
   getDefaultTaskState: () => string,
+  getDefaultCompletedTaskState: () => string,
+  isTaskCreationMode: boolean,
   getDefaultWorkingDate: () => string,
 ) {
   form.setValue("taskTitle", "");
@@ -33,7 +37,12 @@ function clearTaskFields(
   form.setValue("activity", TIME_LOG_TASK_STEP_DEFAULTS.activity);
   form.setValue("workingDate", getDefaultWorkingDate());
   form.setValue("workingTime", getDefaultWorkingTime());
-  form.setValue("taskState", getDefaultTaskState());
+  form.setValue(
+    "taskState",
+    isTaskCreationMode
+      ? getDefaultTaskState()
+      : getDefaultCompletedTaskState() || getDefaultTaskState(),
+  );
   form.setValue("autoMarkAsDone", TIME_LOG_TASK_STEP_DEFAULTS.autoMarkAsDone);
   resetTaskStepFields(form);
 }
@@ -41,7 +50,9 @@ function clearTaskFields(
 export function useCreateTask({
   form,
   appendHistory,
+  isTaskCreationMode,
   getDefaultTaskState,
+  getDefaultCompletedTaskState,
   getDefaultWorkingDate,
 }: UseCreateTaskOptions) {
   const [error, setError] = useState<string | null>(null);
@@ -52,8 +63,18 @@ export function useCreateTask({
       setError(null);
       setLoading(true);
 
-      const pbiTitle = selectedPbi?.title ?? `Historia #${values.pbiId}`;
-      const payload = mapTimeLogFormToPayload(values, pbiTitle);
+      // Defensa en profundidad: en modo time-log forzamos la creación como
+      // Done, aunque el form haya sido manipulado manualmente.
+      const payloadValues: TimeLogFormValues = isTaskCreationMode
+        ? values
+        : {
+            ...values,
+            autoMarkAsDone: true,
+            taskState: getDefaultCompletedTaskState() || values.taskState,
+          };
+
+      const pbiTitle = selectedPbi?.title ?? `Historia #${payloadValues.pbiId}`;
+      const payload = mapTimeLogFormToPayload(payloadValues, pbiTitle);
 
       try {
         const result = await createTaskInAdo(payload);
@@ -73,7 +94,13 @@ export function useCreateTask({
           return;
         }
 
-        clearTaskFields(form, getDefaultTaskState, getDefaultWorkingDate);
+        clearTaskFields(
+          form,
+          getDefaultTaskState,
+          getDefaultCompletedTaskState,
+          isTaskCreationMode,
+          getDefaultWorkingDate,
+        );
         const doneNote = result.markedAsDone ? " · marcada como Done" : "";
         appToast.success(`Tarea creada: #${result.taskId}`, {
           description: `${payload.title} · ${payload.hours}h · Historia #${payload.pbiId}${doneNote}`,
@@ -93,7 +120,14 @@ export function useCreateTask({
         setLoading(false);
       }
     },
-    [appendHistory, form, getDefaultTaskState, getDefaultWorkingDate],
+    [
+      appendHistory,
+      form,
+      getDefaultCompletedTaskState,
+      getDefaultTaskState,
+      getDefaultWorkingDate,
+      isTaskCreationMode,
+    ],
   );
 
   return { error, loading, submit };

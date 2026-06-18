@@ -71,7 +71,6 @@ export function WorkItemAssigneeFilter({
               <Checkbox
                 id={`${id}-me`}
                 checked={!isAll && includeMe}
-                disabled={isAll}
                 onCheckedChange={(next) => toggleMe(next === true)}
               />
               <span className="text-sm">Asignados a mí</span>
@@ -93,7 +92,6 @@ export function WorkItemAssigneeFilter({
                       <Checkbox
                         id={optionId}
                         checked={checked}
-                        disabled={isAll}
                         onCheckedChange={(next) =>
                           toggleMember(member.displayName, next === true)
                         }

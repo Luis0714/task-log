@@ -22,13 +22,20 @@ export type {
   EntraUserWithOAuthConnection,
   UpsertEntraOAuthUserInput,
 } from "@/lib/db/ports/entra-user.repository.port";
+export type {
+  UserFilterPreferencesRepository,
+  UserFilterScope,
+} from "@/lib/db/ports/user-filter-preferences.repository.port";
 export {
   adoAuthMethodEnum,
   adoConnections,
   userAuthProviderEnum,
+  userFilterPreferences,
   users,
   type AdoConnection,
   type NewAdoConnection,
   type NewUser,
+  type NewUserFilterPreferences,
   type User,
+  type UserFilterPreferences,
 } from "@/lib/db/schema";

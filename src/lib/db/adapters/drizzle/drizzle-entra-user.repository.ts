@@ -13,7 +13,7 @@ import type {
   EntraUserWithOAuthConnection,
   UpsertEntraOAuthUserInput,
 } from "@/lib/db/ports/entra-user.repository.port";
-import { adoConnections, users } from "@/lib/db/schema";
+import { adoConnections, roles, users } from "@/lib/db/schema";
 import { encryptAdoSecrets } from "@/lib/security/ado-secrets";
 
 function mapEntraUserRow(
@@ -41,23 +41,50 @@ export const drizzleEntraUserRepository: EntraUserRepository = {
       kind: "oauth",
       refreshToken: input.refreshToken.trim(),
     });
+    const now = new Date();
 
+    // Resolve role by name if provided
+    let newRoleId: string | null = null;
+    let newRoleName: string | null = null;
+    if (input.selectedRole) {
+      const roleRow = await getDb()
+        .select({ id: roles.id, name: roles.name })
+        .from(roles)
+        .where(eq(roles.name, input.selectedRole))
+        .limit(1);
+      if (roleRow[0]) {
+        newRoleId = roleRow[0].id;
+        newRoleName = roleRow[0].name;
+      }
+    }
+
+    // Find existing user with their current role name
     const existing = await getDb()
-      .select({ id: users.id })
+      .select({
+        id: users.id,
+        roleId: users.roleId,
+        isActive: users.isActive,
+        currentRoleName: roles.name,
+      })
       .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.id))
       .where(eq(users.entraSubject, input.entraSubject))
       .limit(1);
 
-    const now = new Date();
-    const userId = existing[0]?.id;
+    const existingUser = existing[0];
+    const userId = existingUser?.id;
 
     if (userId) {
+      const isSuperAdmin = existingUser.currentRoleName === "super_admin";
+      const shouldUpdateRole = newRoleId !== null && !isSuperAdmin;
+
       await getDb().transaction(async (tx) => {
         await tx
           .update(users)
           .set({
             displayName: input.displayName,
             email: input.email,
+            ...(shouldUpdateRole ? { roleId: newRoleId } : {}),
             updatedAt: now,
           })
           .where(eq(users.id, userId));
@@ -76,7 +103,15 @@ export const drizzleEntraUserRepository: EntraUserRepository = {
           .where(eq(adoConnections.userId, userId));
       });
 
-      return { userId };
+      const effectiveRoleName = isSuperAdmin
+        ? existingUser.currentRoleName
+        : (shouldUpdateRole ? newRoleName : existingUser.currentRoleName);
+
+      return {
+        userId,
+        roleName: effectiveRoleName ?? null,
+        isActive: existingUser.isActive,
+      };
     }
 
     return getDb().transaction(async (tx) => {
@@ -87,6 +122,7 @@ export const drizzleEntraUserRepository: EntraUserRepository = {
           entraSubject: input.entraSubject,
           displayName: input.displayName,
           email: input.email,
+          ...(newRoleId ? { roleId: newRoleId } : {}),
         })
         .returning({ id: users.id });
 
@@ -104,7 +140,7 @@ export const drizzleEntraUserRepository: EntraUserRepository = {
         adoProfileId: input.adoProfileId,
       });
 
-      return { userId: user.id };
+      return { userId: user.id, roleName: newRoleName, isActive: true };
     });
   },
 

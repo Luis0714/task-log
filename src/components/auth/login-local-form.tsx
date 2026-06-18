@@ -11,6 +11,7 @@ import {
   useLoginLocalForm,
   type UseLoginLocalFormOptions,
 } from "@/hooks/auth/use-login-local-form";
+import { isPatAuthHidden } from "@/lib/auth/auth-method";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
 
 export type LoginLocalFormProps = {
@@ -37,6 +38,23 @@ export function LoginLocalForm({
     setPassword,
     submit,
   } = useLoginLocalForm({ onSuccess, onUserNotFound });
+
+  const oAuthAction = connectOptions.oauthReady ? (
+    <div className="space-y-3">
+      <p className="text-muted-foreground text-center text-xs uppercase tracking-wide">
+        {copy.microsoftDivider}
+      </p>
+      <ConnectMethodOauthAction
+        continueLabel={copy.microsoftButton}
+        hint={copy.microsoftHint}
+        adminHint={copy.microsoftAdminHint}
+      />
+    </div>
+  ) : null;
+
+  if (isPatAuthHidden()) {
+    return oAuthAction;
+  }
 
   return (
     <div className="space-y-6">
@@ -67,18 +85,7 @@ export function LoginLocalForm({
         </Button>
       </form>
 
-      {connectOptions.oauthReady ? (
-        <div className="space-y-3">
-          <p className="text-muted-foreground text-center text-xs uppercase tracking-wide">
-            {copy.microsoftDivider}
-          </p>
-          <ConnectMethodOauthAction
-            continueLabel={copy.microsoftButton}
-            hint={copy.microsoftHint}
-            adminHint={copy.microsoftAdminHint}
-          />
-        </div>
-      ) : null}
+      {oAuthAction}
 
       <p className="text-center text-sm">
         {copy.noAccount}{" "}

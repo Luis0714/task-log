@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { UseFormReturn } from "react-hook-form";
 
@@ -12,6 +12,8 @@ import { usePushWorkItemAssigneeUrl } from "@/hooks/filters/use-push-work-item-a
 import { useSprintWorkingDate } from "@/hooks/time-log/use-sprint-working-date";
 import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-panel";
 import { useTimeLogWorkItemFilters } from "@/hooks/time-log/use-time-log-work-item-filters";
+import { usePendingSelectField } from "@/hooks/filters/use-pending-select-field";
+import { useSavePageDefaults } from "@/hooks/filters/use-save-page-defaults";
 import {
   buildCatalogDisabledState,
   buildCatalogPlaceholders,
@@ -30,6 +32,7 @@ import type {
   TimeLogServerBaseline,
 } from "@/lib/time-log/load-time-log-baseline";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
+import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 
 type UseTimeLogCatalogOptions = {
   form: UseFormReturn<TimeLogFormValues>;
@@ -37,6 +40,8 @@ type UseTimeLogCatalogOptions = {
   submitting?: boolean;
   serverBaseline: TimeLogServerBaseline;
   pbisSnapshot: TimeLogPbisSnapshot;
+  isTaskCreationMode: boolean;
+  initialWorkItemFilters?: Partial<WorkItemFilters>;
 };
 
 export type { TimeLogCatalog, TimeLogCatalogPlaceholders } from "@/lib/time-log/catalog-types";
@@ -47,11 +52,15 @@ export function useTimeLogCatalog({
   submitting = false,
   serverBaseline,
   pbisSnapshot,
+  isTaskCreationMode,
+  initialWorkItemFilters,
 }: UseTimeLogCatalogOptions): TimeLogCatalog {
   const router = useRouter();
   const pathname = usePathname();
   const { pushAssignee } = usePushWorkItemAssigneeUrl();
   const { catalog } = serverBaseline;
+  const { isPending: contextPending, pendingField, runPending } =
+    usePendingSelectField();
   const project = form.watch("project");
   const team = form.watch("team");
   const sprintPath = form.watch("sprintPath");
@@ -79,8 +88,10 @@ export function useTimeLogCatalog({
     [nonWorkingDates],
   );
 
+  const [pbisNavigating, startPbisNavigation] = useTransition();
+
   const sprintPbis = pbisSnapshot.sprintPbis;
-  const pbisLoading = false;
+  const pbisLoading = pbisNavigating;
   const pbisError = pbisSnapshot.error;
 
   const workItemStates = useMemo(
@@ -93,9 +104,8 @@ export function useTimeLogCatalog({
     setSearch: setWorkItemSearch,
     setAssignee: setWorkItemAssignee,
     setStates: setWorkItemStates,
-    onStatesChange: onWorkItemStatesChange,
     resetFilters: resetWorkItemFilters,
-  } = useTimeLogWorkItemFilters(workItemStates);
+  } = useTimeLogWorkItemFilters(initialWorkItemFilters);
 
   const { assigneeForUi } = useAssigneeFilterFromUrl(
     workItemFilters.assignee,
@@ -109,11 +119,22 @@ export function useTimeLogCatalog({
 
   useEffect(() => {
     if (taskStates.length === 0) return;
-    const nextState = resolveTaskStateSelection(taskStates, taskState);
+
+    // En modo time-log (sin ?create=1) la tarea siempre termina en Done, así
+    // que fijamos el estado inicial al Done por defecto. En modo creación de
+    // tarea conservamos el comportamiento previo: estado abierto por defecto.
+    const nextState = isTaskCreationMode
+      ? resolveTaskStateSelection(taskStates, taskState)
+      : (defaultCompletedTaskState ?? resolveTaskStateSelection(taskStates, taskState));
+
     if (nextState !== taskState) {
       form.setValue("taskState", nextState, { shouldValidate: true });
     }
-  }, [form, taskState, taskStates]);
+  }, [defaultCompletedTaskState, form, isTaskCreationMode, taskState, taskStates]);
+
+  const teamsLoading = contextPending && pendingField === "project";
+  const sprintsLoading =
+    contextPending && (pendingField === "project" || pendingField === "team");
 
   useCatalogAutoDefaults({
     form,
@@ -124,10 +145,10 @@ export function useTimeLogCatalog({
     teams,
     defaultTeam: catalog.defaultTeam,
     suggestedTeam: catalog.suggestedTeam,
-    teamsLoading: false,
+    teamsLoading,
     project,
     sprints,
-    sprintsLoading: false,
+    sprintsLoading,
     team,
   });
 
@@ -135,7 +156,7 @@ export function useTimeLogCatalog({
     form,
     sprintPath,
     sprints,
-    sprintsLoading: false,
+    sprintsLoading,
     workingDayOptions,
   });
 
@@ -147,6 +168,13 @@ export function useTimeLogCatalog({
       }),
     [sprintPbis, workItemFilters.search, workItemFilters.states],
   );
+
+  const { save: savePageDefaults } = useSavePageDefaults({
+    project,
+    team,
+    scope: "time-log",
+    filters: workItemFilters,
+  });
 
   useWorkItemFiltersPanel({
     filters: workItemFiltersWithUrlAssignee,
@@ -162,6 +190,7 @@ export function useTimeLogCatalog({
     membersError: null,
     totalCount: sprintPbis.length,
     filteredCount: pbis.length,
+    onSaveAsDefaults: savePageDefaults,
   });
 
   useEffect(() => {
@@ -185,21 +214,21 @@ export function useTimeLogCatalog({
     [form, pathname, router],
   );
 
-  const onProjectChange = useCallback(() => {
+  const onProjectChange = runPending("project", () => {
     resetTeamSelection(form);
     pushContextToUrl({ team: "", sprint: "" });
-  }, [form, pushContextToUrl]);
+  });
 
-  const onTeamChange = useCallback(() => {
+  const onTeamChange = runPending("team", () => {
     resetSprintSelection(form);
     pushContextToUrl({ sprint: "" });
-  }, [form, pushContextToUrl]);
+  });
 
-  const onSprintChange = useCallback(() => {
+  const onSprintChange = runPending("sprint", () => {
     resetPbiSelection(form);
     resetWorkItemFilters();
     pushContextToUrl({});
-  }, [form, pushContextToUrl, resetWorkItemFilters]);
+  });
 
   const selectedSprint = sprints.find((sprint) => sprint.path === sprintPath);
   const selectedSprintLabel = selectedSprint ? formatSprintOptionLabel(selectedSprint) : null;
@@ -209,8 +238,8 @@ export function useTimeLogCatalog({
     submitting: submitting ?? false,
     adoExecutionReady,
     projectsLoading: false,
-    teamsLoading: false,
-    sprintsLoading: false,
+    teamsLoading,
+    sprintsLoading,
     pbisLoading,
     project,
     team,
@@ -231,8 +260,8 @@ export function useTimeLogCatalog({
     workItemsTotalCount: sprintPbis.length,
     workItemsFilteredCount: pbis.length,
     projectsLoading: false,
-    teamsLoading: false,
-    sprintsLoading: false,
+    teamsLoading,
+    sprintsLoading,
     pbisLoading,
     projectsError: catalog.errors.projects,
     teamsError: catalog.errors.teams,
@@ -253,8 +282,8 @@ export function useTimeLogCatalog({
       team,
       sprintPath,
       projectsLoading: false,
-      teamsLoading: false,
-      sprintsLoading: false,
+      teamsLoading,
+      sprintsLoading,
       pbisLoading,
       teamsCount: teams.length,
       sprintsCount: sprints.length,
@@ -269,12 +298,16 @@ export function useTimeLogCatalog({
     onWorkItemSearchChange: setWorkItemSearch,
     onWorkItemAssigneeChange: (value) => {
       setWorkItemAssignee(value);
-      pushAssignee(value, {
-        project,
-        team,
-        sprint: sprintPath,
+      startPbisNavigation(() => {
+        pushAssignee(value, {
+          project,
+          team,
+          sprint: sprintPath,
+        });
       });
     },
-    onWorkItemStatesChange,
+    onWorkItemStatesChange: setWorkItemStates,
+    onWorkItemSaveAsDefaults: savePageDefaults,
+    isTaskCreationMode,
   };
 }

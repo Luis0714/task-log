@@ -57,6 +57,27 @@
       "when": 1780300000002,
       "tag": "0007_sprint_snapshot_stats_payload",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781740800000,
+      "tag": "0008_llm_interactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1781740800001,
+      "tag": "0009_roles_and_user_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1781740800002,
+      "tag": "0010_user_filter_preferences",
+      "breakpoints": true
     }
   ]
 }

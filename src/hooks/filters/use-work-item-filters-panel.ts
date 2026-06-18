@@ -18,6 +18,7 @@ export type WorkItemFiltersPanelBinding = {
   onSearchChange: (value: string) => void;
   onAssigneeChange: (value: string) => void;
   onStatesChange: (value: string[]) => void;
+  onSaveAsDefaults?: () => Promise<void> | void;
 };
 
 export type UseWorkItemFiltersPanelOptions = {
@@ -34,6 +35,7 @@ export type UseWorkItemFiltersPanelOptions = {
   membersError: string | null;
   totalCount: number;
   filteredCount: number;
+  onSaveAsDefaults?: () => Promise<void> | void;
 };
 
 export function useWorkItemFiltersPanel({
@@ -50,6 +52,7 @@ export function useWorkItemFiltersPanel({
   membersError,
   totalCount,
   filteredCount,
+  onSaveAsDefaults,
 }: UseWorkItemFiltersPanelOptions): WorkItemFiltersPanelBinding {
   const states = useMemo(() => {
     if (stateNames && stateNames.length > 0) return stateNames;
@@ -86,5 +89,6 @@ export function useWorkItemFiltersPanel({
     onSearchChange: setSearch,
     onAssigneeChange: setAssignee,
     onStatesChange: setStates,
+    onSaveAsDefaults,
   };
 }

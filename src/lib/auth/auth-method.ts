@@ -1,3 +1,15 @@
+/**
+ * Kill-switch para ocultar la UI de PAT (registro, login local, opción PAT
+ * en el sheet de re-conexión). El código de PAT permanece intacto para poder
+ * re-habilitarlo en el futuro cambiando este flag a `false` y reiniciando
+ * el dev server (o redesplegando).
+ */
+export const HIDE_PAT_AUTH = true;
+
+export function isPatAuthHidden(): boolean {
+  return HIDE_PAT_AUTH;
+}
+
 export type AzdoAuthMethod = "pat" | "oauth" | "both";
 
 export type ConnectAuthOptions = {

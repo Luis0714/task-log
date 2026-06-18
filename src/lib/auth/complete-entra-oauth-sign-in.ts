@@ -19,10 +19,18 @@ export class EntraSignInIncompleteError extends Error {
   }
 }
 
+export class EntraSignInDisabledError extends Error {
+  constructor() {
+    super("ENTRA_SIGNIN_DISABLED");
+    this.name = "EntraSignInDisabledError";
+  }
+}
+
 export type CompleteEntraOAuthInput = {
   session: TaskPilotSessionData;
   refreshToken: string;
   accessToken: string;
+  selectedRole?: string;
 };
 
 export type CompleteEntraOAuthResult = {
@@ -35,7 +43,7 @@ export type CompleteEntraOAuthResult = {
 export async function completeEntraOAuthSignIn(
   input: CompleteEntraOAuthInput,
 ): Promise<CompleteEntraOAuthResult> {
-  const { session, refreshToken, accessToken } = input;
+  const { session, refreshToken, accessToken, selectedRole } = input;
 
   const adoProfile = await fetchAdoProfile(accessToken);
   const profile: AdoProfileSession = adoProfile;
@@ -59,14 +67,19 @@ export async function completeEntraOAuthSignIn(
     throw new EntraSignInIncompleteError();
   }
 
-  const { userId } = await entraUser.upsertOAuthUser({
+  const { userId, roleName, isActive } = await entraUser.upsertOAuthUser({
     entraSubject: adoProfile.id,
     refreshToken,
     organization,
     project,
     displayName: adoProfile.displayName,
     adoProfileId: adoProfile.id,
+    selectedRole,
   });
+
+  if (!isActive) {
+    throw new EntraSignInDisabledError();
+  }
 
   await hydrateOAuthSession(session, {
     organization,
@@ -75,6 +88,8 @@ export async function completeEntraOAuthSignIn(
     adoProfile: profile,
     accessToken,
   });
+
+  session.userRole = roleName ?? undefined;
 
   return {
     organization,

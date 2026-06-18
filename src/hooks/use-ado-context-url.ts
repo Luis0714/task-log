@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
+import { usePendingSelectField } from "@/hooks/filters/use-pending-select-field";
 import { catalogToContextFields } from "@/lib/ado/catalog-context-fields";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { mergeAdoContextIntoSearchParams } from "@/lib/ado/parse-context-search-params";
@@ -31,6 +32,8 @@ export function useAdoContextUrl({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const { isPending, pendingField, runPending } = usePendingSelectField();
 
   useEffect(() => {
     if (!adoExecutionReady) return;
@@ -106,29 +109,28 @@ export function useAdoContextUrl({
     [adoExecutionReady, catalog, workItemsCount],
   );
 
-  const onProjectChange = useCallback(
-    (value: string) => {
-      pushContext({ project: value, team: "", sprint: "", sprintDay: "" });
-    },
-    [pushContext],
-  );
+  const onProjectChange = runPending("project", (value: string) => {
+    pushContext({ project: value, team: "", sprint: "", sprintDay: "" });
+  });
 
-  const onTeamChange = useCallback(
-    (value: string) => {
-      pushContext({ team: value, sprint: "", sprintDay: "" });
-    },
-    [pushContext],
-  );
+  const onTeamChange = runPending("team", (value: string) => {
+    pushContext({ team: value, sprint: "", sprintDay: "" });
+  });
 
-  const onSprintChange = useCallback(
-    (value: string) => {
-      pushContext({ sprint: value, sprintDay: "" });
-    },
-    [pushContext],
-  );
+  const onSprintChange = runPending("sprint", (value: string) => {
+    pushContext({ sprint: value, sprintDay: "" });
+  });
+
+  const teamsLoading = isPending && pendingField === "project";
+  const sprintsLoading =
+    isPending && (pendingField === "project" || pendingField === "team");
 
   return {
     ...base,
+    teamSelectDisabled: teamsLoading || base.teamSelectDisabled,
+    sprintSelectDisabled: sprintsLoading || base.sprintSelectDisabled,
+    teamsLoading,
+    sprintsLoading,
     onProjectChange,
     onTeamChange,
     onSprintChange,

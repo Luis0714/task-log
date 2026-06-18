@@ -14,9 +14,10 @@ import { WorkItemsShellSkeleton } from "@/components/skeletons/work-items-shell-
 import { emptyServerProfileFields } from "@/lib/auth/profile-display";
 import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
 import { resolvePageAuthWithProfile } from "@/lib/auth/resolve-page-auth";
+import { resolveFilterDefaults } from "@/services/user/resolve-filter-defaults";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
-import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
+import { DEFAULT_WORK_ITEM_FILTERS, type WorkItemFilters } from "@/lib/schemas/work-item-filters";
 
 export const metadata = buildPageMetadata(PAGE_SEO.workItems);
 
@@ -33,8 +34,15 @@ export default async function WorkItemsPage({ searchParams }: PageProps) {
   const profileFields = showLiveData ? profile : emptyServerProfileFields;
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
+  const { filters: savedFilters } = await resolveFilterDefaults("work-items");
+
+  const initialFilters: Partial<WorkItemFilters> = {
+    ...savedFilters,
+    assignee: urlAssignee,
+  };
+
   return (
-    <WorkItemsFiltersProvider initialAssignee={urlAssignee}>
+    <WorkItemsFiltersProvider initialFilters={initialFilters}>
       <AdoContextPageLayout
         shellFallback={<WorkItemsShellSkeleton />}
         adoExecutionReady={showLiveData}

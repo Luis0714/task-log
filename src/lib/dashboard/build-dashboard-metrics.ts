@@ -3,7 +3,7 @@ import { computeSprintHoursSeries } from "@/lib/dashboard/sprint-hours-series";
 import { computeSprintWeekMetrics } from "@/lib/dashboard/sprint-weeks";
 import {
   sumHoursBreakdownForDay,
-  sumHoursBreakdownThroughDay,
+  sumHoursBreakdownForDayKeys,
 } from "@/lib/dashboard/hours-breakdown";
 import {
   BUG_STATUS_MAPPING,
@@ -89,9 +89,10 @@ export function buildDashboardMetrics({
     currentSprint?.finishDate,
     workingDayOptions,
   );
+  const allSprintDayKeys = sprintWorkingDays.map((d) => d.value);
   const hoursSprintCurrent =
-    sprintEndKey !== ""
-      ? sumHoursBreakdownThroughDay(bundle.tasks, bundle.bugs, sprintEndKey)
+    allSprintDayKeys.length > 0
+      ? sumHoursBreakdownForDayKeys(bundle.tasks, bundle.bugs, allSprintDayKeys, sprintEndKey)
       : { taskHours: 0, bugHours: 0 };
   const hoursByDay = computeSprintHoursSeries(
     sprintWorkingDays,

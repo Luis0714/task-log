@@ -15,10 +15,7 @@ export function resolveAssigneeForUi(
   assigneeFromUrl: string,
   localAssignee: string,
 ): string {
-  if (
-    assigneeFromUrl !== localAssignee &&
-    localAssignee !== DEFAULT_WORK_ITEM_FILTERS.assignee
-  ) {
+  if (assigneeFromUrl !== localAssignee) {
     return localAssignee;
   }
   return assigneeFromUrl;

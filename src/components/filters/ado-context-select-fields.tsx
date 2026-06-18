@@ -32,6 +32,8 @@ export function AdoContextSelectFields({
   defaultTeam = null,
   saveDefaultsPending = false,
   onSaveDefaults,
+  teamsLoading = false,
+  sprintsLoading = false,
   sprintDayFilter,
   markRequiredFields = false,
   className,
@@ -64,6 +66,7 @@ export function AdoContextSelectFields({
           value={team}
           placeholder={placeholders.team}
           disabled={teamSelectDisabled}
+          loading={teamsLoading}
           error={teamsError}
           options={teamSelectOptions(teams)}
           onValueChange={onTeamChange}
@@ -78,6 +81,7 @@ export function AdoContextSelectFields({
         value={sprintPath}
         placeholder={placeholders.sprint}
         disabled={sprintSelectDisabled}
+        loading={sprintsLoading}
         error={sprintsError}
         displayValue={selectedSprintLabel}
         options={sprintSelectOptions(sprints)}

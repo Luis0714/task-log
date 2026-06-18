@@ -41,6 +41,7 @@ export function TimeLogForm({
         taskStatesError={catalog.taskStatesError}
         defaultCompletedTaskState={catalog.defaultCompletedTaskState}
         disabled={loading}
+        isTaskCreationMode={catalog.isTaskCreationMode}
       />
 
       <Button type="submit" disabled={loading || !canSubmit} className="min-h-10 w-full sm:w-auto">

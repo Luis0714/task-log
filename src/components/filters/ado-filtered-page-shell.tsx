@@ -109,7 +109,7 @@ export function AdoFilteredPageShell({
     : context;
 
   return (
-    <div className="flex w-full flex-col gap-6 pb-6">
+    <div className="flex w-full flex-col gap-6">
       <PageHeader title={title} description={description} action={headerAction} />
 
       {catalogError ? <CopilotErrorAlert message={catalogError} /> : null}
@@ -130,6 +130,7 @@ export function AdoFilteredPageShell({
             onSearchChange: filtersPanel.onSearchChange,
             onAssigneeChange: filtersPanel.onAssigneeChange,
             onStatesChange: filtersPanel.onStatesChange,
+            onSaveAsDefaults: filtersPanel.onSaveAsDefaults,
           }}
           defaultOpen={false}
         />

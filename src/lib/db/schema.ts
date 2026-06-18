@@ -18,6 +18,15 @@ export const userAuthProviderEnum = pgEnum("user_auth_provider", [
   "entra",
 ]);
 
+export const roles = pgTable("roles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type Role = typeof roles.$inferSelect;
+
 /** Cómo la app llama a Azure DevOps para este usuario. */
 export const adoAuthMethodEnum = pgEnum("ado_auth_method", ["pat", "oauth"]);
 
@@ -57,6 +66,8 @@ export const users = pgTable(
     entraSubject: text("entra_subject"),
     email: text("email"),
     displayName: text("display_name"),
+    roleId: uuid("role_id").references(() => roles.id),
+    isActive: pgBoolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -272,3 +283,30 @@ export const llmInteractions = pgTable(
 
 export type LlmInteraction = typeof llmInteractions.$inferSelect;
 export type NewLlmInteraction = typeof llmInteractions.$inferInsert;
+
+/** Filtros predeterminados por usuario y scope (work-items, time-log, ...). */
+export const userFilterPreferences = pgTable(
+  "user_filter_preferences",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Identificador del feature: "work-items" | "time-log" | futuro. */
+    scope: text("scope").notNull(),
+    /** WorkItemFilters validado por workItemFiltersSchema (jsonb). */
+    filters: jsonb("filters").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("user_filter_preferences_user_scope_unique").on(
+      table.userId,
+      table.scope,
+    ),
+  ],
+);
+
+export type UserFilterPreferences = typeof userFilterPreferences.$inferSelect;
+export type NewUserFilterPreferences = typeof userFilterPreferences.$inferInsert;

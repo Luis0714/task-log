@@ -38,9 +38,11 @@ export function TimeLogContextSection({ form, catalog }: TimeLogContextSectionPr
           filteredCount={catalog.workItemsFilteredCount}
           totalCount={catalog.workItemsTotalCount}
           disabled={catalog.catalogDisabled || catalog.pbisLoading}
+          hideSearch
           onSearchChange={catalog.onWorkItemSearchChange}
           onAssigneeChange={catalog.onWorkItemAssigneeChange}
           onStatesChange={catalog.onWorkItemStatesChange}
+          onSaveAsDefaults={catalog.onWorkItemSaveAsDefaults}
           title="Filtros de historias de usuario"
         />
       ) : null}

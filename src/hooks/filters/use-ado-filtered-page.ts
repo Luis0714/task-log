@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import { useAdoContextPage } from "@/hooks/filters/use-ado-context-page";
+import { useSavePageDefaults } from "@/hooks/filters/use-save-page-defaults";
 import { usePushWorkItemAssigneeUrl } from "@/hooks/filters/use-push-work-item-assignee-url";
 import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-panel";
 import { useWorkItemsFiltersContext } from "@/components/work-items/work-items-filters-context";
@@ -23,7 +24,7 @@ export function useAdoFilteredPage({
   workItemsCount = 0,
 }: UseAdoFilteredPageOptions) {
   const { pushAssignee } = usePushWorkItemAssigneeUrl();
-  const { filters, setSearch, setAssignee, setStates, resetFilters } =
+  const { filters, setSearch, setAssignee, setStates, resetFilters, startAssigneeNavigation } =
     useWorkItemsFiltersContext();
 
   const { context, currentSprint, catalogError } = useAdoContextPage({
@@ -31,6 +32,13 @@ export function useAdoFilteredPage({
     adoExecutionReady,
     assignee: filters.assignee,
     workItemsCount,
+  });
+
+  const { save: savePageDefaults } = useSavePageDefaults({
+    project: catalog.project,
+    team: catalog.team,
+    scope: "work-items",
+    filters,
   });
 
   const workItemStates = useMemo(
@@ -43,10 +51,12 @@ export function useAdoFilteredPage({
     setSearch,
     setAssignee: (value) => {
       setAssignee(value);
-      pushAssignee(value, {
-        project: catalog.project,
-        team: catalog.team,
-        sprint: catalog.sprintPath,
+      startAssigneeNavigation(() => {
+        pushAssignee(value, {
+          project: catalog.project,
+          team: catalog.team,
+          sprint: catalog.sprintPath,
+        });
       });
     },
     setStates,
@@ -59,6 +69,7 @@ export function useAdoFilteredPage({
     membersError: null,
     totalCount: 0,
     filteredCount: 0,
+    onSaveAsDefaults: savePageDefaults,
   });
 
   return { context, currentSprint, filtersPanel, catalogError };

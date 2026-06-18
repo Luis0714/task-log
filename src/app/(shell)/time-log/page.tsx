@@ -9,9 +9,13 @@ import { TimeLogFormSkeleton } from "@/components/skeletons/time-log-form-skelet
 import { TimeLogShellSkeleton } from "@/components/skeletons/time-log-shell-skeleton";
 import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
 import { resolvePageAuth } from "@/lib/auth/resolve-page-auth";
+import { resolveFilterDefaults } from "@/services/user/resolve-filter-defaults";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
-import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
+import {
+  WORK_ITEM_ASSIGNEE_ALL,
+  type WorkItemFilters,
+} from "@/lib/schemas/work-item-filters";
 
 export const metadata = buildPageMetadata(PAGE_SEO.timeLog);
 
@@ -23,7 +27,11 @@ type PageProps = {
 
 export default async function TimeLogPage({ searchParams }: PageProps) {
   const { searchParams: sp, auth, defaultProject } = await resolvePageAuth(searchParams);
-  const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
+  const rawSearchParams = await searchParams;
+  const rawCreate = rawSearchParams.create;
+  const createFlag = Array.isArray(rawCreate) ? rawCreate[0] : rawCreate;
+  const isTaskCreationMode = createFlag === "1";
+  const urlAssignee = sp.assignee ?? WORK_ITEM_ASSIGNEE_ALL;
   const showLiveData = canLoadLiveAdoContent(auth);
 
   if (!showLiveData) {
@@ -36,6 +44,13 @@ export default async function TimeLogPage({ searchParams }: PageProps) {
       />
     );
   }
+
+  const { filters: savedFilters } = await resolveFilterDefaults("time-log");
+
+  const initialWorkItemFilters: Partial<WorkItemFilters> = {
+    ...savedFilters,
+    assignee: urlAssignee,
+  };
 
   return (
     <TimeLogPageLayout className="flex min-h-0 flex-1 flex-col">
@@ -60,6 +75,8 @@ export default async function TimeLogPage({ searchParams }: PageProps) {
               defaultProject={defaultProject}
               adoExecutionReady={showLiveData}
               urlAssignee={urlAssignee}
+              isTaskCreationMode={isTaskCreationMode}
+              initialWorkItemFilters={initialWorkItemFilters}
             />
           </Suspense>
         }

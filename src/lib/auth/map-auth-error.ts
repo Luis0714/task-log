@@ -21,6 +21,9 @@ export function mapAuthErrorFromSearchParams(
   if (detail === "persistence_unavailable") {
     return USER_MESSAGES.persistenceUnavailable;
   }
+  if (detail === "account_disabled") {
+    return USER_MESSAGES.accountDisabled;
+  }
   if (detail === "session_unavailable") {
     return USER_MESSAGES.sessionUnavailable;
   }

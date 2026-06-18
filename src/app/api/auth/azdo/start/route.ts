@@ -15,7 +15,7 @@ function redirectWithAuthError(detail: string) {
   return oauthRedirect(new URL(`/login?azdo_error=auth&detail=${detail}`, base));
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const gate = requirePersistenceForOAuth();
   if (!gate.ok) {
     const detail =
@@ -23,11 +23,12 @@ export async function GET() {
     return redirectWithAuthError(detail);
   }
 
+  const selectedRole = new URL(request.url).searchParams.get("role") ?? undefined;
   const state = generateOAuthState();
   const { verifier, challenge } = generatePkcePair();
 
   const session = await getTaskPilotSession();
-  session.pendingOAuth = { state, codeVerifier: verifier };
+  session.pendingOAuth = { state, codeVerifier: verifier, selectedRole };
   await session.save();
 
   const url = buildAuthorizeUrl({ state, codeChallenge: challenge });

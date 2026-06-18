@@ -1,11 +1,12 @@
 import {
   completeEntraOAuthSignIn,
+  EntraSignInDisabledError,
   EntraSignInIncompleteError,
 } from "@/lib/auth/complete-entra-oauth-sign-in";
 import { exchangeCodeForTokens, getAuthBaseUrl } from "@/lib/auth/entra";
 import { oauthRedirect } from "@/lib/auth/oauth-http";
 import { requirePersistenceForOAuth } from "@/lib/auth/require-user-persistence";
-import { getTaskPilotSession } from "@/lib/auth/session";
+import { destroyTaskPilotSession, getTaskPilotSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -66,17 +67,24 @@ export async function GET(req: Request) {
       return redirectLogin("no_refresh_token_admin_consent");
     }
 
+    const selectedRole = pending.selectedRole;
     session.pendingOAuth = undefined;
 
     await completeEntraOAuthSignIn({
       session,
       refreshToken: refresh,
       accessToken: tokens.access_token,
+      selectedRole,
     });
 
     await session.save();
     return redirectHome("?azdo=connected");
   } catch (error) {
+    if (error instanceof EntraSignInDisabledError) {
+      await destroyTaskPilotSession().catch(() => undefined);
+      return redirectLogin("account_disabled");
+    }
+
     session.pendingOAuth = undefined;
     await session.save().catch(() => undefined);
 

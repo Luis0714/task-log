@@ -1,13 +1,26 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ComponentType } from "react";
 
 import { WorkItemsSectionList } from "@/components/work-items/work-items-section-list";
 import { useWorkItemsFiltersContext } from "@/components/work-items/work-items-filters-context";
+import {
+  WorkItemsAllSectionSkeleton,
+  WorkItemsDevelopedSectionSkeleton,
+  WorkItemsInProgressSectionSkeleton,
+  WorkItemsUpcomingSectionSkeleton,
+} from "@/components/skeletons/work-items-section-skeletons";
 import { buildWorkItemsSectionLists } from "@/lib/work-items/build-work-items-section-lists";
 import type { WorkItemsBaseSnapshot } from "@/lib/work-items/load-work-items-base";
 
 export type WorkItemsSectionKey = "filteredItems" | "inProgress" | "upcoming" | "developed";
+
+const SECTION_SKELETONS: Record<WorkItemsSectionKey, ComponentType> = {
+  filteredItems: WorkItemsAllSectionSkeleton,
+  inProgress: WorkItemsInProgressSectionSkeleton,
+  upcoming: WorkItemsUpcomingSectionSkeleton,
+  developed: WorkItemsDevelopedSectionSkeleton,
+};
 
 const SECTION_COPY: Record<
   WorkItemsSectionKey,
@@ -58,12 +71,18 @@ export function WorkItemsFilteredSectionClient({
   base,
   section,
 }: WorkItemsFilteredSectionClientProps) {
-  const { filters } = useWorkItemsFiltersContext();
+  const { filters, isAssigneeNavigating } = useWorkItemsFiltersContext();
+
   const lists = useMemo(
     () => buildWorkItemsSectionLists(base, filters),
     [base, filters],
   );
   const copy = SECTION_COPY[section];
+
+  if (isAssigneeNavigating) {
+    const SkeletonComp = SECTION_SKELETONS[section];
+    return <SkeletonComp />;
+  }
 
   return (
     <WorkItemsSectionList

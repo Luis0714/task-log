@@ -448,6 +448,74 @@ export async function fetchWorkItemsByIds(
   return fetchWorkItemDetails(auth, [...ids]);
 }
 
+/**
+ * Azure's sprint backlog shows a PBI even when its own IterationPath is a different sprint,
+ * as long as one of its child Tasks lives in the queried sprint ("carryover parent").
+ * This function replicates that rule (b): find Tasks in the sprint, read their parents,
+ * fetch those parents, and return the ones not already in the main result.
+ * Any failure degrades to an empty list so it can never break the main query.
+ */
+async function fetchCarryoverParents(
+  auth: AdoCallerAuth,
+  iterationPath: string,
+  assignee: string,
+  existingIds: Set<number>,
+  backlogType: string,
+): Promise<AdoWorkItemOption[]> {
+  try {
+    const project = escapeWiqlString(auth.project);
+    const path = escapeWiqlString(iterationPath);
+
+    const conditions = [
+      `[System.TeamProject] = '${project}'`,
+      `[System.IterationPath] UNDER '${path}'`,
+      `[System.State] <> 'Removed'`,
+      `[System.WorkItemType] = '${escapeWiqlString(resolveTaskWorkItemTypeName())}'`,
+    ];
+
+    const assigneeCondition = buildAssigneeWiqlCondition(assignee);
+    if (assigneeCondition) conditions.push(assigneeCondition);
+
+    const wiql = {
+      query: `SELECT [System.Id] FROM WorkItems WHERE ${conditions.join(" AND ")}`,
+    };
+
+    const url = `${adoProjectBase(auth)}/_apis/wit/wiql?api-version=7.1`;
+    const res = await adoFetch(auth, url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(wiql),
+    });
+
+    if (!res.ok) return [];
+
+    const data = (await res.json()) as WiqlResponse;
+    const taskIds = (data.workItems ?? []).map((item) => item.id);
+    if (taskIds.length === 0) return [];
+
+    const chunkSize = 200;
+    const parentIds = new Set<number>();
+
+    for (let i = 0; i < taskIds.length; i += chunkSize) {
+      const chunk = taskIds.slice(i, i + chunkSize);
+      const parentData = await fetchWorkItemsBatchWithFieldFallback(auth, chunk, [PARENT]);
+      for (const item of parentData.value ?? []) {
+        const raw = item.fields?.[PARENT];
+        if (typeof raw === "number" && Number.isFinite(raw) && !existingIds.has(raw)) {
+          parentIds.add(raw);
+        }
+      }
+    }
+
+    if (parentIds.size === 0) return [];
+
+    const parents = await fetchWorkItemsByIds(auth, [...parentIds]);
+    return parents.filter((item) => item.type === backlogType);
+  } catch {
+    return [];
+  }
+}
+
 export async function listWorkItemsInSprint(
   auth: AdoCallerAuth,
   iterationPath: string,
@@ -490,7 +558,18 @@ export async function listWorkItemsInSprint(
 
   const data = (await res.json()) as WiqlResponse;
   const ids = (data.workItems ?? []).map((item) => item.id);
-  return fetchWorkItemDetails(auth, ids);
+  const mainItems = await fetchWorkItemDetails(auth, ids);
+
+  // Only the default backlog type (PBI/HU) can be a carryover parent of Tasks.
+  // Queries for Bugs or other types skip this pass.
+  if (workItemType !== resolveBacklogItemType()) return mainItems;
+
+  const existingIds = new Set(mainItems.map((item) => item.id));
+  const carryoverItems = await fetchCarryoverParents(auth, iterationPath, assignee, existingIds, workItemType);
+
+  if (carryoverItems.length === 0) return mainItems;
+
+  return [...mainItems, ...carryoverItems].sort((a, b) => a.title.localeCompare(b.title, "es"));
 }
 
 export async function listTasksInSprint(

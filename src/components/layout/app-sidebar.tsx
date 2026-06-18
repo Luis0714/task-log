@@ -4,7 +4,7 @@ import { SidebarBrand } from "@/components/layout/sidebar-brand";
 import { SidebarFloatingExpandTrigger } from "@/components/layout/sidebar-floating-expand-trigger";
 import { AdoConnectionBadge } from "@/components/connection/ado-connection-badge";
 import { NavMenu } from "@/components/navigation/nav-menu";
-import { MAIN_NAVIGATION } from "@/config/navigation";
+import { getNavigation } from "@/config/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +21,7 @@ export type AppSidebarProps = {
   connection: AdoConnectionDisplay;
   connectionFooter?: React.ReactNode;
   activePath: string;
+  isAdmin: boolean;
 };
 
 function SidebarHeaderContent() {
@@ -40,7 +41,8 @@ function SidebarHeaderContent() {
   );
 }
 
-export function AppSidebar({ connection, connectionFooter, activePath }: AppSidebarProps) {
+export function AppSidebar({ connection, connectionFooter, activePath, isAdmin }: AppSidebarProps) {
+  const navGroups = getNavigation(isAdmin);
   return (
     <Sidebar collapsible="icon" variant="sidebar">
       <SidebarHeader className="border-sidebar-border border-b px-3 py-3">
@@ -48,7 +50,7 @@ export function AppSidebar({ connection, connectionFooter, activePath }: AppSide
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-3">
-        <NavMenu groups={MAIN_NAVIGATION} activePath={activePath} />
+        <NavMenu groups={navGroups} activePath={activePath} />
       </SidebarContent>
 
       <SidebarFooter className="border-sidebar-border border-t p-2">

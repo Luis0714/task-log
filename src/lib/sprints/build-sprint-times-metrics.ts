@@ -1,7 +1,6 @@
 import {
   EMPTY_HOURS_BREAKDOWN,
   sumHoursBreakdownForDayKeys,
-  sumHoursBreakdownThroughDay,
   totalHoursBreakdown,
 } from "@/lib/dashboard/hours-breakdown";
 import { listSprintWorkingDays, type SprintWorkingDay } from "@/lib/dashboard/sprint-days";
@@ -76,6 +75,7 @@ function buildPersonRow(
   roster: readonly AdoTeamMemberDto[],
   week1DayKeys: readonly string[],
   week2DayKeys: readonly string[],
+  allSprintDayKeys: readonly string[],
   sprintEndKey: string,
 ): SprintTimesPersonRow {
   const personTasks = filterItemsByAssignee(tasks, assignee, roster);
@@ -95,8 +95,8 @@ function buildPersonRow(
       : EMPTY_HOURS_BREAKDOWN;
 
   const sprint =
-    sprintEndKey !== ""
-      ? sumHoursBreakdownThroughDay(personTasks, personBugs, sprintEndKey)
+    allSprintDayKeys.length > 0
+      ? sumHoursBreakdownForDayKeys(personTasks, personBugs, allSprintDayKeys, sprintEndKey)
       : EMPTY_HOURS_BREAKDOWN;
 
   return { assignee, week1, week2, sprint };
@@ -177,6 +177,7 @@ export function buildSprintTimesMetrics(
   const [firstWeekDays, secondWeekDays] = splitSprintIntoWeeks(workingDays);
   const week1DayKeys = firstWeekDays.map((day) => day.value);
   const week2DayKeys = secondWeekDays.map((day) => day.value);
+  const allSprintDayKeys = workingDays.map((day) => day.value);
   const sprintEndKey = workingDays[workingDays.length - 1]?.value ?? "";
 
   const weeks = [
@@ -200,6 +201,7 @@ export function buildSprintTimesMetrics(
         roster,
         week1DayKeys,
         week2DayKeys,
+        allSprintDayKeys,
         sprintEndKey,
       ),
     ),

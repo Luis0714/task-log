@@ -49,4 +49,11 @@ export type TimeLogCatalog = {
   onWorkItemSearchChange: (value: string) => void;
   onWorkItemAssigneeChange: (value: string) => void;
   onWorkItemStatesChange: (value: string[]) => void;
+  onWorkItemSaveAsDefaults: () => Promise<void>;
+  /**
+   * `true` cuando el usuario llegó desde "Nueva tarea" (?create=1) y debe
+   * poder elegir el estado inicial. `false` en modo time-log puro, donde la
+   * tarea siempre termina en Done automáticamente.
+   */
+  isTaskCreationMode: boolean;
 };

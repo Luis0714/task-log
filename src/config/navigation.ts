@@ -1,14 +1,11 @@
 import {
-  Bot,
   Bug,
   CheckSquare,
   Clock,
-  Flag,
-  FolderKanban,
-  History,
   LayoutDashboard,
   ListTodo,
   Settings,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,13 +20,18 @@ export type NavGroupConfig = {
   items: NavItemConfig[];
 };
 
-export const MAIN_NAVIGATION: NavGroupConfig[] = [
+/**
+ * Kill-switch para ocultar el grupo "Sistema" (Configuración) del menú lateral.
+ * La página /settings y todo su código permanecen intactos para poder
+ * re-habilitarlo en el futuro cambiando este flag a `false`.
+ */
+const HIDE_SETTINGS_NAV = true;
+
+const BASE_NAVIGATION: NavGroupConfig[] = [
   {
     title: "Principal",
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/copilot", label: "Copiloto IA", icon: Bot },
-      { href: "/history", label: "Historial", icon: History },
     ],
   },
   {
@@ -41,15 +43,27 @@ export const MAIN_NAVIGATION: NavGroupConfig[] = [
       { href: "/bugs", label: "Bugs", icon: Bug },
     ],
   },
-  {
-    title: "Análisis",
-    items: [
-      { href: "/analysis/proyecto", label: "Proyecto", icon: FolderKanban },
-      { href: "/analysis/sprints", label: "Sprints", icon: Flag },
-    ],
-  },
-  {
-    title: "Sistema",
-    items: [{ href: "/settings", label: "Configuración", icon: Settings }],
-  },
+  ...(HIDE_SETTINGS_NAV
+    ? []
+    : [
+        {
+          title: "Sistema",
+          items: [
+            { href: "/settings", label: "Configuración", icon: Settings },
+          ],
+        },
+      ]),
 ];
+
+export function getNavigation(isAdmin: boolean): NavGroupConfig[] {
+  if (!isAdmin) return BASE_NAVIGATION;
+  return [
+    ...BASE_NAVIGATION,
+    {
+      title: "Administración",
+      items: [{ href: "/admin/usuarios", label: "Usuarios", icon: Users }],
+    },
+  ];
+}
+
+export const MAIN_NAVIGATION = getNavigation(false);

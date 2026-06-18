@@ -5,7 +5,7 @@ import { computeSprintHoursSeries } from "@/lib/dashboard/sprint-hours-series";
 import { computeSprintWeekMetrics } from "@/lib/dashboard/sprint-weeks";
 import {
   sumHoursBreakdownForDay,
-  sumHoursBreakdownThroughDay,
+  sumHoursBreakdownForDayKeys,
 } from "@/lib/dashboard/hours-breakdown";
 import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
 import {
@@ -59,9 +59,10 @@ export function buildDashboardHoursMetrics({
     currentSprint?.finishDate,
     workingDayOptions,
   );
+  const allSprintDayKeys = sprintWorkingDays.map((d) => d.value);
   const hoursSprintCurrent =
-    sprintEndKey !== ""
-      ? sumHoursBreakdownThroughDay(tasks, bugs, sprintEndKey)
+    allSprintDayKeys.length > 0
+      ? sumHoursBreakdownForDayKeys(tasks, bugs, allSprintDayKeys, sprintEndKey)
       : { taskHours: 0, bugHours: 0 };
 
   const metrics = computeDashboardMetrics(hoursToday, {

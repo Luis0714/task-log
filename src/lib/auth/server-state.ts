@@ -41,6 +41,8 @@ export type ServerAuthBootstrap = {
   patOrganization: string | null;
   patProject: string | null;
   userSessionActive: boolean;
+  userRole: string | null;
+  isAdmin: boolean;
 };
 
 export type ServerAuthState = ServerAuthBootstrap & ServerAuthProfileFields;
@@ -115,6 +117,13 @@ export const getServerAuthBootstrap = cache(async function getServerAuthBootstra
     connectOptions.patReady && (await isSessionPatReady());
   const sessionConnected = userSessionActive && adoExecutionReady;
 
+  let userRole: string | null = null;
+  if (isIronSessionConfigured()) {
+    const session = await getTaskPilotSession();
+    userRole = session.userRole ?? null;
+  }
+  const isAdmin = userRole === "super_admin";
+
   return {
     authMethod,
     connectOptions,
@@ -129,6 +138,8 @@ export const getServerAuthBootstrap = cache(async function getServerAuthBootstra
       sessionConnected && patConfigured ? saved.defaultOrg : null,
     patProject: sessionConnected && patConfigured ? saved.defaultProject : null,
     userSessionActive,
+    userRole,
+    isAdmin,
   };
 });
 

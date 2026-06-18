@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckCircle2 } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 
 import { FormSelectField } from "@/components/time-log/fields/form-select-field";
@@ -15,6 +16,7 @@ import {
 import { DatePickerTime } from "@/components/ui/date-picker-time";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 import { TASK_ACTIVITY_LABELS, TASK_ACTIVITY_OPTIONS } from "@/lib/time-log/task-constants";
@@ -26,6 +28,12 @@ type TaskFormFieldsProps = {
   taskStatesError?: string | null;
   defaultCompletedTaskState?: string | null;
   disabled?: boolean;
+  /**
+   * `true` cuando el usuario viene del flujo "Nueva tarea" (?create=1) y
+   * debe poder configurar el estado inicial. En modo time-log puro
+   * ocultamos los campos relacionados con el estado y mostramos un aviso.
+   */
+  isTaskCreationMode: boolean;
 };
 
 export function TaskFormFields({
@@ -35,6 +43,7 @@ export function TaskFormFields({
   taskStatesError = null,
   defaultCompletedTaskState = null,
   disabled = false,
+  isTaskCreationMode,
 }: TaskFormFieldsProps) {
   return (
     <>
@@ -120,15 +129,17 @@ export function TaskFormFields({
         )}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <TaskStateSelectField
-          form={form}
-          taskStates={taskStates}
-          taskStatesLoading={taskStatesLoading}
-          taskStatesError={taskStatesError}
-          disabled={disabled}
-        />
-      </div>
+      {isTaskCreationMode ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TaskStateSelectField
+            form={form}
+            taskStates={taskStates}
+            taskStatesLoading={taskStatesLoading}
+            taskStatesError={taskStatesError}
+            disabled={disabled}
+          />
+        </div>
+      ) : null}
 
       <FormField
         control={form.control}
@@ -150,11 +161,23 @@ export function TaskFormFields({
         )}
       />
 
-      <TaskAutoMarkAsDoneField
-        form={form}
-        defaultCompletedTaskState={defaultCompletedTaskState}
-        disabled={disabled}
-      />
+      {isTaskCreationMode ? (
+        <TaskAutoMarkAsDoneField
+          form={form}
+          defaultCompletedTaskState={defaultCompletedTaskState}
+          disabled={disabled}
+        />
+      ) : (
+        <Alert>
+          <CheckCircle2 aria-hidden />
+          <AlertTitle>La tarea se creará automáticamente como Done</AlertTitle>
+          <AlertDescription>
+            {defaultCompletedTaskState
+              ? `Al registrar tiempo, la nueva tarea quedará en «${defaultCompletedTaskState}» y contará de inmediato en las horas del día. No es necesario seleccionar estado.`
+              : "Al registrar tiempo, la nueva tarea quedará en Done y contará de inmediato en las horas del día. No es necesario seleccionar estado."}
+          </AlertDescription>
+        </Alert>
+      )}
     </>
   );
 }

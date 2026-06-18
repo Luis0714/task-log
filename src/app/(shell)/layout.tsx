@@ -34,6 +34,7 @@ export default async function ShellLayout({
       connection={connection}
       historyScopeKey={historyScopeKey}
       defaultSidebarOpen={defaultSidebarOpen}
+      isAdmin={bootstrap.isAdmin}
       sidebarConnection={
         <Suspense
           fallback={<AdoConnectionBadgeSkeleton connection={connection} />}

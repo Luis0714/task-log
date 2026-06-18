@@ -6,11 +6,14 @@ import { ConnectMethodOptionSection } from "@/components/auth/connect-method-opt
 import { ConnectMethodPatAction } from "@/components/auth/connect-method-pat-action";
 import { ConnectUnavailablePanel } from "@/components/auth/connect-unavailable-panel";
 import { PersistenceUnavailablePanel } from "@/components/auth/persistence-unavailable-panel";
+import { isPatAuthHidden } from "@/lib/auth/auth-method";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
 import type { SavedConnectionTarget } from "@/lib/auth/server-state";
 import type { SessionAuthMethod } from "@/lib/auth/session-auth-method";
 
-const METHOD_OPTIONS: SessionAuthMethod[] = ["oauth", "pat"];
+const METHOD_OPTIONS: SessionAuthMethod[] = isPatAuthHidden()
+  ? ["oauth"]
+  : ["oauth", "pat"];
 
 export type ConnectMethodPickerProps = {
   connectOptions: ConnectAuthOptions;

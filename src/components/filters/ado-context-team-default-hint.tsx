@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { SaveAsDefaultLinkButton } from "@/components/filters/save-as-default-button";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type AdoContextTeamDefaultHintProps = {
@@ -71,24 +71,10 @@ export function AdoContextTeamDefaultHint({
             Este proyecto y equipo son tu selección predeterminada al abrir la app.
           </p>
         ) : null}
-        <button
-          type="button"
-          className={cn(
-            "text-primary inline-flex items-center gap-1.5 text-xs font-medium underline underline-offset-2 transition-colors",
-            "hover:text-primary/80 disabled:cursor-not-allowed disabled:opacity-50",
-          )}
+        <SaveAsDefaultLinkButton
           disabled={controlsDisabled}
-          onClick={() => setDialogOpen(true)}
-        >
-          {pending ? (
-            <>
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
-              Guardando…
-            </>
-          ) : (
-            "Establecer como predeterminado"
-          )}
-        </button>
+          onSave={() => setDialogOpen(true)}
+        />
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

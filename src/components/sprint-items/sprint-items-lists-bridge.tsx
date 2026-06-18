@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { SprintItemsLists } from "@/components/sprint-items/sprint-items-lists";
+import { SprintItemsListSkeleton } from "@/components/skeletons/sprint-items-list-skeleton";
 import { useSprintItemsDay } from "@/components/sprint-items/sprint-items-day-context";
 import { useWorkItemsFiltersContext } from "@/components/work-items/work-items-filters-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
@@ -22,8 +23,12 @@ export function SprintItemsListsBridge({
 }: SprintItemsListsBridgeProps) {
   const router = useRouter();
   const onSaved = () => router.refresh();
-  const { filters } = useWorkItemsFiltersContext();
+  const { filters, isAssigneeNavigating } = useWorkItemsFiltersContext();
   const { dayKey, sprintWorkingDays } = useSprintItemsDay();
+
+  if (isAssigneeNavigating) {
+    return <SprintItemsListSkeleton />;
+  }
 
   return (
     <SprintItemsLists

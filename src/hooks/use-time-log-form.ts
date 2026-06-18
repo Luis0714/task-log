@@ -13,6 +13,7 @@ import type {
 } from "@/lib/time-log/load-time-log-baseline";
 import { resolveWorkingDateForSprint } from "@/hooks/time-log/use-sprint-working-date";
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
+import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 import { appToast } from "@/lib/toast";
 import {
   createTimeLogFormDefaults,
@@ -27,6 +28,8 @@ type UseTimeLogFormOptions = {
   adoExecutionReady: boolean;
   serverBaseline: TimeLogServerBaseline;
   pbisSnapshot: TimeLogPbisSnapshot;
+  isTaskCreationMode: boolean;
+  initialWorkItemFilters?: Partial<WorkItemFilters>;
 };
 
 export function useTimeLogForm({
@@ -35,6 +38,8 @@ export function useTimeLogForm({
   adoExecutionReady,
   serverBaseline,
   pbisSnapshot,
+  isTaskCreationMode,
+  initialWorkItemFilters,
 }: UseTimeLogFormOptions) {
   const form = useForm<TimeLogFormValues>({
     resolver: zodResolver(timeLogFormSchema),
@@ -61,14 +66,20 @@ export function useTimeLogForm({
   }, [catalogProject, catalogSprintPath, catalogTeam, form]);
 
   const defaultTaskStateRef = useRef("");
+  const defaultCompletedTaskStateRef = useRef<string | null>(null);
   const sprintsRef = useRef<AdoSprintDto[]>([]);
 
   const createTask = useCreateTask({
     form,
     appendHistory,
+    isTaskCreationMode,
     getDefaultTaskState: useCallback(
       () => defaultTaskStateRef.current || form.getValues("taskState"),
       [form],
+    ),
+    getDefaultCompletedTaskState: useCallback(
+      () => defaultCompletedTaskStateRef.current ?? "",
+      [],
     ),
     getDefaultWorkingDate: useCallback(
       () => resolveWorkingDateForSprint(sprintsRef.current, form.getValues("sprintPath")),
@@ -82,6 +93,8 @@ export function useTimeLogForm({
     submitting: createTask.loading,
     serverBaseline,
     pbisSnapshot,
+    isTaskCreationMode,
+    initialWorkItemFilters,
   });
 
   sprintsRef.current = catalog.sprints;
@@ -90,7 +103,10 @@ export function useTimeLogForm({
     if (catalog.defaultOpenTaskState) {
       defaultTaskStateRef.current = catalog.defaultOpenTaskState;
     }
-  }, [catalog.defaultOpenTaskState]);
+    if (catalog.defaultCompletedTaskState) {
+      defaultCompletedTaskStateRef.current = catalog.defaultCompletedTaskState;
+    }
+  }, [catalog.defaultOpenTaskState, catalog.defaultCompletedTaskState]);
 
   const submit = form.handleSubmit((values) => {
     if (!adoExecutionReady) {

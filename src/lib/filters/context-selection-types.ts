@@ -24,6 +24,10 @@ export type AdoContextSelectFieldsProps = {
   defaultTeam?: string | null;
   saveDefaultsPending?: boolean;
   onSaveDefaults?: () => void | Promise<void>;
+  /** Indica que los equipos están cargando (p.ej. tras cambiar de proyecto). */
+  teamsLoading?: boolean;
+  /** Indica que los sprints están cargando (p.ej. tras cambiar de equipo). */
+  sprintsLoading?: boolean;
   /** Filtro opcional (p. ej. día del sprint) junto al select de sprint. */
   sprintDayFilter?: React.ReactNode;
   /** Muestra asterisco rojo en las etiquetas de proyecto, equipo y sprint. */

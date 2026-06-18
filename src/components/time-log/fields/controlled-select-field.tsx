@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Loader2 } from "lucide-react";
 
 import { FormInlineError } from "@/components/time-log/fields/form-inline-error";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,8 @@ export type ControlledSelectFieldProps = {
   placeholder: string;
   options: FormSelectOption[];
   disabled?: boolean;
+  /** Muestra un spinner en lugar del valor/placeholder mientras se cargan datos dependientes. */
+  loading?: boolean;
   error?: string | null;
   triggerClassName?: string;
   displayValue?: ReactNode;
@@ -42,6 +45,7 @@ export function ControlledSelectField({
   placeholder,
   options,
   disabled,
+  loading = false,
   error,
   triggerClassName,
   displayValue,
@@ -54,17 +58,24 @@ export function ControlledSelectField({
     <div className="min-w-0 w-full space-y-2">
       <Label required={required}>{label}</Label>
       <Select
-        value={value || null}
+        value={loading ? null : (value || null)}
         onValueChange={(next) => {
           if (!next) return;
           onValueChange(next);
         }}
-        disabled={disabled}
+        disabled={disabled || loading}
       >
         <SelectTrigger className={cn("w-full min-w-0", triggerClassName)} title={triggerTitle}>
-          <SelectValue placeholder={placeholder}>
-            {displayValue ?? (value ? value : undefined)}
-          </SelectValue>
+          {loading ? (
+            <span className="text-muted-foreground flex items-center gap-1.5 text-sm">
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              {placeholder}
+            </span>
+          ) : (
+            <SelectValue placeholder={placeholder}>
+              {displayValue ?? (value ? value : undefined)}
+            </SelectValue>
+          )}
         </SelectTrigger>
         <SelectContent className={contentClassName}>
           {options.map((option) => (

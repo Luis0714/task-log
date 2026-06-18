@@ -8,6 +8,8 @@ export const USER_MESSAGES = {
     "El inicio de sesión no está disponible ahora. Vuelve a intentarlo más tarde.",
   microsoftUnavailable:
     "El inicio con Microsoft no está disponible en este entorno.",
+  accountDisabled:
+    "Tu cuenta está deshabilitada. Pide al administrador que la habilite para poder iniciar sesión.",
   invalidCredentials: "Usuario o contraseña incorrectos.",
   invalidForm: "Revisa los datos del formulario e inténtalo de nuevo.",
   invalidJsonBody: "No pudimos leer los datos enviados. Inténtalo de nuevo.",

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AccountAuthCard } from "@/components/auth/account-auth-card";
 import { ACCOUNT_AUTH_COPY } from "@/components/auth/account-auth-copy";
 import { LoginAuthNotice } from "@/components/auth/login-auth-notice";
-import { LoginLocalForm } from "@/components/auth/login-local-form";
+import { LoginOAuthForm } from "@/components/auth/login-oauth-form";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
 import { isUserPersistenceReady } from "@/lib/db";
@@ -18,8 +18,8 @@ export default async function LoginPage() {
   return (
     <AccountAuthCard title={copy.title} description={copy.description}>
       <LoginAuthNotice />
-      {persistenceReady ? (
-        <LoginLocalForm connectOptions={connectOptions} />
+      {persistenceReady && connectOptions.oauthReady ? (
+        <LoginOAuthForm />
       ) : (
         <p className="text-muted-foreground text-sm leading-relaxed">
           {USER_MESSAGES.persistenceUnavailable}

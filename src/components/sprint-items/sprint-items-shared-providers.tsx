@@ -20,7 +20,7 @@ export function SprintItemsSharedProviders({
   const [sprintWorkingDays, setSprintWorkingDays] = useState<SprintWorkingDay[]>([]);
 
   return (
-    <WorkItemsFiltersProvider initialAssignee={initialAssignee}>
+    <WorkItemsFiltersProvider initialFilters={initialAssignee ? { assignee: initialAssignee } : undefined}>
       <SprintItemsDayProvider
         dayKey={dayKey}
         setDayKey={setDayKey}

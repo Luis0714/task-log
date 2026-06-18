@@ -28,7 +28,7 @@ export default async function TasksPage({ searchParams }: PageProps) {
   const showLiveData = canLoadLiveAdoContent(auth);
   const headerAction = showLiveData ? (
     <Button
-      render={<Link href="/time-log" />}
+      render={<Link href="/time-log?create=1" />}
       nativeButton={false}
       className="shrink-0"
     >

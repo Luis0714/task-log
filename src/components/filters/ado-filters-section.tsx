@@ -64,6 +64,7 @@ export function AdoFiltersSection({
           onSearchChange={workItems.onSearchChange}
           onAssigneeChange={workItems.onAssigneeChange}
           onStatesChange={workItems.onStatesChange}
+          onSaveAsDefaults={workItems.onSaveAsDefaults}
         />
       ) : null}
       {extra}
@@ -96,6 +97,7 @@ export function AdoFiltersBlock({
           onSearchChange={workItems.onSearchChange}
           onAssigneeChange={workItems.onAssigneeChange}
           onStatesChange={workItems.onStatesChange}
+          onSaveAsDefaults={workItems.onSaveAsDefaults}
         />
       ) : null}
     </div>
