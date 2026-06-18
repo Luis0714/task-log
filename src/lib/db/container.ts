@@ -2,9 +2,11 @@ import "server-only";
 
 import { drizzleAdoConnectionRepository } from "@/lib/db/adapters/drizzle/drizzle-ado-connection.repository";
 import { drizzleEntraUserRepository } from "@/lib/db/adapters/drizzle/drizzle-entra-user.repository";
+import { drizzleLlmInteractionRepository } from "@/lib/db/adapters/drizzle/drizzle-llm-interaction.repository";
 import { drizzleLocalUserRepository } from "@/lib/db/adapters/drizzle/drizzle-local-user.repository";
 import type { AdoConnectionRepository } from "@/lib/db/ports/ado-connection.repository.port";
 import type { EntraUserRepository } from "@/lib/db/ports/entra-user.repository.port";
+import type { LlmInteractionRepository } from "@/lib/db/ports/llm-interaction.repository.port";
 import type { LocalUserRepository } from "@/lib/db/ports/local-user.repository.port";
 import { drizzleSprintSnapshotRepository } from "@/lib/db/adapters/drizzle/drizzle-sprint-snapshot.repository";
 import { drizzleSprintGoalRepository } from "@/lib/db/adapters/drizzle/drizzle-sprint-goal.repository";
@@ -20,6 +22,7 @@ export type Repositories = {
   sprintGoal: SprintGoalRepository;
   sprintStoryGoal: SprintStoryGoalRepository;
   sprintSnapshot: SprintSnapshotRepository;
+  llmInteraction: LlmInteractionRepository;
 };
 
 const defaultRepositories: Repositories = {
@@ -29,6 +32,7 @@ const defaultRepositories: Repositories = {
   sprintGoal: drizzleSprintGoalRepository,
   sprintStoryGoal: drizzleSprintStoryGoalRepository,
   sprintSnapshot: drizzleSprintSnapshotRepository,
+  llmInteraction: drizzleLlmInteractionRepository,
 };
 
 let repositories: Repositories = defaultRepositories;

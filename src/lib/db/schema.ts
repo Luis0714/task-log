@@ -1,5 +1,6 @@
 import {
   boolean as pgBoolean,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -19,6 +20,14 @@ export const userAuthProviderEnum = pgEnum("user_auth_provider", [
 
 /** Cómo la app llama a Azure DevOps para este usuario. */
 export const adoAuthMethodEnum = pgEnum("ado_auth_method", ["pat", "oauth"]);
+
+/** Tipo de feature de IA que produjo la interacción (auditoría). */
+export const llmInteractionFeatureEnum = pgEnum("llm_interaction_feature", [
+  "log-work",
+  "create-tasks",
+  "weekly-summary",
+  "chat",
+]);
 
 /** Origen del cierre de retrospectiva del sprint. */
 export const sprintSnapshotSourceEnum = pgEnum("sprint_snapshot_source", [
@@ -230,3 +239,36 @@ export type SprintSnapshot = typeof sprintSnapshots.$inferSelect;
 export type NewSprintSnapshot = typeof sprintSnapshots.$inferInsert;
 export type SprintStorySnapshot = typeof sprintStorySnapshots.$inferSelect;
 export type NewSprintStorySnapshot = typeof sprintStorySnapshots.$inferInsert;
+
+/** Auditoría cruda de cada llamada al LLM (fire-and-forget desde el orquestador). */
+export const llmInteractions = pgTable(
+  "llm_interactions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    feature: llmInteractionFeatureEnum("feature").notNull(),
+    model: text("model").notNull(),
+    promptTokens: integer("prompt_tokens"),
+    completionTokens: integer("completion_tokens"),
+    latencyMs: integer("latency_ms").notNull(),
+    requestHash: text("request_hash").notNull(),
+    responseJson: jsonb("response_json").notNull(),
+    ok: pgBoolean("ok").notNull(),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("llm_interactions_user_created_idx").on(table.userId, table.createdAt),
+    index("llm_interactions_feature_created_idx").on(
+      table.feature,
+      table.createdAt,
+    ),
+  ],
+);
+
+export type LlmInteraction = typeof llmInteractions.$inferSelect;
+export type NewLlmInteraction = typeof llmInteractions.$inferInsert;

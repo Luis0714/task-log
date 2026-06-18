@@ -18,6 +18,14 @@ export const USER_MESSAGES = {
     "No hay conexión con Azure DevOps. Inicia sesión para continuar.",
   copilotInterpret:
     "No pudimos interpretar tu mensaje ahora. Inténtalo de nuevo o escribe el ID del elemento y las horas con más detalle.",
+  copilotNoToolCall:
+    "La IA no devolvió una acción válida. Reformula tu mensaje o sé más específico (ej: \"2h en #123 revisando PR\").",
+  copilotInvalidArgs:
+    "La IA devolvió argumentos inválidos. Reformula tu mensaje con más detalle.",
+  copilotSchemaInvalid:
+    "La IA devolvió una respuesta con formato inesperado. Inténtalo de nuevo.",
+  copilotUnknownTool:
+    "La IA usó una herramienta desconocida. Inténtalo de nuevo o reformula tu mensaje.",
   copilotNotConfigured:
     "El asistente no está configurado en este entorno. Usa el formulario manual para registrar tiempo.",
   saveFailed: "No pudimos guardar los cambios. Inténtalo de nuevo.",
@@ -36,6 +44,8 @@ export const USER_MESSAGES = {
     "No tienes permisos suficientes para hacer este cambio en Azure DevOps.",
   workingDateRequired:
     "Azure DevOps necesita la fecha de trabajo para este cambio.",
+  tooManyRequests:
+    "Estás haciendo muchas solicitudes al asistente. Espera unos segundos e inténtalo de nuevo.",
   completedWorkRequired:
     "Azure DevOps necesita el trabajo completado para este cambio.",
   startDateRequired:

@@ -71,8 +71,13 @@ export function useSpeechRecognition(
     onFinalTranscript,
   } = opts;
 
-  const Ctor = getCtor();
-  const isSupported = Ctor !== null;
+  // SSR-safe: start as false (server + first client render agree) and flip to
+  // true on mount if the browser exposes the SpeechRecognition constructor.
+  const [isSupported, setIsSupported] = useState(false);
+
+  useEffect(() => {
+    setIsSupported(getCtor() !== null);
+  }, []);
 
   const recRef = useRef<AnyRecognition | null>(null);
   const onFinalRef = useRef(onFinalTranscript);
@@ -90,8 +95,15 @@ export function useSpeechRecognition(
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isSupported) return;
+    const w = globalThis as unknown as {
+      SpeechRecognition?: new () => AnyRecognition;
+      webkitSpeechRecognition?: new () => AnyRecognition;
+    };
+    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!Ctor) return;
     const rec = new Ctor();
+
     rec.lang = lang;
     rec.continuous = continuous;
     rec.interimResults = interimResults;
@@ -102,7 +114,7 @@ export function useSpeechRecognition(
       setIsListening(true);
     };
 
-    rec.onresult = (e) => {
+    rec.onresult = (e: AnyRecognitionEvent) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const r = e.results[i];
@@ -117,7 +129,7 @@ export function useSpeechRecognition(
       setInterim(interim);
     };
 
-    rec.onerror = (e) => {
+    rec.onerror = (e: AnyRecognitionErrorEvent) => {
       lastErrorRef.current = e.error;
       setError(e.error);
       switch (e.error) {
@@ -166,7 +178,7 @@ export function useSpeechRecognition(
         recRef.current = null;
       }
     };
-  }, [Ctor, lang, continuous, interimResults]);
+  }, [isSupported, lang, continuous, interimResults]);
 
   const start = useCallback(() => {
     const rec = recRef.current;
