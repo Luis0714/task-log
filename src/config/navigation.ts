@@ -25,7 +25,7 @@ export type NavGroupConfig = {
  * La página /settings y todo su código permanecen intactos para poder
  * re-habilitarlo en el futuro cambiando este flag a `false`.
  */
-const HIDE_SETTINGS_NAV = true;
+const HIDE_SETTINGS_NAV = false;
 
 const BASE_NAVIGATION: NavGroupConfig[] = [
   {
@@ -43,27 +43,28 @@ const BASE_NAVIGATION: NavGroupConfig[] = [
       { href: "/bugs", label: "Bugs", icon: Bug },
     ],
   },
-  ...(HIDE_SETTINGS_NAV
-    ? []
-    : [
-        {
-          title: "Sistema",
-          items: [
-            { href: "/settings", label: "Configuración", icon: Settings },
-          ],
-        },
-      ]),
 ];
 
+const SETTINGS_GROUP: NavGroupConfig = {
+  title: "Sistema",
+  items: [{ href: "/settings", label: "Configuración", icon: Settings }],
+};
+
 export function getNavigation(isAdmin: boolean): NavGroupConfig[] {
-  if (!isAdmin) return BASE_NAVIGATION;
-  return [
-    ...BASE_NAVIGATION,
-    {
+  const groups = [...BASE_NAVIGATION];
+
+  if (isAdmin) {
+    groups.push({
       title: "Administración",
       items: [{ href: "/admin/usuarios", label: "Usuarios", icon: Users }],
-    },
-  ];
+    });
+  }
+
+  if (!HIDE_SETTINGS_NAV) {
+    groups.push(SETTINGS_GROUP);
+  }
+
+  return groups;
 }
 
 export const MAIN_NAVIGATION = getNavigation(false);

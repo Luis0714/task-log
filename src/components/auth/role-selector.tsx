@@ -8,6 +8,7 @@ const ROLES = [
   { slug: "scrum_master", label: "Scrum Master" },
   { slug: "product_owner", label: "Product Owner" },
   { slug: "product_manager", label: "Product Manager" },
+  { slug: "designer", label: "Designer" },
 ] as const;
 
 type RoleSelectorProps = {
