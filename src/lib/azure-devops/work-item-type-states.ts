@@ -44,20 +44,32 @@ export function resolveBacklogWorkItemTypeName(): string {
   return process.env.AZDO_BACKLOG_ITEM_TYPE?.trim() || "Product Backlog Item";
 }
 
-export async function listTaskStates(auth: AdoCallerAuth): Promise<AdoWorkItemTypeState[]> {
-  return listWorkItemTypeStates(auth, resolveTaskWorkItemTypeName());
-}
-
-export async function listBacklogItemStates(auth: AdoCallerAuth): Promise<AdoWorkItemTypeState[]> {
-  return listWorkItemTypeStates(auth, resolveBacklogWorkItemTypeName());
-}
-
 export function resolveBugWorkItemTypeName(): string {
   return process.env.AZDO_BUG_WORK_ITEM_TYPE?.trim() || "Bug";
 }
 
-export async function listBugStates(auth: AdoCallerAuth): Promise<AdoWorkItemTypeState[]> {
-  return listWorkItemTypeStates(auth, resolveBugWorkItemTypeName());
+/** Lista los estados de tareas. Usar `workItemType` del processProfile cuando esté disponible. */
+export async function listTaskStates(
+  auth: AdoCallerAuth,
+  workItemType?: string,
+): Promise<AdoWorkItemTypeState[]> {
+  return listWorkItemTypeStates(auth, workItemType ?? resolveTaskWorkItemTypeName());
+}
+
+/** Lista los estados de backlog items. Usar `workItemType` del processProfile cuando esté disponible. */
+export async function listBacklogItemStates(
+  auth: AdoCallerAuth,
+  workItemType?: string,
+): Promise<AdoWorkItemTypeState[]> {
+  return listWorkItemTypeStates(auth, workItemType ?? resolveBacklogWorkItemTypeName());
+}
+
+/** Lista los estados de bugs. Usar `workItemType` del processProfile cuando esté disponible. */
+export async function listBugStates(
+  auth: AdoCallerAuth,
+  workItemType?: string,
+): Promise<AdoWorkItemTypeState[]> {
+  return listWorkItemTypeStates(auth, workItemType ?? resolveBugWorkItemTypeName());
 }
 
 export async function findTaskState(

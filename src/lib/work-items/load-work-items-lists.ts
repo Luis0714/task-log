@@ -6,7 +6,8 @@ import type { WorkItemsListsSnapshot } from "@/lib/ado/types";
 import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
 import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
 import { listBacklogItemStates } from "@/lib/azure-devops/work-item-type-states";
-import { listWorkItemsInSprint } from "@/lib/azure-devops/work-items";
+import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
+import { listBugItemsInSprint, listWorkItemsInSprint } from "@/lib/azure-devops/work-items";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 
 const emptyLists: WorkItemsListsSnapshot = {
@@ -34,13 +35,11 @@ export const loadWorkItemsLists = cache(async function loadWorkItemsLists(
   if (!auth) return emptyLists;
 
   try {
+    const processProfile = await resolveProcessProfile(auth);
     const [sprintWorkItems, sprintBugs, backlogStates, teamMembers] = await Promise.all([
       listWorkItemsInSprint(auth, sprintPath, { assignee }),
-      listWorkItemsInSprint(auth, sprintPath, {
-        assignee: WORK_ITEM_ASSIGNEE_ALL,
-        workItemType: "Bug",
-      }),
-      listBacklogItemStates(auth),
+      listBugItemsInSprint(auth, sprintPath, { assignee: WORK_ITEM_ASSIGNEE_ALL }),
+      listBacklogItemStates(auth, processProfile.backlogItemType),
       loadAssigneeFilterMembers(project, team, sprintPath, "workItems"),
     ]);
 

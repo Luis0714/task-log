@@ -12,15 +12,14 @@ export type AdoProcessProfile = {
   /** Campos de fecha a solicitar en GET (primario + estándar). */
   workItemDateFieldNames: readonly string[];
   timezone: string;
+  completedWorkField: string;
+  originalEstimateField: string;
+  /** null = campo Activity desactivado para este proyecto. */
+  activityField: string | null;
+  taskWorkItemType: string;
+  bugWorkItemType: string;
+  backlogItemType: string;
+  taskTodoState: string;
+  taskDoneState: string;
 };
 
-/** Copia serializable en sesión (iron-session). */
-export type StoredAdoProcessProfile = {
-  organization: string;
-  project: string;
-  workingDateField: string;
-  workingDateFieldSource: AdoProcessProfileFieldSource;
-  workItemDateFieldNames: string[];
-  timezone: string;
-  savedAt: string;
-};

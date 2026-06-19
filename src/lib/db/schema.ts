@@ -284,6 +284,39 @@ export const llmInteractions = pgTable(
 export type LlmInteraction = typeof llmInteractions.$inferSelect;
 export type NewLlmInteraction = typeof llmInteractions.$inferInsert;
 
+export const projectConfigSourceEnum = pgEnum("project_config_source", ["auto", "manual"]);
+
+export const projectConfigurations = pgTable(
+  "project_configurations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organization: text("organization").notNull(),
+    project: text("project").notNull(),
+    workingDateField: text("working_date_field"),
+    timezone: text("timezone"),
+    completedWorkField: text("completed_work_field"),
+    originalEstimateField: text("original_estimate_field"),
+    activityField: text("activity_field"),
+    taskWorkItemType: text("task_work_item_type"),
+    bugWorkItemType: text("bug_work_item_type"),
+    backlogItemType: text("backlog_item_type"),
+    taskTodoState: text("task_todo_state"),
+    taskDoneState: text("task_done_state"),
+    configSource: projectConfigSourceEnum("config_source").notNull().default("auto"),
+    discoveredAt: timestamp("discovered_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("project_configurations_org_project_unique").on(
+      table.organization,
+      table.project,
+    ),
+  ],
+);
+
+export type ProjectConfiguration = typeof projectConfigurations.$inferSelect;
+export type NewProjectConfiguration = typeof projectConfigurations.$inferInsert;
+
 /** Filtros predeterminados por usuario y scope (work-items, time-log, ...). */
 export const userFilterPreferences = pgTable(
   "user_filter_preferences",

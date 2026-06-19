@@ -1,6 +1,7 @@
 import { AuthRequiredPageLayout } from "@/components/auth/auth-required-page-layout";
 import { PageHeader } from "@/components/layout/page-header";
-import { SettingsProcessProfilePanel } from "@/components/settings/settings-process-profile-panel";
+import { SettingsAdminProcessPanel } from "@/components/settings/settings-admin-process-panel";
+import { SettingsConnectionCard } from "@/components/settings/settings-connection-card";
 import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
 import { getServerAuthBootstrap } from "@/lib/auth/server-state";
 import { loadSettingsPageData } from "@/lib/settings/load-settings-page-data";
@@ -41,7 +42,8 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-6">
       <PageHeader title={PAGE_SEO.settings.title} description={PAGE_SEO.settings.description} />
-      <SettingsProcessProfilePanel data={data} />
+      <SettingsConnectionCard connection={data.connection} />
+      {auth.isAdmin && <SettingsAdminProcessPanel data={data} />}
     </div>
   );
 }

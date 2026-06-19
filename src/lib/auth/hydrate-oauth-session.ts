@@ -1,6 +1,6 @@
 import "server-only";
 
-import { attachProcessProfileOnConnect } from "@/lib/azure-devops/persist-process-profile";
+import { triggerProjectConfigDiscovery } from "@/lib/azure-devops/persist-process-profile";
 import { applyContextDefaultsToSession } from "@/lib/auth/apply-context-defaults-to-session";
 import type { TaskPilotSessionData } from "@/lib/auth/session";
 import { clearSessionCredentials } from "@/lib/auth/session";
@@ -42,14 +42,14 @@ export async function hydrateOAuthSession(
 
   if (input.accessToken) {
     try {
-      await attachProcessProfileOnConnect(session, {
+      await triggerProjectConfigDiscovery({
         mode: "oauth",
         accessToken: input.accessToken,
         organization,
         project,
       });
     } catch {
-      // OAuth sigue válido; el perfil se resolverá en la primera carga del proyecto.
+      // OAuth sigue válido; los campos del proyecto se detectarán en la primera carga.
     }
   }
 }

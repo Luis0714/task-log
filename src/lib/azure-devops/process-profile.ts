@@ -2,79 +2,57 @@ import "server-only";
 
 import { cache } from "react";
 
-import { readProcessProfileFromSession } from "@/lib/azure-devops/process-profile-session";
+import { ADO_FIELD_DEFAULTS } from "@/lib/azure-devops/ado-field-defaults";
 import type { AdoProcessProfile } from "@/lib/azure-devops/process-profile-types";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
-import { listProjectFieldReferenceNames } from "@/lib/azure-devops/wit-project-fields";
-import { discoverWorkingDateFieldReference } from "@/lib/azure-devops/working-date-field-discovery";
+import { resolveOrDiscoverProjectConfig } from "@/lib/azure-devops/project-config-resolver";
 import {
   buildWorkItemDateFieldNames,
   DEFAULT_WORKING_DATE_FIELD,
   resolveAdoTimeZone,
 } from "@/lib/azure-devops/working-date-field";
-import { resolveTaskWorkItemTypeName } from "@/lib/azure-devops/work-item-type-states";
 
-async function resolveWorkingDateFieldForProject(
-  auth: AdoCallerAuth,
-  projectFields: ReadonlySet<string>,
-): Promise<Pick<AdoProcessProfile, "workingDateField" | "workingDateFieldSource">> {
-  const envField = process.env.AZDO_WORKING_DATE_FIELD?.trim();
+function dbConfigToProfile(
+  dbConfig: Awaited<ReturnType<typeof resolveOrDiscoverProjectConfig>>,
+): AdoProcessProfile {
+  const workingDateField = dbConfig.workingDateField ?? DEFAULT_WORKING_DATE_FIELD;
 
-  if (envField && projectFields.has(envField)) {
-    return { workingDateField: envField, workingDateFieldSource: "env" };
-  }
-
-  const discovered = await discoverWorkingDateFieldReference(
-    auth,
-    resolveTaskWorkItemTypeName(),
-  );
-  if (discovered && projectFields.has(discovered)) {
-    return { workingDateField: discovered, workingDateFieldSource: "discovered" };
-  }
-
-  if (envField && !projectFields.has(envField)) {
-    return { workingDateField: DEFAULT_WORKING_DATE_FIELD, workingDateFieldSource: "default" };
-  }
-
-  return { workingDateField: DEFAULT_WORKING_DATE_FIELD, workingDateFieldSource: "default" };
-}
-
-export async function buildProcessProfileForAuth(auth: AdoCallerAuth): Promise<AdoProcessProfile> {
-  const projectFields = await listProjectFieldReferenceNames(auth);
-  const { workingDateField, workingDateFieldSource } = await resolveWorkingDateFieldForProject(
-    auth,
-    projectFields,
-  );
+  const workingDateFieldSource =
+    dbConfig.configSource === "manual"
+      ? "manual"
+      : workingDateField === DEFAULT_WORKING_DATE_FIELD
+        ? "default"
+        : "discovered";
 
   return {
     workingDateField,
     workingDateFieldSource,
     workItemDateFieldNames: buildWorkItemDateFieldNames(workingDateField),
-    timezone: resolveAdoTimeZone(),
+    timezone: dbConfig.timezone ?? resolveAdoTimeZone(),
+    completedWorkField: dbConfig.completedWorkField ?? ADO_FIELD_DEFAULTS.completedWorkField,
+    originalEstimateField: dbConfig.originalEstimateField ?? ADO_FIELD_DEFAULTS.originalEstimateField,
+    activityField: dbConfig.activityField !== undefined
+      ? dbConfig.activityField
+      : ADO_FIELD_DEFAULTS.activityField,
+    taskWorkItemType: dbConfig.taskWorkItemType ?? ADO_FIELD_DEFAULTS.taskWorkItemType,
+    bugWorkItemType: dbConfig.bugWorkItemType ?? ADO_FIELD_DEFAULTS.bugWorkItemType,
+    backlogItemType: dbConfig.backlogItemType ?? ADO_FIELD_DEFAULTS.backlogItemType,
+    taskTodoState: dbConfig.taskTodoState ?? "",
+    taskDoneState: dbConfig.taskDoneState ?? "",
   };
 }
 
-async function resolveProcessProfileUncached(auth: AdoCallerAuth): Promise<AdoProcessProfile> {
-  const fromSession = await readProcessProfileFromSession(auth);
-  if (fromSession) {
-    return fromSession;
-  }
-
-  return buildProcessProfileForAuth(auth);
+export async function buildProcessProfileForAuth(auth: AdoCallerAuth): Promise<AdoProcessProfile> {
+  const dbConfig = await resolveOrDiscoverProjectConfig(auth);
+  return dbConfigToProfile(dbConfig);
 }
-
-const resolveProcessProfileCached = cache(
-  async (organization: string, project: string, auth: AdoCallerAuth): Promise<AdoProcessProfile> => {
-    void organization;
-    void project;
-    return resolveProcessProfileUncached(auth);
-  },
-);
 
 /**
- * Perfil ADO para lectura en Server Components: sesión guardada o detección en vivo.
- * No escribe cookies (usar writeProcessProfileToSession en Route Handlers / al conectar).
+ * Perfil ADO para el proyecto actual.
+ * La BD es la fuente de verdad; React cache() deduplica dentro de cada request.
  */
-export async function resolveProcessProfile(auth: AdoCallerAuth): Promise<AdoProcessProfile> {
-  return resolveProcessProfileCached(auth.organization, auth.project, auth);
-}
+export const resolveProcessProfile = cache(
+  async (auth: AdoCallerAuth): Promise<AdoProcessProfile> => {
+    return buildProcessProfileForAuth(auth);
+  },
+);

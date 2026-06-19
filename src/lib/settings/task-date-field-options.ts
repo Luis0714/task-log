@@ -10,8 +10,11 @@ export type TaskDateFieldOption = {
   label: string;
 };
 
-export async function listTaskDateFieldOptions(auth: AdoCallerAuth): Promise<TaskDateFieldOption[]> {
-  const fields = await listWorkItemTypeFields(auth, resolveTaskWorkItemTypeName());
+export async function listTaskDateFieldOptions(
+  auth: AdoCallerAuth,
+  workItemType?: string,
+): Promise<TaskDateFieldOption[]> {
+  const fields = await listWorkItemTypeFields(auth, workItemType ?? resolveTaskWorkItemTypeName());
 
   const options = fields
     .filter((field) => isWitDateField(field))

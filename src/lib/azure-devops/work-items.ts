@@ -8,7 +8,7 @@ import {
   escapeWiqlString,
 } from "@/lib/azure-devops/client";
 import { resolveAdoCaller, type AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
-import { listTaskStates, resolveTaskWorkItemTypeName } from "@/lib/azure-devops/work-item-type-states";
+import { listTaskStates } from "@/lib/azure-devops/work-item-type-states";
 import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
 import { buildAssigneeWiqlCondition } from "@/lib/filters/assignee-wiql";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
@@ -44,9 +44,6 @@ function authHeader(auth: AdoCallerAuth): string {
   return adoAuthHeader(auth);
 }
 
-const COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
-const ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
-const ACTIVITY = "Microsoft.VSTS.Common.Activity";
 const AREA_PATH = "System.AreaPath";
 const ITERATION_PATH = "System.IterationPath";
 
@@ -141,7 +138,7 @@ export async function createTaskUnderPbi(
     };
   }
 
-  const createStateName = pickDefaultOpenTaskState(taskStates);
+  const createStateName = pickDefaultOpenTaskState(taskStates, processProfile.taskTodoState || null);
   const createState =
     taskStates.find((state) => state.name === createStateName) ??
     taskStates.find((state) => state.category === "Proposed") ??
@@ -152,9 +149,8 @@ export async function createTaskUnderPbi(
     { op: "add", path: "/fields/System.State", value: createState.name },
     { op: "add", path: `/fields/${AREA_PATH}`, value: pbiContext.areaPath },
     { op: "add", path: `/fields/${ITERATION_PATH}`, value: iterationPath },
-    { op: "add", path: `/fields/${COMPLETED_WORK}`, value: params.hours },
-    { op: "add", path: `/fields/${ORIGINAL_ESTIMATE}`, value: params.hours },
-    { op: "add", path: `/fields/${ACTIVITY}`, value: params.activity },
+    { op: "add", path: `/fields/${processProfile.completedWorkField}`, value: params.hours },
+    { op: "add", path: `/fields/${processProfile.originalEstimateField}`, value: params.hours },
     {
       op: "add",
       path: `/fields/${processProfile.workingDateField}`,
@@ -170,6 +166,10 @@ export async function createTaskUnderPbi(
     },
   ];
 
+  if (processProfile.activityField) {
+    ops.push({ op: "add", path: `/fields/${processProfile.activityField}`, value: params.activity });
+  }
+
   const description = params.description?.trim();
   if (description) {
     ops.push({ op: "add", path: "/fields/System.Description", value: description });
@@ -179,7 +179,7 @@ export async function createTaskUnderPbi(
     ops.push({ op: "add", path: "/fields/System.AssignedTo", value: assignedTo });
   }
 
-  const url = `${adoProjectBase(auth)}/_apis/wit/workitems/$Task?api-version=7.1`;
+  const url = `${adoProjectBase(auth)}/_apis/wit/workitems/$${encodeURIComponent(processProfile.taskWorkItemType)}?api-version=7.1`;
   const res = await adoFetch(auth, url, {
     method: "POST",
     headers: {
@@ -202,7 +202,7 @@ export async function createTaskUnderPbi(
     return { ok: true, taskId: created.id, completedWork: params.hours, markedAsDone: false };
   }
 
-  const doneState = pickDefaultCompletedTaskState(taskStates);
+  const doneState = pickDefaultCompletedTaskState(taskStates, processProfile.taskDoneState || null);
   const markDoneResult = await updateWorkItemState(
     {
       workItemId: created.id,
@@ -229,6 +229,9 @@ export async function logWorkOnWorkItem(
   params: { workItemId: number; hours: number; comment: string },
   auth: AdoCallerAuth,
 ): Promise<{ ok: true; newCompletedWork: number } | { ok: false; status: number; body: string }> {
+  const processProfile = await resolveProcessProfile(auth);
+  const completedWorkField = processProfile.completedWorkField;
+
   const base = `https://dev.azure.com/${encodeURIComponent(auth.organization)}/${encodeURIComponent(auth.project)}/_apis/wit/workitems`;
   const api = "api-version=7.1";
   const headers: Record<string, string> = {
@@ -236,7 +239,7 @@ export async function logWorkOnWorkItem(
     "Content-Type": "application/json",
   };
 
-  const getUrl = `${base}/${params.workItemId}?${api}&$fields=${encodeURIComponent(COMPLETED_WORK)}`;
+  const getUrl = `${base}/${params.workItemId}?${api}&$fields=${encodeURIComponent(completedWorkField)}`;
   const getRes = await fetch(getUrl, { headers, cache: "no-store" });
   if (getRes.status === 401 || getRes.status === 403) {
     const body = await getRes.text();
@@ -255,7 +258,7 @@ export async function logWorkOnWorkItem(
   }
 
   const wi = (await getRes.json()) as { fields?: Record<string, number | string | undefined> };
-  const currentRaw = wi.fields?.[COMPLETED_WORK];
+  const currentRaw = wi.fields?.[completedWorkField];
   const current =
     typeof currentRaw === "number"
       ? currentRaw
@@ -266,12 +269,12 @@ export async function logWorkOnWorkItem(
   const newCompletedWork = Math.round((previous + params.hours) * 100) / 100;
 
   const hadField =
-    wi.fields?.[COMPLETED_WORK] !== undefined && wi.fields?.[COMPLETED_WORK] !== null;
+    wi.fields?.[completedWorkField] !== undefined && wi.fields?.[completedWorkField] !== null;
   const patchOp = hadField ? "replace" : "add";
 
   const patchUrl = `${base}/${params.workItemId}?${api}`;
   const patchBody = JSON.stringify([
-    { op: patchOp, path: `/fields/${COMPLETED_WORK}`, value: newCompletedWork },
+    { op: patchOp, path: `/fields/${completedWorkField}`, value: newCompletedWork },
   ]);
 
   const patchRes = await fetch(patchUrl, {
@@ -331,8 +334,6 @@ const PARENT = "System.Parent";
 const SYSTEM_TAGS = "System.Tags";
 const DESCRIPTION_FIELD = "System.Description";
 const ACCEPTANCE_CRITERIA_FIELD = "Microsoft.VSTS.Common.AcceptanceCriteria";
-const WI_COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
-const WI_ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
 function parseNumericField(value: string | number | undefined): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
@@ -363,9 +364,6 @@ function adoListErrorMessage(res: Response, body: string, fallback: string): str
   return snippet ? `HTTP ${res.status}: ${snippet}` : `HTTP ${res.status}: ${fallback}`;
 }
 
-function resolveBacklogItemType(): string {
-  return process.env.AZDO_BACKLOG_ITEM_TYPE?.trim() || "Product Backlog Item";
-}
 
 async function fetchWorkItemDetails(
   auth: AdoCallerAuth,
@@ -391,8 +389,8 @@ async function fetchWorkItemDetails(
     SYSTEM_TAGS,
     DESCRIPTION_FIELD,
     ACCEPTANCE_CRITERIA_FIELD,
-    WI_COMPLETED_WORK,
-    WI_ORIGINAL_ESTIMATE,
+    processProfile.completedWorkField,
+    processProfile.originalEstimateField,
     ...processProfile.workItemDateFieldNames,
     ...backlogFetchFields,
   ];
@@ -416,8 +414,8 @@ async function fetchWorkItemDetails(
         priority: parseNumericField(workItem.fields?.[PRIORITY]),
         effort: parseEffortField(workItem.fields),
         parentId: parseNumericField(workItem.fields?.[PARENT]),
-        loggedHours: parseNumericField(workItem.fields?.[WI_COMPLETED_WORK]),
-        estimatedHours: parseNumericField(workItem.fields?.[WI_ORIGINAL_ESTIMATE]),
+        loggedHours: parseNumericField(workItem.fields?.[processProfile.completedWorkField]),
+        estimatedHours: parseNumericField(workItem.fields?.[processProfile.originalEstimateField]),
         workingDate: resolveWorkingDateKeyFromFields(
           workItem.fields,
           processProfile.workItemDateFieldNames,
@@ -461,6 +459,7 @@ async function fetchCarryoverParents(
   assignee: string,
   existingIds: Set<number>,
   backlogType: string,
+  taskWorkItemType: string,
 ): Promise<AdoWorkItemOption[]> {
   try {
     const project = escapeWiqlString(auth.project);
@@ -470,7 +469,7 @@ async function fetchCarryoverParents(
       `[System.TeamProject] = '${project}'`,
       `[System.IterationPath] UNDER '${path}'`,
       `[System.State] <> 'Removed'`,
-      `[System.WorkItemType] = '${escapeWiqlString(resolveTaskWorkItemTypeName())}'`,
+      `[System.WorkItemType] = '${escapeWiqlString(taskWorkItemType)}'`,
     ];
 
     const assigneeCondition = buildAssigneeWiqlCondition(assignee);
@@ -521,8 +520,9 @@ export async function listWorkItemsInSprint(
   iterationPath: string,
   filters: WorkItemSprintFilters = {},
 ): Promise<AdoWorkItemOption[]> {
+  const processProfile = await resolveProcessProfile(auth);
   const assignee = filters.assignee?.trim() || WORK_ITEM_ASSIGNEE_ALL;
-  const workItemType = filters.workItemType?.trim() || resolveBacklogItemType();
+  const workItemType = filters.workItemType?.trim() || processProfile.backlogItemType;
   const project = escapeWiqlString(auth.project);
   const path = escapeWiqlString(iterationPath);
 
@@ -562,10 +562,17 @@ export async function listWorkItemsInSprint(
 
   // Only the default backlog type (PBI/HU) can be a carryover parent of Tasks.
   // Queries for Bugs or other types skip this pass.
-  if (workItemType !== resolveBacklogItemType()) return mainItems;
+  if (workItemType !== processProfile.backlogItemType) return mainItems;
 
   const existingIds = new Set(mainItems.map((item) => item.id));
-  const carryoverItems = await fetchCarryoverParents(auth, iterationPath, assignee, existingIds, workItemType);
+  const carryoverItems = await fetchCarryoverParents(
+    auth,
+    iterationPath,
+    assignee,
+    existingIds,
+    workItemType,
+    processProfile.taskWorkItemType,
+  );
 
   if (carryoverItems.length === 0) return mainItems;
 
@@ -577,9 +584,22 @@ export async function listTasksInSprint(
   iterationPath: string,
   filters: Omit<WorkItemSprintFilters, "workItemType"> = {},
 ): Promise<AdoWorkItemOption[]> {
+  const processProfile = await resolveProcessProfile(auth);
   return listWorkItemsInSprint(auth, iterationPath, {
     ...filters,
-    workItemType: resolveTaskWorkItemTypeName(),
+    workItemType: processProfile.taskWorkItemType,
+  });
+}
+
+export async function listBugItemsInSprint(
+  auth: AdoCallerAuth,
+  iterationPath: string,
+  filters: Omit<WorkItemSprintFilters, "workItemType"> = {},
+): Promise<AdoWorkItemOption[]> {
+  const processProfile = await resolveProcessProfile(auth);
+  return listWorkItemsInSprint(auth, iterationPath, {
+    ...filters,
+    workItemType: processProfile.bugWorkItemType,
   });
 }
 
@@ -612,16 +632,17 @@ function buildWorkingDatePatchOps(
 function buildCompletedWorkPatchOps(
   fields: Record<string, string | number | undefined> | undefined,
   hours: number,
+  completedWorkField: string,
 ): WorkItemFieldPatchOp[] {
   const hadValue =
-    fields?.[COMPLETED_WORK] !== undefined &&
-    fields?.[COMPLETED_WORK] !== null &&
-    fields?.[COMPLETED_WORK] !== "";
+    fields?.[completedWorkField] !== undefined &&
+    fields?.[completedWorkField] !== null &&
+    fields?.[completedWorkField] !== "";
 
   return [
     {
       op: hadValue ? "replace" : "add",
-      path: `/fields/${COMPLETED_WORK}`,
+      path: `/fields/${completedWorkField}`,
       value: Math.round(hours * 100) / 100,
     },
   ];
@@ -654,7 +675,7 @@ export async function updateWorkItemState(
 
   const dateFields = [
     SYSTEM_STATE,
-    COMPLETED_WORK,
+    processProfile.completedWorkField,
     ...workingDateFieldNamesForUpdate,
     ...processProfile.workItemDateFieldNames,
   ];
@@ -693,7 +714,7 @@ export async function updateWorkItemState(
   ];
 
   if (params.completedWork !== undefined && Number.isFinite(params.completedWork)) {
-    patchOps.push(...buildCompletedWorkPatchOps(wi.fields, params.completedWork));
+    patchOps.push(...buildCompletedWorkPatchOps(wi.fields, params.completedWork, processProfile.completedWorkField));
   }
 
   patchOps.push({ op: "replace", path: `/fields/${SYSTEM_STATE}`, value: state });

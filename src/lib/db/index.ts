@@ -26,11 +26,17 @@ export type {
   UserFilterPreferencesRepository,
   UserFilterScope,
 } from "@/lib/db/ports/user-filter-preferences.repository.port";
+export type {
+  ProjectConfigurationRepository,
+  ProjectConfigInput,
+  ProjectConfigRow,
+} from "@/lib/db/ports/project-configuration.repository.port";
 export {
   adoAuthMethodEnum,
   adoConnections,
   userAuthProviderEnum,
   userFilterPreferences,
+  projectConfigurations,
   users,
   type AdoConnection,
   type NewAdoConnection,
@@ -38,4 +44,6 @@ export {
   type NewUserFilterPreferences,
   type User,
   type UserFilterPreferences,
+  type ProjectConfiguration,
+  type NewProjectConfiguration,
 } from "@/lib/db/schema";

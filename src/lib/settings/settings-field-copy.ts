@@ -48,3 +48,67 @@ export const PROFILE_SOURCE_LABELS: Record<AdoProcessProfileFieldSource, string>
 export function formatProfileSourceLabel(source: AdoProcessProfileFieldSource): string {
   return PROFILE_SOURCE_LABELS[source];
 }
+
+export const ADMIN_PROCESS_SECTION = {
+  title: "Configuración de proceso",
+  description:
+    "Campos y tipos de work item que usa NeosView en este proyecto. Se auto-detectan al conectar y se aplican a todos los usuarios.",
+} as const;
+
+export const COMPLETED_WORK_FIELD_COPY: SettingsFieldCopy = {
+  label: "Campo de horas trabajadas",
+  shortHelp: "Referencia del campo donde se registran las horas completadas.",
+  usedIn: "Registro de tiempo y creación de tareas.",
+  detail:
+    "Normalmente Microsoft.VSTS.Scheduling.CompletedWork. Cámbialo si tu proceso usa un campo personalizado para las horas.",
+};
+
+export const ORIGINAL_ESTIMATE_FIELD_COPY: SettingsFieldCopy = {
+  label: "Campo de estimación inicial",
+  shortHelp: "Campo donde se guarda la estimación al crear la tarea.",
+  usedIn: "Creación de tareas.",
+  detail: "Normalmente Microsoft.VSTS.Scheduling.OriginalEstimate.",
+};
+
+export const ACTIVITY_FIELD_COPY: SettingsFieldCopy = {
+  label: "Campo de actividad",
+  shortHelp: "Campo de categoría de trabajo (Development, QA, Design…).",
+  usedIn: "Creación de tareas. Dejar vacío para desactivar.",
+  detail:
+    "Normalmente Microsoft.VSTS.Common.Activity. Si tu proceso no usa este campo déjalo vacío.",
+};
+
+export const TASK_WIT_COPY: SettingsFieldCopy = {
+  label: "Tipo de work item Tarea",
+  shortHelp: "Nombre del tipo de work item que representa una tarea.",
+  usedIn: "Creación de tareas y consultas WIQL.",
+  detail: "Normalmente Task. Algunos procesos lo llaman Tarea u otro nombre.",
+};
+
+export const BUG_WIT_COPY: SettingsFieldCopy = {
+  label: "Tipo de work item Bug",
+  shortHelp: "Nombre del tipo de work item para bugs.",
+  usedIn: "Listado de bugs del sprint.",
+  detail: "Normalmente Bug.",
+};
+
+export const BACKLOG_WIT_COPY: SettingsFieldCopy = {
+  label: "Tipo de work item Backlog",
+  shortHelp: "Nombre del tipo de historia de usuario o PBI.",
+  usedIn: "Listado del sprint y creación de tareas.",
+  detail: "Normalmente Product Backlog Item o User Story.",
+};
+
+export const TASK_TODO_STATE_COPY: SettingsFieldCopy = {
+  label: "Estado inicial de tarea",
+  shortHelp: "Estado que se asigna al crear una tarea.",
+  usedIn: "Creación de tareas.",
+  detail: "Normalmente To Do o New. Se auto-detecta según los estados disponibles.",
+};
+
+export const TASK_DONE_STATE_COPY: SettingsFieldCopy = {
+  label: "Estado completado de tarea",
+  shortHelp: "Estado que se asigna al marcar una tarea como hecha.",
+  usedIn: "Cierre de tareas al registrar tiempo.",
+  detail: "Normalmente Closed o Done.",
+};

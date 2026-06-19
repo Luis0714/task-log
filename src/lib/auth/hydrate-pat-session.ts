@@ -1,6 +1,6 @@
 import "server-only";
 
-import { attachProcessProfileOnConnect } from "@/lib/azure-devops/persist-process-profile";
+import { triggerProjectConfigDiscovery } from "@/lib/azure-devops/persist-process-profile";
 import { fetchCurrentAdoProfile } from "@/lib/azure-devops/profile";
 import { applyContextDefaultsToSession } from "@/lib/auth/apply-context-defaults-to-session";
 import type { TaskPilotSessionData } from "@/lib/auth/session";
@@ -39,8 +39,8 @@ export async function hydratePatSession(
   }
 
   try {
-    await attachProcessProfileOnConnect(session, caller);
+    await triggerProjectConfigDiscovery(caller);
   } catch {
-    // La conexión PAT sigue siendo válida aunque falle la detección del perfil de proceso.
+    // La conexión PAT sigue siendo válida aunque falle la detección de campos del proyecto.
   }
 }

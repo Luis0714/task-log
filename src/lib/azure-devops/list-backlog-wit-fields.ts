@@ -23,9 +23,10 @@ function normalizeFieldLabel(value: string): string {
 
 export async function listBacklogWitFieldDefinitions(
   auth: AdoCallerAuth,
+  workItemType?: string,
 ): Promise<Array<{ referenceName: string; name: string }>> {
-  const workItemType = resolveBacklogWorkItemTypeName();
-  const url = `${adoProjectBase(auth)}/_apis/wit/workitemtypes/${encodeURIComponent(workItemType)}/fields?api-version=7.1`;
+  const wit = workItemType ?? resolveBacklogWorkItemTypeName();
+  const url = `${adoProjectBase(auth)}/_apis/wit/workitemtypes/${encodeURIComponent(wit)}/fields?api-version=7.1`;
   const res = await adoFetch(auth, url);
 
   if (!res.ok) {
@@ -44,8 +45,9 @@ export async function listBacklogWitFieldDefinitions(
 
 export async function listResponsableFieldCandidates(
   auth: AdoCallerAuth,
+  workItemType?: string,
 ): Promise<Array<{ referenceName: string; name: string }>> {
-  const fields = await listBacklogWitFieldDefinitions(auth);
+  const fields = await listBacklogWitFieldDefinitions(auth, workItemType);
   return fields
     .filter((field) => normalizeFieldLabel(field.name).includes("responsable"))
     .sort((a, b) => a.name.localeCompare(b.name, "es"));

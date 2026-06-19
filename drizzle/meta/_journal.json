@@ -78,6 +78,13 @@
       "when": 1781740800002,
       "tag": "0010_user_filter_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1781740800003,
+      "tag": "0011_project_configurations",
+      "breakpoints": true
     }
   ]
 }

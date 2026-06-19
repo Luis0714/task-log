@@ -4,12 +4,14 @@ import { drizzleAdoConnectionRepository } from "@/lib/db/adapters/drizzle/drizzl
 import { drizzleEntraUserRepository } from "@/lib/db/adapters/drizzle/drizzle-entra-user.repository";
 import { drizzleLlmInteractionRepository } from "@/lib/db/adapters/drizzle/drizzle-llm-interaction.repository";
 import { drizzleLocalUserRepository } from "@/lib/db/adapters/drizzle/drizzle-local-user.repository";
+import { drizzleProjectConfigurationRepository } from "@/lib/db/adapters/drizzle/drizzle-project-configuration.repository";
 import { drizzleUserFilterPreferencesRepository } from "@/lib/db/adapters/drizzle/drizzle-user-filter-preferences.repository";
 import { drizzleUserRepository } from "@/lib/db/adapters/drizzle/drizzle-user.repository";
 import type { AdoConnectionRepository } from "@/lib/db/ports/ado-connection.repository.port";
 import type { EntraUserRepository } from "@/lib/db/ports/entra-user.repository.port";
 import type { LlmInteractionRepository } from "@/lib/db/ports/llm-interaction.repository.port";
 import type { LocalUserRepository } from "@/lib/db/ports/local-user.repository.port";
+import type { ProjectConfigurationRepository } from "@/lib/db/ports/project-configuration.repository.port";
 import type { UserRepository } from "@/lib/db/ports/user.repository.port";
 import type { UserFilterPreferencesRepository } from "@/lib/db/ports/user-filter-preferences.repository.port";
 import { drizzleSprintSnapshotRepository } from "@/lib/db/adapters/drizzle/drizzle-sprint-snapshot.repository";
@@ -29,6 +31,7 @@ export type Repositories = {
   llmInteraction: LlmInteractionRepository;
   user: UserRepository;
   userFilterPreferences: UserFilterPreferencesRepository;
+  projectConfiguration: ProjectConfigurationRepository;
 };
 
 const defaultRepositories: Repositories = {
@@ -41,6 +44,7 @@ const defaultRepositories: Repositories = {
   llmInteraction: drizzleLlmInteractionRepository,
   user: drizzleUserRepository,
   userFilterPreferences: drizzleUserFilterPreferencesRepository,
+  projectConfiguration: drizzleProjectConfigurationRepository,
 };
 
 let repositories: Repositories = defaultRepositories;

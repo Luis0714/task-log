@@ -66,7 +66,9 @@ export async function getBacklogItemFetchFieldNames(
 
 export async function getBacklogFieldsMetadata(
   auth: AdoCallerAuth,
+  workItemType?: string,
 ): Promise<AdoBacklogFieldsResponseDto> {
+  const wit = workItemType ?? resolveBacklogWorkItemTypeName();
   const fromEnv = buildBacklogResponsableFieldsFromEnv();
   const envKeys = new Set(fromEnv.map((field) => field.key));
   const discovered = await discoverBacklogResponsableFields(auth);
@@ -78,10 +80,10 @@ export async function getBacklogFieldsMetadata(
       .map((field) => toBacklogResponsableFieldDto(field, "discovered")),
   ];
 
-  const responsableCandidates = await listResponsableFieldCandidates(auth);
+  const responsableCandidates = await listResponsableFieldCandidates(auth, wit);
 
   return {
-    workItemType: resolveBacklogWorkItemTypeName(),
+    workItemType: wit,
     fields,
     responsableCandidates,
   };

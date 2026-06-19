@@ -1,11 +1,9 @@
 import { getIronSession, type SessionOptions } from "iron-session";
 import { cookies } from "next/headers";
 
-import type { StoredAdoProcessProfile } from "@/lib/azure-devops/process-profile-types";
 import type { SessionAuthMethod } from "@/lib/auth/session-auth-method";
 
 export type TaskPilotSessionData = {
-  /** Usuario persistido en BD (registro/login TaskPilot). */
   taskPilotUserId?: string;
   pendingOAuth?: { state: string; codeVerifier: string; selectedRole?: string };
   sessionAuthMethod?: SessionAuthMethod;
@@ -15,9 +13,6 @@ export type TaskPilotSessionData = {
   defaultOrg?: string;
   defaultProject?: string;
   defaultTeam?: string;
-  /** Perfiles ADO por org::proyecto (detectados al conectar). */
-  adoProcessProfiles?: Record<string, StoredAdoProcessProfile>;
-  /** Nombre del rol del usuario (ej: 'developer', 'super_admin'). Cargado tras OAuth. */
   userRole?: string;
 };
 
@@ -31,7 +26,6 @@ export function clearSessionCredentials(session: TaskPilotSessionData): void {
   session.defaultOrg = undefined;
   session.defaultProject = undefined;
   session.defaultTeam = undefined;
-  session.adoProcessProfiles = undefined;
   session.userRole = undefined;
 }
 

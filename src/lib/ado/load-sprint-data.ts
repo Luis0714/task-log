@@ -6,7 +6,12 @@ import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
 import { listBacklogItemStates } from "@/lib/azure-devops/work-item-type-states";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
-import { listTasksInSprint, listWorkItemsInSprint } from "@/lib/azure-devops/work-items";
+import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
+import {
+  listBugItemsInSprint,
+  listTasksInSprint,
+  listWorkItemsInSprint,
+} from "@/lib/azure-devops/work-items";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import type {
   AdoTaskStateDto,
@@ -64,10 +69,7 @@ export const loadSprintBugs = cache(async function loadSprintBugs(
     if (!auth) {
       return { data: [], error: "Conecta Azure DevOps para cargar Bugs del sprint." };
     }
-    const data = await listWorkItemsInSprint(auth, sprintPath, {
-      assignee,
-      workItemType: "Bug",
-    });
+    const data = await listBugItemsInSprint(auth, sprintPath, { assignee });
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };
@@ -99,7 +101,8 @@ export const loadSprintBacklogStates = cache(async function loadSprintBacklogSta
     if (!auth) {
       return { data: [], error: "Conecta Azure DevOps para cargar estados del backlog." };
     }
-    const data = await listBacklogItemStates(auth);
+    const processProfile = await resolveProcessProfile(auth);
+    const data = await listBacklogItemStates(auth, processProfile.backlogItemType);
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };
