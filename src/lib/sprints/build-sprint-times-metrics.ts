@@ -174,7 +174,9 @@ export function buildSprintTimesMetrics(
     return EMPTY_SPRINT_TIMES_METRICS;
   }
 
-  const [firstWeekDays, secondWeekDays] = splitSprintIntoWeeks(workingDays);
+  const weekGroups = splitSprintIntoWeeks(workingDays);
+  const firstWeekDays = weekGroups[0] ?? [];
+  const secondWeekDays = weekGroups[1] ?? [];
   const week1DayKeys = firstWeekDays.map((day) => day.value);
   const week2DayKeys = secondWeekDays.map((day) => day.value);
   const allSprintDayKeys = workingDays.map((day) => day.value);

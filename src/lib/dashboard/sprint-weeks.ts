@@ -1,17 +1,31 @@
 import { sumHoursBreakdownForDayKeys } from "@/lib/dashboard/hours-breakdown";
 import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
-import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
+import { toLocalDateKey, type SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import type { SprintBugHoursSource } from "@/lib/dashboard/bug-hours";
 import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
 import type { SprintWeekMetrics } from "@/lib/dashboard/types";
 
+function getMondayOfWeek(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = d.getDay();
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+  return d;
+}
+
+/** Agrupa los días laborables del sprint por semana calendario (lunes–viernes). */
 export function splitSprintIntoWeeks(
   workingDays: readonly SprintWorkingDay[],
-): [SprintWorkingDay[], SprintWorkingDay[]] {
-  if (workingDays.length === 0) return [[], []];
+): SprintWorkingDay[][] {
+  if (workingDays.length === 0) return [];
 
-  const mid = Math.ceil(workingDays.length / 2);
-  return [workingDays.slice(0, mid), workingDays.slice(mid)];
+  const weekMap = new Map<string, SprintWorkingDay[]>();
+  for (const day of workingDays) {
+    const key = toLocalDateKey(getMondayOfWeek(day.date));
+    if (!weekMap.has(key)) weekMap.set(key, []);
+    weekMap.get(key)!.push(day);
+  }
+
+  return [...weekMap.values()];
 }
 
 export function formatSprintWeekDateRange(days: readonly SprintWorkingDay[]): string {
@@ -58,12 +72,9 @@ export function computeSprintWeekMetrics(
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
 ): SprintWeekMetrics[] {
-  const [firstWeekDays, secondWeekDays] = splitSprintIntoWeeks(workingDays);
-
-  return [
-    buildWeekMetrics(firstWeekDays, "1ª semana", tasks, bugs),
-    buildWeekMetrics(secondWeekDays, "2ª semana", tasks, bugs),
-  ].filter((week): week is SprintWeekMetrics => week !== null);
+  return splitSprintIntoWeeks(workingDays)
+    .map((days, index) => buildWeekMetrics(days, `Semana ${index + 1}`, tasks, bugs))
+    .filter((week): week is SprintWeekMetrics => week !== null);
 }
 
 export function weekContainsDay(week: SprintWeekMetrics, dayKey: string): boolean {

@@ -1,6 +1,7 @@
 "use client";
 
 import { BugDetailSheetBody } from "@/components/bugs/bug-detail-sheet-body";
+import { DeleteWorkItemDialog } from "@/components/work-items/delete-work-item-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -82,10 +83,23 @@ export function BugDetailSheet({
           </div>
         </div>
 
-        <SheetFooter className={cn("border-t pt-4")}>
+        <SheetFooter className={cn("border-t flex-row gap-2")}>
+          {bug && project ? (
+            <DeleteWorkItemDialog
+              workItemId={bug.id}
+              project={project}
+              itemLabel="bug"
+              disabled={form.saving}
+              className="flex-1"
+              onDeleted={() => {
+                onSaved?.();
+                onOpenChange(false);
+              }}
+            />
+          ) : null}
           <Button
             type="button"
-            className="w-full"
+            className="flex-1"
             disabled={!form.canSave}
             onClick={() => void handleSave()}
           >

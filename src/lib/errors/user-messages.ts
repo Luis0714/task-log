@@ -33,6 +33,7 @@ export const USER_MESSAGES = {
   saveFailed: "No pudimos guardar los cambios. Inténtalo de nuevo.",
   loadFailed: "No pudimos cargar la información. Actualiza la página e inténtalo de nuevo.",
   workItemUpdateFailed: "No pudimos actualizar el elemento de trabajo.",
+  workItemDeleteFailed: "No pudimos eliminar el elemento de trabajo.",
   taskCreateFailed: "No pudimos crear la tarea en Azure DevOps.",
   profileSyncFailed: "No pudimos actualizar tu perfil. Inténtalo de nuevo.",
   settingsLoadFailed: "No pudimos cargar la configuración del proyecto.",

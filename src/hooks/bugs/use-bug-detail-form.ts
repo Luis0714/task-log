@@ -81,7 +81,7 @@ export function useBugDetailForm({
       const result = await updateBugInAdo(bug.id, {
         project,
         state: draftState,
-        workingDate: draftWorkingDate,
+        workingDate: isDateDirty ? draftWorkingDate : undefined,
         completedWork: parsedCompletedWork,
       });
 

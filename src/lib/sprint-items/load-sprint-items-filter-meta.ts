@@ -9,6 +9,7 @@ import {
   listBugStates,
   listTaskStates,
 } from "@/lib/azure-devops/work-item-type-states";
+import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import type { AdoTaskStateDto, AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 
 export type SprintItemsFilterMeta = {
@@ -32,9 +33,12 @@ export const loadSprintItemsFilterMeta = cache(async function loadSprintItemsFil
   const sprintSource = kind === "tasks" ? "tasks" : "bugs";
 
   try {
+    const profile = await resolveProcessProfile(auth);
     const [members, states] = await Promise.all([
       loadAssigneeFilterMembers(project, team, sprintPath, sprintSource),
-      kind === "tasks" ? listTaskStates(auth) : listBugStates(auth),
+      kind === "tasks"
+        ? listTaskStates(auth, profile.taskWorkItemType)
+        : listBugStates(auth, profile.bugWorkItemType),
     ]);
     return { members, states };
   } catch {

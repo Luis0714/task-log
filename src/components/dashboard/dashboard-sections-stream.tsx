@@ -19,11 +19,11 @@ export function DashboardSectionsStream({
   catalog,
   sprintDayKey,
 }: DashboardSectionsStreamProps) {
+  // sprintDayKey excluido: las secciones lo resuelven internamente; solo project/team/sprint deben resetear el skeleton.
   const sectionKey = [
     catalog.project,
     catalog.team,
     catalog.sprintPath,
-    sprintDayKey,
   ].join("|");
 
   return (

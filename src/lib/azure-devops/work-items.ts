@@ -31,7 +31,6 @@ import { parseIdentityDisplayName } from "@/lib/azure-devops/identity-field";
 import { mapBacklogItemFields } from "@/lib/azure-devops/map-backlog-item-fields";
 import { parseAdoWorkItemTags } from "@/lib/work-items/ado-work-item-tags";
 import type { WorkItemFieldPatchOp } from "@/lib/azure-devops/work-item-patch";
-import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
 import {
   pickDefaultCompletedTaskState,
   pickDefaultOpenTaskState,
@@ -129,7 +128,7 @@ export async function createTaskUnderPbi(
   const pbiUrl = `${adoOrgBase(auth)}/_apis/wit/workitems/${params.pbiId}`;
   const iterationPath = params.sprintPath.trim() || pbiContext.iterationPath;
 
-  const taskStates = await listTaskStates(auth);
+  const taskStates = await listTaskStates(auth, processProfile.taskWorkItemType);
   if (taskStates.length === 0) {
     return {
       ok: false,
@@ -700,22 +699,17 @@ export async function updateWorkItemState(
     fields?: Record<string, string | number | undefined>;
   };
 
-  const dateValue =
-    resolveAdoWorkingDateFieldValue(
-      params.workingDate,
-      params.workingTime,
-      processProfile.timezone,
-    ) ??
-    resolveWorkingDateKeyFromFields(
-      wi.fields,
-      processProfile.workItemDateFieldNames,
-      processProfile.timezone,
-    ) ??
-    getDefaultWorkingDate();
+  const explicitDateValue = resolveAdoWorkingDateFieldValue(
+    params.workingDate,
+    params.workingTime,
+    processProfile.timezone,
+  );
 
-  const patchOps: WorkItemFieldPatchOp[] = [
-    ...buildWorkingDatePatchOps(wi.fields, dateValue, workingDateFieldNamesForUpdate),
-  ];
+  const patchOps: WorkItemFieldPatchOp[] = [];
+
+  if (explicitDateValue) {
+    patchOps.push(...buildWorkingDatePatchOps(wi.fields, explicitDateValue, workingDateFieldNamesForUpdate));
+  }
 
   if (params.completedWork !== undefined && Number.isFinite(params.completedWork)) {
     patchOps.push(...buildCompletedWorkPatchOps(wi.fields, params.completedWork, processProfile.completedWorkField));
@@ -740,4 +734,23 @@ export async function updateWorkItemState(
   }
 
   return { ok: true, state };
+}
+
+export type DeleteWorkItemResult =
+  | { ok: true }
+  | { ok: false; status: number; body: string };
+
+export async function deleteWorkItem(
+  workItemId: number,
+  auth: AdoCallerAuth,
+): Promise<DeleteWorkItemResult> {
+  const url = `${adoProjectBase(auth)}/_apis/wit/workitems/${workItemId}?api-version=7.1`;
+  const res = await adoFetch(auth, url, { method: "DELETE" });
+
+  if (!res.ok) {
+    const body = await res.text();
+    return { ok: false, status: res.status, body: body.slice(0, 500) };
+  }
+
+  return { ok: true };
 }

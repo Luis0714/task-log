@@ -1,7 +1,7 @@
 export type UpdateBugInAdoPayload = {
   project: string;
   state: string;
-  workingDate: string;
+  workingDate?: string;
   completedWork: number;
 };
 

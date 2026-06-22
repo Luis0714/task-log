@@ -21,6 +21,13 @@ const sprintDateFormatter = new Intl.DateTimeFormat("es", {
   year: "numeric",
 });
 
+function parseDateForDisplay(iso: string): Date | null {
+  const key = iso.trim().slice(0, 10);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
 export function formatSprintDateRange(
   startDate?: string,
   finishDate?: string,
@@ -28,11 +35,16 @@ export function formatSprintDateRange(
   if (!startDate && !finishDate) return null;
 
   if (startDate && finishDate) {
-    return `${sprintDateFormatter.format(new Date(startDate))} – ${sprintDateFormatter.format(new Date(finishDate))}`;
+    const start = parseDateForDisplay(startDate);
+    const end = parseDateForDisplay(finishDate);
+    if (!start || !end) return null;
+    return `${sprintDateFormatter.format(start)} – ${sprintDateFormatter.format(end)}`;
   }
 
-  const singleDate = startDate ?? finishDate;
-  return singleDate ? sprintDateFormatter.format(new Date(singleDate)) : null;
+  const singleIso = startDate ?? finishDate;
+  if (!singleIso) return null;
+  const date = parseDateForDisplay(singleIso);
+  return date ? sprintDateFormatter.format(date) : null;
 }
 
 export function getSprintTimeFrameLabel(
