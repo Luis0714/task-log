@@ -11,6 +11,7 @@ export const updateSettingsProcessProfileSchema = z.object({
   // campos admin opcionales
   completedWorkField: z.string().trim().optional(),
   originalEstimateField: z.string().trim().optional(),
+  remainingWorkField: z.string().trim().nullable().optional(),
   activityField: z.string().trim().nullable().optional(),
   taskWorkItemType: z.string().trim().optional(),
   bugWorkItemType: z.string().trim().optional(),

@@ -30,6 +30,7 @@ import {
   BUG_WIT_COPY,
   COMPLETED_WORK_FIELD_COPY,
   ORIGINAL_ESTIMATE_FIELD_COPY,
+  REMAINING_WORK_FIELD_COPY,
   TASK_DONE_STATE_COPY,
   TASK_TODO_STATE_COPY,
   TASK_WIT_COPY,
@@ -53,6 +54,8 @@ export function SettingsAdminProcessPanel({ data }: SettingsAdminProcessPanelPro
     setCompletedWorkField,
     originalEstimateField,
     setOriginalEstimateField,
+    remainingWorkField,
+    setRemainingWorkField,
     activityField,
     setActivityField,
     taskWorkItemType,
@@ -147,6 +150,16 @@ export function SettingsAdminProcessPanel({ data }: SettingsAdminProcessPanelPro
             value={originalEstimateField}
             onChange={(e) => setOriginalEstimateField(e.target.value)}
             placeholder="Microsoft.VSTS.Scheduling.OriginalEstimate"
+            disabled={busy !== null}
+            spellCheck={false}
+          />
+        </SettingsFieldRow>
+
+        <SettingsFieldRow copy={REMAINING_WORK_FIELD_COPY}>
+          <Input
+            value={remainingWorkField}
+            onChange={(e) => setRemainingWorkField(e.target.value)}
+            placeholder="Microsoft.VSTS.Scheduling.RemainingWork (vacío = desactivado)"
             disabled={busy !== null}
             spellCheck={false}
           />

@@ -77,6 +77,7 @@ export async function PATCH(req: Request) {
   const hasAdminFields =
     parsed.data.completedWorkField !== undefined ||
     parsed.data.originalEstimateField !== undefined ||
+    parsed.data.remainingWorkField !== undefined ||
     parsed.data.activityField !== undefined ||
     parsed.data.taskWorkItemType !== undefined ||
     parsed.data.bugWorkItemType !== undefined ||
@@ -98,6 +99,7 @@ export async function PATCH(req: Request) {
       timezone: parsed.data.timezone,
       completedWorkField: parsed.data.completedWorkField,
       originalEstimateField: parsed.data.originalEstimateField,
+      remainingWorkField: parsed.data.remainingWorkField,
       activityField: parsed.data.activityField,
       taskWorkItemType: parsed.data.taskWorkItemType,
       bugWorkItemType: parsed.data.bugWorkItemType,
@@ -116,6 +118,7 @@ export async function PATCH(req: Request) {
           timezone: profile.timezone,
           completedWorkField: profile.completedWorkField,
           originalEstimateField: profile.originalEstimateField,
+          remainingWorkField: profile.remainingWorkField,
           activityField: profile.activityField,
           taskWorkItemType: profile.taskWorkItemType,
           bugWorkItemType: profile.bugWorkItemType,

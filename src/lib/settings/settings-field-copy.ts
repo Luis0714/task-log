@@ -70,6 +70,14 @@ export const ORIGINAL_ESTIMATE_FIELD_COPY: SettingsFieldCopy = {
   detail: "Normalmente Microsoft.VSTS.Scheduling.OriginalEstimate.",
 };
 
+export const REMAINING_WORK_FIELD_COPY: SettingsFieldCopy = {
+  label: "Campo de trabajo restante",
+  shortHelp: "Campo que se pone en 0 al crear una tarea ya completada.",
+  usedIn: "Creación de tareas. Dejar vacío para desactivar.",
+  detail:
+    "Normalmente Microsoft.VSTS.Scheduling.RemainingWork. Se auto-detecta al conectar. Algunos proyectos con reglas de proceso personalizadas requieren este campo; déjalo vacío si tu proceso no lo usa.",
+};
+
 export const ACTIVITY_FIELD_COPY: SettingsFieldCopy = {
   label: "Campo de actividad",
   shortHelp: "Campo de categoría de trabajo (Development, QA, Design…).",

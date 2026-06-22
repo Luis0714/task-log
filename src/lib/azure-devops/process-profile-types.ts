@@ -14,6 +14,8 @@ export type AdoProcessProfile = {
   timezone: string;
   completedWorkField: string;
   originalEstimateField: string;
+  /** null = campo no presente en este proyecto. */
+  remainingWorkField: string | null;
   /** null = campo Activity desactivado para este proyecto. */
   activityField: string | null;
   taskWorkItemType: string;

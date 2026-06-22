@@ -29,6 +29,7 @@ export function useSettingsAdminProcessProfile({
   const [timezone, setTimezone] = useState(profile.timezone);
   const [completedWorkField, setCompletedWorkField] = useState(profile.completedWorkField);
   const [originalEstimateField, setOriginalEstimateField] = useState(profile.originalEstimateField);
+  const [remainingWorkField, setRemainingWorkField] = useState<string>(profile.remainingWorkField ?? "");
   const [activityField, setActivityField] = useState<string>(profile.activityField ?? "");
   const [taskWorkItemType, setTaskWorkItemType] = useState(profile.taskWorkItemType);
   const [bugWorkItemType, setBugWorkItemType] = useState(profile.bugWorkItemType);
@@ -45,6 +46,7 @@ export function useSettingsAdminProcessProfile({
       setTimezone(next.timezone);
       setCompletedWorkField(next.completedWorkField);
       setOriginalEstimateField(next.originalEstimateField);
+      setRemainingWorkField(next.remainingWorkField ?? "");
       setActivityField(next.activityField ?? "");
       setTaskWorkItemType(next.taskWorkItemType);
       setBugWorkItemType(next.bugWorkItemType);
@@ -68,6 +70,7 @@ export function useSettingsAdminProcessProfile({
           timezone,
           completedWorkField,
           originalEstimateField,
+          remainingWorkField: remainingWorkField.trim() || null,
           activityField: activityField.trim() || null,
           taskWorkItemType,
           bugWorkItemType,
@@ -94,6 +97,7 @@ export function useSettingsAdminProcessProfile({
     timezone,
     completedWorkField,
     originalEstimateField,
+    remainingWorkField,
     activityField,
     taskWorkItemType,
     bugWorkItemType,
@@ -128,6 +132,7 @@ export function useSettingsAdminProcessProfile({
     timezone !== profile.timezone ||
     completedWorkField !== profile.completedWorkField ||
     originalEstimateField !== profile.originalEstimateField ||
+    (remainingWorkField.trim() || null) !== profile.remainingWorkField ||
     (activityField.trim() || null) !== profile.activityField ||
     taskWorkItemType !== profile.taskWorkItemType ||
     bugWorkItemType !== profile.bugWorkItemType ||
@@ -146,6 +151,8 @@ export function useSettingsAdminProcessProfile({
     setCompletedWorkField,
     originalEstimateField,
     setOriginalEstimateField,
+    remainingWorkField,
+    setRemainingWorkField,
     activityField,
     setActivityField,
     taskWorkItemType,

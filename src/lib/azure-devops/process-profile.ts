@@ -31,6 +31,9 @@ function dbConfigToProfile(
     timezone: dbConfig.timezone ?? resolveAdoTimeZone(),
     completedWorkField: dbConfig.completedWorkField ?? ADO_FIELD_DEFAULTS.completedWorkField,
     originalEstimateField: dbConfig.originalEstimateField ?? ADO_FIELD_DEFAULTS.originalEstimateField,
+    remainingWorkField: dbConfig.remainingWorkField !== undefined
+      ? dbConfig.remainingWorkField
+      : ADO_FIELD_DEFAULTS.remainingWorkField,
     activityField: dbConfig.activityField !== undefined
       ? dbConfig.activityField
       : ADO_FIELD_DEFAULTS.activityField,

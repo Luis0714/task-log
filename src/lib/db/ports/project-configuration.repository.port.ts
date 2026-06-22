@@ -4,6 +4,7 @@ export type ProjectConfigInput = {
   completedWorkField?: string | null;
   originalEstimateField?: string | null;
   activityField?: string | null;
+  remainingWorkField?: string | null;
   taskWorkItemType?: string | null;
   bugWorkItemType?: string | null;
   backlogItemType?: string | null;

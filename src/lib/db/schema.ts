@@ -297,6 +297,7 @@ export const projectConfigurations = pgTable(
     completedWorkField: text("completed_work_field"),
     originalEstimateField: text("original_estimate_field"),
     activityField: text("activity_field"),
+    remainingWorkField: text("remaining_work_field"),
     taskWorkItemType: text("task_work_item_type"),
     bugWorkItemType: text("bug_work_item_type"),
     backlogItemType: text("backlog_item_type"),

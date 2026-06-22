@@ -43,7 +43,7 @@ export default async function SettingsPage() {
     <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-6">
       <PageHeader title={PAGE_SEO.settings.title} description={PAGE_SEO.settings.description} />
       <SettingsConnectionCard connection={data.connection} />
-      {auth.isAdmin && <SettingsAdminProcessPanel data={data} />}
+      <SettingsAdminProcessPanel data={data} />
     </div>
   );
 }

@@ -54,6 +54,10 @@ export async function resolveOrDiscoverProjectConfig(
     ? ADO_FIELD_DEFAULTS.activityField
     : null;
 
+  const remainingWorkField = projectFields.has(ADO_FIELD_DEFAULTS.remainingWorkField)
+    ? ADO_FIELD_DEFAULTS.remainingWorkField
+    : null;
+
   const taskTodoState = pickDefaultOpenTaskState(taskStates);
   const taskDoneState = pickDefaultCompletedTaskState(taskStates);
 
@@ -62,6 +66,7 @@ export async function resolveOrDiscoverProjectConfig(
     timezone,
     completedWorkField: ADO_FIELD_DEFAULTS.completedWorkField,
     originalEstimateField: ADO_FIELD_DEFAULTS.originalEstimateField,
+    remainingWorkField,
     activityField,
     taskWorkItemType: taskWIT,
     bugWorkItemType: bugWIT,

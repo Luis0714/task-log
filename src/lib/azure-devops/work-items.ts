@@ -166,6 +166,10 @@ export async function createTaskUnderPbi(
     },
   ];
 
+  if (processProfile.remainingWorkField) {
+    ops.push({ op: "add", path: `/fields/${processProfile.remainingWorkField}`, value: 0 });
+  }
+
   if (processProfile.activityField) {
     ops.push({ op: "add", path: `/fields/${processProfile.activityField}`, value: params.activity });
   }
