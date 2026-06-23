@@ -23,7 +23,7 @@ export const USER_MESSAGES = {
   copilotNoToolCall:
     "No pudimos procesar tu mensaje. Inténtalo de nuevo.",
   copilotInvalidArgs:
-    "La IA devolvió argumentos inválidos. Reformula tu mensaje con más detalle.",
+    "Algo salió mal al procesar tu mensaje. Inténtalo de nuevo.",
   copilotSchemaInvalid:
     "La IA devolvió una respuesta con formato inesperado. Inténtalo de nuevo.",
   copilotUnknownTool:

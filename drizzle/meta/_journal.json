@@ -92,6 +92,20 @@
       "when": 1750608000000,
       "tag": "0012_remaining_work_field",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1750700000000,
+      "tag": "0013_time_log_templates",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1782187043581,
+      "tag": "0014_yellow_spitfire",
+      "breakpoints": true
     }
   ]
 }

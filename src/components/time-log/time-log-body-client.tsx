@@ -54,6 +54,7 @@ export function TimeLogBodyClient({
               loading={form.loadingExecute}
               canSubmit={form.canSubmit}
               onSubmit={form.submit}
+              lastSubmitted={form.lastSubmitted}
             />
             <TimeLogCopilotLink />
           </CardContent>

@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CopilotTaskRow } from "@/components/copilot/copilot-task-row";
-import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
 import type { CreateTaskBatchItem, CreateTasksBatch } from "@/lib/schemas/agent";
 import {
   buildEmptyTask,
@@ -23,13 +22,13 @@ import {
   isValidTask,
 } from "@/lib/copilot/task-preview.utils";
 import { totalHours } from "@/lib/copilot/copilot.utils";
+import { useTaskMeta } from "@/hooks/use-task-meta";
 
 export type CopilotCreateTasksFormProps = {
   preview: CreateTasksBatch;
   sprintPath: string;
   team: string;
   adoExecutionReady: boolean;
-  authMethod: AzdoAuthMethod;
   loading?: boolean;
   onConfirm: (tasks: CreateTaskBatchItem[]) => void;
   onCancel: () => void;
@@ -40,14 +39,14 @@ export function CopilotCreateTasksForm({
   sprintPath,
   team,
   adoExecutionReady,
-  authMethod: _authMethod,
   loading = false,
   onConfirm,
   onCancel,
 }: Readonly<CopilotCreateTasksFormProps>) {
-  const [tasks, setTasks] = useState<CreateTaskBatchItem[]>(
+  const [tasks, setTasks] = useState<CreateTaskBatchItem[]>(() =>
     preview.tasks.map((t) => ({ ...t, markAsDone: true })),
   );
+  const { activities, stateNames } = useTaskMeta();
 
   const updateTask = (index: number, next: CreateTaskBatchItem) => {
     setTasks((current) => current.map((task, i) => (i === index ? next : task)));
@@ -89,9 +88,10 @@ export function CopilotCreateTasksForm({
         {isMultiPbi ? (
           <MultiPbiTaskList
             tasks={tasks}
-            pbiIds={pbiIds}
             groups={groups}
             sprintPath={sprintPath}
+            activities={activities}
+            stateNames={stateNames}
             loading={loading}
             onUpdate={updateTask}
             onRemove={removeTask}
@@ -100,6 +100,8 @@ export function CopilotCreateTasksForm({
           <SinglePbiTaskList
             tasks={tasks}
             sprintPath={sprintPath}
+            activities={activities}
+            stateNames={stateNames}
             loading={loading}
             onUpdate={updateTask}
             onRemove={removeTask}
@@ -143,12 +145,26 @@ export function CopilotCreateTasksForm({
 type TaskListProps = {
   tasks: CreateTaskBatchItem[];
   sprintPath: string;
+  activities: readonly string[];
+  stateNames: readonly string[];
   loading: boolean;
   onUpdate: (index: number, next: CreateTaskBatchItem) => void;
   onRemove: (index: number) => void;
 };
 
-function SinglePbiTaskList({ tasks, sprintPath, loading, onUpdate, onRemove }: Readonly<TaskListProps>) {
+type MultiPbiTaskListProps = TaskListProps & {
+  groups: Map<number, CreateTaskBatchItem[]>;
+};
+
+function SinglePbiTaskList({
+  tasks,
+  sprintPath,
+  activities,
+  stateNames,
+  loading,
+  onUpdate,
+  onRemove,
+}: Readonly<TaskListProps>) {
   return (
     <>
       {tasks.map((task, index) => (
@@ -156,6 +172,8 @@ function SinglePbiTaskList({ tasks, sprintPath, loading, onUpdate, onRemove }: R
           key={`${index}-${task.pbiId}-${task.workingDate}`}
           task={task}
           sprintPath={sprintPath}
+          activities={activities}
+          stateNames={stateNames}
           onChange={(next) => onUpdate(index, next)}
           onRemove={() => onRemove(index)}
           disabled={loading}
@@ -165,24 +183,19 @@ function SinglePbiTaskList({ tasks, sprintPath, loading, onUpdate, onRemove }: R
   );
 }
 
-type MultiPbiTaskListProps = TaskListProps & {
-  pbiIds: number[];
-  groups: Map<number, CreateTaskBatchItem[]>;
-};
-
 function MultiPbiTaskList({
   tasks,
-  pbiIds,
   groups,
   sprintPath,
+  activities,
+  stateNames,
   loading,
   onUpdate,
   onRemove,
 }: Readonly<MultiPbiTaskListProps>) {
   return (
     <>
-      {pbiIds.map((pbiId, groupIdx) => {
-        const groupTasks = groups.get(pbiId) ?? [];
+      {[...groups.entries()].map(([pbiId, groupTasks], groupIdx) => {
         const pbiTitle = groupTasks[0]?.pbiTitle ?? "";
         const groupHours = totalHours(groupTasks);
         const globalIndices = tasks
@@ -206,6 +219,8 @@ function MultiPbiTaskList({
                   key={`${globalIdx}-${task.pbiId}-${task.workingDate}`}
                   task={task}
                   sprintPath={sprintPath}
+                  activities={activities}
+                  stateNames={stateNames}
                   onChange={(next) => onUpdate(globalIdx, next)}
                   onRemove={() => onRemove(globalIdx)}
                   disabled={loading}

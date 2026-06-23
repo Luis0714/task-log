@@ -119,7 +119,6 @@ function PreviewMessage({
         sprintPath={sprintContext.sprintPath}
         team={sprintContext.team}
         adoExecutionReady={adoExecutionReady}
-        authMethod={authMethod}
         loading={loadingExecute}
         onConfirm={onConfirmTasks}
         onCancel={onCancel}

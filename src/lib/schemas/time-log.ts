@@ -2,10 +2,8 @@ import { z } from "zod";
 
 import { WORKING_TIME_PATTERN } from "@/lib/date/ado-datetime";
 import {
-  DEFAULT_TASK_ACTIVITY,
   getDefaultWorkingDate,
   getDefaultWorkingTime,
-  TASK_ACTIVITY_OPTIONS,
 } from "@/lib/time-log/task-constants";
 
 const hoursField = z
@@ -45,9 +43,7 @@ export const timeLogTaskStepSchema = z.object({
     .trim()
     .min(1, "Ingresa la descripción de lo realizado.")
     .max(2000, "Máximo 2000 caracteres."),
-  activity: z.enum(TASK_ACTIVITY_OPTIONS, {
-    message: "Selecciona una actividad.",
-  }),
+  activity: z.string().max(100).optional(),
   workingDate: z
     .string()
     .trim()
@@ -73,7 +69,7 @@ export type CreateTaskPayload = {
   title: string;
   hours: number;
   description: string;
-  activity: (typeof TASK_ACTIVITY_OPTIONS)[number];
+  activity?: string;
   workingDate: string;
   workingTime: string;
   state: string;
@@ -95,7 +91,7 @@ export function createTimeLogFormDefaults(
     taskTitle: "",
     hours: "",
     description: "",
-    activity: DEFAULT_TASK_ACTIVITY,
+    activity: "",
     workingDate: getDefaultWorkingDate(),
     workingTime: getDefaultWorkingTime(),
     taskState: "",
@@ -117,7 +113,7 @@ export const TIME_LOG_TASK_STEP_DEFAULTS: Pick<
   taskTitle: "",
   hours: "",
   description: "",
-  activity: DEFAULT_TASK_ACTIVITY,
+  activity: "",
   workingDate: getDefaultWorkingDate(),
   workingTime: getDefaultWorkingTime(),
   taskState: "",
@@ -138,7 +134,7 @@ export function mapTimeLogFormToPayload(
     title: values.taskTitle.trim(),
     hours: Number.parseFloat(values.hours.replace(",", ".")),
     description: values.description.trim(),
-    activity: values.activity,
+    activity: values.activity?.trim() || undefined,
     workingDate: values.workingDate,
     workingTime: values.workingTime,
     state: values.taskState,

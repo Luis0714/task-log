@@ -9,10 +9,10 @@ import {
 } from "@/lib/azure-devops/client";
 import { resolveAdoCaller, type AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { listTaskStates } from "@/lib/azure-devops/work-item-type-states";
+import { fetchTaskActivityValues } from "@/lib/azure-devops/fetch-task-activity-values";
 import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
 import { buildAssigneeWiqlCondition } from "@/lib/filters/assignee-wiql";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
-import type { TaskActivity } from "@/lib/time-log/task-constants";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import {
   resolveAdoWorkingDateFieldValue,
@@ -52,7 +52,7 @@ export type CreateTaskParams = {
   title: string;
   hours: number;
   description?: string;
-  activity: TaskActivity;
+  activity?: string;
   workingDate: string;
   workingTime: string;
   state: string;
@@ -137,6 +137,31 @@ export async function createTaskUnderPbi(
     };
   }
 
+  if (processProfile.activityField) {
+    if (!params.activity) {
+      return {
+        ok: false,
+        status: 422,
+        body: "El proyecto requiere el campo Activity, pero no se proporcionó ningún valor.",
+      };
+    }
+    const allowedActivities = await fetchTaskActivityValues(
+      auth,
+      processProfile.taskWorkItemType,
+      processProfile.activityField,
+    );
+    if (
+      allowedActivities.length > 0 &&
+      !allowedActivities.includes(params.activity)
+    ) {
+      return {
+        ok: false,
+        status: 422,
+        body: `La actividad "${params.activity}" no está permitida en este proyecto. Valores válidos: ${allowedActivities.join(", ")}.`,
+      };
+    }
+  }
+
   const createStateName = pickDefaultOpenTaskState(taskStates, processProfile.taskTodoState || null);
   const createState =
     taskStates.find((state) => state.name === createStateName) ??
@@ -169,7 +194,7 @@ export async function createTaskUnderPbi(
     ops.push({ op: "add", path: `/fields/${processProfile.remainingWorkField}`, value: 0 });
   }
 
-  if (processProfile.activityField) {
+  if (processProfile.activityField && params.activity) {
     ops.push({ op: "add", path: `/fields/${processProfile.activityField}`, value: params.activity });
   }
 

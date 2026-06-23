@@ -29,6 +29,13 @@ export type NavGroupConfig = {
  */
 const HIDE_SETTINGS_NAV = false;
 
+/**
+ * Kill-switch para ocultar la entrada "Resumen del daily" del menú lateral.
+ * La página /daily y todo su código permanecen intactos para poder
+ * re-habilitarla en el futuro cambiando este flag a `false`.
+ */
+const HIDE_DAILY_NAV = true;
+
 const BASE_NAVIGATION: NavGroupConfig[] = [
   {
     title: "Principal",
@@ -44,7 +51,15 @@ const BASE_NAVIGATION: NavGroupConfig[] = [
       { href: "/work-items", label: "Historias de usuario", icon: ListTodo },
       { href: "/tasks", label: "Tareas", icon: CheckSquare },
       { href: "/bugs", label: "Bugs", icon: Bug },
-      { href: "/daily", label: "Resumen del daily", icon: CalendarCheck2 },
+      ...(HIDE_DAILY_NAV
+        ? []
+        : [
+            {
+              href: "/daily",
+              label: "Resumen del daily",
+              icon: CalendarCheck2,
+            },
+          ]),
     ],
   },
 ];

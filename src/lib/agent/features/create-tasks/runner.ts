@@ -1,8 +1,12 @@
 import "server-only";
 
+import { z } from "zod";
 import { searchPbiByText, type PbiSearchHit } from "@/lib/azure-devops/search-pbi-by-text";
 import { listWorkItemsForQuery } from "@/lib/azure-devops/list-work-items-for-query";
 import { fetchPbiSummary } from "@/lib/azure-devops/fetch-pbi-summary";
+import { fetchTaskActivityValues } from "@/lib/azure-devops/fetch-task-activity-values";
+import { listTaskStates, type AdoWorkItemTypeState } from "@/lib/azure-devops/work-item-type-states";
+import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import { findToolHandler, listToolDefinitions } from "@/lib/agent/tools/registry";
 import {
   SEARCH_PBI_TOOL_NAME,
@@ -11,10 +15,10 @@ import {
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
 import type { AgentProvider, ChatMessage, ConversationTurn } from "@/lib/agent/provider/provider.types";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
-import { previewResultSchema } from "@/lib/schemas/agent";
+import { previewResultSchema, type PbiCandidate } from "@/lib/schemas/agent";
 import type { NeedsClarificationPayload, PreviewResult } from "@/lib/schemas/agent";
 
-import { createTasksBatchTool } from "./tool";
+import { buildCreateTasksBatchDefinition, CREATE_TASKS_BATCH_TOOL_NAME } from "./tool";
 import { buildCreateTasksSystemPrompt } from "./prompt";
 
 export type SprintContext = {
@@ -33,6 +37,7 @@ export type RunCreateTasksArgs = {
   sprintContext: SprintContext;
   executionContext?: ToolExecutionContext;
   history?: ConversationTurn[];
+  userRole?: string;
 };
 
 const MAX_ITERATIONS = 8;
@@ -56,6 +61,7 @@ export async function runCreateTasksFeature({
   sprintContext,
   executionContext,
   history = [],
+  userRole,
 }: RunCreateTasksArgs): Promise<PreviewResult> {
   const trimmed = message.trim();
   if (!trimmed) {
@@ -67,18 +73,41 @@ export async function runCreateTasksFeature({
   }
 
   const auth = executionContext?.auth;
-  const systemPrompt = buildCreateTasksSystemPrompt(sprintContext);
+
+  const processProfile = auth ? await resolveProcessProfile(auth) : null;
+
+  const [activityValues, taskStates] =
+    auth && processProfile
+      ? await Promise.all([
+          fetchTaskActivityValues(
+            auth,
+            processProfile.taskWorkItemType,
+            processProfile.activityField,
+          ),
+          listTaskStates(auth, processProfile.taskWorkItemType),
+        ])
+      : [[] as readonly string[], [] as AdoWorkItemTypeState[]];
+
+  const taskStateNames = taskStates.map((s) => s.name);
+  const doneState = findDoneState(taskStates);
+
+  const systemPrompt = buildCreateTasksSystemPrompt({
+    ...sprintContext,
+    activityValues,
+    taskStateNames,
+    doneState,
+    userRole,
+  });
+
   const searchPbiToolDef = buildSearchPbiTool({
     ...(executionContext ?? {}),
     sprintPath: sprintContext.sprintPath,
   }).definition;
-  // Shared terminal tools (needs_clarification, unsupported, question_with_options,
-  // list_work_items) come from the registry so the LLM can route every kind of
-  // intent (register / create / ask / list).
+
   const tools = [
-    createTasksBatchTool.definition,
+    buildCreateTasksBatchDefinition(activityValues, taskStateNames),
     searchPbiToolDef,
-    ...listToolDefinitions(),
+    ...listToolDefinitions().filter((d) => d.name !== CREATE_TASKS_BATCH_TOOL_NAME),
   ];
 
   let messages: ChatMessage[] = [
@@ -94,8 +123,18 @@ export async function runCreateTasksFeature({
       throw new Error("La IA no invocó ninguna herramienta.");
     }
 
+    const searchCalls = response.toolCalls.filter((c) => c.name === SEARCH_PBI_TOOL_NAME);
     const terminalCall = response.toolCalls.find((c) => TERMINAL_TOOLS.has(c.name));
-    if (terminalCall) {
+
+    // When the model returns both search_pbi AND a terminal tool in the same
+    // response, process the searches first so the model has PBI data before
+    // deciding what terminal action to take.  Only skip to the terminal when
+    // there are no pending search calls.
+    if (terminalCall && searchCalls.length === 0) {
+      if (terminalCall.name === CREATE_TASKS_BATCH_TOOL_NAME && auth) {
+        const guard = await guardPbiIds(terminalCall.arguments, auth, sprintContext.sprintPath);
+        if (guard) return guard;
+      }
       return await resolveTerminalToolCall(
         terminalCall,
         auth,
@@ -106,7 +145,7 @@ export async function runCreateTasksFeature({
     const toolResults: ChatMessage[] = [];
     let terminalFromSearch: PreviewResult | null = null;
 
-    for (const call of response.toolCalls) {
+    for (const call of searchCalls.length > 0 ? searchCalls : response.toolCalls) {
       if (call.name !== SEARCH_PBI_TOOL_NAME) {
         throw new Error(`Herramienta intermedia desconocida: ${call.name}`);
       }
@@ -138,11 +177,74 @@ export async function runCreateTasksFeature({
   throw new Error("El copiloto superó el número máximo de iteraciones.");
 }
 
+function findDoneState(states: AdoWorkItemTypeState[]): string {
+  return states.find((s) => s.category === "Completed")?.name ?? "Closed";
+}
+
+const guardArgsSchema = z.object({
+  tasks: z.array(z.object({ pbiId: z.number().int().positive() })).optional(),
+});
+
+async function guardPbiIds(
+  args: unknown,
+  auth: AdoCallerAuth,
+  sprintPath: string,
+): Promise<NeedsClarificationPayload | null> {
+  const parsed = guardArgsSchema.safeParse(args);
+  const tasks = parsed.success ? (parsed.data.tasks ?? []) : [];
+
+  const uniqueIds = [...new Set(tasks.map((t) => t.pbiId))];
+
+  for (const pbiId of uniqueIds) {
+    const summary = await fetchPbiSummary(auth, pbiId);
+    if (!summary.exists) {
+      return toNeedsClarification(
+        `La historia de usuario #${pbiId} no existe o no es accesible. ¿Cuál de estas es la correcta?`,
+        await sprintPbiCandidates(auth, sprintPath),
+      );
+    }
+  }
+
+  return null;
+}
+
+async function sprintPbiCandidates(auth: AdoCallerAuth, sprintPath: string): Promise<PbiCandidate[]> {
+  const result = await listWorkItemsForQuery({ types: ["pbi"], sprintPath }, auth);
+  if (!result.ok) return [];
+  return result.items.slice(0, 8).map((item) => ({
+    id: item.id,
+    title: item.title,
+    ...(item.state ? { state: item.state } : {}),
+  }));
+}
+
+function toNeedsClarification(question: string, candidates: PbiCandidate[]): NeedsClarificationPayload {
+  return { action: "needs_clarification", question, candidates };
+}
+
 function extractNumericId(query: string): number | null {
-  const match = /^[#\s]*(\d+)\s*$/.exec(query);
-  if (!match) return null;
-  const id = parseInt(match[1]!, 10);
-  return isNaN(id) || id <= 0 ? null : id;
+  const trimmed = query.trim();
+
+  // Caso 1: la query es solo un número (ej. "258439" o "#258439")
+  const exact = /^[#\s]*(\d+)\s*$/.exec(trimmed);
+  if (exact) {
+    const id = parseInt(exact[1]!, 10);
+    return isNaN(id) || id <= 0 ? null : id;
+  }
+
+  // Caso 2: número precedido por palabras clave comunes en español/inglés
+  // Cubre: "historia de usuario 106", "HU 258", "PBI #400", "issue 99", "#301"
+  const embedded =
+    /(?:historia(?:\s+de\s+usuario)?|pbi|hu|tarea|issue|work\s*item)\s*#?\s*(\d+)|(?<!\d)#(\d+)(?!\d)/i.exec(
+      trimmed,
+    );
+  if (embedded) {
+    const raw = embedded[1] ?? embedded[2];
+    const id = parseInt(raw!, 10);
+    return isNaN(id) || id <= 0 ? null : id;
+  }
+
+  return null;
 }
 
 async function resolveSearchPbi(
@@ -172,9 +274,10 @@ async function resolveSearchPbi(
     };
   }
 
-  // If the query is a bare numeric ID (e.g. "258439" or "#258439"), resolve
-  // it directly via the work-item API instead of doing a text search that
-  // would never match a title containing that number.
+  // Try to resolve by numeric ADO ID first (fast, exact).
+  // If the ID doesn't exist in ADO, fall through to text search — the user
+  // may have written "HU 116" where 116 is a sequential title number (e.g.
+  // "HU-116 – ...") rather than the actual ADO work-item ID (e.g. 258439).
   const numericId = extractNumericId(query);
   if (numericId !== null) {
     const summary = await fetchPbiSummary(auth, numericId);
@@ -185,34 +288,20 @@ async function resolveSearchPbi(
         content: JSON.stringify({ pbiId: numericId, pbiTitle: summary.title }),
       };
     }
-    return {
-      kind: "tool_result",
-      toolCallId: call.id,
-      content: JSON.stringify({
-        error: `No existe ninguna PBI con ID #${numericId} en este proyecto. Llama needs_clarification para pedirle al usuario el ID correcto.`,
-      }),
-    };
+    // ID not found — continue to text search with the original query.
   }
 
   const hits = await searchPbiByText(auth, query, sprintPath);
 
   if (hits.length === 0) {
-    const sprintItems = await listWorkItemsForQuery(
-      { types: ["pbi"], sprintPath },
-      auth,
-    );
-    if (sprintItems.ok && sprintItems.items.length > 0) {
+    const candidates = await sprintPbiCandidates(auth, sprintPath);
+    if (candidates.length > 0) {
       return {
         kind: "terminal",
-        preview: {
-          action: "needs_clarification",
-          question: `No encontré ninguna PBI relacionada con "${query}". ¿Cuál de estas es la correcta?`,
-          candidates: sprintItems.items.slice(0, 8).map((item) => ({
-            id: item.id,
-            title: item.title,
-            ...(item.state ? { state: item.state } : {}),
-          })),
-        },
+        preview: toNeedsClarification(
+          `No encontré ninguna PBI relacionada con "${query}". ¿Cuál de estas es la correcta?`,
+          candidates,
+        ),
       };
     }
     return {
@@ -271,8 +360,6 @@ function resolveTerminalToolCall(
     ...(auth ? { auth } : {}),
     sprintContext,
   });
-  // Some tools (e.g. list_work_items) are async — wait for them before
-  // validating the output against the preview schema.
   return Promise.resolve(result).then((output) => {
     const safe = previewResultSchema.safeParse(output);
     if (!safe.success) {

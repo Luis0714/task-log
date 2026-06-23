@@ -15,7 +15,7 @@ export function buildEmptyTask(sprintPath: string, team: string): CreateTaskBatc
     title: "",
     hours: 1,
     description: "",
-    activity: "Development",
+    activity: "",
     workingDate: new Date().toISOString().slice(0, 10),
     workingTime: "09:00",
     state: "Closed",
@@ -34,7 +34,6 @@ export function isValidTask(task: CreateTaskBatchItem): boolean {
     task.hours <= 24 &&
     /^\d{4}-\d{2}-\d{2}$/.test(task.workingDate) &&
     /^\d{2}:\d{2}$/.test(task.workingTime) &&
-    task.activity.trim().length > 0 &&
     task.state.trim().length > 0
   );
 }

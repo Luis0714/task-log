@@ -23,6 +23,9 @@ export const logWorkBatchSchema = z.object({
   items: z.array(logWorkItemSchema).min(1).max(10),
 });
 
+export const TASK_ACTIVITY_VALUES = ["Development", "QA", "Code review", "Design", "Documentation", "Meeting"] as const;
+export type TaskActivityValue = typeof TASK_ACTIVITY_VALUES[number];
+
 export const createTaskRequestSchema = z.object({
   action: z.literal("create_task"),
   pbiId: z.number().int().positive(),
@@ -30,7 +33,7 @@ export const createTaskRequestSchema = z.object({
   title: z.string().min(1).max(256),
   hours: z.number().positive().max(24),
   description: z.string().trim().min(1).max(2000),
-  activity: z.string().min(1).max(100),
+  activity: z.string().min(1).max(100).optional(),
   workingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   workingTime: z.string().regex(WORKING_TIME_PATTERN),
   state: z.string().trim().min(1).max(100),

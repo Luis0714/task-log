@@ -206,7 +206,7 @@ export const listWorkItemsTool: ToolHandler<
   definition: {
     name: LIST_WORK_ITEMS_NAME,
     description:
-      "Devuelve esta herramienta cuando el usuario PREGUNTE por su backlog (no cuando quiera registrar o crear). Ejemplos: '¿qué PBIs tengo?', 'muéstrame mis bugs abiertos', '¿qué tareas hice ayer?'. La UI renderiza el resultado como una lista agrupada con links a cada elemento en Azure DevOps. `title` es el encabezado visible para la lista (ej. 'Tus PBIs activos en el sprint'). `types` filtra por tipo de work item (pbi, bug, task). `states` filtra por estado (ej. ['Active','New']). `assignedToMe` limita a los asignados al usuario actual. NO combines esta tool con create_tasks_batch o log_work_batch en la misma respuesta.",
+      "Devuelve esta herramienta cuando el usuario PREGUNTE por su backlog (no cuando quiera registrar o crear). Ejemplos: '¿qué PBIs tengo?', 'muéstrame mis bugs abiertos', '¿qué tareas tengo?'. SIEMPRE busca en el sprint activo actual — no necesitas especificar sprint. `assignedToMe: true` cuando el usuario dice 'tengo', 'mis', 'asignadas a mí'; omítelo cuando pregunte por todo el equipo. `types` filtra por tipo (pbi, bug, task); omite para todos. `states` solo cuando el usuario mencione un nombre de estado EXACTO de ADO (ej. 'estado Resolved'); para 'activas', 'abiertas', 'en curso', 'pendientes' OMITE `states` — el sistema ya excluye los eliminados. `title` es el encabezado visible de la lista. NO combines con create_tasks_batch ni log_work_batch.",
     parameters: {
       type: "object",
       properties: {

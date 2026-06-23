@@ -5,7 +5,7 @@ import type { AgentProvider } from "@/lib/agent/provider/provider.types";
 import { previewResultSchema } from "@/lib/schemas/agent";
 import type { PreviewResult } from "@/lib/schemas/agent";
 
-import { logWorkBatchTool } from "./tool";
+import { logWorkBatchTool, LOG_WORK_BATCH_TOOL_NAME } from "./tool";
 import { LOG_WORK_SYSTEM_PROMPT } from "./prompt";
 
 export type RunLogWorkArgs = {
@@ -37,7 +37,10 @@ export async function runLogWorkFeature({
     temperature: 0.1,
     systemPrompt: LOG_WORK_SYSTEM_PROMPT,
     userMessage: trimmed,
-    tools: [logWorkBatchTool.definition, ...listToolDefinitions()],
+    tools: [
+      logWorkBatchTool.definition,
+      ...listToolDefinitions().filter((d) => d.name !== LOG_WORK_BATCH_TOOL_NAME),
+    ],
   });
 
   const preview = await resolvePreviewFromToolCall(response.toolCalls, sprintPath);

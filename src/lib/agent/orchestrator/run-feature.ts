@@ -30,6 +30,7 @@ export type RunCreateTasksInput = {
   message: string;
   sprintContext: SprintContext;
   history?: ConversationTurn[];
+  userRole?: string;
 };
 
 export type RunFeatureInput = RunLogWorkInput | RunCreateTasksInput;
@@ -100,6 +101,7 @@ export async function runFeature(
         sprintContext: input.sprintContext,
         executionContext: options.executionContext,
         history: input.history,
+        userRole: input.userRole,
       });
       logInteraction({
         userId,
