@@ -15,6 +15,20 @@ function parseHours(v: unknown): number {
   return -1;
 }
 
+function parseDate(v: unknown): unknown {
+  if (typeof v !== "string") return v;
+  // Extract YYYY-MM-DD from ISO timestamps like "2026-06-22T00:00:00.000Z"
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(v);
+  return match ? match[1] : v;
+}
+
+function parseTime(v: unknown): unknown {
+  if (typeof v !== "string") return v;
+  // Extract HH:mm from "09:00:00" or "09:00:00Z" etc.
+  const match = /^([01]\d|2[0-3]):([0-5]\d)/.exec(v);
+  return match ? match[0] : v;
+}
+
 function buildTaskItemSchema(activityRequired: boolean) {
   const baseShape = {
     pbiId: z.number().int().positive(),
@@ -25,8 +39,8 @@ function buildTaskItemSchema(activityRequired: boolean) {
     activity: activityRequired
       ? z.string().min(1).max(100)
       : z.string().min(1).max(100).optional(),
-    workingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    workingTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/),
+    workingDate: z.preprocess(parseDate, z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+    workingTime: z.preprocess(parseTime, z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/)),
     state: z.string().min(1).max(100),
     markAsDone: z.boolean(),
     sprintPath: z.string().min(1).max(500),
@@ -41,7 +55,10 @@ function buildCreateTasksBatchArgsSchema(activityRequired: boolean) {
   });
 }
 
-const FALLBACK_ARGS_SCHEMA = buildCreateTasksBatchArgsSchema(true);
+// The fallback schema (used for runtime validation in resolveTerminalToolCall)
+// always treats activity as optional — the dynamic JSON schema sent to OpenAI
+// already guides the model to include it when the project requires it.
+const FALLBACK_ARGS_SCHEMA = buildCreateTasksBatchArgsSchema(false);
 
 export function buildCreateTasksBatchDefinition(
   activityValues: readonly string[],
@@ -200,7 +217,7 @@ export const createTasksBatchTool: ToolHandler<
       title: task.title,
       hours: task.hours,
       description: task.description,
-      activity: task.activity ?? "",
+      ...(task.activity ? { activity: task.activity } : {}),
       workingDate: task.workingDate,
       workingTime: task.workingTime,
       state: task.state,

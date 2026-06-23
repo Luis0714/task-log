@@ -118,15 +118,17 @@ export async function runFeature(
     return unreachable(input);
   } catch (err) {
     const code = classifyAgentError(err);
+    const errMsg = describeProviderError(err);
+    console.error(`[agent:${featureKind}] ${code}: ${errMsg}`);
     logInteraction({
       userId,
       feature: featureKind,
       model,
       latencyMs: Date.now() - startedAt,
       requestHash,
-      responseJson: { error: describeProviderError(err) },
+      responseJson: { error: errMsg },
       ok: false,
-      errorMessage: describeProviderError(err),
+      errorMessage: errMsg,
     });
     return {
       ok: false,

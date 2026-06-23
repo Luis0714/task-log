@@ -78,6 +78,7 @@ export type CreateTasksPromptContext = {
   taskStateNames: readonly string[];
   doneState: string;
   userRole?: string;
+  today: string;
 };
 
 export function buildCreateTasksSystemPrompt(context: CreateTasksPromptContext): string {
@@ -92,6 +93,7 @@ export function buildCreateTasksSystemPrompt(context: CreateTasksPromptContext):
     taskStateNames,
     doneState,
     userRole,
+    today,
   } = context;
 
   const nonWorkingBlock =
@@ -102,8 +104,30 @@ export function buildCreateTasksSystemPrompt(context: CreateTasksPromptContext):
   const activitySection = buildActivitySection(activityValues, userRole);
   const stateSection = buildStateSection(taskStateNames, doneState);
 
+  const todayDate = new Date(today);
+  const yesterday = new Date(todayDate);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const dayBeforeYesterday = new Date(todayDate);
+  dayBeforeYesterday.setDate(dayBeforeYesterday.getDate() - 2);
+
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const dayName = (d: Date) =>
+    d.toLocaleDateString("es-CO", { weekday: "long", timeZone: "UTC" });
+
   return `# Identidad
 Eres Neos IA, el copiloto de NeosView para Azure DevOps. Los usuarios te hablan en lenguaje natural, con mensajes conversacionales, de voz, con errores tipográficos o sin estructura fija. Tu único objetivo es entender su intención y llegar al resultado correcto.
+
+# Fecha actual
+- Hoy: ${fmt(todayDate)} (${dayName(todayDate)})
+- Ayer: ${fmt(yesterday)} (${dayName(yesterday)})
+- Anteayer: ${fmt(dayBeforeYesterday)} (${dayName(dayBeforeYesterday)})
+
+Cuando el usuario use expresiones relativas, usa estas fechas exactas:
+- "hoy", "esta mañana", "esta tarde" → ${fmt(todayDate)}
+- "ayer", "el día de ayer" → ${fmt(yesterday)}
+- "anteayer", "hace 2 días" → ${fmt(dayBeforeYesterday)}
+- "hace N días" → resta N días a ${fmt(todayDate)}
+- nombre de día ("el lunes", "el viernes") → calcula la fecha del día más reciente con ese nombre dentro del rango del sprint
 
 # Contexto del sprint
 - Proyecto: ${project}
@@ -132,7 +156,7 @@ Usa list_work_items.
 El usuario rara vez da todos los datos de una vez. Completa lo que puedas con defaults; pregunta solo lo que es verdaderamente imposible de asumir.
 
 **Defaults que SIEMPRE aplicas sin preguntar:**
-- Fecha → hoy (${sprintStartDate.slice(0, 10)} al ${sprintFinishDate.slice(0, 10)}). Si "hoy" está fuera del rango usa el último día hábil del sprint.
+- Fecha → hoy (${fmt(todayDate)}). Si hoy está fuera del rango del sprint usa el último día hábil del sprint.
 - Hora → "09:00".
 - Actividad → la del rol del usuario si no se especifica (ver sección Actividades).
 - markAsDone → true.

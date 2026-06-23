@@ -97,6 +97,7 @@ export async function runCreateTasksFeature({
     taskStateNames,
     doneState,
     userRole,
+    today: new Date().toISOString().slice(0, 10),
   });
 
   const searchPbiToolDef = buildSearchPbiTool({
@@ -126,10 +127,8 @@ export async function runCreateTasksFeature({
     const searchCalls = response.toolCalls.filter((c) => c.name === SEARCH_PBI_TOOL_NAME);
     const terminalCall = response.toolCalls.find((c) => TERMINAL_TOOLS.has(c.name));
 
-    // When the model returns both search_pbi AND a terminal tool in the same
-    // response, process the searches first so the model has PBI data before
-    // deciding what terminal action to take.  Only skip to the terminal when
-    // there are no pending search calls.
+
+    
     if (terminalCall && searchCalls.length === 0) {
       if (terminalCall.name === CREATE_TASKS_BATCH_TOOL_NAME && auth) {
         const guard = await guardPbiIds(terminalCall.arguments, auth, sprintContext.sprintPath);
@@ -353,6 +352,12 @@ function resolveTerminalToolCall(
 
   const parsedArgs = handler.argsSchema.safeParse(call.arguments);
   if (!parsedArgs.success) {
+    console.error(
+      `[agent] invalid_args for ${call.name}:`,
+      JSON.stringify(parsedArgs.error.issues, null, 2),
+      "\nraw args:",
+      JSON.stringify(call.arguments, null, 2),
+    );
     throw new Error(`Argumentos inválidos para ${call.name}: ${parsedArgs.error.message}`);
   }
 
@@ -363,6 +368,12 @@ function resolveTerminalToolCall(
   return Promise.resolve(result).then((output) => {
     const safe = previewResultSchema.safeParse(output);
     if (!safe.success) {
+      console.error(
+        `[agent] schema_invalid for ${call.name} output:`,
+        JSON.stringify(safe.error.issues, null, 2),
+        "\noutput:",
+        JSON.stringify(output, null, 2),
+      );
       throw new Error(`La herramienta ${call.name} devolvió una respuesta inválida.`);
     }
     return safe.data;

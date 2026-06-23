@@ -50,13 +50,17 @@ export async function resolveOrDiscoverProjectConfig(
     workingDateField = DEFAULT_WORKING_DATE_FIELD;
   }
 
-  const activityField = projectFields.has(ADO_FIELD_DEFAULTS.activityField)
-    ? ADO_FIELD_DEFAULTS.activityField
-    : null;
+  // If projectFields is empty the listing failed — fall back to the default rather than
+  // storing null, which would permanently disable Activity for Scrum/Agile projects.
+  const activityField =
+    projectFields.size === 0 || projectFields.has(ADO_FIELD_DEFAULTS.activityField)
+      ? ADO_FIELD_DEFAULTS.activityField
+      : null;
 
-  const remainingWorkField = projectFields.has(ADO_FIELD_DEFAULTS.remainingWorkField)
-    ? ADO_FIELD_DEFAULTS.remainingWorkField
-    : null;
+  const remainingWorkField =
+    projectFields.size === 0 || projectFields.has(ADO_FIELD_DEFAULTS.remainingWorkField)
+      ? ADO_FIELD_DEFAULTS.remainingWorkField
+      : null;
 
   const taskTodoState = pickDefaultOpenTaskState(taskStates);
   const taskDoneState = pickDefaultCompletedTaskState(taskStates);

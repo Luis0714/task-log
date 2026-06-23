@@ -38,14 +38,23 @@ const NO_TOOL_CALL_PATTERN = /no invocó ninguna herramienta|sin contenido/i;
 const INVALID_ARGS_PATTERN = /argumentos inválidos/i;
 const UNKNOWN_TOOL_PATTERN = /herramienta (desconocida|intermedia desconocida)/i;
 const SCHEMA_INVALID_PATTERN = /no cumple el esquema|formato inesperado|devolvió una respuesta inválida/i;
+const DUPLICATE_TOOL_PATTERN = /duplicate|same (function|tool) name|two or more functions/i;
 
 export function classifyAgentError(err: unknown): AgentErrorCode {
   const msg = describeProviderError(err);
-  if (msg.toLowerCase().includes("api key")) return "unconfigured";
-  if (msg.toLowerCase().includes("rate limit") || msg.toLowerCase().includes("429")) return "rate_limited";
+  const lower = msg.toLowerCase();
+  if (lower.includes("api key")) return "unconfigured";
+  if (lower.includes("rate limit") || lower.includes("429")) return "rate_limited";
+  // OpenAI 400 with duplicate tool names → treat as provider_error but log clearly
+  if (DUPLICATE_TOOL_PATTERN.test(msg)) {
+    console.error("[agent] Duplicate tool name sent to OpenAI:", msg);
+    return "provider_error";
+  }
   if (NO_TOOL_CALL_PATTERN.test(msg)) return "no_tool_call";
   if (INVALID_ARGS_PATTERN.test(msg)) return "invalid_args";
   if (UNKNOWN_TOOL_PATTERN.test(msg)) return "unknown_tool";
   if (SCHEMA_INVALID_PATTERN.test(msg)) return "schema_invalid";
+  // Log any unclassified error for server-side visibility
+  console.error("[agent] Unclassified error:", msg);
   return "provider_error";
 }
