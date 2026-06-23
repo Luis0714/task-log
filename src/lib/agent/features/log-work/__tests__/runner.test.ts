@@ -20,13 +20,14 @@ function makeProvider(responses: ChatResponse[]): ProviderMock {
   };
 }
 
-function toolCall(name: string, args: unknown): ChatResponse {
+function toolCall(name: string, args: unknown, id = "call_1"): ChatResponse {
   return {
     raw: "",
     parsed: undefined,
     model: "gpt-4o-mini",
     latencyMs: 10,
-    toolCalls: [{ id: "call_1", name, arguments: args }],
+    toolCalls: [{ id, name, arguments: args }],
+    rawToolCalls: [{ id, type: "function", function: { name, arguments: JSON.stringify(args) } }],
   };
 }
 
@@ -153,5 +154,87 @@ describe("runLogWorkFeature", () => {
     });
     expect(result.action).toBe("needs_clarification");
     expect(provider.chat).not.toHaveBeenCalled();
+  });
+
+  it("resolves in two iterations when search_work_items returns results first", async () => {
+    const searchResponse: ChatResponse = {
+      raw: "",
+      parsed: undefined,
+      model: "gpt-4o-mini",
+      latencyMs: 10,
+      toolCalls: [{ id: "call_search", name: "search_work_items", arguments: { query: "login" } }],
+      rawToolCalls: [
+        { id: "call_search", type: "function", function: { name: "search_work_items", arguments: '{"query":"login"}' } },
+      ],
+    };
+    const batchResponse = toolCall("log_work_batch", {
+      items: [{ workItemId: 999, hours: 2, comment: "Corrigiendo bug de login" }],
+    });
+
+    const provider = makeProvider([searchResponse, batchResponse]);
+
+    const result = await runLogWorkFeature({
+      message: "Registra 2h en el bug de login",
+      model: "gpt-4o-mini",
+      provider,
+    });
+
+    expect(result.action).toBe("log_work_batch");
+    expect(provider.chat).toHaveBeenCalledTimes(2);
+
+    const secondCallMessages = provider.chat.mock.calls[1]![0].messages as Array<{ role: string }>;
+    const roles = secondCallMessages.map((m) => m.role);
+    expect(roles).toContain("assistant");
+    expect(roles).toContain("tool");
+  });
+
+  it("resolves in two iterations when get_my_work_items is called first", async () => {
+    const getItemsResponse: ChatResponse = {
+      raw: "",
+      parsed: undefined,
+      model: "gpt-4o-mini",
+      latencyMs: 10,
+      toolCalls: [{ id: "call_mine", name: "get_my_work_items", arguments: {} }],
+      rawToolCalls: [
+        { id: "call_mine", type: "function", function: { name: "get_my_work_items", arguments: "{}" } },
+      ],
+    };
+    const clarificationResponse = clarificationToolCall("¿En cuál de estos work items deseas registrar el tiempo?");
+
+    const provider = makeProvider([getItemsResponse, clarificationResponse]);
+
+    const result = await runLogWorkFeature({
+      message: "Registra mis horas de hoy",
+      model: "gpt-4o-mini",
+      provider,
+    });
+
+    expect(result.action).toBe("needs_clarification");
+    expect(provider.chat).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws after MAX_ITERATIONS without a terminal tool", async () => {
+    const infiniteSearch: ChatResponse = {
+      raw: "",
+      parsed: undefined,
+      model: "gpt-4o-mini",
+      latencyMs: 10,
+      toolCalls: [{ id: "call_s", name: "search_work_items", arguments: { query: "x" } }],
+      rawToolCalls: [
+        { id: "call_s", type: "function", function: { name: "search_work_items", arguments: '{"query":"x"}' } },
+      ],
+    };
+
+    const provider = makeProvider([infiniteSearch]);
+
+    await expect(
+      runLogWorkFeature({
+        message: "Algo",
+        model: "gpt-4o-mini",
+        provider,
+      }),
+    ).rejects.toThrow(/superó el número máximo de iteraciones/);
+
+    expect(provider.chat).toHaveBeenCalledTimes(10);
   });
 });

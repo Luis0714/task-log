@@ -46,9 +46,8 @@ export async function POST(req: Request) {
 
   const result = await interpretUserMessage(message, {
     userId,
-    createTasksInput: sprintContext
-      ? { kind: "create-tasks", message, sprintContext, userRole: session.userRole }
-      : undefined,
+    sprintContext,
+    userRole: session.userRole,
     executionContext: { auth: auth ?? undefined },
     history: history?.slice(-CONVERSATION_HISTORY_SERVER_CAP),
   });
