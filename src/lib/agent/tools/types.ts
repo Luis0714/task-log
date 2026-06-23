@@ -2,13 +2,18 @@ import type { z } from "zod";
 
 import type { ToolDefinition } from "@/lib/agent/provider/provider.types";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
+import type { SprintContext } from "@/lib/agent/features/create-tasks";
 
 /**
  * Contexto que el runner pasa al handler. Tools que no necesitan ADO (la mayoría)
- * lo ignoran. Tools que sí (ej. search_pbi) lo usan para hablar con Azure DevOps.
+ * lo ignoran. Tools que sí (ej. search_pbi, list_work_items) lo usan para hablar
+ * con Azure DevOps.
  */
 export type ToolExecutionContext = {
   auth?: AdoCallerAuth;
+  /** Active sprint context, if known — tools that list sprint-scoped items
+   *  (e.g. list_work_items) read this to know which iteration to query. */
+  sprintContext?: Pick<SprintContext, "sprintPath">;
 };
 
 /**

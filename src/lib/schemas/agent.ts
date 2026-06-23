@@ -7,6 +7,8 @@ export const previewActionSchema = z.enum([
   "create_tasks_batch",
   "needs_clarification",
   "unsupported",
+  "question_with_options",
+  "info_list",
 ]);
 
 export const logWorkItemSchema = z.object({
@@ -43,9 +45,7 @@ const createTaskBatchItemSchema = createTaskRequestSchema.omit({ action: true })
 
 export const createTasksBatchSchema = z.object({
   action: z.literal("create_tasks_batch"),
-  pbiId: z.number().int().positive(),
-  pbiTitle: z.string().min(1).max(500),
-  tasks: z.array(createTaskBatchItemSchema).min(1).max(10),
+  tasks: z.array(createTaskBatchItemSchema).min(1).max(20),
 });
 
 export const pbiCandidateSchema = z.object({
@@ -65,11 +65,50 @@ export const unsupportedPayloadSchema = z.object({
   reason: z.string().min(1).max(500),
 });
 
+export const questionOptionSchema = z.object({
+  id: z.string().min(1).max(80),
+  label: z.string().min(1).max(120),
+  value: z.string().min(1).max(500).optional(),
+  description: z.string().max(300).optional(),
+});
+export type QuestionOption = z.infer<typeof questionOptionSchema>;
+
+export const questionWithOptionsPayloadSchema = z.object({
+  action: z.literal("question_with_options"),
+  question: z.string().min(1).max(500),
+  options: z.array(questionOptionSchema).min(2).max(8),
+  allowFreeText: z.boolean().default(true),
+});
+export type QuestionWithOptionsPayload = z.infer<
+  typeof questionWithOptionsPayloadSchema
+>;
+
+export const infoListItemSchema = z.object({
+  id: z.number().int().positive(),
+  type: z.enum(["pbi", "bug", "task"]),
+  title: z.string().min(1).max(500),
+  state: z.string().optional(),
+  assignedTo: z.string().optional(),
+  url: z.string().url().optional(),
+});
+export type InfoListItem = z.infer<typeof infoListItemSchema>;
+
+export const infoListPayloadSchema = z.object({
+  action: z.literal("info_list"),
+  title: z.string().min(1).max(200),
+  items: z.array(infoListItemSchema).min(0).max(20),
+  groupBy: z.enum(["type", "state"]).default("type"),
+  emptyHint: z.string().max(300).optional(),
+});
+export type InfoListPayload = z.infer<typeof infoListPayloadSchema>;
+
 export const previewResultSchema = z.discriminatedUnion("action", [
   logWorkBatchSchema,
   createTasksBatchSchema,
   needsClarificationPayloadSchema,
   unsupportedPayloadSchema,
+  questionWithOptionsPayloadSchema,
+  infoListPayloadSchema,
 ]);
 
 export type PreviewResult = z.infer<typeof previewResultSchema>;

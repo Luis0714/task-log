@@ -1,10 +1,12 @@
 import {
   Bug,
+  CalendarCheck2,
   CheckSquare,
   Clock,
   LayoutDashboard,
   ListTodo,
   Settings,
+  Sparkles,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -32,6 +34,7 @@ const BASE_NAVIGATION: NavGroupConfig[] = [
     title: "Principal",
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/neos-ia", label: "Neos IA", icon: Sparkles },
     ],
   },
   {
@@ -41,6 +44,7 @@ const BASE_NAVIGATION: NavGroupConfig[] = [
       { href: "/work-items", label: "Historias de usuario", icon: ListTodo },
       { href: "/tasks", label: "Tareas", icon: CheckSquare },
       { href: "/bugs", label: "Bugs", icon: Bug },
+      { href: "/daily", label: "Resumen del daily", icon: CalendarCheck2 },
     ],
   },
 ];

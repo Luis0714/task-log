@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CheckCircle2, Loader2, Plus } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,12 +13,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { CopilotTaskRow } from "@/components/copilot/copilot-task-row";
 import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
-import type {
-  CreateTaskBatchItem,
-  CreateTasksBatch,
-} from "@/lib/schemas/agent";
+import type { CreateTaskBatchItem, CreateTasksBatch } from "@/lib/schemas/agent";
+import {
+  buildEmptyTask,
+  groupTasksByPbi,
+  isValidTask,
+} from "@/lib/copilot/task-preview.utils";
+import { totalHours } from "@/lib/copilot/copilot.utils";
 
 export type CopilotCreateTasksFormProps = {
   preview: CreateTasksBatch;
@@ -30,23 +35,6 @@ export type CopilotCreateTasksFormProps = {
   onCancel: () => void;
 };
 
-function buildEmptyTask(sprintPath: string, team: string): CreateTaskBatchItem {
-  return {
-    pbiId: 0,
-    pbiTitle: "",
-    title: "",
-    hours: 1,
-    description: "",
-    activity: "Development",
-    workingDate: "",
-    workingTime: "09:00",
-    state: "Closed",
-    markAsDone: true,
-    sprintPath,
-    team,
-  };
-}
-
 export function CopilotCreateTasksForm({
   preview,
   sprintPath,
@@ -58,13 +46,11 @@ export function CopilotCreateTasksForm({
   onCancel,
 }: Readonly<CopilotCreateTasksFormProps>) {
   const [tasks, setTasks] = useState<CreateTaskBatchItem[]>(
-    preview.tasks.map(normalizeTask),
+    preview.tasks.map((t) => ({ ...t, markAsDone: true })),
   );
 
   const updateTask = (index: number, next: CreateTaskBatchItem) => {
-    setTasks((current) =>
-      current.map((task, i) => (i === index ? next : task)),
-    );
+    setTasks((current) => current.map((task, i) => (i === index ? next : task)));
   };
 
   const removeTask = (index: number) => {
@@ -76,29 +62,49 @@ export function CopilotCreateTasksForm({
   };
 
   const validCount = tasks.filter(isValidTask).length;
+  const validTotalHours = totalHours(tasks.filter(isValidTask));
   const canConfirm = validCount > 0 && !loading && adoExecutionReady;
+
+  const groups = groupTasksByPbi(tasks);
+  const pbiIds = [...groups.keys()];
+  const isMultiPbi = pbiIds.length > 1;
 
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">
-          Tienes {tasks.length} task{tasks.length === 1 ? "" : "s"} para crear
+          {tasks.length} actividad{tasks.length === 1 ? "" : "es"} para registrar
+          {isMultiPbi && (
+            <span className="text-muted-foreground ml-2 text-sm font-normal">
+              en {pbiIds.length} historias de usuario
+            </span>
+          )}
         </CardTitle>
         <CardDescription>
-          Edita lo que quieras. Cuando esté listo, se crearán como Done.
+          Revisa los detalles. Al confirmar, las tasks se crearán como Done en Azure DevOps.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {tasks.map((task, index) => (
-          <CopilotTaskRow
-            key={`${index}-${task.pbiId}-${task.workingDate}`}
-            task={task}
+
+      <CardContent className="space-y-4">
+        {isMultiPbi ? (
+          <MultiPbiTaskList
+            tasks={tasks}
+            pbiIds={pbiIds}
+            groups={groups}
             sprintPath={sprintPath}
-            onChange={(next) => updateTask(index, next)}
-            onRemove={() => removeTask(index)}
-            disabled={loading}
+            loading={loading}
+            onUpdate={updateTask}
+            onRemove={removeTask}
           />
-        ))}
+        ) : (
+          <SinglePbiTaskList
+            tasks={tasks}
+            sprintPath={sprintPath}
+            loading={loading}
+            onUpdate={updateTask}
+            onRemove={removeTask}
+          />
+        )}
 
         <Button
           type="button"
@@ -108,35 +114,25 @@ export function CopilotCreateTasksForm({
           disabled={loading}
           className="w-full"
         >
-          <Plus className="size-4" aria-hidden /> Agregar otra task
+          <Plus className="size-4" aria-hidden /> Agregar otra actividad
         </Button>
       </CardContent>
+
       <CardFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
         <span className="text-muted-foreground text-xs">
-          {validCount} de {tasks.length} listas para crear
+          {validCount} de {tasks.length} listas · {validTotalHours}h en total
         </span>
         <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={loading}
-          >
+          <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
             Cancelar
           </Button>
-          <Button
-            type="button"
-            disabled={!canConfirm}
-            onClick={() => onConfirm(tasks)}
-          >
+          <Button type="button" disabled={!canConfirm} onClick={() => onConfirm(tasks)}>
             {loading ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />
             ) : (
               <CheckCircle2 className="size-4" aria-hidden />
             )}
-            {tasks.length === 1
-              ? "Crear task"
-              : `Crear ${tasks.length} tasks`}
+            {tasks.length === 1 ? "Confirmar y crear" : `Confirmar ${tasks.length} actividades`}
           </Button>
         </div>
       </CardFooter>
@@ -144,23 +140,81 @@ export function CopilotCreateTasksForm({
   );
 }
 
-function normalizeTask(task: CreateTaskBatchItem): CreateTaskBatchItem {
-  return {
-    ...task,
-    markAsDone: true,
-  };
+type TaskListProps = {
+  tasks: CreateTaskBatchItem[];
+  sprintPath: string;
+  loading: boolean;
+  onUpdate: (index: number, next: CreateTaskBatchItem) => void;
+  onRemove: (index: number) => void;
+};
+
+function SinglePbiTaskList({ tasks, sprintPath, loading, onUpdate, onRemove }: Readonly<TaskListProps>) {
+  return (
+    <>
+      {tasks.map((task, index) => (
+        <CopilotTaskRow
+          key={`${index}-${task.pbiId}-${task.workingDate}`}
+          task={task}
+          sprintPath={sprintPath}
+          onChange={(next) => onUpdate(index, next)}
+          onRemove={() => onRemove(index)}
+          disabled={loading}
+        />
+      ))}
+    </>
+  );
 }
 
-function isValidTask(task: CreateTaskBatchItem): boolean {
+type MultiPbiTaskListProps = TaskListProps & {
+  pbiIds: number[];
+  groups: Map<number, CreateTaskBatchItem[]>;
+};
+
+function MultiPbiTaskList({
+  tasks,
+  pbiIds,
+  groups,
+  sprintPath,
+  loading,
+  onUpdate,
+  onRemove,
+}: Readonly<MultiPbiTaskListProps>) {
   return (
-    task.pbiId > 0 &&
-    task.title.trim().length > 0 &&
-    task.description.trim().length > 0 &&
-    task.hours > 0 &&
-    task.hours <= 24 &&
-    /^\d{4}-\d{2}-\d{2}$/.test(task.workingDate) &&
-    /^\d{2}:\d{2}$/.test(task.workingTime) &&
-    task.activity.trim().length > 0 &&
-    task.state.trim().length > 0
+    <>
+      {pbiIds.map((pbiId, groupIdx) => {
+        const groupTasks = groups.get(pbiId) ?? [];
+        const pbiTitle = groupTasks[0]?.pbiTitle ?? "";
+        const groupHours = totalHours(groupTasks);
+        const globalIndices = tasks
+          .map((t, i) => (t.pbiId === pbiId ? i : -1))
+          .filter((i) => i !== -1);
+
+        return (
+          <div key={pbiId} className="space-y-3">
+            {groupIdx > 0 && <Separator />}
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="font-mono text-xs">
+                #{pbiId}
+              </Badge>
+              <span className="truncate text-sm font-medium">{pbiTitle}</span>
+              <span className="text-muted-foreground ml-auto shrink-0 text-xs">{groupHours}h</span>
+            </div>
+            {groupTasks.map((task, localIdx) => {
+              const globalIdx = globalIndices[localIdx]!;
+              return (
+                <CopilotTaskRow
+                  key={`${globalIdx}-${task.pbiId}-${task.workingDate}`}
+                  task={task}
+                  sprintPath={sprintPath}
+                  onChange={(next) => onUpdate(globalIdx, next)}
+                  onRemove={() => onRemove(globalIdx)}
+                  disabled={loading}
+                />
+              );
+            })}
+          </div>
+        );
+      })}
+    </>
   );
 }

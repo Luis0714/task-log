@@ -11,11 +11,11 @@ export const PAGE_SEO = {
       "Visibilidad del sprint en tiempo real: entrega, ritmo de horas, trabajo por estado y resumen del daily conectado a Azure DevOps.",
     path: "/",
   },
-  copilot: {
-    title: "Copiloto IA",
+  neosIa: {
+    title: "Neos IA",
     description:
       "Gestiona y registra trabajo en Azure DevOps con lenguaje natural. Crea tareas, registra horas y opera el sprint con asistencia de IA.",
-    path: "/copilot",
+    path: "/neos-ia",
   },
   history: {
     title: "Historial",
@@ -58,6 +58,12 @@ export const PAGE_SEO = {
     description:
       "Bugs del sprint con filtros por asignación, estado y fecha. Control de calidad integrado con tu flujo Agile.",
     path: "/bugs",
+  },
+  daily: {
+    title: "Resumen del daily",
+    description:
+      "Genera un resumen breve de tu trabajo en curso para compartir en la reunión diaria del sprint activo.",
+    path: "/daily",
   },
   settings: {
     title: "Configuración",

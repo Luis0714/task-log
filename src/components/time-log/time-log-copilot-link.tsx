@@ -6,8 +6,8 @@ export function TimeLogCopilotLink() {
   return (
     <p className="text-muted-foreground text-pretty text-sm">
       ¿Prefieres lenguaje natural?{" "}
-      <Link href="/copilot" className="text-primary font-medium hover:underline">
-        Usa el Copiloto IA
+      <Link href="/neos-ia" className="text-primary font-medium hover:underline">
+        Usa Neos IA
       </Link>
     </p>
   );

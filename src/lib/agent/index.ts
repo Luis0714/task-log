@@ -5,6 +5,7 @@ import {
   type RunCreateTasksInput,
 } from "@/lib/agent/orchestrator/run-feature";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
+import type { ConversationTurn } from "@/lib/agent/provider/provider.types";
 import type { PreviewResult } from "@/lib/schemas/agent";
 
 export type InterpretUserMessageResult =
@@ -17,9 +18,13 @@ export async function interpretUserMessage(
     userId: string;
     createTasksInput?: RunCreateTasksInput;
     executionContext?: ToolExecutionContext;
+    history?: ConversationTurn[];
   },
 ): Promise<InterpretUserMessageResult> {
-  const input = options.createTasksInput ?? { kind: "log-work", message };
+  const input: RunCreateTasksInput | { kind: "log-work"; message: string } =
+    options.createTasksInput
+      ? { ...options.createTasksInput, history: options.history }
+      : { kind: "log-work", message };
   const result = await runFeature(input, {
     userId: options.userId,
     executionContext: options.executionContext,

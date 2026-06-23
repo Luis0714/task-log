@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
-import type { AgentProvider } from "@/lib/agent/provider/provider.types";
+import type { AgentProvider, ConversationTurn } from "@/lib/agent/provider/provider.types";
 import { createAgentProvider } from "@/lib/agent/provider/provider.factory";
 import { getPreviewRateLimiter } from "@/lib/agent/observability/rate-limit";
 import { logInteraction } from "@/lib/agent/observability/interaction-log";
@@ -29,6 +29,7 @@ export type RunCreateTasksInput = {
   kind: "create-tasks";
   message: string;
   sprintContext: SprintContext;
+  history?: ConversationTurn[];
 };
 
 export type RunFeatureInput = RunLogWorkInput | RunCreateTasksInput;
@@ -98,6 +99,7 @@ export async function runFeature(
         provider,
         sprintContext: input.sprintContext,
         executionContext: options.executionContext,
+        history: input.history,
       });
       logInteraction({
         userId,

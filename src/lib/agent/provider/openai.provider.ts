@@ -57,17 +57,22 @@ function buildRequestBody(req: ChatRequest): Record<string, unknown> {
   const body: Record<string, unknown> = {
     model: req.model,
     temperature: req.temperature,
-    max_tokens: req.maxTokens ?? 800,
-    messages: [
+    max_tokens: req.maxTokens ?? 1500,
+    messages: req.messages ?? [
       { role: "system", content: req.systemPrompt },
-      { role: "user", content: req.userMessage },
+      { role: "user", content: req.userMessage ?? "" },
     ],
   };
 
   if (req.tools && req.tools.length > 0) {
     body.tools = req.tools.map((t) => ({
       type: "function",
-      function: t,
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: t.parameters,
+        ...(t.strict !== undefined ? { strict: t.strict } : {}),
+      },
     }));
     body.tool_choice = req.toolChoice ?? "auto";
   } else {
@@ -119,6 +124,7 @@ async function parseOpenAiResponse(
     completionTokens: usage?.completion_tokens,
     totalTokens: usage?.total_tokens,
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    rawToolCalls: message?.tool_calls,
   };
 }
 

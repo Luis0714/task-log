@@ -1,6 +1,6 @@
 import "server-only";
 
-import { findToolHandler } from "@/lib/agent/tools/registry";
+import { findToolHandler, listToolDefinitions } from "@/lib/agent/tools/registry";
 import type { AgentProvider } from "@/lib/agent/provider/provider.types";
 import { previewResultSchema } from "@/lib/schemas/agent";
 import type { PreviewResult } from "@/lib/schemas/agent";
@@ -12,12 +12,17 @@ export type RunLogWorkArgs = {
   message: string;
   model: string;
   provider: AgentProvider;
+  /** Sprint path for tools that scope queries to the current sprint (e.g.
+   *  `list_work_items`). When provided, passed to every tool's execution
+   *  context. */
+  sprintPath?: string;
 };
 
 export async function runLogWorkFeature({
   message,
   model,
   provider,
+  sprintPath,
 }: RunLogWorkArgs): Promise<PreviewResult> {
   const trimmed = message.trim();
   if (!trimmed) {
@@ -32,19 +37,20 @@ export async function runLogWorkFeature({
     temperature: 0.1,
     systemPrompt: LOG_WORK_SYSTEM_PROMPT,
     userMessage: trimmed,
-    tools: [logWorkBatchTool.definition],
+    tools: [logWorkBatchTool.definition, ...listToolDefinitions()],
   });
 
-  const preview = resolvePreviewFromToolCall(response.toolCalls);
+  const preview = await resolvePreviewFromToolCall(response.toolCalls, sprintPath);
   const safe = previewResultSchema.safeParse(preview);
   if (safe.success) return safe.data;
 
   throw new Error("La IA devolvió una herramienta con argumentos inválidos.");
 }
 
-function resolvePreviewFromToolCall(
+async function resolvePreviewFromToolCall(
   toolCalls: ReadonlyArray<{ id: string; name: string; arguments: unknown }> | undefined,
-): PreviewResult {
+  sprintPath: string | undefined,
+): Promise<PreviewResult> {
   if (!toolCalls || toolCalls.length === 0) {
     throw new Error("La IA no invocó ninguna herramienta.");
   }
@@ -60,6 +66,10 @@ function resolvePreviewFromToolCall(
   if (!parsed.success) {
     throw new Error(`Argumentos inválidos para ${call.name}.`);
   }
-  const output = handler.handle(parsed.data, {});
+  const output = await Promise.resolve(
+    handler.handle(parsed.data, {
+      ...(sprintPath ? { sprintContext: { sprintPath } } : {}),
+    }),
+  );
   return handler.outputSchema.parse(output) as PreviewResult;
 }

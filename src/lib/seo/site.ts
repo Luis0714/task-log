@@ -24,11 +24,12 @@ export const SITE_KEYWORDS = [
 /** Rutas públicas de la app (para sitemap cuando la indexación está habilitada). */
 export const PUBLIC_APP_PATHS = [
   "/",
-  "/copilot",
+  "/neos-ia",
   "/time-log",
   "/work-items",
   "/tasks",
   "/bugs",
+  "/daily",
   "/settings",
   "/privacy",
   "/terms",

@@ -19,9 +19,9 @@ export const USER_MESSAGES = {
   notConnected:
     "No hay conexión con Azure DevOps. Inicia sesión para continuar.",
   copilotInterpret:
-    "No pudimos interpretar tu mensaje ahora. Inténtalo de nuevo o escribe el ID del elemento y las horas con más detalle.",
+    "No pudimos interpretar tu mensaje ahora. Inténtalo de nuevo.",
   copilotNoToolCall:
-    "La IA no devolvió una acción válida. Reformula tu mensaje o sé más específico (ej: \"2h en #123 revisando PR\").",
+    "No pudimos procesar tu mensaje. Inténtalo de nuevo.",
   copilotInvalidArgs:
     "La IA devolvió argumentos inválidos. Reformula tu mensaje con más detalle.",
   copilotSchemaInvalid:
