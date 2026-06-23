@@ -9,8 +9,8 @@ export const updateSettingsProcessProfileSchema = z.object({
   workingDateField: z.string().trim().min(1, "Elige un campo de fecha."),
   timezone: z.string().trim().min(1, "Indica la zona horaria."),
   // campos admin opcionales
-  completedWorkField: z.string().trim().optional(),
-  originalEstimateField: z.string().trim().optional(),
+  completedWorkField: z.string().trim().nullable().optional(),
+  originalEstimateField: z.string().trim().nullable().optional(),
   remainingWorkField: z.string().trim().nullable().optional(),
   activityField: z.string().trim().nullable().optional(),
   taskWorkItemType: z.string().trim().optional(),
