@@ -35,7 +35,6 @@ const searchWorkItemsArgsSchema = z.object({
 
 export const SEARCH_WORK_ITEMS_TOOL_DEFINITION: ToolDefinition = {
   name: SEARCH_WORK_ITEMS_TOOL_NAME,
-  strict: true,
   description:
     "Busca work items (PBIs, bugs, tasks) cuyo título contenga el texto dado. Devuelve candidatos estructurados para que puedas decidir si registrar tiempo directamente o pedir confirmación al usuario. Úsala cuando el usuario no proporciona un ID numérico.",
   parameters: {

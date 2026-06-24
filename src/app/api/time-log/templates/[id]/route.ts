@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { getRepositories, isUserPersistenceReady } from "@/lib/db";
 import { isIronSessionConfigured } from "@/lib/auth/session";
 import { getTaskPilotSession } from "@/lib/auth/session";
-import { createTimeLogTemplateBodySchema } from "@/lib/schemas/time-log-template";
-import type { TimeLogTemplateDto } from "@/lib/schemas/time-log-template";
+import { updateTimeLogTemplateBodySchema } from "@/lib/schemas/time-log-template";
+import { templateRowToDto } from "@/lib/time-log/template-dto";
 import {
   TimeLogTemplateNotFoundError,
 } from "@/lib/db/ports/time-log-template.repository.port";
@@ -12,33 +12,8 @@ import { USER_MESSAGES } from "@/lib/errors/user-messages";
 
 export const dynamic = "force-dynamic";
 
-function toDto(row: {
-  id: string;
-  name: string;
-  defaultTitle: string;
-  defaultDescription: string;
-  defaultActivity: string | null;
-  isSystem: boolean;
-  seedKey: string | null;
-  userId: string | null;
-  createdAt: Date | string;
-}): TimeLogTemplateDto {
-  return {
-    id: row.id,
-    name: row.name,
-    defaultTitle: row.defaultTitle,
-    defaultDescription: row.defaultDescription,
-    defaultActivity: row.defaultActivity,
-    isSystem: row.isSystem,
-    seedKey: row.seedKey,
-    userId: row.userId,
-    createdAt:
-      row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
-  };
-}
-
-async function requireUserId(): Promise<
-  | { ok: true; userId: string }
+async function requireSessionUser(): Promise<
+  | { ok: true; userId: string; roleName: string | null }
   | { ok: false; status: number; error: string }
 > {
   if (!isIronSessionConfigured() || !isUserPersistenceReady()) {
@@ -49,14 +24,27 @@ async function requireUserId(): Promise<
   if (!userId) {
     return { ok: false, status: 401, error: "No autorizado." };
   }
-  return { ok: true, userId };
+  return { ok: true, userId, roleName: session.userRole ?? null };
+}
+
+function rejectNonAdminIfGlobal(
+  isGlobal: boolean | undefined,
+  roleName: string | null,
+): { ok: true } | { ok: false; status: number; error: string } {
+  if (!isGlobal) return { ok: true };
+  if (roleName === "super_admin") return { ok: true };
+  return {
+    ok: false,
+    status: 403,
+    error: "Solo un super administrador puede crear plantillas globales.",
+  };
 }
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireUserId();
+  const auth = await requireSessionUser();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -71,12 +59,17 @@ export async function PATCH(
     );
   }
 
-  const parsed = createTimeLogTemplateBodySchema.safeParse(body);
+  const parsed = updateTimeLogTemplateBodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? USER_MESSAGES.invalidPayload },
       { status: 400 },
     );
+  }
+
+  const roleCheck = rejectNonAdminIfGlobal(parsed.data.isGlobal, auth.roleName);
+  if (!roleCheck.ok) {
+    return NextResponse.json({ error: roleCheck.error }, { status: roleCheck.status });
   }
 
   const { id } = await params;
@@ -93,7 +86,9 @@ export async function PATCH(
       id,
       parsed.data,
     );
-    return NextResponse.json({ template: toDto(row) });
+    // Para una plantilla personal editada por su dueño, authorName siempre
+    // es el usuario actual (la UI ya lo conoce).
+    return NextResponse.json({ template: templateRowToDto(row, null) });
   } catch (err) {
     if (err instanceof TimeLogTemplateNotFoundError) {
       return NextResponse.json({ error: err.message }, { status: 404 });
@@ -109,7 +104,7 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireUserId();
+  const auth = await requireSessionUser();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }

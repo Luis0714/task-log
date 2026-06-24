@@ -39,59 +39,70 @@ function unsupportedToolCall(reason: string): ChatResponse {
   return toolCall("unsupported", { reason });
 }
 
+const VALID_TASK = {
+  pbiId: 1234,
+  pbiTitle: "Historia de exportación",
+  title: "Implementación endpoint de exportación",
+  hours: 3,
+  description: "Implementé el endpoint REST de exportación de datos",
+  workingDate: "2026-06-23",
+  workingTime: "09:00",
+  state: "Closed",
+  markAsDone: true,
+  sprintPath: "MyProject\\Sprint 1",
+  team: "MyTeam",
+};
+
 describe("runLogWorkFeature", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("parses a single log_work_batch tool call", async () => {
+  it("parses a single create_tasks_batch tool call", async () => {
     const provider = makeProvider([
-      toolCall("log_work_batch", {
-        items: [
-          { workItemId: 1234, hours: 2, comment: "Revisando PR" },
-        ],
-      }),
+      toolCall("create_tasks_batch", { tasks: [VALID_TASK] }),
     ]);
     const result = await runLogWorkFeature({
-      message: "Registra 2h en #1234 revisando PR",
+      message: "Registra 3h en #1234 implementando el endpoint de exportación",
       model: "gpt-4o-mini",
       provider,
     });
-    expect(result).toEqual({
-      action: "log_work_batch",
-      items: [{ action: "log_work", workItemId: 1234, hours: 2, comment: "Revisando PR" }],
-    });
+    expect(result.action).toBe("create_tasks_batch");
+    if (result.action !== "create_tasks_batch") throw new Error("expected batch");
+    expect(result.tasks).toHaveLength(1);
+    expect(result.tasks[0]!.pbiId).toBe(1234);
+    expect(result.tasks[0]!.hours).toBe(3);
     expect(provider.chat).toHaveBeenCalledTimes(1);
   });
 
-  it("parses a multi-item log_work_batch tool call", async () => {
+  it("parses a multi-task create_tasks_batch (activity split)", async () => {
     const provider = makeProvider([
-      toolCall("log_work_batch", {
-        items: [
-          { workItemId: 1, hours: 1, comment: "A" },
-          { workItemId: 2, hours: 2, comment: "B" },
+      toolCall("create_tasks_batch", {
+        tasks: [
+          { ...VALID_TASK, title: "Implementación backend", hours: 4, activity: "Development" },
+          { ...VALID_TASK, title: "Pruebas", hours: 2, activity: "QA" },
         ],
       }),
     ]);
     const result = await runLogWorkFeature({
-      message: "1h en #1 y 2h en #2",
+      message: "4h implementando el backend y 2h haciendo pruebas en #1234",
       model: "gpt-4o-mini",
       provider,
     });
-    if (result.action !== "log_work_batch") throw new Error("expected batch");
-    expect(result.items).toHaveLength(2);
+    if (result.action !== "create_tasks_batch") throw new Error("expected batch");
+    expect(result.tasks).toHaveLength(2);
   });
 
   it("returns needs_clarification when the LLM invokes needs_clarification", async () => {
-    const provider = makeProvider([clarificationToolCall("¿Cuántas horas?")]);
+    const provider = makeProvider([clarificationToolCall("¿Cuántas horas trabajaste?")]);
     const result = await runLogWorkFeature({
-      message: "Trabaje en 1234",
+      message: "Trabajé en #1234",
       model: "gpt-4o-mini",
       provider,
     });
     expect(result).toEqual({
       action: "needs_clarification",
-      question: "¿Cuántas horas?",
+      question: "¿Cuántas horas trabajaste?",
     });
   });
 
@@ -134,7 +145,7 @@ describe("runLogWorkFeature", () => {
 
   it("throws when the tool arguments are invalid", async () => {
     const provider = makeProvider([
-      toolCall("log_work_batch", { items: [{ hours: -1 }] }),
+      toolCall("create_tasks_batch", { tasks: [{ pbiId: -1 }] }),
     ]);
     await expect(
       runLogWorkFeature({
@@ -167,9 +178,7 @@ describe("runLogWorkFeature", () => {
         { id: "call_search", type: "function", function: { name: "search_work_items", arguments: '{"query":"login"}' } },
       ],
     };
-    const batchResponse = toolCall("log_work_batch", {
-      items: [{ workItemId: 999, hours: 2, comment: "Corrigiendo bug de login" }],
-    });
+    const batchResponse = toolCall("create_tasks_batch", { tasks: [VALID_TASK] });
 
     const provider = makeProvider([searchResponse, batchResponse]);
 
@@ -179,7 +188,7 @@ describe("runLogWorkFeature", () => {
       provider,
     });
 
-    expect(result.action).toBe("log_work_batch");
+    expect(result.action).toBe("create_tasks_batch");
     expect(provider.chat).toHaveBeenCalledTimes(2);
 
     const secondCallMessages = provider.chat.mock.calls[1]![0].messages as Array<{ role: string }>;

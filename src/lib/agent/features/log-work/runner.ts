@@ -1,13 +1,16 @@
 import "server-only";
 
+import { fetchTaskActivityValues } from "@/lib/azure-devops/fetch-task-activity-values";
+import { listTaskStates, type AdoWorkItemTypeState } from "@/lib/azure-devops/work-item-type-states";
+import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import { findToolHandler, listToolDefinitions } from "@/lib/agent/tools/registry";
+import { buildCreateTasksBatchDefinition, CREATE_TASKS_BATCH_TOOL_NAME } from "@/lib/agent/features/create-tasks/tool";
 import type { AgentProvider, ChatMessage, ConversationTurn } from "@/lib/agent/provider/provider.types";
 import { previewResultSchema } from "@/lib/schemas/agent";
 import type { PreviewResult } from "@/lib/schemas/agent";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
 
-import { LOG_WORK_BATCH_TOOL_NAME } from "./tool";
-import { TIME_AGENT_SYSTEM_PROMPT } from "./time-agent-prompt";
+import { buildTimeAgentSystemPrompt } from "./time-agent-prompt";
 import {
   SEARCH_WORK_ITEMS_TOOL_NAME,
   SEARCH_WORK_ITEMS_TOOL_DEFINITION,
@@ -32,7 +35,7 @@ export type RunLogWorkArgs = {
 const MAX_ITERATIONS = 10;
 
 const TERMINAL_TOOLS = new Set([
-  LOG_WORK_BATCH_TOOL_NAME,
+  CREATE_TASKS_BATCH_TOOL_NAME,
   "needs_clarification",
   "question_with_options",
   "list_work_items",
@@ -43,6 +46,10 @@ const INTERMEDIATE_TOOLS = new Set([
   SEARCH_WORK_ITEMS_TOOL_NAME,
   GET_MY_WORK_ITEMS_TOOL_NAME,
 ]);
+
+function findDoneState(states: AdoWorkItemTypeState[]): string {
+  return states.find((s) => s.category === "Completed")?.name ?? "Closed";
+}
 
 export async function runLogWorkFeature({
   message,
@@ -55,21 +62,53 @@ export async function runLogWorkFeature({
   if (!trimmed) {
     return {
       action: "needs_clarification",
-      question: "Escribe qué trabajo registraste, en qué elemento y cuántas horas.",
+      question: "Escribe qué trabajo realizaste, en qué elemento y cuántas horas.",
     };
   }
 
   const auth = executionContext?.auth;
-  const sprintPath = executionContext?.sprintContext?.sprintPath;
+  const sprintPath = executionContext?.sprintContext?.sprintPath ?? "";
+  const team = executionContext?.sprintContext?.team ?? "";
+  const today = new Date().toISOString().slice(0, 10);
+
+  const processProfile = auth ? await resolveProcessProfile(auth) : null;
+
+  const [activityValues, taskStates] =
+    auth && processProfile
+      ? await Promise.all([
+          fetchTaskActivityValues(
+            auth,
+            processProfile.taskWorkItemType,
+            processProfile.activityField,
+          ),
+          listTaskStates(auth, processProfile.taskWorkItemType),
+        ])
+      : [[] as readonly string[], [] as AdoWorkItemTypeState[]];
+
+  const taskStateNames = taskStates.map((s) => s.name);
+  const doneState = findDoneState(taskStates);
+
+  const createTasksBatchDef = buildCreateTasksBatchDefinition(activityValues, taskStateNames);
+
+  const systemPrompt = buildTimeAgentSystemPrompt({
+    today,
+    sprintPath,
+    team,
+    doneState,
+    activityValues,
+  });
 
   const tools = [
+    createTasksBatchDef,
     SEARCH_WORK_ITEMS_TOOL_DEFINITION,
     GET_MY_WORK_ITEMS_TOOL_DEFINITION,
-    ...listToolDefinitions(),
+    ...listToolDefinitions().filter(
+      (d) => d.name !== CREATE_TASKS_BATCH_TOOL_NAME && d.name !== "log_work_batch",
+    ),
   ];
 
   let messages: ChatMessage[] = [
-    { role: "system", content: TIME_AGENT_SYSTEM_PROMPT },
+    { role: "system", content: systemPrompt },
     ...history.map((t) => ({ role: t.role, content: t.content })),
     { role: "user", content: trimmed },
   ];
@@ -78,7 +117,7 @@ export async function runLogWorkFeature({
     const response = await provider.chat({
       model,
       temperature: 0.1,
-      systemPrompt: TIME_AGENT_SYSTEM_PROMPT,
+      systemPrompt,
       messages,
       tools,
     });

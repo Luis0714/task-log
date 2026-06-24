@@ -33,6 +33,7 @@ import {
   pickDefaultCompletedTaskState,
   pickDefaultOpenTaskState,
 } from "@/lib/time-log/task-state-utils";
+import { parseRequiredEmptyFieldsFromAdoError } from "@/lib/azure-devops/ado-rule-errors";
 
 export type { AdoWorkItemOption } from "@/lib/azure-devops/work-items-filters";
 import type { AdoWorkItemOption } from "@/lib/azure-devops/work-items-filters";
@@ -689,31 +690,6 @@ const SYSTEM_STATE = "System.State";
 export type UpdateWorkItemStateResult =
   | { ok: true; state: string }
   | { ok: false; status: number; body: string };
-
-function parseRequiredEmptyFieldsFromAdoError(body: string): string[] {
-  try {
-    const json = JSON.parse(body) as {
-      customProperties?: {
-        RuleValidationErrors?: Array<{
-          fieldReferenceName?: unknown;
-          fieldStatusFlags?: unknown;
-        }>;
-      };
-    };
-    return (json.customProperties?.RuleValidationErrors ?? [])
-      .filter(
-        (e) =>
-          typeof e.fieldReferenceName === "string" &&
-          e.fieldReferenceName.trim() &&
-          typeof e.fieldStatusFlags === "string" &&
-          e.fieldStatusFlags.includes("required") &&
-          e.fieldStatusFlags.includes("invalidEmpty"),
-      )
-      .map((e) => (e.fieldReferenceName as string).trim());
-  } catch {
-    return [];
-  }
-}
 
 function looksLikeDateField(referenceName: string): boolean {
   const lower = referenceName.toLowerCase();

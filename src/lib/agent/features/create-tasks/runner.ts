@@ -345,7 +345,7 @@ function resolveTerminalToolCall(
     arguments: unknown;
   },
   auth: AdoCallerAuth | undefined,
-  sprintContext: { sprintPath: string },
+  sprintContext: { sprintPath: string; team?: string },
 ): Promise<PreviewResult> | PreviewResult {
   const handler = findToolHandler(call.name);
   if (!handler) throw new Error(`Herramienta desconocida: ${call.name}`);

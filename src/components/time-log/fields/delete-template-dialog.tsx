@@ -46,7 +46,7 @@ export function DeleteTemplateDialog({
     <button
       type="button"
       aria-label={`Eliminar ${templateName}`}
-      className="text-muted-foreground hover:text-destructive rounded p-0.5 focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none"
+      className="text-muted-foreground hover:text-destructive inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none"
     >
       {children}
     </button>

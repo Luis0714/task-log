@@ -8,13 +8,27 @@ import {
   Settings,
   Sparkles,
   Users,
-  type LucideIcon,
 } from "lucide-react";
+import type { IconType } from "react-icons";
+import { TbTemplate } from "react-icons/tb";
+
+/**
+ * Tipo compartido para los iconos del menú lateral. Acepta tanto los
+ * iconos de `lucide-react` (componentes `LucideIcon`) como los de
+ * `react-icons` (componentes `IconType`) porque en el sidebar los
+ * tratamos como componentes opacos que solo reciben `className`.
+ */
+export type NavIcon = IconType;
 
 export type NavItemConfig = {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: NavIcon;
+  /**
+   * Badge semántico opcional para destacar el item en el sidebar.
+   * Se renderiza vía `FeatureBadge` en `NavItem`.
+   */
+  badge?: "new" | "plan";
 };
 
 export type NavGroupConfig = {
@@ -75,7 +89,10 @@ export function getNavigation(isAdmin: boolean): NavGroupConfig[] {
   if (isAdmin) {
     groups.push({
       title: "Administración",
-      items: [{ href: "/admin/usuarios", label: "Usuarios", icon: Users }],
+      items: [
+        { href: "/admin/usuarios", label: "Usuarios", icon: Users },
+        { href: "/admin/plantillas", label: "Plantillas", icon: TbTemplate },
+      ],
     });
   }
 

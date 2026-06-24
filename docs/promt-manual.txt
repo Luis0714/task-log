@@ -1,0 +1,272 @@
+# TAREA: Generar manual de usuario a partir de screenshots
+
+## Contexto
+Voy a documentar DOS funcionalidades de la app "Task Log" 
+(ubicadas en la ruta `/time-log`). La pantalla tiene un 
+selector arriba con dos pestañas: **Individual** y **Múltiple**. 
+Ambas comparten el mismo contexto (proyecto, equipo, sprint y 
+filtros) y soportan plantillas personales reutilizables.
+
+Las plantillas se usan DENTRO de las dos pantallas como atajo 
+para autocompletar campos. NO documentes la sección de 
+administración de plantillas (`/admin/plantillas`) — omitila 
+por completo.
+
+---
+
+## Funcionalidad 1 — Registro de tiempo individual
+
+### ¿Qué es?
+Es la pantalla principal de `/time-log` con la pestaña 
+**"Individual"** seleccionada. Permite registrar UNA tarea a 
+la vez en Azure DevOps completando un único formulario.
+
+### ¿Para qué sirve?
+Para cuando trabajaste en una sola cosa puntual (una reunión, 
+un fix, una revisión) y querés dejar el registro rápido: 
+historia de usuario, título, horas, actividad, fecha/hora y 
+descripción. La tarea se crea ya marcada como "Done" y suma 
+las horas al día.
+
+### Cuándo usarla
+- Es una tarea única y corta.
+- Querés revisar/editar cada campo antes de enviar.
+- Es la primera vez que usás la app y querés un flujo simple.
+
+### Requisitos previos
+- Tener conectado Azure DevOps con un proyecto y un equipo 
+  configurados.
+- Tener un sprint activo seleccionado.
+- Que la historia de usuario (PBI) a la que vas a imputar 
+  horas esté dentro del sprint actual.
+
+### Pasos (espero ~7-10 pasos en tus screenshots)
+
+#### Paso 1 — Elegir el modo "Individual"
+En la parte superior de `/time-log`, hacer clic en la pestaña 
+**"Individual"** dentro del selector "Modo de registro de 
+tiempo". El segmento queda resaltado y aparece el formulario.
+
+#### Paso 2 — Ajustar el contexto y filtros (si hace falta)
+Expandir el bloque colapsable **"Contexto y filtros"** arriba 
+del formulario. Ahí se ven y pueden cambiar: proyecto, equipo, 
+sprint, y filtros de historias de usuario (estado, asignado, 
+búsqueda). Al cambiar el sprint, los datos del formulario se 
+resetean.
+
+#### Paso 3 — (Opcional) Aplicar una plantilla
+En la sección **"Plantillas · Escoge una o crea una nueva"** 
+hay una fila horizontal de cards. Cada card tiene un nombre y 
+un badge: **Personal** (la que vos creaste), **Global** 
+(disponible para todos) o **Tu rol** (predeterminada para tu 
+rol). Al hacer clic en una, se autorrellenan: título, 
+descripción, actividad y horas. Para quitar la plantilla, 
+clic en **"Quitar plantilla"** debajo de la fila. Para crear 
+una nueva con los valores actuales, usar el botón **+** a la 
+derecha del título "Plantillas".
+
+#### Paso 4 — Seleccionar la Historia de usuario
+En el campo **"Historia de usuario"** (combobox), buscar y 
+elegir la PBI a la que corresponden las horas. Empezá a 
+tipear para filtrar; la búsqueda es por título o número.
+
+#### Paso 5 — Completar título, horas y actividad
+- **Título de la tarea** (obligatorio): nombre corto, ej. 
+  "Reunión equipo", "Fix bug login".
+- **Horas (trabajo completado)** (obligatorio): número 
+  decimal, ej. 1.5. Representa trabajo ya realizado.
+- **Actividad** (obligatorio): elegir de la lista desplegable 
+  las opciones que vienen del proyecto (Development, 
+  Testing, etc.).
+
+#### Paso 6 — Indicar fecha y hora de trabajo
+En **"Fecha y hora de trabajo"**, seleccionar cuándo se hizo 
+el trabajo (por defecto propone la fecha y hora actuales). 
+Sirve para imputar horas de días anteriores.
+
+#### Paso 7 — Escribir la descripción
+En el campo **"Descripción"** (obligatorio, varias líneas), 
+contar brevemente qué se hizo en esa tarea. Ej. "Revisión de 
+PR #234 y comentarios al equipo".
+
+#### Paso 8 — Enviar el registro
+Hacer clic en el botón azul **"Crear tarea"**. Mientras se 
+procesa muestra un spinner. Al terminar, aparece un toast 
+confirmando y el formulario queda listo para la siguiente. 
+Un cartel gris recuerda: "La tarea se creará automáticamente 
+como Done" — no hace falta seleccionar estado.
+
+#### Resultado final
+La tarea aparece en Azure DevOps bajo la PBI seleccionada, en 
+estado "Done", con las horas registradas y la descripción. 
+El toast confirma el ID o título.
+
+### Errores comunes
+- **No hay sprint activo:** el formulario se deshabilita. 
+  Solución: seleccionar uno en "Contexto y filtros".
+- **Faltan horas o título:** el botón "Crear tarea" queda 
+  deshabilitado o muestra error rojo abajo del campo.
+- **No aparece la PBI esperada:** revisar el sprint 
+  seleccionado o limpiar los filtros de historias.
+
+---
+
+## Funcionalidad 2 — Registro de tiempo múltiple (en lote)
+
+### ¿Qué es?
+La misma pantalla `/time-log` con la pestaña **"Múltiple"** 
+seleccionada. Permite armar VARIAS filas de registro en un 
+solo formulario y enviarlas todas juntas con un solo clic. 
+Cada fila se convierte en una tarea independiente en Azure 
+DevOps.
+
+### ¿Para qué sirve?
+Para imputar el día completo (o varios días) de una sola vez: 
+matutinas juntas, distintas reuniones, code reviews, etc. Sin 
+tener que recargar la pantalla entre cada una.
+
+### Cuándo usarla
+- Tenés varias cosas que registrar de golpe.
+- Ya conocés el flujo individual y querés velocidad.
+- Querés ver contadores en vivo (total de filas válidas, 
+  total de horas).
+
+### Requisitos previos
+- Los mismos que Individual (conexión ADO, sprint activo, 
+  PBIs disponibles).
+- Tener claras las horas de cada actividad antes de empezar, 
+  porque no hay validación hasta enviar.
+
+### Pasos (espero ~9-12 pasos en tus screenshots)
+
+#### Paso 1 — Cambiar a modo "Múltiple"
+En el selector superior "Modo de registro de tiempo", hacer 
+clic en **"Múltiple"**. Aparece un cartel celeste arriba 
+explicando el modo y una primera fila vacía abajo.
+
+#### Paso 2 — Leer el cartel informativo
+Arriba de la lista de filas hay un alert azul. En modo 
+estándar dice: *"Las tareas se crearán automáticamente como 
+Done. Al enviar el lote, cada tarea quedará en «Done» y 
+contará de inmediato en las horas del día."* Sirve para 
+confirmar que no hace falta elegir estado por fila.
+
+#### Paso 3 — Revisar la primera fila
+La primera fila aparece colapsada como un resumen "Borrador". 
+Hacer clic para expandirla. Dentro tiene, en este orden:
+- **Plantillas** (selector de cards, igual que Individual 
+  pero más compacto)
+- **Historia de usuario** (combobox)
+- **Título de la tarea**
+- **Horas** y **Actividad** (en dos columnas)
+- **Descripción**
+- **Fecha y hora de trabajo**
+
+#### Paso 4 — (Opcional) Aplicar plantilla a la fila
+Si hay plantillas disponibles, en la sección **"Plantillas · 
+Escoge una para autocompletar"** hacer clic en una card. Se 
+rellenan título, descripción, actividad y horas SOLO de esa 
+fila. Para quitarla, **"Quitar plantilla"**. Si NO hay 
+plantillas, el sistema sugiere: *"No hay plantillas 
+disponibles. Crea una desde el modo Individual y luego podrás 
+aplicarla aquí."*
+
+#### Paso 5 — Completar los datos de la fila
+Llenar: Historia de usuario, Título, Horas, Actividad, 
+Descripción, Fecha y hora. Todos los campos con asterisco 
+rojo son obligatorios. Mientras la fila está incompleta 
+aparece el badge **"Pendiente"** a la derecha.
+
+#### Paso 6 — Agregar más filas
+Hacer clic en **"Agregar fila"** (abajo a la izquierda). Se 
+suma una nueva fila vacía al final. Máximo **10 filas por 
+lote** — el botón se deshabilita al llegar al límite. Si 
+intentás agregar sin completar la anterior, aparece un toast: 
+*"Completa los campos de la fila #N antes de agregar otra."*
+
+#### Paso 7 — Verificar contadores en vivo
+A la derecha, abajo del botón "Agregar fila", hay dos 
+contadores que se actualizan en tiempo real:
+- **Total registros**: cantidad de filas válidas (con todos 
+  los campos obligatorios llenos).
+- **Total horas**: suma de horas de las filas válidas.
+
+#### Paso 8 — (Opcional) Eliminar una fila
+Cada fila tiene un botón de eliminar (ícono papelera) en su 
+esquina. Solo se puede eliminar si hay más de una fila y no 
+se han enviado. No se puede borrar la última fila restante.
+
+#### Paso 9 — Enviar el lote
+Hacer clic en el botón **"Registrar Todo"** (abajo a la 
+derecha). Mientras se procesa, el botón muestra "Enviando…" 
+y todas las filas quedan deshabilitadas. Los contadores 
+siguen visibles.
+
+#### Paso 10 — Revisar el resultado por fila
+Al terminar, cada fila muestra un chip a la derecha:
+- Verde con check + "Tarea #1234" → creada OK.
+- Rojo con X y un mensaje → falló (ej. validación de ADO). 
+  Esa fila no se creó; podés corregirla y volver a enviar.
+
+#### Paso 11 — (Opcional) Limpiar filas completadas
+Si hay filas con check verde, aparece el botón **"Limpiar 
+filas completadas (N)"** arriba de "Registrar Todo". Al 
+hacer clic, pide confirmación y elimina SOLO las filas 
+exitosas; las pendientes o con error quedan para corregir.
+
+#### Paso 12 — (Opcional) Volver a Individual
+Si querés pasar a Individual pero hay filas con datos, el 
+sistema pregunta: *"Tienes filas con datos en el modo Múltiple 
+que se perderán si cambias a Individual. ¿Quieres 
+continuar?"*. Confirmar para descartar, o cancelar para 
+quedarse en Múltiple.
+
+#### Resultado final
+Todas las filas con check verde aparecen como tareas creadas 
+en Azure DevOps, en estado "Done", agrupadas bajo sus 
+respectivas PBIs. Las filas con error quedan marcadas para 
+corregir y reintentar.
+
+### Errores comunes
+- **Botón "Registrar Todo" deshabilitado:** falta sprint, 
+  proyecto o equipo en el contexto (revisar arriba), o no 
+  hay filas válidas (contador en 0).
+- **Una fila falla y todas las siguientes quedan en "No 
+  enviado":** el envío es en lote; al primer error, las 
+  posteriores no se procesan. Corregir la fila fallida y 
+  volver a enviar.
+- **"Máximo 10 registros por envío":** enviar el lote actual 
+  antes de agregar más filas.
+- **No aparece la PBI:** revisar el sprint seleccionado o 
+  los filtros aplicados en "Contexto y filtros" 
+  (afectan a ambas pestañas).
+- **Perder datos al cambiar de pestaña:** el sistema avisa 
+  con un diálogo de confirmación, leer antes de aceptar.
+
+---
+
+## Reglas de estilo
+- Tono: claro, directo, en segunda persona ("hacé clic", 
+  "completá este campo", "si ves este cartel…").
+- Sin jerga técnica (sin "API", "endpoint", "ADO"). Si un 
+  término es necesario (PBI, sprint, Done), explicarlo en 
+  una línea entre paréntesis la primera vez.
+- Cada paso = UNA acción principal del usuario.
+- Si un screenshot muestra algo confuso, marcalo con 
+  ⚠️ "[Screenshot N requiere aclaración]" en vez de inventar.
+- Numerar los archivos de imagen así:
+  - Manual 1 (Individual): `individual_paso_01.png`, 
+    `individual_paso_02.png`, … `individual_resultado.png`
+  - Manual 2 (Múltiple): `multiple_paso_01.png`, 
+    `multiple_paso_02.png`, … `multiple_resultado.png`
+
+## Entrega
+- Devolveme los DOS manuales en un solo mensaje, separados 
+  por un `---`.
+- Al final indicá: cuántos pasos documentaste de cada uno 
+  y si falta algún screenshot en la secuencia.
+
+---
+
+## Screenshots
+[ADJUNTÁ ACÁ LOS ARCHIVOS, ORDENADOS POR MANUAL]

@@ -33,7 +33,6 @@ const getMyWorkItemsArgsSchema = z.object({
 
 export const GET_MY_WORK_ITEMS_TOOL_DEFINITION: ToolDefinition = {
   name: GET_MY_WORK_ITEMS_TOOL_NAME,
-  strict: true,
   description:
     "Lista los work items asignados al usuario actual en el sprint activo. Úsala cuando el usuario no menciona un work item específico y necesitas saber en qué está trabajando actualmente para sugerir dónde registrar el tiempo.",
   parameters: {

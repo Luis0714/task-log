@@ -5,6 +5,7 @@ import {
   getDefaultWorkingDate,
   getDefaultWorkingTime,
 } from "@/lib/time-log/task-constants";
+import type { CreateTaskBatchItem } from "@/lib/schemas/agent";
 
 const hoursField = z
   .string()
@@ -139,5 +140,64 @@ export function mapTimeLogFormToPayload(
     workingTime: values.workingTime,
     state: values.taskState,
     markAsDone: values.autoMarkAsDone,
+  };
+}
+
+export const bulkRowSchema = z.object({
+  pbiId: pbiIdField,
+  taskTitle: z
+    .string()
+    .trim()
+    .min(1, "Ingresa el título de la tarea.")
+    .max(256, "Máximo 256 caracteres."),
+  hours: hoursField,
+  description: z
+    .string()
+    .trim()
+    .min(1, "Ingresa la descripción de lo realizado.")
+    .max(2000, "Máximo 2000 caracteres."),
+  activity: z.string().max(100).optional(),
+  workingDate: z
+    .string()
+    .trim()
+    .min(1, "Selecciona la fecha de trabajo.")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida."),
+  workingTime: z
+    .string()
+    .trim()
+    .min(1, "Indica la hora de trabajo.")
+    .regex(WORKING_TIME_PATTERN, "Hora inválida (usa formato 24 h, p. ej. 09:30)."),
+  taskState: z.string().trim().min(1, "Selecciona un estado."),
+  markAsDone: z.boolean(),
+});
+
+export type BulkRowFormValues = z.infer<typeof bulkRowSchema>;
+
+export type BulkRowFieldErrors = Partial<
+  Record<keyof BulkRowFormValues, string>
+>;
+
+export function mapBulkRowToTaskItem(
+  values: BulkRowFormValues,
+  ctx: {
+    pbiTitle: string;
+    project: string;
+    team: string;
+    sprintPath: string;
+  },
+): CreateTaskBatchItem {
+  return {
+    pbiId: Number.parseInt(values.pbiId, 10),
+    pbiTitle: ctx.pbiTitle,
+    title: values.taskTitle.trim(),
+    hours: Number.parseFloat(values.hours.replace(",", ".")),
+    description: values.description.trim(),
+    activity: values.activity?.trim() || undefined,
+    workingDate: values.workingDate,
+    workingTime: values.workingTime,
+    state: values.taskState,
+    markAsDone: values.markAsDone,
+    sprintPath: ctx.sprintPath.trim(),
+    team: ctx.team.trim(),
   };
 }

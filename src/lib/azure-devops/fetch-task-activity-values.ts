@@ -4,8 +4,18 @@ import { adoFetch, adoProjectBase } from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { createTtlCache } from "@/lib/cache/ttl-cache";
 
+/**
+ * Forma de cada entrada de `allowedValues` en la respuesta de Azure DevOps
+ * `GET /_apis/wit/workitemtypes/{type}/fields/{field}?$expand=allowedValues`.
+ *
+ * La API REST devuelve objetos `{ id, value, displayValue, type }`. En algunas
+ * versiones/configuraciones más viejas puede devolver strings planos; ambos
+ * formatos se manejan en `normalizeAllowedValue`.
+ */
+type AllowedValueEntry = string | { value?: unknown };
+
 type FieldWithAllowedValues = {
-  allowedValues?: unknown[];
+  allowedValues?: AllowedValueEntry[];
 };
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -17,6 +27,26 @@ function cacheKey(
   activityField: string,
 ): string {
   return `${auth.organization}::${auth.project}::${workItemType}::${activityField}`;
+}
+
+/**
+ * Convierte una entrada de `allowedValues` (string u objeto `{ value }`) al
+ * string que la UI muestra como opción. Devuelve `null` si la entrada no es
+ * un string válido ni tiene un `.value` string no vacío.
+ */
+function normalizeAllowedValue(entry: AllowedValueEntry): string | null {
+  if (typeof entry === "string") {
+    const trimmed = entry.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (entry && typeof entry === "object" && "value" in entry) {
+    const raw = entry.value;
+    if (typeof raw === "string") {
+      const trimmed = raw.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    }
+  }
+  return null;
 }
 
 /**
@@ -65,9 +95,9 @@ async function fetchFromAdo(
     if (!res.ok) return [];
 
     const data = (await res.json()) as FieldWithAllowedValues;
-    const values = (data.allowedValues ?? []).filter(
-      (v): v is string => typeof v === "string" && v.trim().length > 0,
-    );
+    const values = (data.allowedValues ?? [])
+      .map(normalizeAllowedValue)
+      .filter((v): v is string => v !== null);
 
     return values;
   } catch {

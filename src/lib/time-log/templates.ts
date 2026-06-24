@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, inArray, or } from "drizzle-orm";
+import { asc, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
 import { roles, timeLogTemplates, users } from "@/lib/db/schema";
@@ -24,14 +24,18 @@ export async function getRoleNameForUser(
 }
 
 /**
- * Devuelve todas las plantillas visibles para el usuario:
- *   - las del sistema que aplican a su rol (developer / qa / designer / product-owner)
- *   - la plantilla global (Reunión), que aplica a todos los roles
- *   - las plantillas personalizadas que el usuario haya creado
+ * Devuelve todas las plantillas visibles para el usuario, ordenadas:
+ *   1. **Personales del usuario** (user_id = current) primero.
+ *   2. **Del sistema** (user_id = NULL) agrupadas por seedKey (rol o global)
+ *      y ordenadas alfabéticamente.
  *
  * Las plantillas del sistema son singleton (user_id = null) compartidas
  * entre todos los usuarios del mismo seedKey. Las personalizadas son
  * privadas (user_id = <uuid>).
+ *
+ * El `ORDER BY` usa `(user_id IS NOT NULL) DESC` para que las personales
+ * (donde la expresión es TRUE = 1) queden antes que las del sistema
+ * (donde es FALSE = 0).
  */
 export async function listTemplatesForUser(
   userId: string,
@@ -51,5 +55,11 @@ export async function listTemplatesForUser(
         eq(timeLogTemplates.userId, userId),
       ),
     )
-    .orderBy(timeLogTemplates.seedKey, timeLogTemplates.name);
+    .orderBy(
+      // Personales (user_id NOT NULL) primero, luego del sistema (NULL).
+      // `desc(isNotNull(...))` devuelve TRUE antes que FALSE.
+      desc(isNotNull(timeLogTemplates.userId)),
+      asc(timeLogTemplates.seedKey),
+      asc(timeLogTemplates.name),
+    );
 }

@@ -10,9 +10,14 @@ export type SegmentedControlItem<T extends string = string> = {
   disabled?: boolean;
   icon?: ReactNode;
   iconClassName?: string;
+  /**
+   * Adorno opcional (ej. `FeatureBadge`) renderizado a la derecha
+   * del label para resaltar el tab.
+   */
+  badge?: ReactNode;
 };
 
-export type SegmentedControlProps<T extends string = string> = {
+export type SegmentedControlProps<T extends string = string> = Readonly<{
   items: readonly SegmentedControlItem<T>[];
   value: T;
   onValueChange: (value: T) => void;
@@ -20,7 +25,7 @@ export type SegmentedControlProps<T extends string = string> = {
   className?: string;
   fullWidth?: boolean;
   size?: "default" | "sm";
-};
+}>;
 
 export function SegmentedControl<T extends string = string>({
   items,
@@ -86,6 +91,7 @@ export function SegmentedControl<T extends string = string>({
               </span>
             ) : null}
             <span>{item.label}</span>
+            {item.badge}
           </button>
         );
       })}

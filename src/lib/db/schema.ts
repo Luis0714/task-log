@@ -355,6 +355,10 @@ export const timeLogTemplates = pgTable(
     defaultTitle: text("default_title").notNull(),
     defaultDescription: text("default_description").notNull(),
     defaultActivity: text("default_activity"),
+    /** Horas por defecto (opcional). El form la convierte a string y la
+     *  valida con `hoursField`. Se persiste como `real` para permitir
+     *  fracciones (1.5h, 0.25h). Null = la plantilla no fuerza horas. */
+    defaultHours: real("default_hours"),
     isSystem: pgBoolean("is_system").notNull().default(false),
     seedKey: text("seed_key"),
     createdAt: timestamp("created_at", { withTimezone: true })

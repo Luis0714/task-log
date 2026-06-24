@@ -5,6 +5,7 @@ import type { UseFormReturn } from "react-hook-form";
 
 import { TaskFormFields } from "@/components/time-log/fields/task-form-fields";
 import { PbiSelectField } from "@/components/time-log/fields/pbi-select-field";
+import { TemplateSelectField } from "@/components/time-log/fields/template-select-field";
 import { SaveAsTemplateDialog } from "@/components/time-log/save-as-template-dialog";
 import { Button } from "@/components/ui/button";
 import type { TimeLogCatalog } from "@/lib/time-log/catalog-types";
@@ -21,6 +22,7 @@ export type TimeLogFormProps = {
     taskTitle: string;
     description: string;
     activity?: string;
+    hours?: string;
   } | null;
 };
 
@@ -46,6 +48,8 @@ export function TimeLogForm({
         onSubmit();
       }}
     >
+      <TemplateSelectField form={form} activities={activities} />
+
       <PbiSelectField form={form} catalog={catalog} />
 
       <TaskFormFields
@@ -76,6 +80,7 @@ export function TimeLogForm({
           defaultTitle={lastSubmitted!.taskTitle}
           defaultDescription={lastSubmitted!.description}
           defaultActivity={lastSubmitted?.activity}
+          defaultHours={lastSubmitted?.hours}
           activities={activities}
           disabled={loading}
         />

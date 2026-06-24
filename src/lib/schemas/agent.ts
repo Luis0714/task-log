@@ -23,7 +23,33 @@ export const logWorkBatchSchema = z.object({
   items: z.array(logWorkItemSchema).min(1).max(10),
 });
 
-export const TASK_ACTIVITY_VALUES = ["Development", "QA", "Code review", "Design", "Documentation", "Meeting"] as const;
+/**
+ * Valores canónicos del campo Activity para el proceso **Scrum** de Azure
+ * DevOps (los defaults que muestra el portal al crear un proyecto nuevo).
+ *
+ * Esta lista se usa como:
+ * 1. **Fallback** del hook `useTaskMeta` cuando la API
+ *    `/api/copilot/task-meta` no responde o devuelve `[]` (ej. proyecto con
+ *    proceso Basic sin campo Activity, permisos insuficientes, o respuesta
+ *    con formato inesperado).
+ * 2. **Tipo cerrado** (`TaskActivityValue`) para el plan del agente IA
+ *    (`create-tasks`) — el LLM sólo puede proponer valores de esta lista.
+ *
+ * Si tu proyecto tiene una lista personalizada en Azure, los valores reales
+ * llegan por la API y se usan en la UI; este fallback solo aparece cuando
+ * esa llamada falla.
+ */
+export const TASK_ACTIVITY_VALUES = [
+  "Deployment",
+  "Design",
+  "Development",
+  "Documentation",
+  "Management",
+  "Requirements",
+  "Testing",
+  "Training",
+] as const;
+
 export type TaskActivityValue = typeof TASK_ACTIVITY_VALUES[number];
 
 export const createTaskRequestSchema = z.object({

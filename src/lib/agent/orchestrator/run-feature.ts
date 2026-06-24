@@ -139,7 +139,12 @@ export async function runFeature(
         executionContext: {
           ...options.executionContext,
           ...(input.sprintContext
-            ? { sprintContext: { sprintPath: input.sprintContext.sprintPath } }
+            ? {
+                sprintContext: {
+                  sprintPath: input.sprintContext.sprintPath,
+                  team: input.sprintContext.team,
+                },
+              }
             : {}),
         },
         history: input.history,

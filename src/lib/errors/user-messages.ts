@@ -57,4 +57,21 @@ export const USER_MESSAGES = {
     "Azure DevOps necesita la fecha objetivo para este cambio.",
   responsablesRequired:
     "Completa los responsables requeridos antes de cambiar el estado.",
+  responsableMissingField: ({
+    roleLabel,
+    fieldRef,
+    fieldLabel,
+    envKey,
+  }: {
+    roleLabel: string;
+    fieldRef: string;
+    fieldLabel?: string;
+    envKey: string;
+  }) =>
+    `El proyecto requiere ${roleLabel} (ReferenceName: ${fieldRef}${
+      fieldLabel ? ` — etiqueta: "${fieldLabel}"` : ""
+    }) que la plataforma no pudo identificar automáticamente. Configura ${envKey} en .env.local con ese Reference Name.`,
+  goToSettingsHint: "Ve a Configuración → Proceso para ajustarlo.",
+  fieldConfigRequired: (field: string) =>
+    `El proyecto requiere el campo '${field}'. Ve a Configuración → Proceso para configurarlo.`,
 } as const;
