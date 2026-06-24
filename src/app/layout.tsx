@@ -1,5 +1,6 @@
 import { JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
+import { Analytics } from "@vercel/analytics/next";
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -71,6 +72,7 @@ export default function RootLayout({
           {children}
           <Toaster richColors closeButton position="top-right" />
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
