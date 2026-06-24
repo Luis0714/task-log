@@ -9,15 +9,13 @@ import {
 } from "@/lib/azure-devops/client";
 import { resolveAdoCaller, type AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { listTaskStates } from "@/lib/azure-devops/work-item-type-states";
+import { fetchTaskActivityValues } from "@/lib/azure-devops/fetch-task-activity-values";
+import { ADO_FIELD_DEFAULTS } from "@/lib/azure-devops/ado-field-defaults";
 import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
 import { buildAssigneeWiqlCondition } from "@/lib/filters/assignee-wiql";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
-import type { TaskActivity } from "@/lib/time-log/task-constants";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
-import {
-  resolveAdoWorkingDateFieldValue,
-  resolveWorkingTimeFromFields,
-} from "@/lib/date/ado-datetime";
+import { resolveWorkingTimeFromFields } from "@/lib/date/ado-datetime";
 import { resolveWorkingDateKeyFromFields } from "@/lib/azure-devops/working-date-field";
 import {
   fetchWorkItemsBatchWithFieldFallback,
@@ -31,11 +29,11 @@ import { parseIdentityDisplayName } from "@/lib/azure-devops/identity-field";
 import { mapBacklogItemFields } from "@/lib/azure-devops/map-backlog-item-fields";
 import { parseAdoWorkItemTags } from "@/lib/work-items/ado-work-item-tags";
 import type { WorkItemFieldPatchOp } from "@/lib/azure-devops/work-item-patch";
-import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
 import {
   pickDefaultCompletedTaskState,
   pickDefaultOpenTaskState,
 } from "@/lib/time-log/task-state-utils";
+import { parseRequiredEmptyFieldsFromAdoError } from "@/lib/azure-devops/ado-rule-errors";
 
 export type { AdoWorkItemOption } from "@/lib/azure-devops/work-items-filters";
 import type { AdoWorkItemOption } from "@/lib/azure-devops/work-items-filters";
@@ -53,7 +51,7 @@ export type CreateTaskParams = {
   title: string;
   hours: number;
   description?: string;
-  activity: TaskActivity;
+  activity?: string;
   workingDate: string;
   workingTime: string;
   state: string;
@@ -119,23 +117,62 @@ export async function createTaskUnderPbi(
   if (!pbiContext.ok) return pbiContext;
 
   const processProfile = await resolveProcessProfile(auth);
-  const adoWorkingDateValue =
-    resolveAdoWorkingDateFieldValue(
-      params.workingDate,
-      params.workingTime,
-      processProfile.timezone,
-    ) ?? params.workingDate;
   const assignedTo = await resolveAssignedToValue(auth);
   const pbiUrl = `${adoOrgBase(auth)}/_apis/wit/workitems/${params.pbiId}`;
   const iterationPath = params.sprintPath.trim() || pbiContext.iterationPath;
 
-  const taskStates = await listTaskStates(auth);
+  const taskStates = await listTaskStates(auth, processProfile.taskWorkItemType);
   if (taskStates.length === 0) {
     return {
       ok: false,
       status: 422,
       body: "No hay estados disponibles para Tarea en este proyecto.",
     };
+  }
+
+  // Resolve the activity field to use. processProfile.activityField may be null when
+  // discovery stored null due to a failed project fields listing (empty set), even for
+  // Scrum/Agile projects that have Activity. If the user provided an activity, check
+  // whether the project actually has the field by querying ADO allowed values.
+  let resolvedActivityField = processProfile.activityField;
+  let cachedAllowedActivities: readonly string[] | null = null;
+  if (!resolvedActivityField && params.activity) {
+    const discovered = await fetchTaskActivityValues(
+      auth,
+      processProfile.taskWorkItemType,
+      ADO_FIELD_DEFAULTS.activityField,
+    );
+    if (discovered.length > 0) {
+      resolvedActivityField = ADO_FIELD_DEFAULTS.activityField;
+      cachedAllowedActivities = discovered;
+    }
+  }
+
+  if (resolvedActivityField) {
+    if (!params.activity) {
+      return {
+        ok: false,
+        status: 422,
+        body: "El proyecto requiere el campo Activity, pero no se proporcionó ningún valor.",
+      };
+    }
+    const allowedActivities =
+      cachedAllowedActivities ??
+      (await fetchTaskActivityValues(
+        auth,
+        processProfile.taskWorkItemType,
+        resolvedActivityField,
+      ));
+    if (
+      allowedActivities.length > 0 &&
+      !allowedActivities.includes(params.activity)
+    ) {
+      return {
+        ok: false,
+        status: 422,
+        body: `La actividad "${params.activity}" no está permitida en este proyecto. Valores válidos: ${allowedActivities.join(", ")}.`,
+      };
+    }
   }
 
   const createStateName = pickDefaultOpenTaskState(taskStates, processProfile.taskTodoState || null);
@@ -149,12 +186,21 @@ export async function createTaskUnderPbi(
     { op: "add", path: "/fields/System.State", value: createState.name },
     { op: "add", path: `/fields/${AREA_PATH}`, value: pbiContext.areaPath },
     { op: "add", path: `/fields/${ITERATION_PATH}`, value: iterationPath },
-    { op: "add", path: `/fields/${processProfile.completedWorkField}`, value: params.hours },
-    { op: "add", path: `/fields/${processProfile.originalEstimateField}`, value: params.hours },
+  ];
+
+  if (processProfile.completedWorkField) {
+    ops.push({ op: "add", path: `/fields/${processProfile.completedWorkField}`, value: params.hours });
+  }
+  if (processProfile.originalEstimateField) {
+    ops.push({ op: "add", path: `/fields/${processProfile.originalEstimateField}`, value: params.hours });
+  }
+  ops.push(
     {
       op: "add",
       path: `/fields/${processProfile.workingDateField}`,
-      value: adoWorkingDateValue,
+      // Always send date-only (YYYY-MM-DD). Custom Date-type fields reject DateTime
+      // strings; standard ADO DateTime fields (e.g. StartDate) also accept date-only.
+      value: params.workingDate,
     },
     {
       op: "add",
@@ -164,14 +210,14 @@ export async function createTaskUnderPbi(
         url: pbiUrl,
       },
     },
-  ];
+  );
 
   if (processProfile.remainingWorkField) {
     ops.push({ op: "add", path: `/fields/${processProfile.remainingWorkField}`, value: 0 });
   }
 
-  if (processProfile.activityField) {
-    ops.push({ op: "add", path: `/fields/${processProfile.activityField}`, value: params.activity });
+  if (resolvedActivityField && params.activity) {
+    ops.push({ op: "add", path: `/fields/${resolvedActivityField}`, value: params.activity });
   }
 
   const description = params.description?.trim();
@@ -184,17 +230,37 @@ export async function createTaskUnderPbi(
   }
 
   const url = `${adoProjectBase(auth)}/_apis/wit/workitems/$${encodeURIComponent(processProfile.taskWorkItemType)}?api-version=7.1`;
-  const res = await adoFetch(auth, url, {
+  const workingDatePath = `/fields/${processProfile.workingDateField}`;
+
+  let res = await adoFetch(auth, url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json-patch+json",
-    },
+    headers: { "Content-Type": "application/json-patch+json" },
     body: JSON.stringify(ops),
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    return { ok: false, status: res.status, body: body.slice(0, 500) };
+    const errorBody = await res.text();
+
+    // Some ADO process configurations restrict date fields in the initial task state
+    // ("To Do"). Retry without the Working Date field — the Done transition sets it.
+    if (
+      res.status === 400 &&
+      errorBody.includes("TF401320") &&
+      ops.some((op) => "path" in op && op.path === workingDatePath)
+    ) {
+      const retryOps = ops.filter((op) => !("path" in op && op.path === workingDatePath));
+      res = await adoFetch(auth, url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json-patch+json" },
+        body: JSON.stringify(retryOps),
+      });
+      if (!res.ok) {
+        const retryErr = await res.text();
+        return { ok: false, status: res.status, body: retryErr.slice(0, 500) };
+      }
+    } else {
+      return { ok: false, status: res.status, body: errorBody.slice(0, 500) };
+    }
   }
 
   const created = (await res.json()) as { id?: number };
@@ -234,7 +300,15 @@ export async function logWorkOnWorkItem(
   auth: AdoCallerAuth,
 ): Promise<{ ok: true; newCompletedWork: number } | { ok: false; status: number; body: string }> {
   const processProfile = await resolveProcessProfile(auth);
-  const completedWorkField = processProfile.completedWorkField;
+  const { completedWorkField } = processProfile;
+
+  if (!completedWorkField) {
+    return {
+      ok: false,
+      status: 422,
+      body: "Este proyecto no tiene configurado el campo de trabajo completado (Completed Work).",
+    };
+  }
 
   const base = `https://dev.azure.com/${encodeURIComponent(auth.organization)}/${encodeURIComponent(auth.project)}/_apis/wit/workitems`;
   const api = "api-version=7.1";
@@ -393,10 +467,10 @@ async function fetchWorkItemDetails(
     SYSTEM_TAGS,
     DESCRIPTION_FIELD,
     ACCEPTANCE_CRITERIA_FIELD,
-    processProfile.completedWorkField,
-    processProfile.originalEstimateField,
     ...processProfile.workItemDateFieldNames,
     ...backlogFetchFields,
+    ...(processProfile.completedWorkField ? [processProfile.completedWorkField] : []),
+    ...(processProfile.originalEstimateField ? [processProfile.originalEstimateField] : []),
   ];
 
   const chunkSize = 200;
@@ -418,8 +492,12 @@ async function fetchWorkItemDetails(
         priority: parseNumericField(workItem.fields?.[PRIORITY]),
         effort: parseEffortField(workItem.fields),
         parentId: parseNumericField(workItem.fields?.[PARENT]),
-        loggedHours: parseNumericField(workItem.fields?.[processProfile.completedWorkField]),
-        estimatedHours: parseNumericField(workItem.fields?.[processProfile.originalEstimateField]),
+        loggedHours: processProfile.completedWorkField
+          ? parseNumericField(workItem.fields?.[processProfile.completedWorkField])
+          : undefined,
+        estimatedHours: processProfile.originalEstimateField
+          ? parseNumericField(workItem.fields?.[processProfile.originalEstimateField])
+          : undefined,
         workingDate: resolveWorkingDateKeyFromFields(
           workItem.fields,
           processProfile.workItemDateFieldNames,
@@ -613,6 +691,11 @@ export type UpdateWorkItemStateResult =
   | { ok: true; state: string }
   | { ok: false; status: number; body: string };
 
+function looksLikeDateField(referenceName: string): boolean {
+  const lower = referenceName.toLowerCase();
+  return lower.includes("date") || lower.includes("fecha");
+}
+
 function buildWorkingDatePatchOps(
   fields: Record<string, string | number | undefined> | undefined,
   dateValue: string,
@@ -679,9 +762,9 @@ export async function updateWorkItemState(
 
   const dateFields = [
     SYSTEM_STATE,
-    processProfile.completedWorkField,
     ...workingDateFieldNamesForUpdate,
     ...processProfile.workItemDateFieldNames,
+    ...(processProfile.completedWorkField ? [processProfile.completedWorkField] : []),
   ];
   const getFields = await filterFieldsToProject(auth, [...new Set(dateFields)]);
   const getUrl = `${base}/${params.workItemId}?${api}&$fields=${encodeURIComponent(getFields.join(","))}`;
@@ -700,24 +783,15 @@ export async function updateWorkItemState(
     fields?: Record<string, string | number | undefined>;
   };
 
-  const dateValue =
-    resolveAdoWorkingDateFieldValue(
-      params.workingDate,
-      params.workingTime,
-      processProfile.timezone,
-    ) ??
-    resolveWorkingDateKeyFromFields(
-      wi.fields,
-      processProfile.workItemDateFieldNames,
-      processProfile.timezone,
-    ) ??
-    getDefaultWorkingDate();
+  const patchOps: WorkItemFieldPatchOp[] = [];
 
-  const patchOps: WorkItemFieldPatchOp[] = [
-    ...buildWorkingDatePatchOps(wi.fields, dateValue, workingDateFieldNamesForUpdate),
-  ];
+  // Always use date-only (YYYY-MM-DD) for the working date field. Custom Date-type
+  // fields reject DateTime strings; standard ADO DateTime fields also accept date-only.
+  if (params.workingDate) {
+    patchOps.push(...buildWorkingDatePatchOps(wi.fields, params.workingDate, workingDateFieldNamesForUpdate));
+  }
 
-  if (params.completedWork !== undefined && Number.isFinite(params.completedWork)) {
+  if (params.completedWork !== undefined && Number.isFinite(params.completedWork) && processProfile.completedWorkField) {
     patchOps.push(...buildCompletedWorkPatchOps(wi.fields, params.completedWork, processProfile.completedWorkField));
   }
 
@@ -732,6 +806,47 @@ export async function updateWorkItemState(
 
   if (!patchRes.ok) {
     const body = await patchRes.text();
+
+    // Some ADO projects enforce field rules on state transitions (e.g. Done requires
+    // a custom Working Date field that isn't in the process profile). When TF401320
+    // reports required+invalidEmpty fields that we didn't include, retry with those
+    // fields set to the working date so the transition succeeds.
+    if (patchRes.status === 400 && body.includes("TF401320") && params.workingDate) {
+      const requiredFields = parseRequiredEmptyFieldsFromAdoError(body);
+      const patchedPaths = new Set(patchOps.map((op) => op.path));
+      const missingDateFields = requiredFields.filter(
+        (f) => !patchedPaths.has(`/fields/${f}`) && looksLikeDateField(f),
+      );
+
+      if (missingDateFields.length > 0) {
+        const retryOps: WorkItemFieldPatchOp[] = [
+          ...patchOps,
+          ...missingDateFields.map((f): WorkItemFieldPatchOp => ({
+            op: "add",
+            path: `/fields/${f}`,
+            value: params.workingDate as string,
+          })),
+        ];
+
+        const retryRes = await adoFetch(auth, patchUrl, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify(retryOps),
+        });
+
+        if (!retryRes.ok) {
+          const retryBody = await retryRes.text();
+          return {
+            ok: false,
+            status: retryRes.status,
+            body: retryBody.slice(0, 500) || "No se pudo actualizar el estado del work item.",
+          };
+        }
+
+        return { ok: true, state };
+      }
+    }
+
     return {
       ok: false,
       status: patchRes.status,
@@ -740,4 +855,23 @@ export async function updateWorkItemState(
   }
 
   return { ok: true, state };
+}
+
+export type DeleteWorkItemResult =
+  | { ok: true }
+  | { ok: false; status: number; body: string };
+
+export async function deleteWorkItem(
+  workItemId: number,
+  auth: AdoCallerAuth,
+): Promise<DeleteWorkItemResult> {
+  const url = `${adoProjectBase(auth)}/_apis/wit/workitems/${workItemId}?api-version=7.1`;
+  const res = await adoFetch(auth, url, { method: "DELETE" });
+
+  if (!res.ok) {
+    const body = await res.text();
+    return { ok: false, status: res.status, body: body.slice(0, 500) };
+  }
+
+  return { ok: true };
 }

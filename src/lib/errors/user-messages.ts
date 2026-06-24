@@ -19,11 +19,11 @@ export const USER_MESSAGES = {
   notConnected:
     "No hay conexión con Azure DevOps. Inicia sesión para continuar.",
   copilotInterpret:
-    "No pudimos interpretar tu mensaje ahora. Inténtalo de nuevo o escribe el ID del elemento y las horas con más detalle.",
+    "No pudimos interpretar tu mensaje ahora. Inténtalo de nuevo.",
   copilotNoToolCall:
-    "La IA no devolvió una acción válida. Reformula tu mensaje o sé más específico (ej: \"2h en #123 revisando PR\").",
+    "No pudimos procesar tu mensaje. Inténtalo de nuevo.",
   copilotInvalidArgs:
-    "La IA devolvió argumentos inválidos. Reformula tu mensaje con más detalle.",
+    "Algo salió mal al procesar tu mensaje. Inténtalo de nuevo.",
   copilotSchemaInvalid:
     "La IA devolvió una respuesta con formato inesperado. Inténtalo de nuevo.",
   copilotUnknownTool:
@@ -33,6 +33,7 @@ export const USER_MESSAGES = {
   saveFailed: "No pudimos guardar los cambios. Inténtalo de nuevo.",
   loadFailed: "No pudimos cargar la información. Actualiza la página e inténtalo de nuevo.",
   workItemUpdateFailed: "No pudimos actualizar el elemento de trabajo.",
+  workItemDeleteFailed: "No pudimos eliminar el elemento de trabajo.",
   taskCreateFailed: "No pudimos crear la tarea en Azure DevOps.",
   profileSyncFailed: "No pudimos actualizar tu perfil. Inténtalo de nuevo.",
   settingsLoadFailed: "No pudimos cargar la configuración del proyecto.",
@@ -56,4 +57,21 @@ export const USER_MESSAGES = {
     "Azure DevOps necesita la fecha objetivo para este cambio.",
   responsablesRequired:
     "Completa los responsables requeridos antes de cambiar el estado.",
+  responsableMissingField: ({
+    roleLabel,
+    fieldRef,
+    fieldLabel,
+    envKey,
+  }: {
+    roleLabel: string;
+    fieldRef: string;
+    fieldLabel?: string;
+    envKey: string;
+  }) =>
+    `El proyecto requiere ${roleLabel} (ReferenceName: ${fieldRef}${
+      fieldLabel ? ` — etiqueta: "${fieldLabel}"` : ""
+    }) que la plataforma no pudo identificar automáticamente. Configura ${envKey} en .env.local con ese Reference Name.`,
+  goToSettingsHint: "Ve a Configuración → Proceso para ajustarlo.",
+  fieldConfigRequired: (field: string) =>
+    `El proyecto requiere el campo '${field}'. Ve a Configuración → Proceso para configurarlo.`,
 } as const;

@@ -10,6 +10,7 @@ import {
   listBacklogItemStates,
   listTaskStates,
 } from "@/lib/azure-devops/work-item-type-states";
+import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import {
   pickDefaultCompletedTaskState,
   resolveTaskStateSelection,
@@ -42,6 +43,7 @@ export const loadTimeLogFormMeta = cache(async function loadTimeLogFormMeta(
   const auth = await getScopedProjectAuth(catalog.project);
   if (!auth) return emptyMeta;
 
+  const profile = await resolveProcessProfile(auth);
   const [teamMembers, backlogStates, taskStates, nonWorkingDates] = await Promise.all([
     loadAssigneeFilterMembers(
       catalog.project,
@@ -49,8 +51,8 @@ export const loadTimeLogFormMeta = cache(async function loadTimeLogFormMeta(
       catalog.sprintPath,
       "workItems",
     ),
-    listBacklogItemStates(auth),
-    listTaskStates(auth),
+    listBacklogItemStates(auth, profile.backlogItemType),
+    listTaskStates(auth, profile.taskWorkItemType),
     loadNonWorkingDates(catalog.project, catalog.team),
   ]);
 

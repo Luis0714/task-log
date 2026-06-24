@@ -108,11 +108,11 @@ export function WorkItemSelectOption({
 }: WorkItemSelectOptionProps) {
   if (variant === "trigger") {
     return (
-      <span className={cn("flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden", className)}>
+      <span className={cn("flex min-w-0 flex-1 items-center justify-start gap-2 overflow-hidden", className)}>
         <WorkItemId id={item.id} />
         <WorkItemTypeAvatar type={item.type} size="sm" />
-        <span className="min-w-0 flex-1 overflow-hidden">
-          <TruncatedTitle title={item.title} className="text-sm font-semibold" />
+        <span className="min-w-0 truncate text-sm font-semibold">
+          {item.title}
         </span>
       </span>
     );

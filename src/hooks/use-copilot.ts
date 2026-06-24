@@ -1,292 +1,312 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import type { SprintContext } from "@/lib/agent";
-import type {
-  CreateTaskBatchItem,
-  LogWorkItem,
-  PreviewResult,
-} from "@/lib/schemas/agent";
+import type { CreateTaskBatchItem, LogWorkItem, PreviewResult } from "@/lib/schemas/agent";
+import type { ConversationMessage } from "@/lib/schemas/conversation";
+import {
+  interpretMessage,
+  executeLogWork as apiExecuteLogWork,
+  executeCreateTasks as apiExecuteCreateTasks,
+} from "@/lib/copilot/copilot.service";
+import {
+  buildTasksSuccessSummary,
+  buildLogWorkSuccessSummary,
+  totalHours,
+} from "@/lib/copilot/copilot.utils";
+import { useConversationStore } from "@/store/conversation-store";
+import { CONVERSATION_HISTORY_LIMIT } from "@/lib/copilot/conversation.constants";
+
+export type { ConversationMessage };
 
 type UseCopilotOptions = {
   appendHistory: (entry: CopilotHistoryEntry) => void;
   sprintContext?: SprintContext;
 };
 
-type ExecuteApiResponse = {
-  results?: Array<
-    | { index: number; ok: true; workItemId: number; hours: number; newCompletedWork?: number }
-    | { index: number; ok: false; workItemId: number; status: number; body?: string }
-  >;
-  successCount?: number;
-  failureCount?: number;
-  error?: string;
+function newAt() { return new Date().toISOString(); }
+function newId() { return crypto.randomUUID(); }
+
+const build = {
+  user: (content: string): ConversationMessage => ({ role: "user", content, id: newId(), at: newAt() }),
+  assistant: (content: string): ConversationMessage => ({ role: "assistant", content, id: newId(), at: newAt() }),
+  thinking: (): ConversationMessage => ({ role: "thinking", id: newId(), at: newAt() }),
+  preview: (preview: PreviewResult): ConversationMessage => ({ role: "preview", preview, id: newId(), at: newAt() }),
+  success: (content: string): ConversationMessage => ({ role: "success", content, id: newId(), at: newAt() }),
+  error: (content: string): ConversationMessage => ({ role: "error", content, id: newId(), at: newAt() }),
 };
 
-type CreateTasksApiResponse = {
-  results?: Array<
-    | {
-        index: number;
-        ok: true;
-        taskId: number;
-        pbiId: number;
-        hours: number;
-        completedWork: number;
-        markedAsDone: boolean;
-      }
-    | { index: number; ok: false; pbiId: number; status: number; message: string }
-  >;
-  successCount?: number;
-  failureCount?: number;
-  error?: string;
-};
-
-function buildBatchSummary(items: LogWorkItem[]): string {
-  const ids = items.map((i) => `#${i.workItemId}`).join(", ");
-  const totalHours = items.reduce((sum, i) => sum + i.hours, 0);
-  return `Elementos ${ids} +${totalHours}h`;
-}
-
-function buildCreateTasksSummary(args: {
-  pbiId: number;
-  successCount: number;
-  totalTasks: number;
-  totalHours: number;
-  failureCount: number;
-  firstError: string | null | undefined;
-}): string {
-  const { pbiId, successCount, totalTasks, totalHours, failureCount, firstError } = args;
-  if (failureCount === 0) {
-    return `PBI #${pbiId}: ${successCount} tasks creadas +${totalHours}h, todas Done`;
-  }
-  const failurePart = `${successCount}/${totalTasks} ok, ${failureCount} fallaron`;
-  const errorPart = firstError ? ` (${firstError})` : "";
-  return `PBI #${pbiId}: ${failurePart}${errorPart}`;
+function historyEntry(summary: string, ok: boolean): CopilotHistoryEntry {
+  return { id: newId(), at: newAt(), summary, ok };
 }
 
 export function useCopilot({ appendHistory, sprintContext }: UseCopilotOptions) {
   const [message, setMessage] = useState("");
-  const [preview, setPreview] = useState<PreviewResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [pendingPreviewId, setPendingPreviewId] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [loadingExecute, setLoadingExecute] = useState(false);
+  const thinkingIdRef = useRef<string | null>(null);
+  const pendingPreviewIdRef = useRef<string | null>(null);
 
-  const callInterpret = useCallback(async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
+  // Sync ref so callbacks always have the latest pending preview id
+  pendingPreviewIdRef.current = pendingPreviewId;
 
-    setError(null);
-    setPreview(null);
-    setLoadingPreview(true);
+  // Subscribe to the Zustand store for message state
+  const messages = useConversationStore((s) => s.messages);
 
-    try {
-      const res = await fetch("/api/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: trimmed,
-          sprintContext: sprintContext ?? null,
-        }),
-      });
-      const data = (await res.json()) as { preview?: PreviewResult; error?: string };
+  // Load persisted conversation from localStorage on mount
+  useEffect(() => {
+    void useConversationStore.persist.rehydrate();
+  }, []);
 
-      if (!res.ok) {
-        setError(data.error ?? USER_MESSAGES.copilotInterpret);
+  // Store mutation helpers — these use the store's setState so they never
+  // have stale closure issues regardless of deps.
+  const push = useCallback((m: ConversationMessage) => {
+    useConversationStore.getState()._push(m);
+  }, []);
+
+  const replace = useCallback((targetId: string, next: ConversationMessage) => {
+    useConversationStore.getState()._replace(targetId, next);
+  }, []);
+
+  const remove = useCallback((targetId: string) => {
+    useConversationStore.getState()._remove(targetId);
+  }, []);
+
+  /**
+   * Sends `text` through the interpret pipeline as if the user had typed it
+   * into the textarea and pressed Interpretar. Used both by the normal submit
+   * path and by the options card when the user picks an option.
+   */
+  const runPipeline = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+
+      // Capture conversation history BEFORE adding the current message.
+      // Only user/assistant turns are relevant for LLM context.
+      const prior = useConversationStore.getState().messages;
+      const conversationHistory = prior
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .slice(-CONVERSATION_HISTORY_LIMIT)
+        .map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: (m as { content: string }).content,
+        }));
+
+      push(build.user(trimmed));
+
+      const thinking = build.thinking();
+      thinkingIdRef.current = thinking.id;
+      push(thinking);
+      setPendingPreviewId(null);
+
+      const result = await interpretMessage(trimmed, sprintContext, conversationHistory);
+      thinkingIdRef.current = null;
+
+      if (!result.ok) {
+        replace(thinking.id, build.error(result.error));
         return;
       }
 
-      if (data.preview) setPreview(data.preview);
-    } catch {
-      setError(USER_MESSAGES.genericRetry);
+      const preview = result.preview;
+
+      if (preview.action === "unsupported") {
+        replace(thinking.id, build.assistant(preview.reason));
+        return;
+      }
+
+      if (preview.action === "question_with_options") {
+        replace(thinking.id, build.assistant(preview.question));
+        const previewMsg = build.preview(preview);
+        setPendingPreviewId(previewMsg.id);
+        push(previewMsg);
+        return;
+      }
+
+      if (preview.action === "info_list") {
+        const count = preview.items.length;
+        const intro =
+          count === 0
+            ? `No encontré elementos para "${trimmed}".`
+            : count === 1
+              ? `Aquí tienes el resultado:`
+              : `Aquí tienes los ${count} elementos:`;
+        replace(thinking.id, build.assistant(intro));
+        const previewMsg = build.preview(preview);
+        setPendingPreviewId(previewMsg.id);
+        push(previewMsg);
+        return;
+      }
+
+      const previewMsg = build.preview(preview);
+      setPendingPreviewId(previewMsg.id);
+
+      if (preview.action === "needs_clarification") {
+        replace(thinking.id, build.assistant(preview.question));
+        push(previewMsg);
+        return;
+      }
+
+      const taskCount =
+        preview.action === "create_tasks_batch" ? preview.tasks.length : preview.items.length;
+      const hours =
+        preview.action === "create_tasks_batch" ? totalHours(preview.tasks) : totalHours(preview.items);
+      replace(
+        thinking.id,
+        build.assistant(
+          `Encontré ${taskCount} actividad${taskCount === 1 ? "" : "es"} con ${hours}h en total. Revisa la propuesta y confírmala.`,
+        ),
+      );
+      push(previewMsg);
+    },
+    [sprintContext, push, replace],
+  );
+
+  const interpret = useCallback(async () => {
+    const text = message.trim();
+    if (!text) return;
+    setMessage("");
+    setLoadingPreview(true);
+    try {
+      await runPipeline(text);
     } finally {
       setLoadingPreview(false);
     }
-  }, [sprintContext]);
+  }, [message, runPipeline]);
 
-  const interpret = useCallback(async () => {
-    return callInterpret(message);
-  }, [callInterpret, message]);
-
-  /**
-   * El usuario eligió una PBI candidata desde la clarificación. Re-interpretamos
-   * con la intención original + la PBI ya confirmada para que el runner emita el
-   * `create_tasks_batch` sin volver a preguntar.
-   */
-  const refineWithPbiId = useCallback(
-    async (pbiId: number) => {
-      const base = message.trim();
-      const refined = base
-        ? `${base} (usa la PBI #${pbiId})`
-        : `Usa la PBI #${pbiId}`;
-      setMessage(refined);
-      return callInterpret(refined);
-    },
-    [callInterpret, message],
-  );
-
-  const executeLogWork = useCallback(
-    async (items: LogWorkItem[]) => {
-      if (items.length === 0) return;
-      setError(null);
-      setLoadingExecute(true);
-
-      const isBatch = items.length > 1;
-      const body =
-        items.length === 1
-          ? { action: "log_work", preview: items[0] }
-          : { action: "log_work_batch", previews: items };
-
-      const baseSummary = buildBatchSummary(items);
-
+  // Used by the options card: dismiss the pending card, then run the pipeline.
+  const submitOptionValue = useCallback(
+    async (value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed) return;
+      // Remove the options card from the conversation thread
+      const currentPendingId = pendingPreviewIdRef.current;
+      if (currentPendingId) {
+        useConversationStore.getState()._remove(currentPendingId);
+        setPendingPreviewId(null);
+      }
+      setLoadingPreview(true);
       try {
-        const res = await fetch("/api/execute", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const data = (await res.json()) as ExecuteApiResponse;
-
-        if (!res.ok) {
-          setError(data.error ?? USER_MESSAGES.saveFailed);
-          appendHistory({
-            id: crypto.randomUUID(),
-            at: new Date().toISOString(),
-            summary: `${baseSummary} (falló)`,
-            ok: false,
-          });
-          return;
-        }
-
-        const results = data.results ?? [];
-        const successCount = data.successCount ?? 0;
-        const failureCount = data.failureCount ?? 0;
-        const successIds = results
-          .filter((r): r is Extract<typeof r, { ok: true }> => r.ok)
-          .map((r) => `#${r.workItemId}`)
-          .join(", ");
-        const totalNewHours = results
-          .filter((r): r is Extract<typeof r, { ok: true }> => r.ok)
-          .reduce((sum, r) => sum + r.hours, 0);
-
-        const okSummary = isBatch
-          ? `${successIds} +${totalNewHours}h · ${successCount} ok, ${failureCount} fallaron`
-          : `Elemento #${items[0]!.workItemId} +${items[0]!.hours}h · Total: ${results[0]?.ok ? (results[0] as Extract<typeof results[0], { ok: true }>).newCompletedWork ?? "—" : "—"}h`;
-
-        if (failureCount > 0 && successCount === 0) {
-          setError(USER_MESSAGES.saveFailed);
-        }
-
-        appendHistory({
-          id: crypto.randomUUID(),
-          at: new Date().toISOString(),
-          summary: `${okSummary}${failureCount > 0 ? " (parcial)" : ""}`,
-          ok: failureCount === 0,
-        });
-
-        if (failureCount === 0) {
-          setPreview(null);
-          setMessage("");
-        }
-      } catch {
-        setError(USER_MESSAGES.genericRetry);
+        await runPipeline(trimmed);
       } finally {
-        setLoadingExecute(false);
+        setLoadingPreview(false);
       }
     },
-    [appendHistory],
+    [runPipeline],
+  );
+
+  const submitPbiId = useCallback(
+    async (pbiId: number) => {
+      const currentPendingId = pendingPreviewIdRef.current;
+      if (currentPendingId) {
+        useConversationStore.getState()._remove(currentPendingId);
+        setPendingPreviewId(null);
+      }
+      setLoadingPreview(true);
+      try {
+        await runPipeline(`Usa la PBI #${pbiId}`);
+      } finally {
+        setLoadingPreview(false);
+      }
+    },
+    [runPipeline],
+  );
+
+  const dismissPreview = useCallback(() => {
+    const currentPendingId = pendingPreviewIdRef.current;
+    if (currentPendingId) remove(currentPendingId);
+    setPendingPreviewId(null);
+  }, [remove]);
+
+  const execute = useCallback(
+    async (items: LogWorkItem[]) => {
+      if (items.length === 0) return;
+      setLoadingExecute(true);
+
+      const response = await apiExecuteLogWork(items);
+      setLoadingExecute(false);
+
+      const currentPendingId = pendingPreviewIdRef.current;
+      if (currentPendingId) remove(currentPendingId);
+      setPendingPreviewId(null);
+
+      const successCount = response.successCount ?? 0;
+      const failureCount = response.failureCount ?? 0;
+
+      if (response.error && successCount === 0) {
+        push(build.error(response.error ?? USER_MESSAGES.saveFailed));
+        appendHistory(historyEntry("Log work — falló", false));
+        return;
+      }
+
+      const successItems = (response.results ?? [])
+        .filter((r): r is Extract<typeof r, { ok: true }> => r.ok)
+        .map((r) => ({ hours: r.hours, workItemId: r.workItemId }));
+
+      const summary = buildLogWorkSuccessSummary(successItems);
+      push(build.success(summary));
+      appendHistory(historyEntry(summary, failureCount === 0));
+    },
+    [appendHistory, push, remove],
   );
 
   const executeCreateTasks = useCallback(
     async (tasks: CreateTaskBatchItem[]) => {
       if (tasks.length === 0) return;
-      setError(null);
       setLoadingExecute(true);
 
-      const pbiId = tasks[0].pbiId;
-      const totalHours = tasks.reduce((sum, t) => sum + t.hours, 0);
+      const hours = totalHours(tasks);
+      const response = await apiExecuteCreateTasks(tasks);
+      setLoadingExecute(false);
 
-      try {
-        const res = await fetch("/api/execute/create-tasks-batch", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tasks }),
-        });
-        const data = (await res.json()) as CreateTasksApiResponse;
+      const currentPendingId = pendingPreviewIdRef.current;
+      if (currentPendingId) remove(currentPendingId);
+      setPendingPreviewId(null);
 
-        if (!res.ok) {
-          setError(data.error ?? USER_MESSAGES.taskCreateFailed);
-          appendHistory({
-            id: crypto.randomUUID(),
-            at: new Date().toISOString(),
-            summary: `PBI #${pbiId} (${tasks.length} tasks, falló)`,
-            ok: false,
-          });
-          return;
-        }
+      const successCount = response.successCount ?? 0;
+      const failureCount = response.failureCount ?? 0;
 
-        const successCount = data.successCount ?? 0;
-        const failureCount = data.failureCount ?? 0;
-
-        if (failureCount > 0) {
-          const partialSummary =
-            successCount > 0
-              ? `${successCount} ok, ${failureCount} fallaron — revisa el historial.`
-              : data.error ?? USER_MESSAGES.taskCreateFailed;
-          setError(partialSummary);
-        }
-
-        const summary = buildCreateTasksSummary({
-          pbiId,
-          successCount,
-          totalTasks: tasks.length,
-          totalHours,
-          failureCount,
-          firstError: data.error,
-        });
-
-        appendHistory({
-          id: crypto.randomUUID(),
-          at: new Date().toISOString(),
-          summary,
-          ok: failureCount === 0,
-        });
-
-        if (failureCount === 0) {
-          setPreview(null);
-          setMessage("");
-        }
-      } catch {
-        setError(USER_MESSAGES.genericRetry);
-      } finally {
-        setLoadingExecute(false);
+      if (response.error && successCount === 0) {
+        push(build.error(response.error ?? USER_MESSAGES.taskCreateFailed));
+        appendHistory(historyEntry("Creación de tasks — falló", false));
+        return;
       }
+
+      const summary = buildTasksSuccessSummary(response.results, hours);
+
+      if (failureCount > 0 && successCount > 0) {
+        push(build.error(`${successCount} tasks creadas, pero ${failureCount} fallaron. Revisa los detalles en Azure DevOps.`));
+      } else {
+        push(build.success(summary));
+      }
+
+      appendHistory(historyEntry(summary, failureCount === 0));
     },
-    [appendHistory],
+    [appendHistory, push, remove],
   );
 
-  const dismissPreview = useCallback(() => {
-    setPreview(null);
-  }, []);
-
-  const clearError = useCallback(() => {
-    setError(null);
+  const clearConversation = useCallback(() => {
+    useConversationStore.getState().clear();
+    setPendingPreviewId(null);
+    setMessage("");
   }, []);
 
   return {
     message,
     setMessage,
-    preview,
-    error,
+    messages,
     loadingPreview,
     loadingExecute,
     interpret,
-    refineWithPbiId,
-    execute: executeLogWork,
+    submitOptionValue,
+    submitPbiId,
+    execute,
     executeCreateTasks,
     dismissPreview,
-    clearError,
+    clearConversation,
   };
 }

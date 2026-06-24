@@ -208,7 +208,7 @@ export function SettingsAdminProcessPanel({ data }: SettingsAdminProcessPanelPro
         {taskStates.length > 0 && (
           <SettingsFieldRow copy={TASK_TODO_STATE_COPY}>
             <Select
-              value={taskTodoState || undefined}
+              value={taskTodoState || null}
               onValueChange={(v) => { if (v) setTaskTodoState(v); }}
               disabled={busy !== null}
             >
@@ -229,7 +229,7 @@ export function SettingsAdminProcessPanel({ data }: SettingsAdminProcessPanelPro
         {taskStates.length > 0 && (
           <SettingsFieldRow copy={TASK_DONE_STATE_COPY}>
             <Select
-              value={taskDoneState || undefined}
+              value={taskDoneState || null}
               onValueChange={(v) => { if (v) setTaskDoneState(v); }}
               disabled={busy !== null}
             >

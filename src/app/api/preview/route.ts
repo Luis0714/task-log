@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 
 import { interpretUserMessage, type SprintContext } from "@/lib/agent";
+import type { ConversationTurn } from "@/lib/agent/provider/provider.types";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
-import { fetchPbiSummary } from "@/lib/azure-devops/fetch-pbi-summary";
 import { getTaskPilotSession } from "@/lib/auth/session";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
+import { CONVERSATION_HISTORY_SERVER_CAP } from "@/lib/copilot/conversation.constants";
 
 type PreviewBody = {
   message?: string;
   sprintContext?: SprintContext;
+  history?: ConversationTurn[];
 };
 
 export async function POST(req: Request) {
@@ -22,7 +24,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const { message, sprintContext } = parseBody(body);
+  const { message, sprintContext, history } = parseBody(body);
 
   if (!message) {
     return NextResponse.json(
@@ -44,26 +46,15 @@ export async function POST(req: Request) {
 
   const result = await interpretUserMessage(message, {
     userId,
-    createTasksInput: sprintContext
-      ? {
-          kind: "create-tasks",
-          message,
-          sprintContext,
-        }
-      : undefined,
+    sprintContext,
+    userRole: session.userRole,
     executionContext: { auth: auth ?? undefined },
+    history: history?.slice(-CONVERSATION_HISTORY_SERVER_CAP),
   });
 
   if (!result.ok) {
     const status = result.userMessage === USER_MESSAGES.tooManyRequests ? 429 : 502;
     return NextResponse.json({ error: result.userMessage }, { status });
-  }
-
-  if (result.preview.action === "create_tasks_batch" && auth) {
-    const summary = await fetchPbiSummary(auth, result.preview.pbiId);
-    if (summary.exists && summary.title) {
-      result.preview.pbiTitle = summary.title;
-    }
   }
 
   return NextResponse.json({ preview: result.preview });
@@ -74,7 +65,21 @@ function parseBody(raw: unknown): PreviewBody {
   const obj = raw as Record<string, unknown>;
   const message = typeof obj.message === "string" ? obj.message : "";
   const sprintContext = parseSprintContext(obj.sprintContext);
-  return { message, sprintContext };
+  const history = parseHistory(obj.history);
+  return { message, sprintContext, history };
+}
+
+function parseHistory(raw: unknown): ConversationTurn[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const turns: ConversationTurn[] = [];
+  for (const item of raw) {
+    if (typeof item !== "object" || item === null) continue;
+    const turn = item as Record<string, unknown>;
+    const role = turn.role;
+    if ((role !== "user" && role !== "assistant") || typeof turn.content !== "string") continue;
+    turns.push({ role, content: turn.content });
+  }
+  return turns;
 }
 
 function parseSprintContext(raw: unknown): SprintContext | undefined {

@@ -8,7 +8,7 @@ import {
   apiErrorResponse,
 } from "@/lib/errors/api-error-response";
 import { logApiError } from "@/lib/errors/log-api-error";
-import { formatAdoErrorMessage } from "@/lib/errors/parse-ado-error";
+import { mapTaskCreateError } from "@/lib/errors/map-task-create-error";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { executeCreateTaskRequestSchema } from "@/lib/schemas/agent";
 import type { TaskActivity } from "@/lib/time-log/task-constants";
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   if (!result.ok) {
     logApiError("execute/create-task", { status: result.status, body: result.body });
     return apiErrorResponse(
-      formatAdoErrorMessage(result.body) || USER_MESSAGES.taskCreateFailed,
+      mapTaskCreateError(result.body),
       result.status >= 400 && result.status < 600 ? result.status : 502,
     );
   }

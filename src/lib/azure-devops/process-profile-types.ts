@@ -12,8 +12,10 @@ export type AdoProcessProfile = {
   /** Campos de fecha a solicitar en GET (primario + estándar). */
   workItemDateFieldNames: readonly string[];
   timezone: string;
-  completedWorkField: string;
-  originalEstimateField: string;
+  /** null = campo no presente en este proyecto. */
+  completedWorkField: string | null;
+  /** null = campo no presente en este proyecto. */
+  originalEstimateField: string | null;
   /** null = campo no presente en este proyecto. */
   remainingWorkField: string | null;
   /** null = campo Activity desactivado para este proyecto. */

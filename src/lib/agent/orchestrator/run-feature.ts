@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
-import type { AgentProvider } from "@/lib/agent/provider/provider.types";
+import type { AgentProvider, ConversationTurn } from "@/lib/agent/provider/provider.types";
 import { createAgentProvider } from "@/lib/agent/provider/provider.factory";
 import { getPreviewRateLimiter } from "@/lib/agent/observability/rate-limit";
 import { logInteraction } from "@/lib/agent/observability/interaction-log";
@@ -17,18 +17,24 @@ import {
   classifyAgentError,
   describeProviderError,
 } from "@/lib/agent/orchestrator/fallback";
+import { classifyIntent } from "@/lib/agent/orchestrator/router";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
 import type { PreviewResult } from "@/lib/schemas/agent";
 
 export type RunLogWorkInput = {
   kind: "log-work";
   message: string;
+  sprintContext?: SprintContext;
+  history?: ConversationTurn[];
+  userRole?: string;
 };
 
 export type RunCreateTasksInput = {
   kind: "create-tasks";
   message: string;
   sprintContext: SprintContext;
+  history?: ConversationTurn[];
+  userRole?: string;
 };
 
 export type RunFeatureInput = RunLogWorkInput | RunCreateTasksInput;
@@ -74,10 +80,74 @@ export async function runFeature(
 
   try {
     if (input.kind === "log-work") {
+      let routerResult: Awaited<ReturnType<typeof classifyIntent>>;
+      try {
+        routerResult = await classifyIntent(
+          input.message,
+          input.history ?? [],
+          provider,
+          model,
+        );
+      } catch {
+        routerResult = { intent: "time_registration", confidence: "low" };
+      }
+
+      if (routerResult.intent === "unsupported") {
+        const data: PreviewResult = {
+          action: "unsupported",
+          reason:
+            "Esta consulta está fuera del alcance del registro de tiempo. Puedo ayudarte a registrar horas en tus work items de Azure DevOps.",
+        };
+        logInteraction({
+          userId,
+          feature: featureKind,
+          model,
+          latencyMs: Date.now() - startedAt,
+          requestHash,
+          responseJson: data,
+          ok: true,
+        });
+        return { ok: true, kind: featureKind, data };
+      }
+
+      if (routerResult.intent === "work_item_management" && input.sprintContext) {
+        const data = await runCreateTasksFeature({
+          message: input.message,
+          model,
+          provider,
+          sprintContext: input.sprintContext,
+          executionContext: options.executionContext,
+          history: input.history,
+          userRole: input.userRole,
+        });
+        logInteraction({
+          userId,
+          feature: "create-tasks",
+          model,
+          latencyMs: Date.now() - startedAt,
+          requestHash,
+          responseJson: data,
+          ok: true,
+        });
+        return { ok: true, kind: "create-tasks", data };
+      }
+
       const data = await runLogWorkFeature({
         message: input.message,
         model,
         provider,
+        executionContext: {
+          ...options.executionContext,
+          ...(input.sprintContext
+            ? {
+                sprintContext: {
+                  sprintPath: input.sprintContext.sprintPath,
+                  team: input.sprintContext.team,
+                },
+              }
+            : {}),
+        },
+        history: input.history,
       });
       logInteraction({
         userId,
@@ -98,6 +168,8 @@ export async function runFeature(
         provider,
         sprintContext: input.sprintContext,
         executionContext: options.executionContext,
+        history: input.history,
+        userRole: input.userRole,
       });
       logInteraction({
         userId,
@@ -114,15 +186,17 @@ export async function runFeature(
     return unreachable(input);
   } catch (err) {
     const code = classifyAgentError(err);
+    const errMsg = describeProviderError(err);
+    console.error(`[agent:${featureKind}] ${code}: ${errMsg}`);
     logInteraction({
       userId,
       feature: featureKind,
       model,
       latencyMs: Date.now() - startedAt,
       requestHash,
-      responseJson: { error: describeProviderError(err) },
+      responseJson: { error: errMsg },
       ok: false,
-      errorMessage: describeProviderError(err),
+      errorMessage: errMsg,
     });
     return {
       ok: false,

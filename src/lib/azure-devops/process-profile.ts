@@ -29,8 +29,8 @@ function dbConfigToProfile(
     workingDateFieldSource,
     workItemDateFieldNames: buildWorkItemDateFieldNames(workingDateField),
     timezone: dbConfig.timezone ?? resolveAdoTimeZone(),
-    completedWorkField: dbConfig.completedWorkField ?? ADO_FIELD_DEFAULTS.completedWorkField,
-    originalEstimateField: dbConfig.originalEstimateField ?? ADO_FIELD_DEFAULTS.originalEstimateField,
+    completedWorkField: dbConfig.completedWorkField ?? null,
+    originalEstimateField: dbConfig.originalEstimateField ?? null,
     remainingWorkField: dbConfig.remainingWorkField !== undefined
       ? dbConfig.remainingWorkField
       : ADO_FIELD_DEFAULTS.remainingWorkField,

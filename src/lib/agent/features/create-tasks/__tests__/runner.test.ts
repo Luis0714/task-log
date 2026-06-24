@@ -50,10 +50,10 @@ describe("runCreateTasksFeature", () => {
   it("creates a single task from the create_tasks_batch tool call", async () => {
     const provider = makeProvider([
       toolCall("create_tasks_batch", {
-        pbiId: 123,
-        pbiTitle: "Login fixes",
         tasks: [
           {
+            pbiId: 123,
+            pbiTitle: "Login fixes",
             title: "Bug del login",
             hours: 2,
             description: "Corrección del login",
@@ -77,8 +77,8 @@ describe("runCreateTasksFeature", () => {
     expect(result.action).toBe("create_tasks_batch");
     if (result.action !== "create_tasks_batch") return;
     expect(result.tasks).toHaveLength(1);
-    expect(result.pbiId).toBe(123);
-    expect(result.pbiTitle).toBe("Login fixes");
+    expect(result.tasks[0]!.pbiId).toBe(123);
+    expect(result.tasks[0]!.pbiTitle).toBe("Login fixes");
   });
 
   it("returns needs_clarification when the LLM invokes needs_clarification", async () => {
@@ -115,13 +115,65 @@ describe("runCreateTasksFeature", () => {
     });
   });
 
+  it("returns question_with_options when the LLM asks a generic disambiguation", async () => {
+    const provider = makeProvider([
+      toolCall("question_with_options", {
+        question: "¿Te refieres al día de ayer (jueves 19) o al miércoles 18?",
+        options: [
+          { id: "thursday", label: "Jueves 19", value: "ayer jueves 19" },
+          { id: "wednesday", label: "Miércoles 18", value: "miércoles 18" },
+        ],
+        allowFreeText: true,
+      }),
+    ]);
+    const result = await runCreateTasksFeature({
+      message: "Trabajo de ayer en login",
+      model: "gpt-4o-mini",
+      provider,
+      sprintContext: SPRINT_CONTEXT,
+    });
+    expect(result.action).toBe("question_with_options");
+    if (result.action !== "question_with_options") return;
+    expect(result.question).toContain("ayer");
+    expect(result.options).toHaveLength(2);
+    expect(result.options[0]?.id).toBe("thursday");
+    expect(result.allowFreeText).toBe(true);
+  });
+
+  it("returns info_list when the LLM asks for the user's backlog", async () => {
+    const provider = makeProvider([
+      toolCall("list_work_items", {
+        title: "Tus PBIs activos",
+        types: ["pbi"],
+        groupBy: "type",
+      }),
+    ]);
+    const result = await runCreateTasksFeature({
+      message: "¿qué PBIs tengo activos?",
+      model: "gpt-4o-mini",
+      provider,
+      sprintContext: SPRINT_CONTEXT,
+      // Auth is undefined here — the tool handler should degrade to
+      // `unsupported` because it cannot reach ADO.
+    });
+    // The runner validates the output against the preview schema, so the
+    // result must be a valid PreviewResult — either info_list (if ADO is
+    // reachable in test env) or unsupported. Both are acceptable terminal
+    // outcomes for this tool.
+    expect(["info_list", "unsupported"]).toContain(result.action);
+    if (result.action === "info_list") {
+      expect(result.title).toBe("Tus PBIs activos");
+      expect(result.groupBy).toBe("type");
+    }
+  });
+
   it("passes sprint context (dates + non-working) in the system prompt", async () => {
     const provider = makeProvider([
       toolCall("create_tasks_batch", {
-        pbiId: 1,
-        pbiTitle: "X",
         tasks: [
           {
+            pbiId: 1,
+            pbiTitle: "X",
             title: "t",
             hours: 1,
             description: "d",
@@ -165,9 +217,7 @@ describe("runCreateTasksFeature", () => {
   it("throws when the tool arguments are invalid", async () => {
     const provider = makeProvider([
       toolCall("create_tasks_batch", {
-        pbiId: 1,
-        pbiTitle: "X",
-        tasks: [{ title: "t", hours: 999, description: "d" }],
+        tasks: [{ pbiId: 1, pbiTitle: "X", title: "t", hours: 999, description: "d" }],
       }),
     ]);
     await expect(

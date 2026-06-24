@@ -54,7 +54,7 @@ export function PrivacyPolicyContent() {
               dispositivo salvo que indiquemos lo contrario.
             </li>
             <li>
-              <strong className="text-foreground">Copiloto IA (opcional):</strong> si está
+              <strong className="text-foreground">Neos IA (opcional):</strong> si está
               configurado, el texto que envíes para interpretar acciones puede procesarse mediante
               un proveedor de modelos de lenguaje; no envíes información clasificada sin
               autorización.

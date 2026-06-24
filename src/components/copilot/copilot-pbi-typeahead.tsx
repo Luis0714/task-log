@@ -42,11 +42,7 @@ export function CopilotPbiTypeahead({
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!open) return;
-    if (query.trim().length < 2) {
-      setCandidates([]);
-      return;
-    }
+    if (!open || query.trim().length < 2) return;
     const ac = new AbortController();
     const handle = setTimeout(() => {
       setLoading(true);
@@ -115,7 +111,11 @@ export function CopilotPbiTypeahead({
           <input
             autoFocus
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+                const next = e.target.value;
+                setQuery(next);
+                if (next.trim().length < 2) setCandidates([]);
+              }}
             placeholder="Busca por título o número…"
             className="w-full rounded-sm border bg-transparent px-2 py-1 text-sm outline-none focus:border-ring"
           />

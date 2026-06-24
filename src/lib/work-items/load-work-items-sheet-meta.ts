@@ -5,6 +5,7 @@ import { cache } from "react";
 import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
 import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
 import { listBacklogItemStates, listBugStates } from "@/lib/azure-devops/work-item-type-states";
+import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import type { AdoTaskStateDto, AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 import type { BacklogResponsableFieldDto } from "@/lib/schemas/ado-backlog-fields";
@@ -33,6 +34,7 @@ export const loadWorkItemsSheetMeta = cache(async function loadWorkItemsSheetMet
   if (!auth) return emptyMeta;
 
   try {
+    const profile = await resolveProcessProfile(auth);
     const [teamMembers, backlogStates, bugStates, responsableFields] = await Promise.all([
       loadAssigneeFilterMembers(
         catalog.project,
@@ -40,8 +42,8 @@ export const loadWorkItemsSheetMeta = cache(async function loadWorkItemsSheetMet
         catalog.sprintPath,
         "workItems",
       ),
-      listBacklogItemStates(auth),
-      listBugStates(auth),
+      listBacklogItemStates(auth, profile.backlogItemType),
+      listBugStates(auth, profile.bugWorkItemType),
       loadWorkItemsBacklogFields(catalog.project),
     ]);
     return { teamMembers, backlogStates, bugStates, responsableFields };

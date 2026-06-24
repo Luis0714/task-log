@@ -7,6 +7,8 @@ export const previewActionSchema = z.enum([
   "create_tasks_batch",
   "needs_clarification",
   "unsupported",
+  "question_with_options",
+  "info_list",
 ]);
 
 export const logWorkItemSchema = z.object({
@@ -21,6 +23,35 @@ export const logWorkBatchSchema = z.object({
   items: z.array(logWorkItemSchema).min(1).max(10),
 });
 
+/**
+ * Valores canónicos del campo Activity para el proceso **Scrum** de Azure
+ * DevOps (los defaults que muestra el portal al crear un proyecto nuevo).
+ *
+ * Esta lista se usa como:
+ * 1. **Fallback** del hook `useTaskMeta` cuando la API
+ *    `/api/copilot/task-meta` no responde o devuelve `[]` (ej. proyecto con
+ *    proceso Basic sin campo Activity, permisos insuficientes, o respuesta
+ *    con formato inesperado).
+ * 2. **Tipo cerrado** (`TaskActivityValue`) para el plan del agente IA
+ *    (`create-tasks`) — el LLM sólo puede proponer valores de esta lista.
+ *
+ * Si tu proyecto tiene una lista personalizada en Azure, los valores reales
+ * llegan por la API y se usan en la UI; este fallback solo aparece cuando
+ * esa llamada falla.
+ */
+export const TASK_ACTIVITY_VALUES = [
+  "Deployment",
+  "Design",
+  "Development",
+  "Documentation",
+  "Management",
+  "Requirements",
+  "Testing",
+  "Training",
+] as const;
+
+export type TaskActivityValue = typeof TASK_ACTIVITY_VALUES[number];
+
 export const createTaskRequestSchema = z.object({
   action: z.literal("create_task"),
   pbiId: z.number().int().positive(),
@@ -28,7 +59,7 @@ export const createTaskRequestSchema = z.object({
   title: z.string().min(1).max(256),
   hours: z.number().positive().max(24),
   description: z.string().trim().min(1).max(2000),
-  activity: z.string().min(1).max(100),
+  activity: z.string().min(1).max(100).optional(),
   workingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   workingTime: z.string().regex(WORKING_TIME_PATTERN),
   state: z.string().trim().min(1).max(100),
@@ -43,9 +74,7 @@ const createTaskBatchItemSchema = createTaskRequestSchema.omit({ action: true })
 
 export const createTasksBatchSchema = z.object({
   action: z.literal("create_tasks_batch"),
-  pbiId: z.number().int().positive(),
-  pbiTitle: z.string().min(1).max(500),
-  tasks: z.array(createTaskBatchItemSchema).min(1).max(10),
+  tasks: z.array(createTaskBatchItemSchema).min(1).max(20),
 });
 
 export const pbiCandidateSchema = z.object({
@@ -65,11 +94,50 @@ export const unsupportedPayloadSchema = z.object({
   reason: z.string().min(1).max(500),
 });
 
+export const questionOptionSchema = z.object({
+  id: z.string().min(1).max(80),
+  label: z.string().min(1).max(120),
+  value: z.string().min(1).max(500).optional(),
+  description: z.string().max(300).optional(),
+});
+export type QuestionOption = z.infer<typeof questionOptionSchema>;
+
+export const questionWithOptionsPayloadSchema = z.object({
+  action: z.literal("question_with_options"),
+  question: z.string().min(1).max(500),
+  options: z.array(questionOptionSchema).min(2).max(8),
+  allowFreeText: z.boolean().default(true),
+});
+export type QuestionWithOptionsPayload = z.infer<
+  typeof questionWithOptionsPayloadSchema
+>;
+
+export const infoListItemSchema = z.object({
+  id: z.number().int().positive(),
+  type: z.enum(["pbi", "bug", "task"]),
+  title: z.string().min(1).max(500),
+  state: z.string().optional(),
+  assignedTo: z.string().optional(),
+  url: z.string().url().optional(),
+});
+export type InfoListItem = z.infer<typeof infoListItemSchema>;
+
+export const infoListPayloadSchema = z.object({
+  action: z.literal("info_list"),
+  title: z.string().min(1).max(200),
+  items: z.array(infoListItemSchema).min(0).max(20),
+  groupBy: z.enum(["type", "state"]).default("type"),
+  emptyHint: z.string().max(300).optional(),
+});
+export type InfoListPayload = z.infer<typeof infoListPayloadSchema>;
+
 export const previewResultSchema = z.discriminatedUnion("action", [
   logWorkBatchSchema,
   createTasksBatchSchema,
   needsClarificationPayloadSchema,
   unsupportedPayloadSchema,
+  questionWithOptionsPayloadSchema,
+  infoListPayloadSchema,
 ]);
 
 export type PreviewResult = z.infer<typeof previewResultSchema>;

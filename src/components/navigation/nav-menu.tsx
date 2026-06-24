@@ -32,6 +32,7 @@ export function NavMenu({ groups, activePath }: NavMenuProps) {
                   href={item.href}
                   label={item.label}
                   icon={item.icon}
+                  badge={item.badge}
                   isActive={isNavItemActive(activePath, item.href)}
                 />
               ))}

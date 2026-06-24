@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { ADO_SIGN_IN_REQUIRED_MESSAGE } from "@/lib/auth/ado-auth-messages";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { updateBacklogItemState } from "@/lib/azure-devops/update-backlog-item-state";
-import { updateWorkItemState } from "@/lib/azure-devops/work-items";
+import { updateWorkItemState, deleteWorkItem } from "@/lib/azure-devops/work-items";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import {
   apiErrorFromCause,
@@ -93,6 +94,55 @@ export async function PATCH(req: Request, context: RouteContext) {
       "ado/work-items PATCH",
       cause,
       USER_MESSAGES.workItemUpdateFailed,
+    );
+  }
+}
+
+const deleteWorkItemBodySchema = z.object({ project: z.string().min(1) });
+
+export async function DELETE(req: Request, context: RouteContext) {
+  const { id: idParam } = await context.params;
+  const workItemId = Number.parseInt(idParam, 10);
+
+  if (!Number.isFinite(workItemId) || workItemId <= 0) {
+    return apiErrorResponse(USER_MESSAGES.invalidWorkItemId, 400);
+  }
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return apiErrorResponse(USER_MESSAGES.invalidJsonBody, 400);
+  }
+
+  const parsed = deleteWorkItemBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return apiErrorResponse(USER_MESSAGES.invalidPayload, 400);
+  }
+
+  const auth = await resolveAdoCaller({ persistOAuthTokens: true });
+  if (!auth) {
+    return apiErrorResponse(ADO_SIGN_IN_REQUIRED_MESSAGE, 401);
+  }
+
+  try {
+    const scopedAuth = withAdoProject(auth, parsed.data.project);
+    const result = await deleteWorkItem(workItemId, scopedAuth);
+
+    if (!result.ok) {
+      logApiError("ado/work-items DELETE", { status: result.status, body: result.body });
+      return apiErrorResponse(
+        USER_MESSAGES.workItemDeleteFailed,
+        result.status >= 400 && result.status < 600 ? result.status : 502,
+      );
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (cause) {
+    return apiErrorFromCause(
+      "ado/work-items DELETE",
+      cause,
+      USER_MESSAGES.workItemDeleteFailed,
     );
   }
 }

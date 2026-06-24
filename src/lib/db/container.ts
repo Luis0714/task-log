@@ -5,6 +5,7 @@ import { drizzleEntraUserRepository } from "@/lib/db/adapters/drizzle/drizzle-en
 import { drizzleLlmInteractionRepository } from "@/lib/db/adapters/drizzle/drizzle-llm-interaction.repository";
 import { drizzleLocalUserRepository } from "@/lib/db/adapters/drizzle/drizzle-local-user.repository";
 import { drizzleProjectConfigurationRepository } from "@/lib/db/adapters/drizzle/drizzle-project-configuration.repository";
+import { drizzleTimeLogTemplateRepository } from "@/lib/db/adapters/drizzle/drizzle-time-log-template.repository";
 import { drizzleUserFilterPreferencesRepository } from "@/lib/db/adapters/drizzle/drizzle-user-filter-preferences.repository";
 import { drizzleUserRepository } from "@/lib/db/adapters/drizzle/drizzle-user.repository";
 import type { AdoConnectionRepository } from "@/lib/db/ports/ado-connection.repository.port";
@@ -12,6 +13,7 @@ import type { EntraUserRepository } from "@/lib/db/ports/entra-user.repository.p
 import type { LlmInteractionRepository } from "@/lib/db/ports/llm-interaction.repository.port";
 import type { LocalUserRepository } from "@/lib/db/ports/local-user.repository.port";
 import type { ProjectConfigurationRepository } from "@/lib/db/ports/project-configuration.repository.port";
+import type { TimeLogTemplateRepository } from "@/lib/db/ports/time-log-template.repository.port";
 import type { UserRepository } from "@/lib/db/ports/user.repository.port";
 import type { UserFilterPreferencesRepository } from "@/lib/db/ports/user-filter-preferences.repository.port";
 import { drizzleSprintSnapshotRepository } from "@/lib/db/adapters/drizzle/drizzle-sprint-snapshot.repository";
@@ -32,6 +34,7 @@ export type Repositories = {
   user: UserRepository;
   userFilterPreferences: UserFilterPreferencesRepository;
   projectConfiguration: ProjectConfigurationRepository;
+  timeLogTemplate: TimeLogTemplateRepository;
 };
 
 const defaultRepositories: Repositories = {
@@ -45,6 +48,7 @@ const defaultRepositories: Repositories = {
   user: drizzleUserRepository,
   userFilterPreferences: drizzleUserFilterPreferencesRepository,
   projectConfiguration: drizzleProjectConfigurationRepository,
+  timeLogTemplate: drizzleTimeLogTemplateRepository,
 };
 
 let repositories: Repositories = defaultRepositories;

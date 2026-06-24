@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean as pgBoolean,
   index,
@@ -344,3 +345,39 @@ export const userFilterPreferences = pgTable(
 
 export type UserFilterPreferences = typeof userFilterPreferences.$inferSelect;
 export type NewUserFilterPreferences = typeof userFilterPreferences.$inferInsert;
+
+export const timeLogTemplates = pgTable(
+  "time_log_templates",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    defaultTitle: text("default_title").notNull(),
+    defaultDescription: text("default_description").notNull(),
+    defaultActivity: text("default_activity"),
+    /** Horas por defecto (opcional). El form la convierte a string y la
+     *  valida con `hoursField`. Se persiste como `real` para permitir
+     *  fracciones (1.5h, 0.25h). Null = la plantilla no fuerza horas. */
+    defaultHours: real("default_hours"),
+    isSystem: pgBoolean("is_system").notNull().default(false),
+    seedKey: text("seed_key"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("time_log_templates_user_name_unique")
+      .on(table.userId, table.name)
+      .where(sql`${table.userId} IS NOT NULL`),
+    uniqueIndex("time_log_templates_seed_name_unique")
+      .on(table.seedKey, table.name)
+      .where(sql`${table.userId} IS NULL`),
+    index("time_log_templates_user_idx").on(table.userId),
+  ],
+);
+
+export type TimeLogTemplate = typeof timeLogTemplates.$inferSelect;
+export type NewTimeLogTemplate = typeof timeLogTemplates.$inferInsert;

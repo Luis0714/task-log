@@ -50,6 +50,13 @@ export type UseSpeechRecognitionOptions = {
   continuous?: boolean;
   interimResults?: boolean;
   onFinalTranscript?: (text: string) => void;
+  /**
+   * Called once every time the browser's speech session ends — whether the
+   * user stopped it manually, an error closed it, or it timed out. Use this
+   * to trigger downstream actions (e.g. auto-send the transcript when the
+   * user has that preference enabled).
+   */
+  onEnd?: () => void;
 };
 
 export type UseSpeechRecognitionResult = {
@@ -69,6 +76,7 @@ export function useSpeechRecognition(
     continuous = true,
     interimResults = true,
     onFinalTranscript,
+    onEnd,
   } = opts;
 
   // SSR-safe: start as false (server + first client render agree) and flip to
@@ -81,12 +89,17 @@ export function useSpeechRecognition(
 
   const recRef = useRef<AnyRecognition | null>(null);
   const onFinalRef = useRef(onFinalTranscript);
+  const onEndRef = useRef(onEnd);
 
-  // Keep the callback ref current without rebuilding the recognition instance
-  // when the consumer's callback identity changes.
+  // Keep the callback refs current without rebuilding the recognition
+  // instance when the consumer's callback identity changes.
   useEffect(() => {
     onFinalRef.current = onFinalTranscript;
   }, [onFinalTranscript]);
+
+  useEffect(() => {
+    onEndRef.current = onEnd;
+  }, [onEnd]);
 
   const lastErrorRef = useRef<string | null>(null);
 
@@ -164,7 +177,10 @@ export function useSpeechRecognition(
         } catch {
           // Already started or not allowed — ignore.
         }
+        // Don't fire onEnd for the auto-restart — the session is continuing.
+        return;
       }
+      onEndRef.current?.();
     };
 
     recRef.current = rec;

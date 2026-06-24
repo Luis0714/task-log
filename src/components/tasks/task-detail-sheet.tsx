@@ -7,6 +7,7 @@ import { TaskLoggedHoursHighlight } from "@/components/tasks/task-logged-hours-h
 import { WorkItemAdoQuickLinks } from "@/components/work-items/work-item-ado-quick-links";
 import { WorkItemDescriptionBlock } from "@/components/work-items/work-item-description-block";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
+import { DeleteWorkItemDialog } from "@/components/work-items/delete-work-item-dialog";
 import { Button } from "@/components/ui/button";
 import { DatePickerTime } from "@/components/ui/date-picker-time";
 import { Label } from "@/components/ui/label";
@@ -193,10 +194,23 @@ export function TaskDetailSheet({
           </div>
         </div>
 
-        <SheetFooter className={cn("border-t pt-4")}>
+        <SheetFooter className={cn("border-t flex-row gap-2")}>
+          {task && project ? (
+            <DeleteWorkItemDialog
+              workItemId={task.id}
+              project={project}
+              itemLabel="tarea"
+              disabled={saving}
+              className="flex-1"
+              onDeleted={() => {
+                onSaved?.();
+                onOpenChange(false);
+              }}
+            />
+          ) : null}
           <Button
             type="button"
-            className="w-full"
+            className="flex-1"
             disabled={!canSave}
             onClick={() => void handleSave()}
           >

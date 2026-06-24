@@ -20,6 +20,7 @@ export function buildSearchPbiTool(
   return {
     definition: {
       name: SEARCH_PBI_TOOL_NAME,
+      strict: true,
       description:
         "Busca historias de usuario (Product Backlog Item) cuyo título contenga el texto dado. Úsala cuando el usuario menciona un número o fragmento del nombre y quieres confirmar a qué PBI se refiere antes de crear tasks.",
       parameters: {

@@ -6,6 +6,7 @@ export type ToolDefinition = {
   name: string;
   description: string;
   parameters: Record<string, unknown>;
+  strict?: boolean;
 };
 
 export type ToolChoice = "auto" | "required" | { name: string };
@@ -16,11 +17,25 @@ export type ToolCall = {
   arguments: unknown;
 };
 
+export type ChatMessage = {
+  role: "system" | "user" | "assistant" | "tool";
+  content?: string | null;
+  tool_calls?: unknown;
+  tool_call_id?: string;
+};
+
+/** A previous user/assistant exchange passed to the LLM for context. */
+export type ConversationTurn = {
+  role: "user" | "assistant";
+  content: string;
+};
+
 export type ChatRequest = {
   model: string;
   temperature: number;
   systemPrompt: string;
-  userMessage: string;
+  userMessage?: string;
+  messages?: ChatMessage[];
   responseJsonSchema?: z.ZodTypeAny;
   maxTokens?: number;
   requestTimeoutMs?: number;
@@ -37,6 +52,7 @@ export type ChatResponse = {
   completionTokens?: number;
   totalTokens?: number;
   toolCalls?: readonly ToolCall[];
+  rawToolCalls?: unknown;
 };
 
 /**

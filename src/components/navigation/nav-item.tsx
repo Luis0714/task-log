@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
+import type { IconType } from "react-icons";
 
+import { FeatureBadge } from "@/components/ui/feature-badge";
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -14,9 +15,10 @@ import { cn } from "@/lib/utils";
 export type NavItemProps = {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: IconType;
   isActive?: boolean;
   className?: string;
+  badge?: "new" | "plan";
 };
 
 export function NavItem({
@@ -25,6 +27,7 @@ export function NavItem({
   icon: Icon,
   isActive = false,
   className,
+  badge,
 }: NavItemProps) {
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -50,6 +53,13 @@ export function NavItem({
         <Icon className="size-4 shrink-0" aria-hidden />
         <span>{label}</span>
       </SidebarMenuButton>
+      {badge ? (
+        <FeatureBadge
+          variant={badge}
+          floating
+          className="group-data-[collapsible=icon]:hidden"
+        />
+      ) : null}
     </SidebarMenuItem>
   );
 }

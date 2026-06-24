@@ -5,8 +5,8 @@ export type ManualProcessProfileInput = {
   workingDateField: string;
   timezone: string;
   // campos admin opcionales
-  completedWorkField?: string;
-  originalEstimateField?: string;
+  completedWorkField?: string | null;
+  originalEstimateField?: string | null;
   remainingWorkField?: string | null;
   activityField?: string | null;
   taskWorkItemType?: string;
@@ -28,8 +28,12 @@ export function applyManualProcessProfileChanges(
     workingDateFieldSource: "manual",
     workItemDateFieldNames: buildWorkItemDateFieldNames(workingDateField),
     timezone: timezone || current.timezone,
-    completedWorkField: input.completedWorkField?.trim() || current.completedWorkField,
-    originalEstimateField: input.originalEstimateField?.trim() || current.originalEstimateField,
+    completedWorkField: input.completedWorkField !== undefined
+      ? (input.completedWorkField?.trim() || null)
+      : current.completedWorkField,
+    originalEstimateField: input.originalEstimateField !== undefined
+      ? (input.originalEstimateField?.trim() || null)
+      : current.originalEstimateField,
     remainingWorkField: input.remainingWorkField !== undefined ? input.remainingWorkField : current.remainingWorkField,
     activityField: input.activityField !== undefined ? input.activityField : current.activityField,
     taskWorkItemType: input.taskWorkItemType?.trim() || current.taskWorkItemType,

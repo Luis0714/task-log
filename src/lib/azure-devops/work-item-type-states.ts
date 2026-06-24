@@ -1,11 +1,19 @@
 import { adoFetch, adoOrgBase, adoProjectBase } from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { listProjectTeams } from "@/lib/azure-devops/teams";
+import { createTtlCache } from "@/lib/cache/ttl-cache";
 
 export type AdoWorkItemTypeState = {
   name: string;
   category: string;
 };
+
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const statesCache = createTtlCache<AdoWorkItemTypeState[]>(ONE_HOUR_MS);
+
+function statesCacheKey(auth: AdoCallerAuth, workItemType: string): string {
+  return `${auth.organization}::${auth.project}::${workItemType}`;
+}
 
 export async function listWorkItemTypeStates(
   auth: AdoCallerAuth,
@@ -15,6 +23,10 @@ export async function listWorkItemTypeStates(
   if (!typeName) {
     throw new Error("Falta el tipo de work item.");
   }
+
+  const key = statesCacheKey(auth, typeName);
+  const cached = statesCache.get(key);
+  if (cached) return cached;
 
   const url = `${adoProjectBase(auth)}/_apis/wit/workitemtypes/${encodeURIComponent(typeName)}?api-version=7.1`;
   const res = await adoFetch(auth, url);
@@ -28,12 +40,15 @@ export async function listWorkItemTypeStates(
     states?: Array<{ name?: string; category?: string }>;
   };
 
-  return (data.states ?? [])
+  const states = (data.states ?? [])
     .map((state) => ({
       name: state.name?.trim() ?? "",
       category: state.category?.trim() ?? "",
     }))
     .filter((state) => state.name.length > 0);
+
+  statesCache.set(key, states);
+  return states;
 }
 
 export function resolveTaskWorkItemTypeName(): string {

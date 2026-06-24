@@ -57,6 +57,12 @@ export function useCreateTask({
 }: UseCreateTaskOptions) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [lastSubmitted, setLastSubmitted] = useState<{
+    taskTitle: string;
+    description: string;
+    activity?: string;
+    hours?: string;
+  } | null>(null);
 
   const submit = useCallback(
     async (values: TimeLogFormValues, selectedPbi: AdoWorkItemOptionDto | null) => {
@@ -94,6 +100,13 @@ export function useCreateTask({
           return;
         }
 
+        setLastSubmitted({
+          taskTitle: payloadValues.taskTitle.trim(),
+          description: payloadValues.description.trim(),
+          activity: payloadValues.activity?.trim() || undefined,
+          hours: payloadValues.hours?.trim() || undefined,
+        });
+
         clearTaskFields(
           form,
           getDefaultTaskState,
@@ -130,5 +143,11 @@ export function useCreateTask({
     ],
   );
 
-  return { error, loading, submit };
+  return {
+    error,
+    loading,
+    submit,
+    lastSubmitted,
+    clearLastSubmitted: () => setLastSubmitted(null),
+  };
 }

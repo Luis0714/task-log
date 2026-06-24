@@ -2,10 +2,12 @@ import "server-only";
 
 import {
   runFeature,
-  type RunCreateTasksInput,
+  type RunLogWorkInput,
 } from "@/lib/agent/orchestrator/run-feature";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
+import type { ConversationTurn } from "@/lib/agent/provider/provider.types";
 import type { PreviewResult } from "@/lib/schemas/agent";
+import type { SprintContext } from "@/lib/agent/features/create-tasks";
 
 export type InterpretUserMessageResult =
   | { ok: true; preview: PreviewResult }
@@ -15,11 +17,19 @@ export async function interpretUserMessage(
   message: string,
   options: {
     userId: string;
-    createTasksInput?: RunCreateTasksInput;
+    sprintContext?: SprintContext;
     executionContext?: ToolExecutionContext;
+    history?: ConversationTurn[];
+    userRole?: string;
   },
 ): Promise<InterpretUserMessageResult> {
-  const input = options.createTasksInput ?? { kind: "log-work", message };
+  const input: RunLogWorkInput = {
+    kind: "log-work",
+    message,
+    sprintContext: options.sprintContext,
+    history: options.history,
+    userRole: options.userRole,
+  };
   const result = await runFeature(input, {
     userId: options.userId,
     executionContext: options.executionContext,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, type ReactNode } from "react";
+import { useMemo, useState, useEffect, useTransition, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
@@ -44,6 +44,7 @@ export function DashboardPageShell({
 }: DashboardPageShellProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [, startTransition] = useTransition();
   const [sprintDayKey, setSprintDayKey] = useState(initialSprintDayKey);
 
   useEffect(() => {
@@ -85,15 +86,24 @@ export function DashboardPageShell({
     const resolved = resolveEffectiveSprintDayKey(sprintDayKey, sprintWorkingDays);
     if (resolved === sprintDayKey) return;
 
+    const newUrl = `${pathname}${buildAdoContextQuery({
+      project: catalog.project,
+      team: catalog.team,
+      sprint: catalog.sprintPath,
+      sprintDay: resolved,
+    })}`;
+
     setSprintDayKey(resolved);
-    router.replace(
-      `${pathname}${buildAdoContextQuery({
-        project: catalog.project,
-        team: catalog.team,
-        sprint: catalog.sprintPath,
-        sprintDay: resolved,
-      })}`,
-    );
+
+    if (!sprintDayKey) {
+      // sprintDayKey vacío: el servidor ya resolvió el día correcto internamente, sync URL sin re-render.
+      window.history.replaceState(null, "", newUrl);
+    } else {
+      // Día inválido para el sprint activo (p.ej., sprint cambió) — navegar para corregir.
+      startTransition(() => {
+        router.replace(newUrl);
+      });
+    }
   }, [
     catalog.project,
     catalog.sprintPath,
@@ -106,14 +116,16 @@ export function DashboardPageShell({
 
   const onSprintDayChange = (value: string) => {
     setSprintDayKey(value);
-    router.push(
-      `${pathname}${buildAdoContextQuery({
-        project: catalog.project,
-        team: catalog.team,
-        sprint: catalog.sprintPath,
-        sprintDay: value,
-      })}`,
-    );
+    startTransition(() => {
+      router.push(
+        `${pathname}${buildAdoContextQuery({
+          project: catalog.project,
+          team: catalog.team,
+          sprint: catalog.sprintPath,
+          sprintDay: value,
+        })}`,
+      );
+    });
   };
 
   return (

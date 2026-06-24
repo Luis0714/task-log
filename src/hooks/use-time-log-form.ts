@@ -133,5 +133,7 @@ export function useTimeLogForm({
     loadingExecute: createTask.loading,
     canSubmit,
     submit,
+    lastSubmitted: createTask.lastSubmitted,
+    clearLastSubmitted: createTask.clearLastSubmitted,
   };
 }

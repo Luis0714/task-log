@@ -9,10 +9,15 @@ import { buildAdoFiltersSummary } from "@/lib/filters/summary";
 import type { TimeLogCatalog } from "@/lib/time-log/catalog-types";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 
-export type TimeLogContextSectionProps = {
-  form: UseFormReturn<TimeLogFormValues>;
+export type TimeLogContextSectionProps = Readonly<{
+  /**
+   * Form de react-hook-form del modo Individual. Si se omite, los cambios
+   * del contexto se reflejan sólo en el catálogo compartido (útil para el
+   * modo Múltiple, que no usa react-hook-form).
+   */
+  form?: UseFormReturn<TimeLogFormValues>;
   catalog: TimeLogCatalog;
-};
+}>;
 
 export function TimeLogContextSection({ form, catalog }: TimeLogContextSectionProps) {
   const summary = buildAdoFiltersSummary({

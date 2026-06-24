@@ -19,8 +19,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
-import { TASK_ACTIVITY_LABELS, TASK_ACTIVITY_OPTIONS } from "@/lib/time-log/task-constants";
-
 type TaskFormFieldsProps = {
   form: UseFormReturn<TimeLogFormValues>;
   taskStates: AdoTaskStateDto[];
@@ -28,6 +26,7 @@ type TaskFormFieldsProps = {
   taskStatesError?: string | null;
   defaultCompletedTaskState?: string | null;
   disabled?: boolean;
+  activities: readonly string[];
   /**
    * `true` cuando el usuario viene del flujo "Nueva tarea" (?create=1) y
    * debe poder configurar el estado inicial. En modo time-log puro
@@ -43,6 +42,7 @@ export function TaskFormFields({
   taskStatesError = null,
   defaultCompletedTaskState = null,
   disabled = false,
+  activities,
   isTaskCreationMode,
 }: TaskFormFieldsProps) {
   return (
@@ -87,9 +87,9 @@ export function TaskFormFields({
           required
           placeholder="Selecciona actividad"
           disabled={disabled}
-          options={TASK_ACTIVITY_OPTIONS.map((activity) => ({
+          options={activities.map((activity) => ({
             value: activity,
-            label: TASK_ACTIVITY_LABELS[activity],
+            label: activity,
           }))}
         />
       </div>
