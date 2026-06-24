@@ -58,12 +58,14 @@ function parseLabelFromMessage(message: unknown): string | undefined {
   return match?.[1]?.trim() || undefined;
 }
 
+type ParsedBody = { customProperties?: { RuleValidationErrors?: RawRuleError[] } } | null;
+
 export function parseAdoRuleErrorDetails(body: string): AdoRuleErrorDetail[] {
   if (!body || typeof body !== "string") return [];
 
-  let parsed: { customProperties?: { RuleValidationErrors?: RawRuleError[] } } | null = null;
+  let parsed: ParsedBody = null;
   try {
-    parsed = JSON.parse(body) as typeof parsed;
+    parsed = JSON.parse(body) as ParsedBody;
   } catch {
     return [];
   }

@@ -6,6 +6,7 @@ import {
   findFieldByLabelMatch,
   isWitIdentityField,
   listWorkItemTypeFields,
+  type WitFieldDefinition,
 } from "@/lib/azure-devops/wit-field-metadata";
 import { resolveBacklogWorkItemTypeName } from "@/lib/azure-devops/work-item-type-states";
 import type { BacklogResponsableFieldKey } from "@/lib/work-items/backlog-field-types";
@@ -70,7 +71,7 @@ const ROLE_DEFINITIONS: readonly RoleDefinition[] = [
 ];
 
 function findFieldForRole(
-  fields: ReadonlyArray<{ referenceName?: string; name?: string; type?: unknown }>,
+  fields: ReadonlyArray<WitFieldDefinition>,
   role: BacklogResponsableFieldKey,
 ): { referenceName: string; name: string } | undefined {
   const roleKeywords = ROLE_KEYWORDS[role];
