@@ -16,16 +16,27 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useTimeLogTemplates } from "@/hooks/use-time-log-templates";
+import {
+  isValidTemplateHoursString,
+  parseTemplateHoursString,
+} from "@/lib/time-log/template-hours";
 import { cn } from "@/lib/utils";
 
-export type SaveAsTemplateDialogProps = {
+export type SaveAsTemplateDialogProps = Readonly<{
   /** Título por defecto sugerido (viene del campo "taskTitle" del form). */
   defaultTitle: string;
   /** Descripción por defecto (viene del campo "description" del form). */
   defaultDescription: string;
   /** Actividad actual del form (opcional, se preselecciona en el dialog). */
   defaultActivity?: string;
+  /** Horas actuales del form (opcional, se preselecciona en el dialog). */
+  defaultHours?: number | string | null;
   /**
    * Nombre de la plantilla precargado. En modo `create` se ignora (el
    * usuario lo tipea). En modo `edit` se usa para que el campo "Nombre"
@@ -41,8 +52,8 @@ export type SaveAsTemplateDialogProps = {
   disabled?: boolean;
   /**
    * Trigger opcional. Si se pasa, reemplaza el botón por defecto
-   * "Guardar como plantilla". Útil para integrarlo con un + pequeño en
-   * la cabecera del selector de plantillas o con un menú contextual.
+   * "Guardar como plantilla". Útil para integrarlo con un + pequeño en la
+   * cabecera del selector de plantillas o con un menú contextual.
    */
   children?: React.ReactNode;
   /**
@@ -55,12 +66,15 @@ export type SaveAsTemplateDialogProps = {
    * llamadas a update/remove.
    */
   templateId?: string;
-};
+}>;
 
 /**
- * Diálogo unificado para crear o editar una plantilla. Por defecto abre
- * en modo `create` desde los valores actuales del formulario. En modo
+ * Diálogo unificado para crear o editar una plantilla personal. Por defecto
+ * abre en modo `create` desde los valores actuales del formulario. En modo
  * `edit` recibe un `templateId` y muestra además un botón "Eliminar".
+ *
+ * Las plantillas creadas aquí son siempre personales del usuario actual.
+ * El alcance "global" o por rol se administra desde `/admin/plantillas`.
  *
  * El campo "Actividad" es opcional: si la actividad seleccionada en el
  * form sigue siendo válida, se preselecciona; el usuario puede cambiarla
@@ -71,26 +85,33 @@ export function SaveAsTemplateDialog({
   defaultTitle,
   defaultDescription,
   defaultActivity,
+  defaultHours,
   defaultName,
   activities,
   disabled = false,
   children,
   mode = "create",
   templateId,
-}: Readonly<SaveAsTemplateDialogProps>) {
+}: SaveAsTemplateDialogProps) {
   const { create, update } = useTimeLogTemplates();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(mode === "edit" ? defaultName ?? "" : "");
   const [title, setTitle] = useState(defaultTitle);
   const [description, setDescription] = useState(defaultDescription);
   const [activity, setActivity] = useState(defaultActivity ?? "");
+  const [hours, setHours] = useState(
+    defaultHours != null && defaultHours !== ""
+      ? String(defaultHours)
+      : "",
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const canSubmit =
     name.trim().length > 0 &&
     title.trim().length > 0 &&
-    description.trim().length > 0;
+    description.trim().length > 0 &&
+    isValidTemplateHoursString(hours);
 
   const isEdit = mode === "edit";
 
@@ -99,6 +120,9 @@ export function SaveAsTemplateDialog({
     setTitle(defaultTitle);
     setDescription(defaultDescription);
     setActivity(defaultActivity ?? "");
+    setHours(
+      defaultHours != null && defaultHours !== "" ? String(defaultHours) : "",
+    );
     setSubmitting(false);
     setError(null);
   };
@@ -110,6 +134,9 @@ export function SaveAsTemplateDialog({
       setTitle(defaultTitle);
       setDescription(defaultDescription);
       setActivity(defaultActivity ?? "");
+      setHours(
+        defaultHours != null && defaultHours !== "" ? String(defaultHours) : "",
+      );
       setSubmitting(false);
       setError(null);
     }
@@ -124,6 +151,7 @@ export function SaveAsTemplateDialog({
       defaultTitle: title.trim(),
       defaultDescription: description.trim(),
       defaultActivity: activity.trim() || undefined,
+      defaultHours: parseTemplateHoursString(hours),
     };
     const result =
       isEdit && templateId
@@ -138,55 +166,59 @@ export function SaveAsTemplateDialog({
     }
   };
 
-  const disabledReason =
-    defaultTitle.trim().length === 0 || defaultDescription.trim().length === 0
-      ? "Necesitas un título y una descripción para guardar como plantilla."
-      : undefined;
-
-  const isDisabled = disabled || Boolean(disabledReason);
+  const isDisabled = disabled;
+  const triggerLabel = isEdit
+    ? "Editar plantilla"
+    : "Crear una nueva plantilla con los valores actuales";
+  const tooltipText = isEdit
+    ? "Editar los valores por defecto de esta plantilla."
+    : "Crear una nueva plantilla. Te ayudara a llenar los campos del formulario de forma rápida y consistente.";
   const showActivityField = activities.length > 0;
+  const hoursInvalid = !isValidTemplateHoursString(hours);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {children ? (
-        <DialogTrigger
+      <Tooltip>
+        <TooltipTrigger
           render={
-            <button
-              type="button"
-              disabled={isDisabled}
-              aria-label={
-                isEdit
-                  ? "Editar plantilla"
-                  : "Crear plantilla con los valores actuales"
-              }
-              className={cn(
-                "inline-flex items-center justify-center rounded focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50",
-                isEdit
-                  ? "text-muted-foreground hover:text-foreground p-0.5"
-                  : "border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 border",
-              )}
-            >
-              {children}
-            </button>
+            children ? (
+              <DialogTrigger
+                render={
+                  <button
+                    type="button"
+                    disabled={isDisabled}
+                    aria-label={triggerLabel}
+                    className={cn(
+                      "inline-flex items-center justify-center rounded focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50",
+                      isEdit
+                        ? "text-muted-foreground hover:text-foreground gap-1 px-1.5 py-0.5 text-xs"
+                        : "border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 border",
+                    )}
+                  >
+                    {children}
+                  </button>
+                }
+              />
+            ) : (
+              <DialogTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isDisabled}
+                    className={cn("gap-1.5")}
+                  >
+                    <BookmarkPlus className="size-4" aria-hidden />
+                    Guardar como plantilla
+                  </Button>
+                }
+              />
+            )
           }
         />
-      ) : (
-        <DialogTrigger
-          render={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={isDisabled}
-              title={disabledReason}
-              className={cn("gap-1.5")}
-            >
-              <BookmarkPlus className="size-4" aria-hidden />
-              Guardar como plantilla
-            </Button>
-          }
-        />
-      )}
+        <TooltipContent side="top">{tooltipText}</TooltipContent>
+      </Tooltip>
       <DialogContent keepMounted>
         <DialogHeader>
           <DialogTitle>
@@ -250,6 +282,31 @@ export function SaveAsTemplateDialog({
               </select>
             </div>
           ) : null}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="template-hours">
+              Horas por defecto{" "}
+              <span className="text-muted-foreground text-xs font-normal">
+                (opcional, máx 24)
+              </span>
+            </Label>
+            <Input
+              id="template-hours"
+              type="number"
+              inputMode="decimal"
+              step="0.25"
+              min="0"
+              max="24"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+              placeholder="Ej. 1.5"
+              aria-invalid={hoursInvalid}
+            />
+            {hoursInvalid ? (
+              <p className="text-destructive text-xs">
+                Las horas deben ser mayores a 0 y como máximo 24.
+              </p>
+            ) : null}
+          </div>
           {error ? (
             <p className="text-destructive text-sm">{error}</p>
           ) : null}

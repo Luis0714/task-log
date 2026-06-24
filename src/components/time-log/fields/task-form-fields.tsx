@@ -6,7 +6,6 @@ import type { UseFormReturn } from "react-hook-form";
 import { FormSelectField } from "@/components/time-log/fields/form-select-field";
 import { TaskAutoMarkAsDoneField } from "@/components/time-log/fields/task-auto-mark-as-done-field";
 import { TaskStateSelectField } from "@/components/time-log/fields/task-state-select-field";
-import { TemplateSelectField } from "@/components/time-log/fields/template-select-field";
 import {
   FormControl,
   FormField,
@@ -48,8 +47,6 @@ export function TaskFormFields({
 }: TaskFormFieldsProps) {
   return (
     <>
-      <TemplateSelectField form={form} activities={activities} />
-
       <FormField
         control={form.control}
         name="taskTitle"

@@ -17,12 +17,16 @@ import {
   classifyAgentError,
   describeProviderError,
 } from "@/lib/agent/orchestrator/fallback";
+import { classifyIntent } from "@/lib/agent/orchestrator/router";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
 import type { PreviewResult } from "@/lib/schemas/agent";
 
 export type RunLogWorkInput = {
   kind: "log-work";
   message: string;
+  sprintContext?: SprintContext;
+  history?: ConversationTurn[];
+  userRole?: string;
 };
 
 export type RunCreateTasksInput = {
@@ -76,10 +80,74 @@ export async function runFeature(
 
   try {
     if (input.kind === "log-work") {
+      let routerResult: Awaited<ReturnType<typeof classifyIntent>>;
+      try {
+        routerResult = await classifyIntent(
+          input.message,
+          input.history ?? [],
+          provider,
+          model,
+        );
+      } catch {
+        routerResult = { intent: "time_registration", confidence: "low" };
+      }
+
+      if (routerResult.intent === "unsupported") {
+        const data: PreviewResult = {
+          action: "unsupported",
+          reason:
+            "Esta consulta está fuera del alcance del registro de tiempo. Puedo ayudarte a registrar horas en tus work items de Azure DevOps.",
+        };
+        logInteraction({
+          userId,
+          feature: featureKind,
+          model,
+          latencyMs: Date.now() - startedAt,
+          requestHash,
+          responseJson: data,
+          ok: true,
+        });
+        return { ok: true, kind: featureKind, data };
+      }
+
+      if (routerResult.intent === "work_item_management" && input.sprintContext) {
+        const data = await runCreateTasksFeature({
+          message: input.message,
+          model,
+          provider,
+          sprintContext: input.sprintContext,
+          executionContext: options.executionContext,
+          history: input.history,
+          userRole: input.userRole,
+        });
+        logInteraction({
+          userId,
+          feature: "create-tasks",
+          model,
+          latencyMs: Date.now() - startedAt,
+          requestHash,
+          responseJson: data,
+          ok: true,
+        });
+        return { ok: true, kind: "create-tasks", data };
+      }
+
       const data = await runLogWorkFeature({
         message: input.message,
         model,
         provider,
+        executionContext: {
+          ...options.executionContext,
+          ...(input.sprintContext
+            ? {
+                sprintContext: {
+                  sprintPath: input.sprintContext.sprintPath,
+                  team: input.sprintContext.team,
+                },
+              }
+            : {}),
+        },
+        history: input.history,
       });
       logInteraction({
         userId,

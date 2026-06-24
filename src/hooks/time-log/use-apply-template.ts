@@ -3,21 +3,23 @@
 import { useCallback } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
+import { applyTemplateToRow } from "@/lib/time-log/apply-template-to-row";
 import type { TimeLogTemplateDto } from "@/lib/schemas/time-log-template";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
+
+type AppliedFields = {
+  taskTitle: string;
+  description: string;
+  activity: string;
+  hours: string;
+};
 
 export function useApplyTemplate(
   form: UseFormReturn<TimeLogFormValues>,
   activities: readonly string[],
 ) {
   const writeValues = useCallback(
-    (
-      values: Partial<{
-        taskTitle: string;
-        description: string;
-        activity: string;
-      }>,
-    ) => {
+    (values: Partial<AppliedFields>) => {
       if (values.taskTitle !== undefined) {
         form.setValue("taskTitle", values.taskTitle, {
           shouldDirty: true,
@@ -36,31 +38,27 @@ export function useApplyTemplate(
           shouldTouch: true,
         });
       }
-      form.trigger(["taskTitle", "description", "activity"]);
+      if (values.hours !== undefined) {
+        form.setValue("hours", values.hours, {
+          shouldDirty: true,
+          shouldTouch: true,
+        });
+      }
+      form.trigger(["taskTitle", "description", "activity", "hours"]);
     },
     [form],
   );
 
   const apply = useCallback(
     (template: TimeLogTemplateDto) => {
-      const activity =
-        template.defaultActivity && activities.includes(template.defaultActivity)
-          ? template.defaultActivity
-          : "";
-
-      writeValues({
-        taskTitle: template.defaultTitle,
-        description: template.defaultDescription,
-        activity,
-      });
+      writeValues(applyTemplateToRow(template, activities));
     },
     [activities, writeValues],
   );
 
   const clear = useCallback(() => {
-    writeValues({ taskTitle: "", description: "", activity: "" });
+    writeValues({ taskTitle: "", description: "", activity: "", hours: "" });
   }, [writeValues]);
 
   return { apply, clear };
 }
-

@@ -4,7 +4,7 @@ import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import { createTaskUnderPbi } from "@/lib/azure-devops/work-items";
 import { apiErrorResponse } from "@/lib/errors/api-error-response";
 import { logApiError } from "@/lib/errors/log-api-error";
-import { formatAdoErrorMessage } from "@/lib/errors/parse-ado-error";
+import { mapTaskCreateError } from "@/lib/errors/map-task-create-error";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import {
   executeCreateTasksBatchRequestSchema,
@@ -89,7 +89,7 @@ export async function POST(req: Request): Promise<Response> {
         status: result.status,
         body: result.body,
       });
-      const message = formatAdoErrorMessage(result.body);
+      const message = mapTaskCreateError(result.body);
       results.push({
         index,
         ok: false,

@@ -37,7 +37,7 @@ export type UseTimeLogTemplatesResult = {
  * plantilla, la lista del `TemplateSelectField` se actualiza sin tener que
  * re-fetch de la API. Mismo caso para `remove`.
  */
-type Listener = (rows: TimeLogTemplateDto[]) => void;
+type Listener = () => void;
 
 const store: {
   rows: TimeLogTemplateDto[];
@@ -56,29 +56,34 @@ const store: {
 };
 
 function emit() {
-  for (const fn of store.listeners) fn(store.rows);
+  for (const fn of store.listeners) fn();
 }
 
 async function ensureLoaded(): Promise<TimeLogTemplateDto[]> {
   if (store.inflight) return store.inflight;
   store.loading = true;
   store.error = null;
+  emit();
   store.inflight = fetchTimeLogTemplates()
     .then((rows) => {
       store.rows = rows;
       store.loaded = true;
       store.error = null;
-      emit();
       return rows;
     })
     .catch((err: unknown) => {
       store.error =
         err instanceof Error ? err.message : "Error cargando plantillas.";
+      // Marcamos como cargado para no re-intentar en cada montaje, ya que
+      // un 404 (p. ej. en entorno dev sin backend) no se resolverá solo.
+      // El usuario puede forzar un reintento con `refresh()`.
+      store.loaded = true;
       throw err;
     })
     .finally(() => {
       store.loading = false;
       store.inflight = null;
+      emit();
     });
   return store.inflight;
 }
@@ -91,11 +96,17 @@ export function useTimeLogTemplates(): UseTimeLogTemplatesResult {
   const [error, setError] = useState<string | null>(store.error);
 
   useEffect(() => {
-    const listener: Listener = (next) => setRows(next);
+    // El listener dispara una re-sincronización completa del estado local
+    // desde el store. Esto es importante para reflejar la transición
+    // loading → loaded incluso cuando la carga falla (404 en dev sin
+    // backend), ya que antes el esqueleto se quedaba indefinidamente.
+    const listener: Listener = () => {
+      setRows(store.rows);
+      setLoading(store.loading);
+      setError(store.error);
+    };
     store.listeners.add(listener);
-    setRows(store.rows);
-    setLoading(store.loading);
-    setError(store.error);
+    listener();
     if (!store.loaded && !store.inflight) {
       ensureLoaded().catch(() => {
         // el error ya quedó en `store.error`

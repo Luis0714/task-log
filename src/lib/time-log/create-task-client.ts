@@ -1,4 +1,3 @@
-import { formatAdoErrorMessage } from "@/lib/errors/parse-ado-error";
 import type { CreateTaskPayload } from "@/lib/schemas/time-log";
 
 export type CreateTaskApiResponse = {
@@ -43,7 +42,7 @@ export async function createTaskInAdo(
   if (!res.ok) {
     return {
       ok: false,
-      message: formatAdoErrorMessage(data.error ?? "") || "No se pudo crear la tarea.",
+      message: data.error || "No se pudo crear la tarea.",
     };
   }
 

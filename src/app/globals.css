@@ -323,3 +323,28 @@
     @apply bg-muted/20;
   }
 }
+
+/* Halo pulsante para el FeatureBadge variante "new".
+ * Onda de color rojo que crece y se desvanece, sugiriendo "novedad".
+ * Se desactiva automáticamente si el usuario prefiere reduced-motion. */
+@keyframes feature-badge-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(239 68 68 / 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgb(239 68 68 / 0);
+  }
+}
+
+@layer utilities {
+  .animate-feature-badge-glow {
+    animation: feature-badge-glow 1.8s ease-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-feature-badge-glow {
+      animation: none;
+    }
+  }
+}

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
+import { TbTemplate } from "react-icons/tb";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -10,52 +11,30 @@ import { useTimeLogTemplates } from "@/hooks/use-time-log-templates";
 import { useApplyTemplate } from "@/hooks/time-log/use-apply-template";
 import { SaveAsTemplateDialog } from "@/components/time-log/save-as-template-dialog";
 import { DeleteTemplateDialog } from "@/components/time-log/fields/delete-template-dialog";
+import { TemplateCardBadge, badgeForTemplate } from "@/components/time-log/template-card";
 import type { TimeLogTemplateDto } from "@/lib/schemas/time-log-template";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 
-export type TemplateSelectFieldProps = {
+export type TemplateSelectFieldProps = Readonly<{
   form: UseFormReturn<TimeLogFormValues>;
   activities: readonly string[];
-};
+}>;
 
-type BadgeVariant = "role" | "global" | "personal";
-
-function badgeFor(
-  template: TimeLogTemplateDto,
-): { label: string; variant: BadgeVariant } {
-  if (!template.isSystem) return { label: "Personal", variant: "personal" };
-  if (template.seedKey === "global") return { label: "Global", variant: "global" };
-  return { label: "Tu rol", variant: "role" };
-}
-
-function TemplateCardBadge({
-  variant,
-  label,
-}: {
-  variant: BadgeVariant;
-  label: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "text-[9px] tracking-wide uppercase",
-        variant === "personal" ? "text-muted-foreground" : "text-primary/70",
-      )}
-    >
-      {label}
-    </span>
-  );
-}
-
-type TemplateCardProps = {
+type TemplateCardProps = Readonly<{
   template: TimeLogTemplateDto;
   selected: boolean;
   onSelect: () => void;
   onClear: () => void;
   onDelete: () => Promise<boolean> | boolean;
   activities: readonly string[];
-};
+}>;
 
+/**
+ * Card visual de plantilla para el modo Individual. Más ancho (w-44) y con
+ * botones de editar/eliminar para plantillas personales. Para el listado
+ * compacto dentro de una fila del modo Múltiple, ver `TemplateCard` en
+ * `template-card.tsx`.
+ */
 function TemplateCard({
   template,
   selected,
@@ -63,15 +42,15 @@ function TemplateCard({
   onClear,
   onDelete,
   activities,
-}: Readonly<TemplateCardProps>) {
-  const { label, variant } = badgeFor(template);
+}: TemplateCardProps) {
+  const { label, variant } = badgeForTemplate(template);
   const hasActions = !template.isSystem;
 
   return (
     <div
       className={cn(
-        "flex w-32 shrink-0 flex-col rounded-md border transition",
-        "hover:border-primary/40",
+        "flex w-44 shrink-0 flex-col rounded-md border transition",
+        "hover:border-primary",
         selected
           ? "border-primary bg-primary/5 ring-primary/30 ring-2"
           : "border-border bg-card",
@@ -83,7 +62,7 @@ function TemplateCard({
         aria-pressed={selected}
         aria-label={`${template.name} (${label})`}
         className={cn(
-          "flex flex-col items-start gap-0.5 px-2.5 py-1.5 text-left hover:bg-accent/30",
+          "flex flex-col items-start gap-0.5 px-2.5 py-1.5 text-left hover:bg-primary/5",
           hasActions ? "rounded-t-md" : "rounded-md",
           "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
         )}
@@ -99,8 +78,8 @@ function TemplateCard({
         <TemplateCardBadge variant={variant} label={label} />
       </button>
 
-      {hasActions && (
-        <div className="border-border/50 flex items-center justify-end gap-2 border-t px-2 py-0.5">
+      {hasActions ? (
+        <div className="border-border/50 flex items-center justify-between gap-1 border-t px-1.5 py-1">
           <SaveAsTemplateDialog
             mode="edit"
             templateId={template.id}
@@ -108,18 +87,21 @@ function TemplateCard({
             defaultTitle={template.defaultTitle}
             defaultDescription={template.defaultDescription}
             defaultActivity={template.defaultActivity ?? undefined}
+            defaultHours={template.defaultHours}
             activities={activities}
           >
             <Pencil className="size-3" aria-hidden />
+            <span>Editar</span>
           </SaveAsTemplateDialog>
           <DeleteTemplateDialog
             templateName={template.name}
             onDelete={onDelete}
           >
             <Trash2 className="size-3" aria-hidden />
+            <span>Eliminar</span>
           </DeleteTemplateDialog>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -127,8 +109,8 @@ function TemplateCard({
 function TemplatesSkeleton() {
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
-      {["s1", "s2", "s3", "s4"].map((key) => (
-        <Skeleton key={key} className="h-12 w-28 shrink-0" />
+      {["a", "b", "c", "d"].map((slot) => (
+        <Skeleton key={slot} className="h-12 w-44 shrink-0" />
       ))}
     </div>
   );
@@ -143,14 +125,14 @@ function TemplatesEmpty() {
   );
 }
 
-type TemplatesListProps = {
+type TemplatesListProps = Readonly<{
   templates: readonly TimeLogTemplateDto[];
   activities: readonly string[];
   selectedId: string;
   onSelect: (id: string) => void;
   onClear: () => void;
   onDelete: (id: string) => Promise<boolean> | boolean;
-};
+}>;
 
 function TemplatesList({
   templates,
@@ -159,7 +141,7 @@ function TemplatesList({
   onSelect,
   onClear,
   onDelete,
-}: Readonly<TemplatesListProps>) {
+}: TemplatesListProps) {
   return (
     <div className="space-y-1.5">
       <div
@@ -195,7 +177,7 @@ function TemplatesList({
 export function TemplateSelectField({
   form,
   activities,
-}: Readonly<TemplateSelectFieldProps>) {
+}: TemplateSelectFieldProps) {
   const { templates, loading, findById, remove } = useTimeLogTemplates();
   const [selectedId, setSelectedId] = useState<string>("");
   const { apply, clear } = useApplyTemplate(form, activities);
@@ -237,7 +219,7 @@ export function TemplateSelectField({
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-sm font-medium">
-          <Sparkles className="size-3.5" aria-hidden />
+          <TbTemplate className="size-3.5" aria-hidden />
           Plantillas
           <span className="text-muted-foreground text-xs font-normal">
             · Escoge una o crea una nueva

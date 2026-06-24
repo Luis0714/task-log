@@ -7,7 +7,12 @@ import type { TimeLogCatalog } from "@/lib/time-log/catalog-types";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 
 export type TimeLogContextFieldsProps = Readonly<{
-  form: UseFormReturn<TimeLogFormValues>;
+  /**
+   * Form de react-hook-form del modo Individual. Si se omite (modo
+   * Múltiple), los cambios de proyecto/equipo/sprint sólo se reflejan en
+   * el catálogo compartido, sin sincronizar un formulario inexistente.
+   */
+  form?: UseFormReturn<TimeLogFormValues>;
   catalog: TimeLogCatalog;
 }>;
 
@@ -36,15 +41,15 @@ export function TimeLogContextFields({ form, catalog }: TimeLogContextFieldsProp
       saveDefaultsPending={catalog.saveDefaultsPending}
       onSaveDefaults={catalog.onSaveDefaults}
       onProjectChange={(value) => {
-        form.setValue("project", value, { shouldValidate: true });
+        form?.setValue("project", value, { shouldValidate: true });
         catalog.onProjectChange();
       }}
       onTeamChange={(value) => {
-        form.setValue("team", value, { shouldValidate: true });
+        form?.setValue("team", value, { shouldValidate: true });
         catalog.onTeamChange();
       }}
       onSprintChange={(value) => {
-        form.setValue("sprintPath", value, { shouldValidate: true });
+        form?.setValue("sprintPath", value, { shouldValidate: true });
         catalog.onSprintChange();
       }}
     />

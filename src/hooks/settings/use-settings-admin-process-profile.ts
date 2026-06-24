@@ -27,8 +27,8 @@ export function useSettingsAdminProcessProfile({
 
   const [workingDateField, setWorkingDateField] = useState(profile.workingDateField);
   const [timezone, setTimezone] = useState(profile.timezone);
-  const [completedWorkField, setCompletedWorkField] = useState(profile.completedWorkField);
-  const [originalEstimateField, setOriginalEstimateField] = useState(profile.originalEstimateField);
+  const [completedWorkField, setCompletedWorkField] = useState<string>(profile.completedWorkField ?? "");
+  const [originalEstimateField, setOriginalEstimateField] = useState<string>(profile.originalEstimateField ?? "");
   const [remainingWorkField, setRemainingWorkField] = useState<string>(profile.remainingWorkField ?? "");
   const [activityField, setActivityField] = useState<string>(profile.activityField ?? "");
   const [taskWorkItemType, setTaskWorkItemType] = useState(profile.taskWorkItemType);
@@ -44,8 +44,8 @@ export function useSettingsAdminProcessProfile({
       setProfile(next);
       setWorkingDateField(next.workingDateField);
       setTimezone(next.timezone);
-      setCompletedWorkField(next.completedWorkField);
-      setOriginalEstimateField(next.originalEstimateField);
+      setCompletedWorkField(next.completedWorkField ?? "");
+      setOriginalEstimateField(next.originalEstimateField ?? "");
       setRemainingWorkField(next.remainingWorkField ?? "");
       setActivityField(next.activityField ?? "");
       setTaskWorkItemType(next.taskWorkItemType);
@@ -68,8 +68,8 @@ export function useSettingsAdminProcessProfile({
           project,
           workingDateField,
           timezone,
-          completedWorkField,
-          originalEstimateField,
+          completedWorkField: completedWorkField.trim() || null,
+          originalEstimateField: originalEstimateField.trim() || null,
           remainingWorkField: remainingWorkField.trim() || null,
           activityField: activityField.trim() || null,
           taskWorkItemType,
@@ -130,8 +130,8 @@ export function useSettingsAdminProcessProfile({
   const isDirty =
     workingDateField !== profile.workingDateField ||
     timezone !== profile.timezone ||
-    completedWorkField !== profile.completedWorkField ||
-    originalEstimateField !== profile.originalEstimateField ||
+    (completedWorkField.trim() || null) !== profile.completedWorkField ||
+    (originalEstimateField.trim() || null) !== profile.originalEstimateField ||
     (remainingWorkField.trim() || null) !== profile.remainingWorkField ||
     (activityField.trim() || null) !== profile.activityField ||
     taskWorkItemType !== profile.taskWorkItemType ||

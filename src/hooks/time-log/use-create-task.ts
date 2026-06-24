@@ -61,6 +61,7 @@ export function useCreateTask({
     taskTitle: string;
     description: string;
     activity?: string;
+    hours?: string;
   } | null>(null);
 
   const submit = useCallback(
@@ -103,6 +104,7 @@ export function useCreateTask({
           taskTitle: payloadValues.taskTitle.trim(),
           description: payloadValues.description.trim(),
           activity: payloadValues.activity?.trim() || undefined,
+          hours: payloadValues.hours?.trim() || undefined,
         });
 
         clearTaskFields(
