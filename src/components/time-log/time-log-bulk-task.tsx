@@ -1,16 +1,15 @@
 "use client";
 
-import { CheckCircle2, CircleDashed, XCircle } from "lucide-react";
+import { CheckCircle2, CircleDashed, Plus, XCircle } from "lucide-react";
 import { TbTemplate } from "react-icons/tb";
 
 import { DraftCard, type DraftCardVariant } from "@/components/forms/draft-card";
-import { PbiSelectComboboxField } from "@/components/time-log/fields/pbi-select-combobox-field";
+import { SaveAsTemplateDialog } from "@/components/time-log/save-as-template-dialog";
 import { TimeLogBulkRowTemplates } from "@/components/time-log/time-log-bulk-row-templates";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePickerTime } from "@/components/ui/date-picker-time";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -18,22 +17,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
 import type {
   AdoTaskStateDto,
-  AdoWorkItemOptionDto,
 } from "@/lib/schemas/ado-catalog";
 import type { TimeLogTemplateDto } from "@/lib/schemas/time-log-template";
 import { applyTemplateToRow } from "@/lib/time-log/apply-template-to-row";
-import type { BulkRow } from "@/lib/time-log/bulk-row";
-import { parseBulkRowHours } from "@/hooks/time-log/use-bulk-rows";
+import type { BulkTask } from "@/lib/time-log/bulk-group";
+import { cn } from "@/lib/utils";
 
-export type TimeLogBulkRowProps = Readonly<{
-  row: BulkRow;
+export type TimeLogBulkTaskProps = Readonly<{
+  task: BulkTask;
   index: number;
-  pbis: readonly AdoWorkItemOptionDto[];
   templates: readonly TimeLogTemplateDto[];
   templatesLoading?: boolean;
+  templatesError?: string | null;
   activities: readonly string[];
   taskStates: readonly AdoTaskStateDto[];
   isTaskCreationMode: boolean;
@@ -41,12 +39,12 @@ export type TimeLogBulkRowProps = Readonly<{
   disabled?: boolean;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onChange: (id: string, patch: Partial<BulkRow>) => void;
-  onRemove: (id: string) => void;
+  onChange: (patch: Partial<BulkTask>) => void;
+  onRemove: () => void;
 }>;
 
-function ResultChip({ row }: { row: BulkRow }) {
-  if (!row.result) {
+function ResultChip({ task }: { readonly task: BulkTask }) {
+  if (!task.result) {
     return (
       <span
         className="text-muted-foreground inline-flex items-center gap-1 text-xs"
@@ -57,14 +55,14 @@ function ResultChip({ row }: { row: BulkRow }) {
       </span>
     );
   }
-  if (row.result.ok) {
+  if (task.result.ok) {
     return (
       <span
         className="text-emerald-700 inline-flex items-center gap-1 text-xs font-medium"
         aria-live="polite"
       >
         <CheckCircle2 className="size-3.5" aria-hidden />
-        {row.result.taskId ? `Tarea #${row.result.taskId}` : "Creada"}
+        {task.result.taskId ? `Tarea #${task.result.taskId}` : "Creada"}
       </span>
     );
   }
@@ -75,44 +73,38 @@ function ResultChip({ row }: { row: BulkRow }) {
     >
       <XCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
       <span className="line-clamp-3">
-        {row.result.message ?? "No se pudo crear."}
+        {task.result.message ?? "No se pudo crear."}
       </span>
     </span>
   );
 }
 
-function buildRowSummary(
-  row: BulkRow,
-  pbis: readonly AdoWorkItemOptionDto[],
-): string {
-  const pbi = pbis.find((item) => String(item.id) === row.pbiId);
-  const pbiLabel = pbi ? `#${pbi.id} ${pbi.title}` : null;
-  const title = row.taskTitle.trim();
+function buildTaskSummary(task: BulkTask): string {
+  const title = task.taskTitle.trim();
   const hours = (() => {
-    const h = parseBulkRowHours(row.hours);
-    return h > 0 ? `${h}h` : null;
+    const parsed = Number.parseFloat(task.hours.replace(",", "."));
+    return Number.isFinite(parsed) && parsed > 0 ? `${parsed}h` : null;
   })();
 
   const parts: string[] = [];
-  if (pbiLabel) parts.push(pbiLabel);
   if (title) parts.push(title);
   if (hours) parts.push(hours);
 
   return parts.length > 0 ? parts.join(" · ") : "Borrador";
 }
 
-function variantFor(row: BulkRow): DraftCardVariant {
-  if (row.result?.ok === true) return "success";
-  if (row.result?.ok === false) return "error";
+function variantFor(task: BulkTask): DraftCardVariant {
+  if (task.result?.ok === true) return "success";
+  if (task.result?.ok === false) return "error";
   return "default";
 }
 
-export function TimeLogBulkRow({
-  row,
+export function TimeLogBulkTask({
+  task,
   index,
-  pbis,
   templates,
   templatesLoading = false,
+  templatesError = null,
   activities,
   taskStates,
   isTaskCreationMode,
@@ -122,15 +114,17 @@ export function TimeLogBulkRow({
   onOpenChange,
   onChange,
   onRemove,
-}: TimeLogBulkRowProps) {
-  const idPrefix = `bulk-row-${row.id}`;
-  const summary = buildRowSummary(row, pbis);
-  const variant = variantFor(row);
-  const showStatus = row.result !== null;
+}: TimeLogBulkTaskProps) {
+  const idPrefix = `bulk-task-${task.id}`;
+  const summary = buildTaskSummary(task);
+  const variant = variantFor(task);
+  const showStatus = task.result !== null;
+  const selectedTemplate =
+    templates.find((t) => t.id === task.templateId) ?? null;
 
   return (
     <DraftCard
-      id={row.id}
+      id={task.id}
       index={index}
       isOpen={isOpen}
       onOpenChange={onOpenChange}
@@ -144,29 +138,49 @@ export function TimeLogBulkRow({
           {summary}
         </span>
       }
-      status={showStatus ? <ResultChip row={row} /> : null}
+      status={showStatus ? <ResultChip task={task} /> : null}
       variant={variant}
       canRemove={canRemove}
-      onRemove={() => onRemove(row.id)}
+      onRemove={onRemove}
       disabled={disabled}
+      triggerLabel={`Tarea ${index + 1}`}
     >
       {/* Plantilla — primero como en Individual */}
       <div className="space-y-1.5">
-        <span className="flex items-center gap-1.5 text-sm font-medium">
-          <TbTemplate className="text-muted-foreground size-3.5" aria-hidden />
-          Plantillas
-          <span className="text-muted-foreground text-xs font-normal">
-            · Escoge una para autocompletar
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5 text-sm font-medium">
+            <TbTemplate className="text-muted-foreground size-3.5" aria-hidden />
+            Plantillas
+            <span className="text-muted-foreground text-xs font-normal">
+              · Escoge una para autocompletar
+            </span>
           </span>
-        </span>
+          <SaveAsTemplateDialog
+            defaultTitle={task.taskTitle}
+            defaultDescription={task.description}
+            defaultActivity={task.activity}
+            defaultHours={task.hours}
+            activities={activities}
+            disabled={disabled}
+          >
+            <Plus className="size-4" aria-hidden />
+          </SaveAsTemplateDialog>
+        </div>
         <TimeLogBulkRowTemplates
           templates={templates}
-          selectedId={row.templateId}
+          selectedId={task.templateId}
           disabled={disabled}
           loading={templatesLoading}
+          error={templatesError}
+          selectedTemplate={selectedTemplate}
+          defaultTitle={task.taskTitle}
+          defaultDescription={task.description}
+          defaultActivity={task.activity}
+          defaultHours={task.hours}
+          activities={activities}
           onSelect={(template) => {
             const applied = applyTemplateToRow(template, activities);
-            onChange(row.id, {
+            onChange({
               templateId: template.id,
               taskTitle: applied.taskTitle,
               description: applied.description,
@@ -175,7 +189,7 @@ export function TimeLogBulkRow({
             });
           }}
           onClear={() =>
-            onChange(row.id, {
+            onChange({
               templateId: "",
               taskTitle: "",
               description: "",
@@ -183,23 +197,6 @@ export function TimeLogBulkRow({
             })
           }
         />
-      </div>
-
-      {/* Historia de usuario */}
-      <div className="space-y-1.5">
-        <Label htmlFor={`${idPrefix}-pbi`}>
-          Historia de usuario <span className="text-destructive">*</span>
-        </Label>
-        <PbiSelectComboboxField
-          id={`${idPrefix}-pbi`}
-          pbis={pbis}
-          value={row.pbiId || null}
-          onValueChange={(value) => onChange(row.id, { pbiId: value ?? "" })}
-          disabled={disabled}
-        />
-        {row.errors.pbiId ? (
-          <p className="text-destructive text-xs">{row.errors.pbiId}</p>
-        ) : null}
       </div>
 
       {/* Título */}
@@ -210,13 +207,13 @@ export function TimeLogBulkRow({
         <Input
           id={`${idPrefix}-title`}
           placeholder="Ej. Reunión, fix de bug, desarrollo endpoint..."
-          value={row.taskTitle}
+          value={task.taskTitle}
           disabled={disabled}
-          onChange={(event) => onChange(row.id, { taskTitle: event.target.value })}
-          aria-invalid={Boolean(row.errors.taskTitle)}
+          onChange={(event) => onChange({ taskTitle: event.target.value })}
+          aria-invalid={Boolean(task.errors.taskTitle)}
         />
-        {row.errors.taskTitle ? (
-          <p className="text-destructive text-xs">{row.errors.taskTitle}</p>
+        {task.errors.taskTitle ? (
+          <p className="text-destructive text-xs">{task.errors.taskTitle}</p>
         ) : null}
       </div>
 
@@ -230,20 +227,20 @@ export function TimeLogBulkRow({
             id={`${idPrefix}-hours`}
             inputMode="decimal"
             placeholder="1.5"
-            value={row.hours}
+            value={task.hours}
             disabled={disabled}
-            onChange={(event) => onChange(row.id, { hours: event.target.value })}
-            aria-invalid={Boolean(row.errors.hours)}
+            onChange={(event) => onChange({ hours: event.target.value })}
+            aria-invalid={Boolean(task.errors.hours)}
           />
-          {row.errors.hours ? (
-            <p className="text-destructive text-xs">{row.errors.hours}</p>
+          {task.errors.hours ? (
+            <p className="text-destructive text-xs">{task.errors.hours}</p>
           ) : null}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor={`${idPrefix}-activity`}>Actividad</Label>
           <Select
-            value={row.activity || null}
-            onValueChange={(value) => onChange(row.id, { activity: value ?? "" })}
+            value={task.activity || null}
+            onValueChange={(value) => onChange({ activity: value ?? "" })}
             disabled={disabled}
           >
             <SelectTrigger id={`${idPrefix}-activity`}>
@@ -269,16 +266,14 @@ export function TimeLogBulkRow({
           id={`${idPrefix}-description`}
           rows={3}
           placeholder="Describe brevemente lo realizado en esta tarea"
-          value={row.description}
+          value={task.description}
           disabled={disabled}
-          onChange={(event) =>
-            onChange(row.id, { description: event.target.value })
-          }
+          onChange={(event) => onChange({ description: event.target.value })}
           className="resize-none"
-          aria-invalid={Boolean(row.errors.description)}
+          aria-invalid={Boolean(task.errors.description)}
         />
-        {row.errors.description ? (
-          <p className="text-destructive text-xs">{row.errors.description}</p>
+        {task.errors.description ? (
+          <p className="text-destructive text-xs">{task.errors.description}</p>
         ) : null}
       </div>
 
@@ -290,15 +285,15 @@ export function TimeLogBulkRow({
         <DatePickerTime
           dateId={`${idPrefix}-date`}
           timeId={`${idPrefix}-time`}
-          dateValue={row.workingDate}
-          timeValue={row.workingTime}
-          onDateChange={(value) => onChange(row.id, { workingDate: value })}
-          onTimeChange={(value) => onChange(row.id, { workingTime: value })}
+          dateValue={task.workingDate}
+          timeValue={task.workingTime}
+          onDateChange={(value) => onChange({ workingDate: value })}
+          onTimeChange={(value) => onChange({ workingTime: value })}
           disabled={disabled}
         />
-        {row.errors.workingDate || row.errors.workingTime ? (
+        {task.errors.workingDate || task.errors.workingTime ? (
           <p className="text-destructive text-xs">
-            {row.errors.workingDate ?? row.errors.workingTime}
+            {task.errors.workingDate ?? task.errors.workingTime}
           </p>
         ) : null}
       </div>
@@ -309,11 +304,9 @@ export function TimeLogBulkRow({
           <div className="space-y-1.5">
             <Label htmlFor={`${idPrefix}-state`}>Estado inicial</Label>
             <Select
-              value={row.taskState || null}
-              onValueChange={(value) =>
-                onChange(row.id, { taskState: value ?? "" })
-              }
-              disabled={disabled || row.markAsDone}
+              value={task.taskState || null}
+              onValueChange={(value) => onChange({ taskState: value ?? "" })}
+              disabled={disabled || task.markAsDone}
             >
               <SelectTrigger id={`${idPrefix}-state`}>
                 <SelectValue placeholder="Estado de la tarea" />
@@ -330,10 +323,10 @@ export function TimeLogBulkRow({
           <label className="flex cursor-pointer items-start gap-2 text-sm">
             <Checkbox
               className="mt-0.5"
-              checked={row.markAsDone}
+              checked={task.markAsDone}
               disabled={disabled}
               onCheckedChange={(checked) =>
-                onChange(row.id, { markAsDone: Boolean(checked) })
+                onChange({ markAsDone: Boolean(checked) })
               }
             />
             <span className="leading-tight">

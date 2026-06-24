@@ -143,8 +143,12 @@ export function mapTimeLogFormToPayload(
   };
 }
 
-export const bulkRowSchema = z.object({
-  pbiId: pbiIdField,
+/**
+ * Schema por tarea dentro de una Historia de Usuario. NO incluye `pbiId`
+ * porque ese dato vive en el `BulkGroup` padre; el mapper lo inyecta desde
+ * el contexto al construir el payload final.
+ */
+export const bulkTaskSchema = z.object({
   taskTitle: z
     .string()
     .trim()
@@ -171,15 +175,21 @@ export const bulkRowSchema = z.object({
   markAsDone: z.boolean(),
 });
 
-export type BulkRowFormValues = z.infer<typeof bulkRowSchema>;
+export type BulkTaskFormValues = z.infer<typeof bulkTaskSchema>;
 
-export type BulkRowFieldErrors = Partial<
-  Record<keyof BulkRowFormValues, string>
+export type BulkTaskFieldErrors = Partial<
+  Record<keyof BulkTaskFormValues, string>
 >;
 
-export function mapBulkRowToTaskItem(
-  values: BulkRowFormValues,
+/**
+ * Mapea una tarea validada al payload que espera `createTasksBatchInAdo`.
+ * El `pbiId` y `pbiTitle` se reciben desde el `BulkGroup` padre, no desde
+ * los valores de la tarea.
+ */
+export function mapBulkTaskToTaskItem(
+  values: BulkTaskFormValues,
   ctx: {
+    pbiId: string;
     pbiTitle: string;
     project: string;
     team: string;
@@ -187,7 +197,7 @@ export function mapBulkRowToTaskItem(
   },
 ): CreateTaskBatchItem {
   return {
-    pbiId: Number.parseInt(values.pbiId, 10),
+    pbiId: Number.parseInt(ctx.pbiId, 10),
     pbiTitle: ctx.pbiTitle,
     title: values.taskTitle.trim(),
     hours: Number.parseFloat(values.hours.replace(",", ".")),

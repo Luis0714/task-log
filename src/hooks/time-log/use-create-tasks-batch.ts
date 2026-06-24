@@ -5,12 +5,12 @@ import { useCallback, useState } from "react";
 import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import {
-  bulkRowSchema,
-  mapBulkRowToTaskItem,
-  type BulkRowFormValues,
+  bulkTaskSchema,
+  mapBulkTaskToTaskItem,
+  type BulkTaskFormValues,
 } from "@/lib/schemas/time-log";
-import type { BulkRow } from "@/lib/time-log/bulk-row";
-import { BULK_ROW_LIMIT } from "@/lib/time-log/bulk-row";
+import type { BulkGroup, BulkTask } from "@/lib/time-log/bulk-group";
+import { BULK_GROUP_LIMIT } from "@/lib/time-log/bulk-group";
 import {
   createTasksBatchInAdo,
   type CreateTasksBatchApiResponse,
@@ -18,12 +18,13 @@ import {
 } from "@/lib/time-log/create-tasks-batch-client";
 import { appToast } from "@/lib/toast";
 
-export type BulkRowSubmissionResult = {
-  rowId: string;
+export type TaskSubmissionResult = {
+  groupId: string;
+  taskId: string;
   index: number;
   ok: boolean;
   message: string | null;
-  taskId?: number;
+  taskIdRemote?: number;
   markedAsDone?: boolean;
 };
 
@@ -35,7 +36,7 @@ export type UseCreateTasksBatchOptions = Readonly<{
 
 export type UseCreateTasksBatchResult = {
   submit: (
-    rows: BulkRow[],
+    groups: BulkGroup[],
     ctx: {
       selectedPbis: Map<string, AdoWorkItemOptionDto>;
       project: string;
@@ -43,42 +44,47 @@ export type UseCreateTasksBatchResult = {
       sprintPath: string;
     },
   ) => Promise<{
-    results: BulkRowSubmissionResult[];
+    results: TaskSubmissionResult[];
     response: CreateTasksBatchApiResponse;
   } | null>;
   loading: boolean;
   error: string | null;
 };
 
-type ValidatedRow = {
-  row: BulkRow;
-  values: BulkRowFormValues;
+type ValidatedTask = {
+  group: BulkGroup;
+  task: BulkTask;
+  values: BulkTaskFormValues;
+  /** Índice dentro del batch aplanado (lo que espera la API). */
   index: number;
 };
 
-function rowToFormValues(row: BulkRow, defaultTaskState: string): BulkRowFormValues {
+function taskToFormValues(
+  task: BulkTask,
+  defaultTaskState: string,
+): BulkTaskFormValues {
   return {
-    pbiId: row.pbiId,
-    taskTitle: row.taskTitle,
-    hours: row.hours,
-    description: row.description,
-    activity: row.activity,
-    workingDate: row.workingDate,
-    workingTime: row.workingTime,
-    taskState: row.taskState || defaultTaskState,
-    markAsDone: row.markAsDone,
+    taskTitle: task.taskTitle,
+    hours: task.hours,
+    description: task.description,
+    activity: task.activity,
+    workingDate: task.workingDate,
+    workingTime: task.workingTime,
+    taskState: task.taskState || defaultTaskState,
+    markAsDone: task.markAsDone,
   };
 }
 
 /**
- * Refleja la semántica time-log al payload final: si la fila tiene markAsDone
- * o no tiene estado y existe un "Done" por defecto, forzamos ese estado.
+ * Refleja la semántica time-log al payload final: si la tarea tiene
+ * markAsDone o no tiene estado y existe un "Done" por defecto, forzamos
+ * ese estado.
  */
 function enforceTimeLogSemantics(
-  values: BulkRowFormValues,
+  values: BulkTaskFormValues,
   defaultTaskState: string,
   defaultCompletedTaskState: string,
-): BulkRowFormValues {
+): BulkTaskFormValues {
   const shouldMarkDone =
     values.markAsDone || (!values.taskState && !!defaultCompletedTaskState);
   return {
@@ -91,32 +97,44 @@ function enforceTimeLogSemantics(
   };
 }
 
-function validateRows(
-  rows: BulkRow[],
+/**
+ * Aplana `BulkGroup[]` a una lista de tareas validadas en el orden en que
+ * se enviarán a la API. Descarta grupos sin `pbiId` (no seleccionados) y
+ * tareas que no pasen `bulkTaskSchema`. Devuelve también el índice que cada
+ * tarea ocupará en el batch.
+ */
+function validateGroups(
+  groups: BulkGroup[],
   defaultTaskState: string,
   defaultCompletedTaskState: string,
-): ValidatedRow[] {
-  const validated: ValidatedRow[] = [];
-  rows.forEach((row, index) => {
-    const values = rowToFormValues(row, defaultTaskState);
-    const parsed = bulkRowSchema.safeParse(values);
-    if (parsed.success) {
-      validated.push({
-        row,
-        values: enforceTimeLogSemantics(
-          parsed.data,
-          defaultTaskState,
-          defaultCompletedTaskState,
-        ),
-        index,
-      });
+): ValidatedTask[] {
+  const validated: ValidatedTask[] = [];
+  let index = 0;
+  for (const group of groups) {
+    if (!group.pbiId) continue;
+    for (const task of group.tasks) {
+      const values = taskToFormValues(task, defaultTaskState);
+      const parsed = bulkTaskSchema.safeParse(values);
+      if (parsed.success) {
+        validated.push({
+          group,
+          task,
+          values: enforceTimeLogSemantics(
+            parsed.data,
+            defaultTaskState,
+            defaultCompletedTaskState,
+          ),
+          index,
+        });
+        index += 1;
+      }
     }
-  });
+  }
   return validated;
 }
 
 function buildTaskItems(
-  rows: ValidatedRow[],
+  validated: ValidatedTask[],
   ctx: {
     selectedPbis: Map<string, AdoWorkItemOptionDto>;
     project: string;
@@ -124,11 +142,12 @@ function buildTaskItems(
     sprintPath: string;
   },
 ) {
-  return rows.map(({ values }) =>
-    mapBulkRowToTaskItem(values, {
+  return validated.map(({ values, group }) =>
+    mapBulkTaskToTaskItem(values, {
+      pbiId: group.pbiId,
       pbiTitle:
-        ctx.selectedPbis.get(values.pbiId)?.title ??
-        `Historia #${values.pbiId}`,
+        ctx.selectedPbis.get(group.pbiId)?.title ??
+        `Historia #${group.pbiId}`,
       project: ctx.project,
       team: ctx.team,
       sprintPath: ctx.sprintPath,
@@ -138,21 +157,21 @@ function buildTaskItems(
 
 function appendResultsToHistory(
   response: CreateTasksBatchApiResponse,
-  rowsByIndex: Map<number, BulkRow>,
+  tasksByIndex: Map<number, ValidatedTask>,
   appendHistory: (entry: CopilotHistoryEntry) => void,
 ): void {
   const at = new Date().toISOString();
   for (const entry of response.results) {
-    const row = rowsByIndex.get(entry.index);
-    if (!row) continue;
+    const item = tasksByIndex.get(entry.index);
+    if (!item) continue;
 
     if (entry.ok) {
       const doneNote = entry.markedAsDone ? " · marcada como Done" : "";
       appendHistory({
         id: newHistoryId(entry.index),
         at,
-        workingDate: row.workingDate,
-        summary: `Tarea #${entry.taskId} +${entry.hours}h · Historia #${entry.pbiId}${doneNote}`,
+        workingDate: item.task.workingDate,
+        summary: `Tarea #${entry.taskId} +${entry.hours}h · Historia #${item.group.pbiId}${doneNote}`,
         ok: true,
       });
       continue;
@@ -161,8 +180,8 @@ function appendResultsToHistory(
     appendHistory({
       id: newHistoryId(entry.index),
       at,
-      workingDate: row.workingDate,
-      summary: `Tarea en historia #${entry.pbiId} +${parseHoursOrZero(row.hours)}h (falló)`,
+      workingDate: item.task.workingDate,
+      summary: `Tarea en historia #${item.group.pbiId} +${parseHoursOrZero(item.task.hours)}h (falló)`,
       ok: false,
     });
   }
@@ -199,35 +218,41 @@ export function useCreateTasksBatch({
   const [error, setError] = useState<string | null>(null);
 
   const submit = useCallback<UseCreateTasksBatchResult["submit"]>(
-    async (rows, ctx) => {
+    async (groups, ctx) => {
       setError(null);
 
-      const validated = validateRows(
-        rows,
+      const validated = validateGroups(
+        groups,
         getDefaultTaskState(),
         getDefaultCompletedTaskState(),
       );
 
       if (validated.length === 0) {
-        const message = "Completa los campos requeridos en al menos una fila.";
+        const message = "Completa los campos requeridos en al menos una tarea.";
         setError(message);
         appToast.error(message);
         return null;
       }
 
-      const sliceToSend = validated.slice(0, BULK_ROW_LIMIT);
-      if (validated.length > BULK_ROW_LIMIT) {
-        appToast.warning("Solo se enviarán los primeros 10 registros.", {
-          description:
-            "El servicio limita cada lote a 10 tareas. Quita filas o divide el envío.",
-        });
+      const sliceToSend = validated.slice(0, BULK_GROUP_LIMIT);
+      if (validated.length > BULK_GROUP_LIMIT) {
+        appToast.warning(
+          `Solo se enviarán las primeras ${BULK_GROUP_LIMIT} tareas.`,
+          {
+            description:
+              "El servicio limita cada lote. Quita tareas o divide el envío.",
+          },
+        );
       }
 
-      const indexToRowId = new Map<number, string>();
-      const rowsByIndex = new Map<number, BulkRow>();
-      sliceToSend.forEach(({ row, index }) => {
-        indexToRowId.set(index, row.id);
-        rowsByIndex.set(index, row);
+      const tasksByIndex = new Map<number, ValidatedTask>();
+      const indexToTaskId = new Map<number, { groupId: string; taskId: string }>();
+      sliceToSend.forEach((item) => {
+        tasksByIndex.set(item.index, item);
+        indexToTaskId.set(item.index, {
+          groupId: item.group.id,
+          taskId: item.task.id,
+        });
       });
 
       setLoading(true);
@@ -235,12 +260,12 @@ export function useCreateTasksBatch({
         const items = buildTaskItems(sliceToSend, ctx);
         const response = await createTasksBatchInAdo(items, ctx.project);
 
-        const results: BulkRowSubmissionResult[] = response.results.map(
-          (entry) => mapEntryToResult(entry, indexToRowId),
+        const results: TaskSubmissionResult[] = response.results.map((entry) =>
+          mapEntryToResult(entry, indexToTaskId),
         );
 
-        appendResultsToHistory(response, rowsByIndex, appendHistory);
-        markUnprocessedRows(sliceToSend, response.results, indexToRowId, results);
+        appendResultsToHistory(response, tasksByIndex, appendHistory);
+        markUnprocessedTasks(sliceToSend, response.results, indexToTaskId, results);
         showResultToast(response);
 
         return { results, response };
@@ -264,41 +289,46 @@ export function useCreateTasksBatch({
 
 function mapEntryToResult(
   entry: CreateTasksBatchItemResult,
-  indexToRowId: Map<number, string>,
-): BulkRowSubmissionResult {
+  indexToTaskId: Map<number, { groupId: string; taskId: string }>,
+): TaskSubmissionResult {
+  const ids = indexToTaskId.get(entry.index);
   return {
-    rowId: indexToRowId.get(entry.index) ?? "",
+    groupId: ids?.groupId ?? "",
+    taskId: ids?.taskId ?? "",
     index: entry.index,
     ok: entry.ok,
     message: entry.ok ? null : entry.message,
-    taskId: entry.ok ? entry.taskId : undefined,
+    taskIdRemote: entry.ok ? entry.taskId : undefined,
     markedAsDone: entry.ok ? entry.markedAsDone : undefined,
   };
 }
 
 /**
- * El servidor corta en el primer fallo. Las filas válidas enviadas después
+ * El servidor corta en el primer fallo. Las tareas válidas enviadas después
  * del fallo quedan sin procesar; las marcamos como "No enviado" para que la
  * UI muestre el chip correspondiente.
  */
-function markUnprocessedRows(
-  sliceToSend: ValidatedRow[],
+function markUnprocessedTasks(
+  sliceToSend: ValidatedTask[],
   serverResults: CreateTasksBatchItemResult[],
-  indexToRowId: Map<number, string>,
-  results: BulkRowSubmissionResult[],
+  indexToTaskId: Map<number, { groupId: string; taskId: string }>,
+  results: TaskSubmissionResult[],
 ): void {
-  const processedRowIds = new Set(
+  const processedKeys = new Set(
     serverResults
-      .map((r) => indexToRowId.get(r.index))
-      .filter((id): id is string => Boolean(id)),
+      .map((r) => indexToTaskId.get(r.index))
+      .filter((id): id is { groupId: string; taskId: string } => Boolean(id))
+      .map((ids) => `${ids.groupId}|${ids.taskId}`),
   );
-  sliceToSend.forEach(({ row, index }) => {
-    if (!processedRowIds.has(row.id)) {
+  sliceToSend.forEach((item) => {
+    const key = `${item.group.id}|${item.task.id}`;
+    if (!processedKeys.has(key)) {
       results.push({
-        rowId: row.id,
-        index,
+        groupId: item.group.id,
+        taskId: item.task.id,
+        index: item.index,
         ok: false,
-        message: "No enviado: la operación se detuvo en una fila anterior.",
+        message: "No enviado: la operación se detuvo en una tarea anterior.",
       });
     }
   });

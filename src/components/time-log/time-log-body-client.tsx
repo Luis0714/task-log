@@ -113,10 +113,13 @@ export function TimeLogBodyClient({
         className="max-w-md"
       />
 
+      <TimeLogContextSection
+        {...(view === "individual" ? { form: form.form } : {})}
+        catalog={form.catalog}
+      />
+
       {view === "individual" ? (
         <Form {...form.form}>
-          <TimeLogContextSection form={form.form} catalog={form.catalog} />
-
           <Card className="min-w-0">
             <CardContent className="min-w-0 space-y-4">
               <TimeLogForm
@@ -153,7 +156,7 @@ export function TimeLogBodyClient({
           <DialogHeader>
             <DialogTitle>¿Cambiar de modo?</DialogTitle>
             <DialogDescription>
-              Tienes filas con datos en el modo Múltiple que se perderán si
+              Tienes tareas con datos en el modo Múltiple que se perderán si
               cambias a Individual. ¿Quieres continuar?
             </DialogDescription>
           </DialogHeader>

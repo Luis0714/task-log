@@ -1,27 +1,13 @@
-import type { BulkRowFormValues } from "@/lib/schemas/time-log";
+export {
+  BULK_GROUP_LIMIT,
+  type BulkGroup,
+  type BulkTask,
+  type BulkTaskResult,
+} from "@/lib/time-log/bulk-group";
 
-export type BulkRowResult = {
-  ok: boolean;
-  message: string | null;
-  taskId?: number;
-  markedAsDone?: boolean;
-} | null;
-
-export type BulkRow = {
-  id: string;
-  pbiId: string;
-  templateId: string;
-  taskTitle: string;
-  hours: string;
-  description: string;
-  activity: string;
-  workingDate: string;
-  workingTime: string;
-  /** Task state name — visible per-row only in task creation mode. */
-  taskState: string;
-  markAsDone: boolean;
-  result: BulkRowResult;
-  errors: Partial<Record<keyof BulkRowFormValues, string>>;
-};
-
+/**
+ * @deprecated Usa `BULK_GROUP_LIMIT` desde `@/lib/time-log/bulk-group`.
+ * Conservado para que cualquier import residual siga funcionando durante la
+ * transición; eliminar una vez migrados los call sites.
+ */
 export const BULK_ROW_LIMIT = 10;

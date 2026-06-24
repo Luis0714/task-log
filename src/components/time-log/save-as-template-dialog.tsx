@@ -16,6 +16,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useTimeLogTemplates } from "@/hooks/use-time-log-templates";
 import {
   isValidTemplateHoursString,
@@ -161,56 +166,59 @@ export function SaveAsTemplateDialog({
     }
   };
 
-  const disabledReason =
-    defaultTitle.trim().length === 0 || defaultDescription.trim().length === 0
-      ? "Necesitas un título y una descripción para guardar como plantilla."
-      : undefined;
-
-  const isDisabled = disabled || Boolean(disabledReason);
+  const isDisabled = disabled;
+  const triggerLabel = isEdit
+    ? "Editar plantilla"
+    : "Crear una nueva plantilla con los valores actuales";
+  const tooltipText = isEdit
+    ? "Editar los valores por defecto de esta plantilla."
+    : "Crear una nueva plantilla. Te ayudara a llenar los campos del formulario de forma rápida y consistente.";
   const showActivityField = activities.length > 0;
   const hoursInvalid = !isValidTemplateHoursString(hours);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {children ? (
-        <DialogTrigger
+      <Tooltip>
+        <TooltipTrigger
           render={
-            <button
-              type="button"
-              disabled={isDisabled}
-              aria-label={
-                isEdit
-                  ? "Editar plantilla"
-                  : "Crear plantilla con los valores actuales"
-              }
-              className={cn(
-                "inline-flex items-center justify-center rounded focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50",
-                isEdit
-                  ? "text-muted-foreground hover:text-foreground gap-1 px-1.5 py-0.5 text-xs"
-                  : "border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 border",
-              )}
-            >
-              {children}
-            </button>
+            children ? (
+              <DialogTrigger
+                render={
+                  <button
+                    type="button"
+                    disabled={isDisabled}
+                    aria-label={triggerLabel}
+                    className={cn(
+                      "inline-flex items-center justify-center rounded focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50",
+                      isEdit
+                        ? "text-muted-foreground hover:text-foreground gap-1 px-1.5 py-0.5 text-xs"
+                        : "border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 border",
+                    )}
+                  >
+                    {children}
+                  </button>
+                }
+              />
+            ) : (
+              <DialogTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isDisabled}
+                    className={cn("gap-1.5")}
+                  >
+                    <BookmarkPlus className="size-4" aria-hidden />
+                    Guardar como plantilla
+                  </Button>
+                }
+              />
+            )
           }
         />
-      ) : (
-        <DialogTrigger
-          render={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={isDisabled}
-              title={disabledReason}
-              className={cn("gap-1.5")}
-            >
-              <BookmarkPlus className="size-4" aria-hidden />
-              Guardar como plantilla
-            </Button>
-          }
-        />
-      )}
+        <TooltipContent side="top">{tooltipText}</TooltipContent>
+      </Tooltip>
       <DialogContent keepMounted>
         <DialogHeader>
           <DialogTitle>
