@@ -59,6 +59,11 @@ export const adoWorkItemOptionSchema = z.object({
   responsableMaquetacion: z.string().optional(),
   responsableIntegrador: z.string().optional(),
   responsableQA: z.string().optional(),
+  /**
+   * Mapa `referenceName → displayName` con TODOS los Responsables configurados
+   * en el proyecto (genérico, sin asumir 3 roles fijos).
+   */
+  responsables: z.record(z.string(), z.string()).optional(),
   /** Tags de Azure DevOps (`System.Tags`), parseados. */
   tags: z.array(z.string()).optional(),
 });

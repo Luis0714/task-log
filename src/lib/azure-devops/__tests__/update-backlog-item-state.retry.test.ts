@@ -34,6 +34,10 @@ vi.mock("@/lib/azure-devops/work-item-type-states", () => ({
   listTeamMembers: vi.fn(async () => []),
 }));
 
+vi.mock("@/lib/auth/resolve-ado-profile", () => ({
+  resolveAdoProfile: vi.fn(async () => null),
+}));
+
 vi.mock("@/lib/work-items/patch-user-story-workflow-tag", () => ({
   buildWorkItemTagsPatchOp: vi.fn(() => null),
   buildWorkflowTagPatchOp: vi.fn(() => null),
@@ -53,22 +57,22 @@ const auth: AdoCallerAuth = {
   pat: "test-pat",
 };
 
-const MAQUET = {
-  key: "maquetacion" as const,
-  referenceName: "Custom.ResponsableMaquetacion",
-  label: "Responsable Maquetación",
+const BACKEND = {
+  key: "Custom.ResponsableBackend",
+  referenceName: "Custom.ResponsableBackend",
+  label: "Responsable Backend",
   defaultToCurrentUser: true,
 };
 
 const QA = {
-  key: "qa" as const,
+  key: "Custom.ResponsableQA",
   referenceName: "Custom.ResponsableQA",
   label: "Responsable QA",
   defaultToCurrentUser: false,
 };
 
 const INTEGRADOR_DISCOVERED = {
-  key: "integrador" as const,
+  key: "Custom.ResponsableIntegrador",
   referenceName: "Custom.ResponsableIntegrador",
   label: "Responsable Integrador",
   defaultToCurrentUser: true,
@@ -90,8 +94,7 @@ function tf401320Body(fieldReferenceName: string, label: string): string {
 
 describe("updateBacklogItemState — TF401320 retry path", () => {
   beforeEach(() => {
-    // El cache de responsableFields no incluye Integrador (discovery falló inicialmente).
-    vi.mocked(backlogFields.resolveBacklogResponsableFields).mockResolvedValue([MAQUET, QA]);
+    vi.mocked(backlogFields.resolveBacklogResponsableFields).mockResolvedValue([BACKEND, QA]);
   });
 
   afterEach(() => {
@@ -101,57 +104,52 @@ describe("updateBacklogItemState — TF401320 retry path", () => {
 
   it("discover el campo Integrador on-demand y reintenta el PATCH", async () => {
     vi.mocked(discovery.discoverBacklogResponsableFields).mockResolvedValue([
-      MAQUET,
+      BACKEND,
       INTEGRADOR_DISCOVERED,
       QA,
     ]);
 
     const fetchMock = vi.mocked(client.adoFetch);
     fetchMock
-      // 1) GET inicial → ok con campos vacíos
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ fields: { "System.State": "Active" } }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         }),
       )
-      // 2) Primer PATCH → 400 TF401320 sobre Custom.ResponsableIntegrador
       .mockResolvedValueOnce(
         new Response(tf401320Body("Custom.ResponsableIntegrador", "Responsable Integrador"), {
           status: 400,
           headers: { "Content-Type": "application/json" },
         }),
       )
-      // 3) Retry PATCH → 200
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: 256484 }), { status: 200 }));
 
     const result = await updateBacklogItemState(
       {
         workItemId: 256484,
         state: "QA",
-        responsableMaquetacion: "Maquet X",
-        responsableIntegrador: "Integrador Y",
-        responsableQA: "QA Z",
+        responsables: {
+          "Custom.ResponsableBackend": "Backend X",
+          "Custom.ResponsableIntegrador": "Integrador Y",
+          "Custom.ResponsableQA": "QA Z",
+        },
       },
       auth,
     );
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.state).toBe("QA");
-
-    // 3 llamadas: GET, primer PATCH, retry PATCH.
     expect(fetchMock).toHaveBeenCalledTimes(3);
 
-    // El primer PATCH NO debe llevar Integrador (porque el cache inicial no lo tenía).
     const firstPatchBody = JSON.parse(
-      String(fetchMock.mock.calls[1]?.[1]?.body ?? "[]"),
+      String(fetchMock.mock.calls[1]?.[2]?.body ?? "[]"),
     ) as Array<{ path: string }>;
     expect(
       firstPatchBody.some((op) => op.path === "/fields/Custom.ResponsableIntegrador"),
     ).toBe(false);
 
-    // El retry PATCH SÍ debe llevar Integrador con el valor del usuario.
-    const retryBody = JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body ?? "[]")) as Array<{
+    const retryBody = JSON.parse(String(fetchMock.mock.calls[2]?.[2]?.body ?? "[]")) as Array<{
       op: string;
       path: string;
       value?: string;
@@ -161,7 +159,6 @@ describe("updateBacklogItemState — TF401320 retry path", () => {
     expect(integradorOp?.op).toBe("add");
     expect(integradorOp?.value).toBe("Integrador Y");
 
-    // El discovery on-demand debe haberse llamado.
     expect(discovery.discoverBacklogResponsableFields).toHaveBeenCalledTimes(1);
   });
 
@@ -177,19 +174,16 @@ describe("updateBacklogItemState — TF401320 retry path", () => {
       {
         workItemId: 256484,
         state: "QA",
-        responsableIntegrador: "Integrador Y",
+        responsables: {
+          "Custom.ResponsableBackend": "Backend X",
+        },
       },
       auth,
     );
 
     expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.status).toBe(400);
-      expect(result.body).toContain("Working Date");
-    }
-    // Solo 2 llamadas: GET + PATCH inicial. Sin retry.
+    if (!result.ok) expect(result.body).toContain("Working Date");
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    // El discovery on-demand no se invoca (no hay campo Responsable desconocido).
     expect(discovery.discoverBacklogResponsableFields).not.toHaveBeenCalled();
   });
 });

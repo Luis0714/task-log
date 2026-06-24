@@ -83,7 +83,8 @@ export async function PATCH(req: Request) {
     parsed.data.bugWorkItemType !== undefined ||
     parsed.data.backlogItemType !== undefined ||
     parsed.data.taskTodoState !== undefined ||
-    parsed.data.taskDoneState !== undefined;
+    parsed.data.taskDoneState !== undefined ||
+    parsed.data.responsableFields !== undefined;
 
   if (hasAdminFields) {
     const session = await getTaskPilotSession();
@@ -106,6 +107,7 @@ export async function PATCH(req: Request) {
       backlogItemType: parsed.data.backlogItemType,
       taskTodoState: parsed.data.taskTodoState,
       taskDoneState: parsed.data.taskDoneState,
+      responsableFields: parsed.data.responsableFields,
     });
 
     // Persistir en BD para que sea compartido entre usuarios del mismo proyecto
@@ -125,6 +127,7 @@ export async function PATCH(req: Request) {
           backlogItemType: profile.backlogItemType,
           taskTodoState: profile.taskTodoState,
           taskDoneState: profile.taskDoneState,
+          responsableFields: profile.responsableFields,
           configSource: "manual",
         },
       );
@@ -183,6 +186,7 @@ export async function POST(req: Request) {
         backlogItemType: null,
         taskTodoState: null,
         taskDoneState: null,
+        responsableFields: [],
         configSource: "auto",
         discoveredAt: null,
       },

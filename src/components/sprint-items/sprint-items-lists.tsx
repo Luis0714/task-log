@@ -5,8 +5,9 @@ import { useCallback, useMemo, useState } from "react";
 import { BugDetailSheet } from "@/components/bugs/bug-detail-sheet";
 import { SprintLoggedHoursBadge } from "@/components/dashboard/metrics/sprint-logged-hours-badge";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
-import { SprintItemList } from "@/components/sprint-items/sprint-item-list";
+import { SprintItemList, type SprintItemListSelection } from "@/components/sprint-items/sprint-item-list";
 import { TaskDetailSheet } from "@/components/tasks/task-detail-sheet";
+import { BulkTasksActionsBar } from "@/components/tasks/bulk-tasks-actions-bar";
 import { useSprintItemsLists } from "@/hooks/sprint-items/use-sprint-items-lists";
 import type { SprintItemsDataSnapshot } from "@/lib/sprint-items/load-sprint-items-data";
 import type { SprintItemsKind } from "@/lib/sprint-items/types";
@@ -59,6 +60,10 @@ export function SprintItemsLists({
 
   const [selectedItem, setSelectedItem] = useState<AdoWorkItemOptionDto | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Selección bulk. Sólo se usa cuando kind === "tasks"; para "bugs" se ignora.
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<number>>(
+    () => new Set<number>(),
+  );
 
   const handleItemClick = useCallback((item: AdoWorkItemOptionDto) => {
     setSelectedItem(item);
@@ -70,6 +75,51 @@ export function SprintItemsLists({
     if (!open) setSelectedItem(null);
   }, []);
 
+  const handleToggleId = useCallback((id: number, next: boolean) => {
+    setSelectedIds((prev) => {
+      const next_set = new Set(prev);
+      if (next) {
+        next_set.add(id);
+      } else {
+        next_set.delete(id);
+      }
+      return next_set;
+    });
+  }, []);
+
+  const handleToggleAll = useCallback(
+    (next: boolean) => {
+      if (!next) {
+        setSelectedIds(new Set());
+        return;
+      }
+      setSelectedIds(new Set(filteredItems.map((item) => item.id)));
+    },
+    [filteredItems],
+  );
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleBulkCompleted = useCallback(() => {
+    // Tras un cambio bulk, refrescar datos del servidor y limpiar la selección
+    // (los IDs eliminados ya no existen; los actualizados pueden seguir si
+    // el usuario quiere repetir, pero la convención más limpia es limpiar).
+    setSelectedIds(new Set());
+    onSaved();
+  }, [onSaved]);
+
+  const stateNames = useMemo(
+    () => snapshot.itemStates.map((state) => state.name),
+    [snapshot.itemStates],
+  );
+
+  const selection: SprintItemListSelection | undefined =
+    kind === "tasks"
+      ? { selectedIds, onToggle: handleToggleId, onToggleAll: handleToggleAll }
+      : undefined;
+
   return (
     <>
       <DashboardSection
@@ -79,10 +129,21 @@ export function SprintItemsLists({
           kind === "tasks" ? <SprintLoggedHoursBadge hours={totalTaskHours} /> : undefined
         }
       >
+        {kind === "tasks" ? (
+          <BulkTasksActionsBar
+            project={project}
+            selectedIds={Array.from(selectedIds)}
+            stateNames={stateNames}
+            workingDate={dayKey}
+            onClear={handleClearSelection}
+            onCompleted={handleBulkCompleted}
+          />
+        ) : null}
         <SprintItemList
           items={filteredItems}
           emptyMessage={copy.emptyMessage}
           onItemClick={handleItemClick}
+          selection={selection}
         />
       </DashboardSection>
 

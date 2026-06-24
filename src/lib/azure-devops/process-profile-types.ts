@@ -5,6 +5,13 @@ export type AdoProcessProfileFieldSource =
   | "session"
   | "manual";
 
+export type AdoProcessProfileResponsableField = {
+  key: string;
+  referenceName: string;
+  label: string;
+  defaultToCurrentUser: boolean;
+};
+
 /** Perfil de campos ADO validado para un proyecto concreto. */
 export type AdoProcessProfile = {
   workingDateField: string;
@@ -25,5 +32,11 @@ export type AdoProcessProfile = {
   backlogItemType: string;
   taskTodoState: string;
   taskDoneState: string;
+  /**
+   * Campos Responsable configurados por el admin en este proyecto.
+   * Lista vacía = el proyecto no tiene Responsables configurados (cae a
+   * discovery/env).
+   */
+  responsableFields: readonly AdoProcessProfileResponsableField[];
 };
 

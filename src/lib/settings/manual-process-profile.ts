@@ -1,4 +1,7 @@
-import type { AdoProcessProfile } from "@/lib/azure-devops/process-profile-types";
+import type {
+  AdoProcessProfile,
+  AdoProcessProfileResponsableField,
+} from "@/lib/azure-devops/process-profile-types";
 import { buildWorkItemDateFieldNames } from "@/lib/azure-devops/working-date-field";
 
 export type ManualProcessProfileInput = {
@@ -14,6 +17,11 @@ export type ManualProcessProfileInput = {
   backlogItemType?: string;
   taskTodoState?: string;
   taskDoneState?: string;
+  /**
+   * Si se pasa, reemplaza la lista de Responsables. Si no se pasa, conserva
+   * los existentes. Para vaciar la lista, pasar `[]` explícitamente.
+   */
+  responsableFields?: readonly AdoProcessProfileResponsableField[];
 };
 
 export function applyManualProcessProfileChanges(
@@ -41,5 +49,9 @@ export function applyManualProcessProfileChanges(
     backlogItemType: input.backlogItemType?.trim() || current.backlogItemType,
     taskTodoState: input.taskTodoState?.trim() ?? current.taskTodoState,
     taskDoneState: input.taskDoneState?.trim() ?? current.taskDoneState,
+    responsableFields:
+      input.responsableFields !== undefined
+        ? input.responsableFields
+        : current.responsableFields,
   };
 }

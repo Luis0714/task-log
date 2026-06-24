@@ -2,7 +2,10 @@
 
 import { useCallback, useState } from "react";
 
-import type { AdoProcessProfile } from "@/lib/azure-devops/process-profile-types";
+import type {
+  AdoProcessProfile,
+  AdoProcessProfileResponsableField,
+} from "@/lib/azure-devops/process-profile-types";
 import type { TaskDateFieldOption } from "@/lib/settings/task-date-field-options";
 import { appToast } from "@/lib/toast/app-toast";
 
@@ -16,6 +19,8 @@ type ApiProfileResponse = {
   profile: AdoProcessProfile;
   taskDateFieldOptions?: TaskDateFieldOption[];
 };
+
+type ResponsableCandidate = { referenceName: string; name: string };
 
 export function useSettingsAdminProcessProfile({
   project,
@@ -36,6 +41,11 @@ export function useSettingsAdminProcessProfile({
   const [backlogItemType, setBacklogItemType] = useState(profile.backlogItemType);
   const [taskTodoState, setTaskTodoState] = useState(profile.taskTodoState);
   const [taskDoneState, setTaskDoneState] = useState(profile.taskDoneState);
+  const [responsableFields, setResponsableFields] = useState<AdoProcessProfileResponsableField[]>(
+    profile.responsableFields.map((f) => ({ ...f })),
+  );
+  const [responsableCandidates, setResponsableCandidates] = useState<readonly ResponsableCandidate[]>([]);
+  const [detectingResponsables, setDetectingResponsables] = useState(false);
 
   const [busy, setBusy] = useState<"save" | "rediscover" | null>(null);
 
@@ -53,10 +63,32 @@ export function useSettingsAdminProcessProfile({
       setBacklogItemType(next.backlogItemType);
       setTaskTodoState(next.taskTodoState);
       setTaskDoneState(next.taskDoneState);
+      setResponsableFields(next.responsableFields.map((f) => ({ ...f })));
       if (nextOptions) setOptions(nextOptions);
     },
     [],
   );
+
+  const detectResponsables = useCallback(async () => {
+    setDetectingResponsables(true);
+    try {
+      const res = await fetch(
+        `/api/settings/process-profile/backlog-fields?project=${encodeURIComponent(project)}`,
+      );
+      const data = (await res.json()) as {
+        error?: string;
+        responsableCandidates?: readonly ResponsableCandidate[];
+      };
+      if (!res.ok) {
+        throw new Error(data.error ?? "No se pudo detectar.");
+      }
+      setResponsableCandidates(data.responsableCandidates ?? []);
+    } catch (cause) {
+      appToast.fromError(cause, "No se pudo detectar los Responsables desde Azure.");
+    } finally {
+      setDetectingResponsables(false);
+    }
+  }, [project]);
 
   const save = useCallback(async () => {
     setBusy("save");
@@ -77,6 +109,12 @@ export function useSettingsAdminProcessProfile({
           backlogItemType,
           taskTodoState,
           taskDoneState,
+          responsableFields: responsableFields.map((f) => ({
+            key: f.referenceName,
+            referenceName: f.referenceName,
+            label: f.label,
+            defaultToCurrentUser: f.defaultToCurrentUser,
+          })),
         }),
       });
       const data = (await res.json()) as ApiProfileResponse & { error?: string };
@@ -104,6 +142,7 @@ export function useSettingsAdminProcessProfile({
     backlogItemType,
     taskTodoState,
     taskDoneState,
+    responsableFields,
   ]);
 
   const rediscover = useCallback(async () => {
@@ -119,6 +158,7 @@ export function useSettingsAdminProcessProfile({
         throw new Error(data.error ?? "No se pudo actualizar.");
       }
       syncFromProfile(data.profile, data.taskDateFieldOptions);
+      setResponsableCandidates([]); // candidates vuelan a cambiar después del rediscover
       appToast.success("Configuración re-detectada desde Azure DevOps.");
     } catch (cause) {
       appToast.fromError(cause, "No se pudo actualizar desde Azure DevOps.");
@@ -138,7 +178,8 @@ export function useSettingsAdminProcessProfile({
     bugWorkItemType !== profile.bugWorkItemType ||
     backlogItemType !== profile.backlogItemType ||
     taskTodoState !== profile.taskTodoState ||
-    taskDoneState !== profile.taskDoneState;
+    taskDoneState !== profile.taskDoneState ||
+    JSON.stringify(responsableFields) !== JSON.stringify(profile.responsableFields);
 
   return {
     profile,
@@ -165,6 +206,11 @@ export function useSettingsAdminProcessProfile({
     setTaskTodoState,
     taskDoneState,
     setTaskDoneState,
+    responsableFields,
+    setResponsableFields,
+    responsableCandidates,
+    detectResponsables,
+    detectingResponsables,
     busy,
     isDirty,
     save,

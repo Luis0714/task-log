@@ -33,10 +33,12 @@ export const updateWorkItemBodySchema = z.object({
   /** PBI/HU → Committed */
   startDate: dateKeySchema.optional(),
   targetDate: dateKeySchema.optional(),
-  /** PBI/HU → QA */
-  responsableMaquetacion: z.string().trim().min(1).max(200).optional(),
-  responsableIntegrador: z.string().trim().min(1).max(200).optional(),
-  responsableQA: z.string().trim().min(1).max(200).optional(),
+  /**
+   * PBI/HU → QA: mapa `referenceName → displayName` para todos los
+   * Responsables configurados en el proyecto. Si falta un valor y el campo
+   * tiene `defaultToCurrentUser=true`, el servidor usa el usuario logueado.
+   */
+  responsables: z.record(z.string(), z.string().trim().min(1).max(200)).optional(),
   /** Tag de flujo de la HU (EN DESARROLLO / DESARROLLADA). */
   workflowTag: userStoryWorkflowTagSchema.optional(),
   /** Tags completos de la HU (`System.Tags`). */

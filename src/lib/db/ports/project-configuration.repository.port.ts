@@ -1,3 +1,10 @@
+export type ResponsableFieldConfig = {
+  key: string;
+  referenceName: string;
+  label: string;
+  defaultToCurrentUser: boolean;
+};
+
 export type ProjectConfigInput = {
   workingDateField?: string | null;
   timezone?: string | null;
@@ -10,6 +17,8 @@ export type ProjectConfigInput = {
   backlogItemType?: string | null;
   taskTodoState?: string | null;
   taskDoneState?: string | null;
+  /** Lista de campos Responsable configurados por el admin (orden estable). */
+  responsableFields?: readonly ResponsableFieldConfig[];
   configSource: "auto" | "manual";
   discoveredAt?: Date | null;
 };

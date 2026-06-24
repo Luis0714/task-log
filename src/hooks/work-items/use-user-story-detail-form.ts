@@ -43,6 +43,16 @@ function readWorkItemTags(tags: readonly string[] | undefined): string[] {
   return tags ? [...tags] : [];
 }
 
+/** Lee el valor de un Responsable desde el work item, sea cual sea su referenceName. */
+function readWorkItemResponsable(
+  workItem: DashboardWorkItem,
+  referenceName: string,
+): string | undefined {
+  const wi = workItem as unknown as Record<string, unknown>;
+  const value = wi[referenceName];
+  return typeof value === "string" ? value : undefined;
+}
+
 export function useUserStoryDetailForm({
   workItem,
   project,
@@ -57,9 +67,7 @@ export function useUserStoryDetailForm({
   const [draftState, setDraftState] = useState("");
   const [draftStartDate, setDraftStartDate] = useState("");
   const [draftTargetDate, setDraftTargetDate] = useState("");
-  const [draftMaquetacion, setDraftMaquetacion] = useState("");
-  const [draftIntegrador, setDraftIntegrador] = useState("");
-  const [draftQa, setDraftQa] = useState("");
+  const [draftResponsables, setDraftResponsables] = useState<Record<string, string>>({});
   const [draftTags, setDraftTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -76,32 +84,21 @@ export function useUserStoryDetailForm({
     setDraftState(workItem.state);
     setDraftStartDate(resolveSchedulingDraftDate(workItem.startDate));
     setDraftTargetDate(resolveSchedulingDraftDate(workItem.targetDate));
-    setDraftMaquetacion(
-      resolveResponsableDraftValue(
-        workItem.responsableMaquetacion,
+
+    const nextResponsables: Record<string, string> = {};
+    for (const field of responsableFields) {
+      const stored = readWorkItemResponsable(workItem, field.referenceName);
+      nextResponsables[field.referenceName] = resolveResponsableDraftValue(
+        stored,
         currentUserDisplayName,
         members,
-        true,
-      ),
-    );
-    setDraftIntegrador(
-      resolveResponsableDraftValue(
-        workItem.responsableIntegrador,
-        currentUserDisplayName,
-        members,
-        true,
-      ),
-    );
-    setDraftQa(
-      resolveResponsableDraftValue(
-        workItem.responsableQA,
-        currentUserDisplayName,
-        members,
-        false,
-      ),
-    );
+        field.defaultToCurrentUser,
+      );
+    }
+    setDraftResponsables(nextResponsables);
+
     setDraftTags(readWorkItemTags(workItem.tags));
-  }, [workItem, currentUserDisplayName, members]);
+  }, [workItem, currentUserDisplayName, members, responsableFields]);
 
   useEffect(() => {
     syncDraftsFromWorkItem();
@@ -109,31 +106,24 @@ export function useUserStoryDetailForm({
 
   const initialSnapshot = useMemo(() => {
     if (!workItem) return null;
+    const initialResponsables: Record<string, string> = {};
+    for (const field of responsableFields) {
+      const stored = readWorkItemResponsable(workItem, field.referenceName);
+      initialResponsables[field.referenceName] = resolveResponsableDraftValue(
+        stored,
+        currentUserDisplayName,
+        members,
+        field.defaultToCurrentUser,
+      );
+    }
     return {
       state: workItem.state,
       startDate: resolveSchedulingDraftDate(workItem.startDate),
       targetDate: resolveSchedulingDraftDate(workItem.targetDate),
-      maquetacion: resolveResponsableDraftValue(
-        workItem.responsableMaquetacion,
-        currentUserDisplayName,
-        members,
-        true,
-      ),
-      integrador: resolveResponsableDraftValue(
-        workItem.responsableIntegrador,
-        currentUserDisplayName,
-        members,
-        true,
-      ),
-      qa: resolveResponsableDraftValue(
-        workItem.responsableQA,
-        currentUserDisplayName,
-        members,
-        false,
-      ),
+      responsables: initialResponsables,
       tags: readWorkItemTags(workItem.tags),
     };
-  }, [workItem, currentUserDisplayName, members]);
+  }, [workItem, currentUserDisplayName, members, responsableFields]);
 
   const isStateDirty = Boolean(workItem && draftState !== workItem.state);
   const isTagsDirty =
@@ -145,9 +135,11 @@ export function useUserStoryDetailForm({
       draftTargetDate !== initialSnapshot?.targetDate);
   const isResponsablesDirty =
     Boolean(workItem) &&
-    (draftMaquetacion !== initialSnapshot?.maquetacion ||
-      draftIntegrador !== initialSnapshot?.integrador ||
-      draftQa !== initialSnapshot?.qa);
+    responsableFields.some(
+      (field) =>
+        draftResponsables[field.referenceName] !==
+        (initialSnapshot?.responsables[field.referenceName] ?? ""),
+    );
 
   const isDirty = isStateDirty || isTagsDirty || isDatesDirty || isResponsablesDirty;
 
@@ -155,11 +147,14 @@ export function useUserStoryDetailForm({
     !requiresCommittedDates(draftState) ||
     (isDateKeyValid(draftStartDate) && isDateKeyValid(draftTargetDate));
 
+  // Para QA, los Responsables con defaultToCurrentUser=true pueden quedarse vacíos
+  // (el servidor rellena con el usuario logueado). El resto deben tener valor.
   const qaValid =
     !requiresQaResponsables(draftState) ||
-    (Boolean(draftMaquetacion.trim()) &&
-      Boolean(draftIntegrador.trim()) &&
-      Boolean(draftQa.trim()));
+    responsableFields.every((field) => {
+      if (field.defaultToCurrentUser) return true;
+      return Boolean(draftResponsables[field.referenceName]?.trim());
+    });
 
   const canSave = computeDraftCanSave({
     isDirty,
@@ -167,6 +162,10 @@ export function useUserStoryDetailForm({
     externalReady: Boolean(workItem && project) && statesReady,
     isSubmitting: saving,
   });
+
+  const setResponsableValue = useCallback((referenceName: string, value: string) => {
+    setDraftResponsables((prev) => ({ ...prev, [referenceName]: value }));
+  }, []);
 
   const save = useCallback(async (): Promise<
     { ok: true } | { ok: false; message: string }
@@ -189,10 +188,16 @@ export function useUserStoryDetailForm({
         body.targetDate = draftTargetDate;
       }
 
-      if (hasResponsableFields && (isResponsablesDirty || requiresQaResponsables(draftState))) {
-        body.responsableMaquetacion = draftMaquetacion.trim();
-        body.responsableIntegrador = draftIntegrador.trim();
-        body.responsableQA = draftQa.trim();
+      if (
+        hasResponsableFields &&
+        (isResponsablesDirty || requiresQaResponsables(draftState))
+      ) {
+        const trimmed: Record<string, string> = {};
+        for (const [ref, value] of Object.entries(draftResponsables)) {
+          const t = value.trim();
+          if (t) trimmed[ref] = t;
+        }
+        body.responsables = trimmed;
       }
 
       if (isTagsDirty) {
@@ -229,9 +234,7 @@ export function useUserStoryDetailForm({
     draftState,
     draftStartDate,
     draftTargetDate,
-    draftMaquetacion,
-    draftIntegrador,
-    draftQa,
+    draftResponsables,
     isDatesDirty,
     isResponsablesDirty,
     isTagsDirty,
@@ -248,12 +251,8 @@ export function useUserStoryDetailForm({
     setDraftStartDate,
     draftTargetDate,
     setDraftTargetDate,
-    draftMaquetacion,
-    setDraftMaquetacion,
-    draftIntegrador,
-    setDraftIntegrador,
-    draftQa,
-    setDraftQa,
+    draftResponsables,
+    setResponsableValue,
     draftTags,
     setDraftTags,
     transitionKind,

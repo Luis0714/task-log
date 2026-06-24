@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
@@ -14,6 +14,7 @@ export function useTimeLogViewUrl() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isNavigating, startNavigation] = useTransition();
 
   const view =
     parseTimeLogViewParam(searchParams.get("modo")) ?? DEFAULT_TIME_LOG_VIEW;
@@ -29,10 +30,15 @@ export function useTimeLogViewUrl() {
       }
 
       const query = params.toString();
-      router.push(query ? `${pathname}?${query}` : pathname);
+      // Envolvemos el push en una transición para que Suspense muestre
+      // el skeleton del destino mientras el server component se vuelve
+      // a renderizar (en lugar de mantener el contenido anterior).
+      startNavigation(() => {
+        router.push(query ? `${pathname}?${query}` : pathname);
+      });
     },
-    [pathname, router, searchParams],
+    [pathname, router, searchParams, startNavigation],
   );
 
-  return { view, setView };
+  return { view, setView, isNavigating };
 }

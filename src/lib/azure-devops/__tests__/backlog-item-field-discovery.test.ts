@@ -24,22 +24,28 @@ describe("discoverBacklogResponsableFields", () => {
     vi.restoreAllMocks();
   });
 
-  it("discovers Spanish Responsable fields", async () => {
+  it("descubre TODOS los campos Responsable del proyecto (genérico)", async () => {
     vi.spyOn(witFieldMetadata, "listWorkItemTypeFields").mockResolvedValue([
       identityField("Custom.ResponsableMaquetacion", "Responsable Maquetación"),
       identityField("Custom.ResponsableIntegrador", "Responsable Integrador"),
       identityField("Custom.ResponsableQA", "Responsable QA"),
+      identityField("Custom.ResponsableBackend", "Responsable Backend"),
     ]);
 
     const result = await discoverBacklogResponsableFields(auth);
+    const refNames = result.map((f) => f.referenceName).sort();
 
-    expect(result.map((f) => f.key).sort()).toEqual(["integrador", "maquetacion", "qa"]);
-    expect(result.find((f) => f.key === "integrador")?.referenceName).toBe(
+    expect(refNames).toEqual([
+      "Custom.ResponsableBackend",
       "Custom.ResponsableIntegrador",
-    );
+      "Custom.ResponsableMaquetacion",
+      "Custom.ResponsableQA",
+    ]);
+    // Genérico: la `key` es el referenceName mismo (no un rol fijo).
+    expect(result.every((f) => f.key === f.referenceName)).toBe(true);
   });
 
-  it("discovers English-named Responsable fields", async () => {
+  it("incluye campos en inglés (Integration Lead, Test Lead)", async () => {
     vi.spyOn(witFieldMetadata, "listWorkItemTypeFields").mockResolvedValue([
       identityField("Custom.IntegrationLead", "Integration Lead"),
       identityField("Custom.DesignLead", "Design Lead"),
@@ -47,39 +53,30 @@ describe("discoverBacklogResponsableFields", () => {
     ]);
 
     const result = await discoverBacklogResponsableFields(auth);
-
-    // "Design Lead" requiere marcador de responsable/owner/assigned; sin él, no matchea maquetación.
-    expect(result.find((f) => f.key === "integrador")?.referenceName).toBe("Custom.IntegrationLead");
-    expect(result.find((f) => f.key === "qa")?.referenceName).toBe("Custom.TestLead");
-    // maquetación requiere "responsable/owner/assigned" además del keyword del rol.
-    expect(result.find((f) => f.key === "maquetacion")).toBeUndefined();
+    const refNames = result.map((f) => f.referenceName).sort();
+    expect(refNames).toEqual(["Custom.DesignLead", "Custom.IntegrationLead", "Custom.TestLead"]);
   });
 
-  it("prefers Responsable Owner over plain Integration when both exist", async () => {
+  it("ignora campos que no son de tipo Identity", async () => {
     vi.spyOn(witFieldMetadata, "listWorkItemTypeFields").mockResolvedValue([
-      identityField("Custom.Integration", "Integration"),
-      identityField("Custom.IntegrationOwner", "Integration Owner"),
+      plainField("Custom.ResponsableNote", "Responsable Backend", "string"),
+      plainField("Custom.ResponsableMaquetacion", "Responsable Maquetación", "double"),
     ]);
 
     const result = await discoverBacklogResponsableFields(auth);
-
-    expect(result.find((f) => f.key === "integrador")?.referenceName).toBe(
-      "Custom.IntegrationOwner",
-    );
-  });
-
-  it("ignores non-identity fields even when label matches", async () => {
-    vi.spyOn(witFieldMetadata, "listWorkItemTypeFields").mockResolvedValue([
-      plainField("Custom.IntegradorNote", "Responsable Integrador", "string"),
-      plainField("Custom.ResponsableQALabel", "Responsable QA", "string"),
-    ]);
-
-    const result = await discoverBacklogResponsableFields(auth);
-
     expect(result).toEqual([]);
   });
 
-  it("returns empty array when discovery endpoint fails", async () => {
+  it("devuelve [] cuando no hay campos Responsable", async () => {
+    vi.spyOn(witFieldMetadata, "listWorkItemTypeFields").mockResolvedValue([
+      identityField("System.AssignedTo", "Assigned To"),
+      identityField("Custom.StartDate", "Start Date"),
+    ]);
+    const result = await discoverBacklogResponsableFields(auth);
+    expect(result).toEqual([]);
+  });
+
+  it("devuelve [] cuando el endpoint de WIT fields falla", async () => {
     vi.spyOn(witFieldMetadata, "listWorkItemTypeFields").mockResolvedValue([]);
     const result = await discoverBacklogResponsableFields(auth);
     expect(result).toEqual([]);

@@ -184,20 +184,14 @@ export function UserStoryDetailSheet({
                     </h3>
                     <UserStoryResponsableFields
                       fields={responsableFields}
-                      values={{
-                        maquetacion: form.draftMaquetacion,
-                        integrador: form.draftIntegrador,
-                        qa: form.draftQa,
-                      }}
+                      values={form.draftResponsables}
                       members={members}
                       membersLoading={membersLoading}
                       disabled={form.saving}
                       required={form.transitionKind === "qa"}
-                      onChange={(key, value) => {
-                        if (key === "maquetacion") form.setDraftMaquetacion(value);
-                        if (key === "integrador") form.setDraftIntegrador(value);
-                        if (key === "qa") form.setDraftQa(value);
-                      }}
+                      onChange={(referenceName, value) =>
+                        form.setResponsableValue(referenceName, value)
+                      }
                     />
                   </section>
                 ) : null}

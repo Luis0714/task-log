@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSettingsAdminProcessProfile } from "@/hooks/settings/use-settings-admin-process-profile";
+import { SettingsResponsablesFields } from "@/components/settings/settings-responsables-fields";
 import type { SettingsPageData } from "@/lib/settings/load-settings-page-data";
 import {
   ACTIVITY_FIELD_COPY,
@@ -68,6 +69,11 @@ export function SettingsAdminProcessPanel({ data }: SettingsAdminProcessPanelPro
     setTaskTodoState,
     taskDoneState,
     setTaskDoneState,
+    responsableFields,
+    setResponsableFields,
+    responsableCandidates,
+    detectResponsables,
+    detectingResponsables,
     busy,
     isDirty,
     save,
@@ -92,6 +98,7 @@ export function SettingsAdminProcessPanel({ data }: SettingsAdminProcessPanelPro
   const taskStates = data.taskStates ?? [];
 
   return (
+    <div className="space-y-6">
     <Card>
       <CardHeader>
         <CardTitle>{ADMIN_PROCESS_SECTION.title}</CardTitle>
@@ -265,5 +272,14 @@ export function SettingsAdminProcessPanel({ data }: SettingsAdminProcessPanelPro
         </Button>
       </CardFooter>
     </Card>
+
+    <SettingsResponsablesFields
+      fields={responsableFields}
+      candidates={responsableCandidates}
+      onChange={setResponsableFields}
+      onDetectFromAzure={detectResponsables}
+      detecting={detectingResponsables}
+    />
+  </div>
   );
 }

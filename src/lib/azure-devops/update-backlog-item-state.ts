@@ -1,15 +1,11 @@
 import "server-only";
 
+import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
 import { getBacklogItemFetchFieldNames, resolveBacklogResponsableFields } from "@/lib/azure-devops/backlog-item-fields";
+import { discoverBacklogResponsableFields } from "@/lib/azure-devops/backlog-item-field-discovery";
 import {
-  discoverBacklogResponsableFields,
-} from "@/lib/azure-devops/backlog-item-field-discovery";
-import {
-  PBI_START_DATE_FIELD,
-  PBI_TARGET_DATE_FIELD,
   type BacklogResponsableFieldConfig,
 } from "@/lib/azure-devops/backlog-item-fields-config";
-import type { BacklogResponsableFieldKey } from "@/lib/work-items/backlog-field-types";
 import { adoFetch, adoAuthHeader, adoProjectBase } from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { resolveIdentityPatchValue } from "@/lib/azure-devops/resolve-identity-patch-value";
@@ -40,9 +36,13 @@ export type UpdateBacklogItemStateParams = {
   team?: string;
   startDate?: string;
   targetDate?: string;
-  responsableMaquetacion?: string;
-  responsableIntegrador?: string;
-  responsableQA?: string;
+  /**
+   * Mapa `referenceName → displayName` para los Responsables del proyecto.
+   * El admin los configura en `project_configurations.responsable_fields`.
+   * Si falta un valor y el campo tiene `defaultToCurrentUser=true`, se usa
+   * el usuario logueado como Responsable.
+   */
+  responsables?: Readonly<Record<string, string>>;
   workflowTag?: UserStoryWorkflowTagOption;
   tags?: readonly string[];
 };
@@ -55,18 +55,6 @@ function authHeader(auth: AdoCallerAuth): string {
   return adoAuthHeader(auth);
 }
 
-const RESPONSABLE_PARAM_KEYS: Record<
-  BacklogResponsableFieldKey,
-  keyof Pick<
-    UpdateBacklogItemStateParams,
-    "responsableMaquetacion" | "responsableIntegrador" | "responsableQA"
-  >
-> = {
-  maquetacion: "responsableMaquetacion",
-  integrador: "responsableIntegrador",
-  qa: "responsableQA",
-};
-
 function normalizeLabel(value: string | undefined): string {
   return (value ?? "")
     .trim()
@@ -75,21 +63,58 @@ function normalizeLabel(value: string | undefined): string {
     .replace(/\p{M}/gu, "");
 }
 
-/** Comparación laxa de etiquetas (mismo conjunto de tokens relevantes). */
 function labelsMatch(a: string | undefined, b: string | undefined): boolean {
   const na = normalizeLabel(a);
   const nb = normalizeLabel(b);
   if (!na || !nb) return false;
   if (na === nb) return true;
-  // Coincidencia si una contiene a la otra o comparten keywords.
   return na.includes(nb) || nb.includes(na);
+}
+
+/**
+ * Para cada Responsable configurado, devuelve el displayName a usar:
+ * 1) `params.responsables[ref]` (lo que el usuario completó en el form).
+ * 2) Si el campo tiene `defaultToCurrentUser=true`, el displayName del usuario logueado.
+ * 3) Si no, cadena vacía (no se patchea).
+ */
+async function resolveResponsableDisplayNames(
+  auth: AdoCallerAuth,
+  params: UpdateBacklogItemStateParams,
+  responsableFields: readonly BacklogResponsableFieldConfig[],
+): Promise<Map<string, string>> {
+  const inputResponsables = params.responsables ?? {};
+  const needDefaults = responsableFields.some(
+    (config) =>
+      config.defaultToCurrentUser &&
+      !inputResponsables[config.referenceName]?.trim(),
+  );
+
+  let currentUserDisplayName: string | null = null;
+  if (needDefaults) {
+    const profile = await resolveAdoProfile(auth);
+    currentUserDisplayName = profile?.displayName?.trim() || null;
+  }
+
+  const resolved = new Map<string, string>();
+  for (const config of responsableFields) {
+    const explicit = inputResponsables[config.referenceName]?.trim();
+    if (explicit) {
+      resolved.set(config.referenceName, explicit);
+      continue;
+    }
+    if (config.defaultToCurrentUser && currentUserDisplayName) {
+      resolved.set(config.referenceName, currentUserDisplayName);
+    }
+  }
+  return resolved;
 }
 
 async function buildBacklogTransitionPatchOps(
   auth: AdoCallerAuth,
   params: UpdateBacklogItemStateParams,
   existingFields: Record<string, string | number | undefined> | undefined,
-  responsableFields: readonly BacklogResponsableFieldConfig[],
+  _responsableFields: readonly BacklogResponsableFieldConfig[],
+  resolvedResponsables: ReadonlyMap<string, string>,
 ): Promise<WorkItemFieldPatchOp[]> {
   const ops: WorkItemFieldPatchOp[] = [];
 
@@ -98,33 +123,24 @@ async function buildBacklogTransitionPatchOps(
   if (startDate) {
     ops.push(
       ...buildScalarFieldPatchOps(existingFields, [
-        { fieldName: PBI_START_DATE_FIELD, value: startDate },
+        { fieldName: "Microsoft.VSTS.Scheduling.StartDate", value: startDate },
       ]),
     );
   }
   if (targetDate) {
     ops.push(
       ...buildScalarFieldPatchOps(existingFields, [
-        { fieldName: PBI_TARGET_DATE_FIELD, value: targetDate },
+        { fieldName: "Microsoft.VSTS.Scheduling.TargetDate", value: targetDate },
       ]),
     );
   }
 
-  const hasResponsableInput = responsableFields.some((config) => {
-    const paramKey = RESPONSABLE_PARAM_KEYS[config.key];
-    return Boolean(params[paramKey]?.trim());
-  });
-
-  if (hasResponsableInput) {
+  if (resolvedResponsables.size > 0) {
     const members = params.team?.trim()
       ? await listTeamMembers(auth, params.team.trim())
       : undefined;
 
-    for (const config of responsableFields) {
-      const paramKey = RESPONSABLE_PARAM_KEYS[config.key];
-      const displayName = params[paramKey]?.trim();
-      if (!displayName) continue;
-
+    for (const [refName, displayName] of resolvedResponsables) {
       const patchValue = await resolveIdentityPatchValue(
         auth,
         displayName,
@@ -132,10 +148,9 @@ async function buildBacklogTransitionPatchOps(
         members,
       );
       if (!patchValue) continue;
-
       ops.push(
         ...buildScalarFieldPatchOps(existingFields, [
-          { fieldName: config.referenceName, value: patchValue },
+          { fieldName: refName, value: patchValue },
         ]),
       );
     }
@@ -155,7 +170,7 @@ export async function updateBacklogItemState(
 
   const responsableFields = await resolveBacklogResponsableFields(auth);
 
-  const validationError = validateBacklogStateTransition(state, params, responsableFields.length);
+  const validationError = validateBacklogStateTransition(state, params, responsableFields.length, responsableFields);
   if (validationError) {
     return { ok: false, status: 400, body: validationError };
   }
@@ -188,11 +203,18 @@ export async function updateBacklogItemState(
     fields?: Record<string, string | number | undefined>;
   };
 
+  const resolvedResponsables = await resolveResponsableDisplayNames(
+    auth,
+    params,
+    responsableFields,
+  );
+
   const patchOps = await buildBacklogTransitionPatchOps(
     auth,
     params,
     wi.fields,
     responsableFields,
+    resolvedResponsables,
   );
 
   if (params.tags !== undefined) {
@@ -223,6 +245,7 @@ export async function updateBacklogItemState(
     const retryResult = await retryBacklogResponsablesOnRuleError({
       auth,
       params,
+      resolvedResponsables,
       patchUrl,
       headers,
       body,
@@ -245,6 +268,7 @@ export async function updateBacklogItemState(
 type RetryInput = {
   auth: AdoCallerAuth;
   params: UpdateBacklogItemStateParams;
+  resolvedResponsables: ReadonlyMap<string, string>;
   patchUrl: string;
   headers: Record<string, string>;
   body: string;
@@ -253,18 +277,13 @@ type RetryInput = {
   responsableFields: readonly BacklogResponsableFieldConfig[];
 };
 
-/**
- * Si ADO devuelve TF401320 indicando campos Responsable requeridos+vacíos,
- * intenta re-PATCHearlos con el valor que el usuario ya completó (si lo hay).
- * Si el campo no estaba en `responsableFields`, hace discovery on-demand.
- *
- * Devuelve `{ ok: true, state }` si el retry tuvo éxito, o `null` si no
- * había nada que reintentar (en cuyo caso el caller devuelve el fallo original).
- */
 async function retryBacklogResponsablesOnRuleError(
   input: RetryInput,
 ): Promise<{ ok: true; state: string } | null> {
-  const { auth, params, patchUrl, headers, body, patchOps, wiFields, responsableFields } = input;
+  const {
+    auth, params, resolvedResponsables, patchUrl, headers, body, patchOps,
+    wiFields, responsableFields,
+  } = input;
 
   if (!body.includes("TF401320")) return null;
 
@@ -276,7 +295,6 @@ async function retryBacklogResponsablesOnRuleError(
   );
   const patchedPaths = new Set(patchOps.map((op) => op.path));
 
-  // Descubre candidatos no mapeados por etiqueta Responsable.
   const unknownResponsable = details.filter(
     (detail) =>
       !responsableByRef.has(detail.fieldReferenceName) &&
@@ -291,7 +309,6 @@ async function retryBacklogResponsablesOnRuleError(
           responsableByRef.set(config.referenceName, config);
         }
       }
-      // Match por label si el ref no encajó exactamente.
       for (const detail of unknownResponsable) {
         if (responsableByRef.has(detail.fieldReferenceName)) continue;
         const candidate = fresh.find(
@@ -302,11 +319,10 @@ async function retryBacklogResponsablesOnRuleError(
         if (candidate) responsableByRef.set(candidate.referenceName, candidate);
       }
     } catch {
-      // Si el discovery falla (sin red, permisos), seguimos sólo con los campos conocidos.
+      // discovery falló (sin red / permisos); sólo con los campos conocidos.
     }
   }
 
-  // Recolecta miembros del equipo una sola vez para todos los reintentos.
   const teamMembers = params.team?.trim()
     ? await listTeamMembers(auth, params.team.trim()).catch(() => undefined)
     : undefined;
@@ -321,8 +337,12 @@ async function retryBacklogResponsablesOnRuleError(
     const config = responsableByRef.get(detail.fieldReferenceName);
     if (!config) continue;
 
-    const paramKey = RESPONSABLE_PARAM_KEYS[config.key];
-    const displayName = params[paramKey]?.trim();
+    // Usa el valor resuelto por defecto (puede venir del usuario, del current user o del params).
+    let displayName = resolvedResponsables.get(detail.fieldReferenceName) ?? "";
+    if (!displayName) {
+      const explicit = params.responsables?.[detail.fieldReferenceName]?.trim();
+      if (explicit) displayName = explicit;
+    }
     if (!displayName) continue;
 
     const value = await resolveIdentityPatchValue(

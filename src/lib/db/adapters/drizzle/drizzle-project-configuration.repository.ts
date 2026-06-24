@@ -41,6 +41,7 @@ export const drizzleProjectConfigurationRepository: ProjectConfigurationReposito
       backlogItemType: row.backlogItemType,
       taskTodoState: row.taskTodoState,
       taskDoneState: row.taskDoneState,
+      responsableFields: row.responsableFields ?? [],
       configSource: row.configSource,
       discoveredAt: row.discoveredAt,
       updatedAt: row.updatedAt,
@@ -64,6 +65,14 @@ export const drizzleProjectConfigurationRepository: ProjectConfigurationReposito
         backlogItemType: config.backlogItemType,
         taskTodoState: config.taskTodoState,
         taskDoneState: config.taskDoneState,
+        responsableFields: config.responsableFields
+          ? (JSON.parse(JSON.stringify(config.responsableFields)) as Array<{
+              key: string;
+              referenceName: string;
+              label: string;
+              defaultToCurrentUser: boolean;
+            }>)
+          : [],
         configSource: config.configSource,
         discoveredAt: config.discoveredAt,
       })
@@ -81,6 +90,14 @@ export const drizzleProjectConfigurationRepository: ProjectConfigurationReposito
           backlogItemType: config.backlogItemType,
           taskTodoState: config.taskTodoState,
           taskDoneState: config.taskDoneState,
+          responsableFields: config.responsableFields
+            ? (JSON.parse(JSON.stringify(config.responsableFields)) as Array<{
+                key: string;
+                referenceName: string;
+                label: string;
+                defaultToCurrentUser: boolean;
+              }>)
+            : [],
           configSource: config.configSource,
           discoveredAt: config.discoveredAt,
           updatedAt: new Date(),

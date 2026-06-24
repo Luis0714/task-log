@@ -304,6 +304,14 @@ export const projectConfigurations = pgTable(
     backlogItemType: text("backlog_item_type"),
     taskTodoState: text("task_todo_state"),
     taskDoneState: text("task_done_state"),
+    /**
+     * Lista de campos Responsable configurados por el admin para este proyecto.
+     * Cada elemento: `{ key, referenceName, label, defaultToCurrentUser }`.
+     */
+    responsableFields: jsonb("responsable_fields")
+      .$type<Array<{ key: string; referenceName: string; label: string; defaultToCurrentUser: boolean }>>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     configSource: projectConfigSourceEnum("config_source").notNull().default("auto"),
     discoveredAt: timestamp("discovered_at", { withTimezone: true }),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

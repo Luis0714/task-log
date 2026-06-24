@@ -42,6 +42,12 @@ function dbConfigToProfile(
     backlogItemType: dbConfig.backlogItemType ?? ADO_FIELD_DEFAULTS.backlogItemType,
     taskTodoState: dbConfig.taskTodoState ?? "",
     taskDoneState: dbConfig.taskDoneState ?? "",
+    responsableFields: (dbConfig.responsableFields ?? []).map((f) => ({
+      key: f.key,
+      referenceName: f.referenceName,
+      label: f.label,
+      defaultToCurrentUser: f.defaultToCurrentUser,
+    })),
   };
 }
 

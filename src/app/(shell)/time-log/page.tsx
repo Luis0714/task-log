@@ -17,13 +17,14 @@ import {
   type WorkItemFilters,
 } from "@/lib/schemas/work-item-filters";
 import { USER_FILTER_SCOPES } from "@/lib/filters/user-filter-scopes";
+import { parseTimeLogViewParam } from "@/lib/time-log/time-log-view";
 
 export const metadata = buildPageMetadata(PAGE_SEO.timeLog);
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function TimeLogPage({ searchParams }: PageProps) {
@@ -34,6 +35,13 @@ export default async function TimeLogPage({ searchParams }: PageProps) {
   const isTaskCreationMode = createFlag === "1";
   const urlAssignee = sp.assignee ?? WORK_ITEM_ASSIGNEE_ALL;
   const showLiveData = canLoadLiveAdoContent(auth);
+  // La vista activa (`?modo=…`) alimenta el skeleton del Suspense para que
+  // muestre el layout del destino durante la transición entre pestañas.
+  const initialView = parseTimeLogViewParam(
+    Array.isArray(rawSearchParams.modo)
+      ? rawSearchParams.modo[0]
+      : rawSearchParams.modo,
+  );
 
   if (!showLiveData) {
     return (
@@ -70,7 +78,9 @@ export default async function TimeLogPage({ searchParams }: PageProps) {
           />
         }
         content={
-          <Suspense fallback={<TimeLogFormSkeleton />}>
+          <Suspense
+            fallback={<TimeLogFormSkeleton view={initialView ?? undefined} />}
+          >
             <TimeLogBodyStreamLoader
               sp={sp}
               defaultProject={defaultProject}

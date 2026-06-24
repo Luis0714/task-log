@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
+import { TimeLogFormSkeleton } from "@/components/skeletons/time-log-form-skeleton";
 import { useCopilotHistory } from "@/hooks/use-copilot-history";
 import { useTimeLogForm } from "@/hooks/use-time-log-form";
 import { useTimeLogViewUrl } from "@/hooks/time-log/use-time-log-view-url";
@@ -74,9 +75,19 @@ export function TimeLogBodyClient({
     initialWorkItemFilters,
   });
 
-  const { view, setView } = useTimeLogViewUrl();
+  const { view, setView, isNavigating } = useTimeLogViewUrl();
   const [bulkHasData, setBulkHasData] = useState(false);
   const [pendingView, setPendingView] = useState<TimeLogViewId | null>(null);
+  // Vista que efectivamente estamos renderizando. Se retrasa respecto a la
+  // vista de la URL mientras dura la transición para que el skeleton del
+  // destino se muestre antes de que aparezca el contenido real. Se
+  // sincroniza durante el render (patrón recomendado por React para
+  // "storing information from previous renders") y no en `useEffect`,
+  // evitando renders en cascada.
+  const [displayedView, setDisplayedView] = useState<TimeLogViewId>(view);
+  if (displayedView !== view && !isNavigating) {
+    setDisplayedView(view);
+  }
 
   const requestViewChange = useCallback(
     (next: TimeLogViewId) => {
@@ -102,6 +113,8 @@ export function TimeLogBodyClient({
     setPendingView(null);
   }, []);
 
+  const isSwitchingView = isNavigating || displayedView !== view;
+
   return (
     <div className="flex w-full min-w-0 flex-col gap-5">
       <SegmentedControl
@@ -114,11 +127,17 @@ export function TimeLogBodyClient({
       />
 
       <TimeLogContextSection
-        {...(view === "individual" ? { form: form.form } : {})}
+        {...(displayedView === "individual" ? { form: form.form } : {})}
         catalog={form.catalog}
       />
 
-      {view === "individual" ? (
+      {isSwitchingView ? (
+        // Mostramos el skeleton de la vista a la que vamos a llegar mientras
+        // se completa la transición (router.push → re-render del server
+        // component). Sin esto, el usuario vería el formulario anterior
+        // hasta que el nuevo termina de cargar.
+        <TimeLogFormSkeleton view={view} />
+      ) : displayedView === "individual" ? (
         <Form {...form.form}>
           <Card className="min-w-0">
             <CardContent className="min-w-0 space-y-4">
