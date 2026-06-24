@@ -50,12 +50,21 @@ const HIDE_SETTINGS_NAV = false;
  */
 const HIDE_DAILY_NAV = true;
 
+/**
+ * Kill-switch para ocultar la entrada "Neos IA" del menú lateral.
+ * La página /neos-ia y todo su código permanecen intactos; cambiar este
+ * flag a `false` los re-habilita.
+ */
+const HIDE_NEOS_IA_NAV = true;
+
 const BASE_NAVIGATION: NavGroupConfig[] = [
   {
     title: "Principal",
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/neos-ia", label: "Neos IA", icon: Sparkles },
+      ...(HIDE_NEOS_IA_NAV
+        ? []
+        : [{ href: "/neos-ia", label: "Neos IA", icon: Sparkles }]),
     ],
   },
   {
