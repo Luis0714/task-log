@@ -8,12 +8,14 @@ import { CopilotChatMessage } from "@/components/copilot/copilot-chat-message";
 import { CopilotInput } from "@/components/copilot/copilot-input";
 import { NeosIaWelcome } from "@/components/neos-ia/neos-ia-welcome";
 import { PageHeader } from "@/components/layout/page-header";
+import { ProviderSelector } from "@/components/neos-ia/provider-selector";
 import {
   NeosIaDraftProvider,
   useNeosIaDraft,
 } from "@/hooks/use-neos-ia-draft";
 import { useCopilot } from "@/hooks/use-copilot";
 import { useCopilotHistory } from "@/hooks/use-copilot-history";
+import { useProviderPreference } from "@/hooks/use-provider-preference";
 import type { SprintContext } from "@/lib/agent";
 import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
 import { cn } from "@/lib/utils";
@@ -48,7 +50,12 @@ function NeosIaViewInner({
   userInitials,
 }: Readonly<NeosIaViewProps>) {
   const { appendEntry } = useCopilotHistory();
-  const copilot = useCopilot({ appendHistory: appendEntry, sprintContext });
+  const { providerId, changeProvider } = useProviderPreference();
+  const copilot = useCopilot({
+    appendHistory: appendEntry,
+    sprintContext,
+    providerId,
+  });
   const threadEndRef = useRef<HTMLDivElement>(null);
   const threadScrollRef = useRef<HTMLDivElement>(null);
   const hasMessages = copilot.messages.length > 0;
@@ -84,6 +91,8 @@ function NeosIaViewInner({
         adoExecutionReady={adoExecutionReady}
         authMethod={authMethod}
         userInitials={userInitials}
+        providerId={providerId}
+        onProviderChange={changeProvider}
       />
     </NeosIaDraftProvider>
   );
@@ -98,6 +107,8 @@ type NeosIaSurfaceProps = {
   adoExecutionReady: boolean;
   authMethod: AzdoAuthMethod;
   userInitials?: string | null;
+  providerId: ReturnType<typeof useProviderPreference>["providerId"];
+  onProviderChange: ReturnType<typeof useProviderPreference>["changeProvider"];
 };
 
 function NeosIaSurface({
@@ -109,33 +120,40 @@ function NeosIaSurface({
   adoExecutionReady,
   authMethod,
   userInitials,
+  providerId,
+  onProviderChange,
 }: Readonly<NeosIaSurfaceProps>) {
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
       {/* Header — shrink-0 so it never compresses. The "Nueva conversación"
-          button sits at the END of the description line (not stacked below
-          the title). On mobile the button label collapses to icon-only so the
-          description doesn't push the button out of the viewport. */}
+          button sits on its OWN row below the description (not inline with
+          it), so it doesn't compete with the description for horizontal
+          space when the title + selector are already wide. */}
       <header className="flex shrink-0 flex-col gap-2 pb-3">
-        <PageHeader title="Neos IA" />
+        <PageHeader
+          title="Neos IA"
+          action={
+            <ProviderSelector
+              value={providerId}
+              onChange={onProviderChange}
+              exhaustedProviders={copilot.exhaustedProviders}
+            />
+          }
+        />
 
-        <div
+        <p
           className={cn(
-            "flex min-w-0 items-center gap-3",
-            hasMessages ? "justify-between" : "justify-start",
+            "text-muted-foreground min-w-0 text-pretty text-sm sm:text-base",
+            hasMessages && "truncate",
           )}
         >
-          <p
-            className={cn(
-              "text-muted-foreground min-w-0 flex-1 text-pretty text-sm sm:text-base",
-              hasMessages && "truncate",
-            )}
-          >
-            {hasMessages
-              ? "Conversación activa. Cuéntame cómo continúas."
-              : "Tu copiloto para reportar horas en lenguaje natural."}
-          </p>
-          {hasMessages ? (
+          {hasMessages
+            ? "Conversación activa. Cuéntame cómo continúas."
+            : "Tu copiloto para reportar horas en lenguaje natural."}
+        </p>
+
+        {hasMessages ? (
+          <div className="flex justify-start">
             <Button
               type="button"
               variant="outline"
@@ -144,11 +162,10 @@ function NeosIaSurface({
               className="shrink-0"
             >
               <MessageSquarePlus className="size-4" aria-hidden />
-              <span className="hidden sm:inline">Nueva conversación</span>
-              <span className="sr-only">Nueva conversación</span>
+              <span>Nueva conversación</span>
             </Button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </header>
 
       {/* Central area — fills remaining height, scrolls internally. The

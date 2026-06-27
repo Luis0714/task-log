@@ -7,6 +7,7 @@ import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import type { SprintContext } from "@/lib/agent";
 import type { CreateTaskBatchItem, LogWorkItem, PreviewResult } from "@/lib/schemas/agent";
 import type { ConversationMessage } from "@/lib/schemas/conversation";
+import type { ProviderId } from "@/lib/agent/providers/types";
 import {
   interpretMessage,
   executeLogWork as apiExecuteLogWork,
@@ -25,7 +26,19 @@ export type { ConversationMessage };
 type UseCopilotOptions = {
   appendHistory: (entry: CopilotHistoryEntry) => void;
   sprintContext?: SprintContext;
+  providerId?: ProviderId;
 };
+
+// Detects when a provider has burned through its quota (e.g. Gemini free
+// tier returns "You exceeded your current quota … limit: 0"). The substring
+// match is intentionally loose because the provider's error wording can
+// change between releases and the SDK wraps the raw message.
+const QUOTA_EXHAUSTED_PATTERN =
+  /exceeded your current quota|free_tier_requests|free_tier_input_token_count|rate.?limit/i;
+
+function looksLikeQuotaExhausted(error: string): boolean {
+  return QUOTA_EXHAUSTED_PATTERN.test(error);
+}
 
 function newAt() { return new Date().toISOString(); }
 function newId() { return crypto.randomUUID(); }
@@ -33,7 +46,12 @@ function newId() { return crypto.randomUUID(); }
 const build = {
   user: (content: string): ConversationMessage => ({ role: "user", content, id: newId(), at: newAt() }),
   assistant: (content: string): ConversationMessage => ({ role: "assistant", content, id: newId(), at: newAt() }),
-  thinking: (): ConversationMessage => ({ role: "thinking", id: newId(), at: newAt() }),
+  thinking: (label?: string): ConversationMessage => ({
+    role: "thinking",
+    id: newId(),
+    at: newAt(),
+    ...(label ? { label } : {}),
+  }),
   preview: (preview: PreviewResult): ConversationMessage => ({ role: "preview", preview, id: newId(), at: newAt() }),
   success: (content: string): ConversationMessage => ({ role: "success", content, id: newId(), at: newAt() }),
   error: (content: string): ConversationMessage => ({ role: "error", content, id: newId(), at: newAt() }),
@@ -43,11 +61,14 @@ function historyEntry(summary: string, ok: boolean): CopilotHistoryEntry {
   return { id: newId(), at: newAt(), summary, ok };
 }
 
-export function useCopilot({ appendHistory, sprintContext }: UseCopilotOptions) {
+export function useCopilot({ appendHistory, sprintContext, providerId }: UseCopilotOptions) {
   const [message, setMessage] = useState("");
   const [pendingPreviewId, setPendingPreviewId] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [loadingExecute, setLoadingExecute] = useState(false);
+  const [exhaustedProviders, setExhaustedProviders] = useState<ReadonlySet<ProviderId>>(
+    () => new Set(),
+  );
   const thinkingIdRef = useRef<string | null>(null);
   const pendingPreviewIdRef = useRef<string | null>(null);
 
@@ -108,8 +129,30 @@ export function useCopilot({ appendHistory, sprintContext }: UseCopilotOptions) 
       thinkingIdRef.current = null;
 
       if (!result.ok) {
+        if (providerId && looksLikeQuotaExhausted(result.error)) {
+          const exhaustedId = providerId;
+          setExhaustedProviders((prev) => {
+            if (prev.has(exhaustedId)) return prev;
+            const next = new Set(prev);
+            next.add(exhaustedId);
+            return next;
+          });
+        }
         replace(thinking.id, build.error(result.error));
         return;
+      }
+
+      // Successful response — if this provider was previously marked as
+      // exhausted, the quota must have reset. Clear the marker so the
+      // selector UI returns to normal.
+      if (providerId) {
+        const recoveredId = providerId;
+        setExhaustedProviders((prev) => {
+          if (!prev.has(recoveredId)) return prev;
+          const next = new Set(prev);
+          next.delete(recoveredId);
+          return next;
+        });
       }
 
       const preview = result.preview;
@@ -301,6 +344,7 @@ export function useCopilot({ appendHistory, sprintContext }: UseCopilotOptions) 
     messages,
     loadingPreview,
     loadingExecute,
+    exhaustedProviders,
     interpret,
     submitOptionValue,
     submitPbiId,

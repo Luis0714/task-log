@@ -19,6 +19,8 @@ const assistantMessageSchema = baseMessage.extend({
 
 const thinkingMessageSchema = baseMessage.extend({
   role: z.literal("thinking"),
+  /** Streamed progress label (e.g. "Buscando historias…"). */
+  label: z.string().optional(),
 });
 
 const previewMessageSchema = baseMessage.extend({

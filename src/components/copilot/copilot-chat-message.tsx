@@ -52,7 +52,7 @@ export function CopilotChatMessage({
   }
 
   if (msg.role === "thinking") {
-    return <CopilotThinkingIndicator />;
+    return <CopilotThinkingIndicator label={msg.label} />;
   }
 
   if (msg.role === "success") {

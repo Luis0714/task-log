@@ -21,6 +21,9 @@ import { classifyIntent } from "@/lib/agent/orchestrator/router";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
 import type { PreviewResult } from "@/lib/schemas/agent";
 
+/** Progress label pushed back to the UI while a feature runs. */
+export type ProgressCallback = (label: string) => void;
+
 export type RunLogWorkInput = {
   kind: "log-work";
   message: string;
@@ -43,6 +46,8 @@ export type RunFeatureOptions = {
   userId: string;
   provider?: AgentProvider;
   executionContext?: ToolExecutionContext;
+  /** Forwarded to feature runners so the UI can render live progress. */
+  onProgress?: ProgressCallback;
 };
 
 export async function runFeature(
@@ -54,6 +59,7 @@ export async function runFeature(
   const model = provider.defaultModel;
   const startedAt = Date.now();
   const requestHash = hashRequest(input);
+  const onProgress = options.onProgress;
 
   const limiter = getPreviewRateLimiter();
   const limit = limiter.consume(userId);
@@ -92,24 +98,6 @@ export async function runFeature(
         routerResult = { intent: "time_registration", confidence: "low" };
       }
 
-      if (routerResult.intent === "unsupported") {
-        const data: PreviewResult = {
-          action: "unsupported",
-          reason:
-            "Esta consulta está fuera del alcance del registro de tiempo. Puedo ayudarte a registrar horas en tus work items de Azure DevOps.",
-        };
-        logInteraction({
-          userId,
-          feature: featureKind,
-          model,
-          latencyMs: Date.now() - startedAt,
-          requestHash,
-          responseJson: data,
-          ok: true,
-        });
-        return { ok: true, kind: featureKind, data };
-      }
-
       if (routerResult.intent === "work_item_management" && input.sprintContext) {
         const data = await runCreateTasksFeature({
           message: input.message,
@@ -119,6 +107,7 @@ export async function runFeature(
           executionContext: options.executionContext,
           history: input.history,
           userRole: input.userRole,
+          ...(onProgress ? { onProgress } : {}),
         });
         logInteraction({
           userId,
@@ -148,6 +137,7 @@ export async function runFeature(
             : {}),
         },
         history: input.history,
+        ...(onProgress ? { onProgress } : {}),
       });
       logInteraction({
         userId,
@@ -170,6 +160,7 @@ export async function runFeature(
         executionContext: options.executionContext,
         history: input.history,
         userRole: input.userRole,
+        ...(onProgress ? { onProgress } : {}),
       });
       logInteraction({
         userId,
