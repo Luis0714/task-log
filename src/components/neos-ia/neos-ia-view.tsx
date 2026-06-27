@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { MessageSquarePlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,6 @@ import { useCopilotHistory } from "@/hooks/use-copilot-history";
 import { useProviderPreference } from "@/hooks/use-provider-preference";
 import type { SprintContext } from "@/lib/agent";
 import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
-import { cn } from "@/lib/utils";
 
 export type NeosIaViewProps = {
   adoExecutionReady: boolean;
@@ -57,26 +56,22 @@ function NeosIaViewInner({
     providerId,
   });
   const threadEndRef = useRef<HTMLDivElement>(null);
-  const threadScrollRef = useRef<HTMLDivElement>(null);
   const pinnedRef = useRef(true);
   const hasMessages = copilot.messages.length > 0;
 
-  // Track whether the user is "pinned" to the bottom. When they scroll up,
-  // unpin so we don't yank them away from history they're reading. When they
-  // scroll back down close to the bottom, re-pin automatically.
+  // Track "pinned to bottom" via window scroll. Unpins when user scrolls up,
+  // re-pins when they return within 80px of the bottom.
   useEffect(() => {
-    const node = threadScrollRef.current;
-    if (!node) return;
     const onScroll = () => {
       const distanceFromBottom =
-        node.scrollHeight - node.scrollTop - node.clientHeight;
+        document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
       pinnedRef.current = distanceFromBottom < 80;
     };
-    node.addEventListener("scroll", onScroll, { passive: true });
-    return () => node.removeEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // When the user sends a message, force-pin so they always see the response.
+  // Force-pin when the user submits so they always see the response arrive.
   useEffect(() => {
     if (copilot.loadingPreview) {
       pinnedRef.current = true;
@@ -84,15 +79,13 @@ function NeosIaViewInner({
   }, [copilot.loadingPreview]);
 
   // Auto-scroll on every message change (push AND replace), not just length.
-  // This covers: user message added, thinking indicator added, thinking
+  // Covers: user message added, thinking indicator added/updated, thinking
   // replaced by assistant reply, preview card added.
   useEffect(() => {
     if (!pinnedRef.current) return;
     threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [copilot.messages]);
 
-  // Keep the draft context value in sync with the hook state so the welcome
-  // chips can pre-fill the footer's textarea through the shared provider.
   const setDraft = useCallback(
     (next: string) => copilot.setMessage(next),
     [copilot],
@@ -104,7 +97,6 @@ function NeosIaViewInner({
         copilot={copilot}
         hasMessages={hasMessages}
         threadEndRef={threadEndRef}
-        threadScrollRef={threadScrollRef}
         sprintContext={sprintContext}
         adoExecutionReady={adoExecutionReady}
         authMethod={authMethod}
@@ -120,7 +112,6 @@ type NeosIaSurfaceProps = {
   copilot: ReturnType<typeof useCopilot>;
   hasMessages: boolean;
   threadEndRef: React.RefObject<HTMLDivElement | null>;
-  threadScrollRef: React.RefObject<HTMLDivElement | null>;
   sprintContext?: SprintContext;
   adoExecutionReady: boolean;
   authMethod: AzdoAuthMethod;
@@ -133,7 +124,6 @@ function NeosIaSurface({
   copilot,
   hasMessages,
   threadEndRef,
-  threadScrollRef,
   sprintContext,
   adoExecutionReady,
   authMethod,
@@ -142,115 +132,105 @@ function NeosIaSurface({
   onProviderChange,
 }: Readonly<NeosIaSurfaceProps>) {
   return (
-    <div className="flex h-full min-h-0 w-full flex-col">
-      {/* Header — shrink-0 so it never compresses. The "Nueva conversación"
-          button sits on its OWN row below the description (not inline with
-          it), so it doesn't compete with the description for horizontal
-          space when the title + selector are already wide. */}
-      <header className="flex shrink-0 flex-col gap-2 pb-3">
-        <PageHeader
-          title="Neos IA"
-          action={
-            <ProviderSelector
-              value={providerId}
-              onChange={onProviderChange}
-              exhaustedProviders={copilot.exhaustedProviders}
-            />
-          }
-        />
+    <div className="flex w-full flex-col">
+      {/*
+        Sticky header — breaks out of AppShell's p-4/md:p-6 with negative
+        margins so the background covers the full width, then re-applies
+        matching horizontal padding so content stays aligned.
+        top-14 on mobile clears the AppShell mobile nav (h-14 = 56px).
+      */}
+      <header className="sticky top-14 z-10 -mx-4 -mt-4 border-b bg-background px-4 py-3 md:-mx-6 md:-mt-6 md:top-0 md:px-6">
+        <div className="mx-auto w-full max-w-3xl xl:max-w-4xl">
+          <PageHeader
+            title="Neos IA"
+            action={
+              <ProviderSelector
+                value={providerId}
+                onChange={onProviderChange}
+                exhaustedProviders={copilot.exhaustedProviders}
+              />
+            }
+          />
 
-        <p
-          className={cn(
-            "text-muted-foreground min-w-0 text-pretty text-sm sm:text-base",
-            hasMessages && "truncate",
+          {!hasMessages && (
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+              Tu copiloto para reportar horas en lenguaje natural.
+            </p>
           )}
-        >
-          {hasMessages
-            ? "Conversación activa. Cuéntame cómo continúas."
-            : "Tu copiloto para reportar horas en lenguaje natural."}
-        </p>
 
-        {hasMessages ? (
-          <div className="flex justify-start">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={copilot.clearConversation}
-              className="shrink-0"
-            >
-              <MessageSquarePlus className="size-4" aria-hidden />
-              <span>Nueva conversación</span>
-            </Button>
-          </div>
-        ) : null}
-      </header>
-
-      {/* Central area — fills remaining height, scrolls internally. The
-          footer sits below this scroll region so it stays visible regardless
-          of content length. */}
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div
-          ref={threadScrollRef}
-          className="flex-1 overflow-y-auto"
-          aria-live="polite"
-          aria-relevant="additions"
-        >
-          {hasMessages ? (
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 pb-4 xl:max-w-4xl">
-              {copilot.messages.map((msg) => (
-                <CopilotChatMessage
-                  key={msg.id}
-                  msg={msg}
-                  sprintContext={sprintContext}
-                  adoExecutionReady={adoExecutionReady}
-                  authMethod={authMethod}
-                  loadingExecute={copilot.loadingExecute}
-                  userInitials={userInitials}
-                  onConfirmTasks={(tasks) => copilot.executeCreateTasks(tasks)}
-                  onConfirmLogWork={(items) => copilot.execute(items)}
-                  onPickPbi={(id) => copilot.submitPbiId(id)}
-                  onPickOption={(value) => copilot.submitOptionValue(value)}
-                  onCancel={copilot.dismissPreview}
-                />
-              ))}
-              <div ref={threadEndRef} />
+          {hasMessages && (
+            <div className="mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={copilot.clearConversation}
+              >
+                <MessageSquarePlus className="size-4" aria-hidden />
+                <span>Nueva conversación</span>
+              </Button>
             </div>
-          ) : (
-            <NeosIaWelcomeSurface>
-              <NeosIaWelcomeInner />
-            </NeosIaWelcomeSurface>
           )}
         </div>
+      </header>
 
-        {/* Footer — sits below the scroll region */}
-        <footer
-          role="contentinfo"
-          aria-label="Entrada de mensaje de Neos IA"
-          className="bg-background shrink-0 border-t px-2 py-3 sm:px-0"
-        >
-          <div className="mx-auto w-full max-w-3xl xl:max-w-4xl">
-            <CopilotInput
-              value={copilot.message}
-              onChange={copilot.setMessage}
-              onSubmit={() => copilot.interpret()}
-              loading={copilot.loadingPreview}
-              placeholder={
-                hasMessages
-                  ? "Responde o agrega más información..."
-                  : "Ej: Hoy trabajé 2h en la HU-102 y 1h revisando PRs"
-              }
-            />
+      {/* Message thread or welcome screen. pb-24 ensures the last message
+          isn't hidden behind the sticky footer. */}
+      <div
+        className="mx-auto w-full max-w-3xl pt-4 xl:max-w-4xl"
+        aria-live="polite"
+        aria-relevant="additions"
+      >
+        {hasMessages ? (
+          <div className="flex flex-col gap-4 pb-24">
+            {copilot.messages.map((msg) => (
+              <CopilotChatMessage
+                key={msg.id}
+                msg={msg}
+                sprintContext={sprintContext}
+                adoExecutionReady={adoExecutionReady}
+                authMethod={authMethod}
+                loadingExecute={copilot.loadingExecute}
+                userInitials={userInitials}
+                onConfirmTasks={(tasks) => copilot.executeCreateTasks(tasks)}
+                onConfirmLogWork={(items) => copilot.execute(items)}
+                onPickPbi={(id) => copilot.submitPbiId(id)}
+                onPickOption={(value) => copilot.submitOptionValue(value)}
+                onCancel={copilot.dismissPreview}
+              />
+            ))}
+            <div ref={threadEndRef} />
           </div>
-        </footer>
+        ) : (
+          <NeosIaWelcomeInner />
+        )}
       </div>
-    </div>
-  );
-}
 
-function NeosIaWelcomeSurface({ children }: Readonly<{ children: ReactNode }>) {
-  return (
-    <div className="mx-auto w-full max-w-3xl xl:max-w-4xl">{children}</div>
+      {/*
+        Sticky footer — mirrors the header breakout pattern.
+        -mb-4/md:-mb-6 cancels AppShell's bottom padding so the footer sits
+        flush with the viewport bottom edge.
+      */}
+      <footer
+        role="contentinfo"
+        aria-label="Entrada de mensaje de Neos IA"
+        className="sticky bottom-0 z-10 -mx-4 -mb-4 border-t bg-background px-4 py-3 md:-mx-6 md:-mb-6 md:px-6"
+      >
+        <div className="mx-auto w-full max-w-3xl xl:max-w-4xl">
+          <CopilotInput
+            value={copilot.message}
+            onChange={copilot.setMessage}
+            onSubmit={() => copilot.interpret()}
+            loading={copilot.loadingPreview}
+            placeholder={
+              hasMessages
+                ? "Responde o agrega más información..."
+                : "Ej: Hoy trabajé 2h en la HU-102 y 1h revisando PRs"
+            }
+          />
+        </div>
+      </footer>
+    </div>
   );
 }
 
@@ -259,7 +239,6 @@ function NeosIaWelcomeInner() {
 
   const onPickPrompt = (prompt: string) => {
     setValue(prompt);
-    // Defer focus to the next tick so the textarea has the new value first.
     requestAnimationFrame(() => focusTextarea());
   };
 

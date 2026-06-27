@@ -24,6 +24,12 @@ import {
   handleGetMyWorkItems,
   getMyWorkItemsArgsSchema,
 } from "./get-my-work-items-tool";
+import {
+  GET_MY_TEMPLATES_TOOL_NAME,
+  GET_MY_TEMPLATES_TOOL_DEFINITION,
+  handleGetMyTemplates,
+  getMyTemplatesArgsSchema,
+} from "./get-my-templates-tool";
 
 export type RunLogWorkArgs = {
   message: string;
@@ -47,6 +53,7 @@ const TERMINAL_TOOLS = new Set([
 const INTERMEDIATE_TOOLS = new Set([
   SEARCH_WORK_ITEMS_TOOL_NAME,
   GET_MY_WORK_ITEMS_TOOL_NAME,
+  GET_MY_TEMPLATES_TOOL_NAME,
 ]);
 
 function findDoneState(states: AdoWorkItemTypeState[]): string {
@@ -115,6 +122,7 @@ export async function runLogWorkFeature({
     createTasksBatchDef,
     SEARCH_WORK_ITEMS_TOOL_DEFINITION,
     GET_MY_WORK_ITEMS_TOOL_DEFINITION,
+    GET_MY_TEMPLATES_TOOL_DEFINITION,
     ...listToolDefinitions().filter(
       (d) => d.name !== CREATE_TASKS_BATCH_TOOL_NAME && d.name !== "log_work_batch",
     ),
@@ -195,6 +203,27 @@ export async function runLogWorkFeature({
                 : hits === 0
                   ? "No encontré tareas."
                   : `Encontré ${hits} ${hits === 1 ? "tarea" : "tareas"}.`,
+          });
+        }
+      } else if (call.name === GET_MY_TEMPLATES_TOOL_NAME) {
+        const parsed = getMyTemplatesArgsSchema.safeParse(call.arguments);
+        if (!parsed.success) {
+          resultJson = JSON.stringify({ error: "Argumentos inválidos para get_my_templates." });
+        } else {
+          onProgress?.({ kind: "search", label: "Buscando plantillas…" });
+          const result = await handleGetMyTemplates(parsed.data, {
+            userId: executionContext?.userId,
+            userRole: executionContext?.userRole ?? null,
+          });
+          resultJson = JSON.stringify(result);
+          onProgress?.({
+            kind: "found",
+            label:
+              result.error
+                ? "No pude cargar las plantillas."
+                : result.count === 0
+                  ? "Sin plantillas guardadas."
+                  : `Encontré ${result.count} ${result.count === 1 ? "plantilla" : "plantillas"}.`,
           });
         }
       } else {

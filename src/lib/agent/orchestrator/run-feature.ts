@@ -135,6 +135,8 @@ export async function runFeature(
         provider,
         executionContext: {
           ...options.executionContext,
+          userId: options.userId,
+          userRole: input.userRole ?? options.executionContext?.userRole ?? null,
           ...(input.sprintContext
             ? {
                 sprintContext: {
@@ -165,7 +167,11 @@ export async function runFeature(
         model,
         provider,
         sprintContext: input.sprintContext,
-        executionContext: options.executionContext,
+        executionContext: {
+          ...options.executionContext,
+          userId: options.userId,
+          userRole: input.userRole,
+        },
         history: input.history,
         userRole: input.userRole,
         ...(onProgress ? { onProgress } : {}),

@@ -80,6 +80,7 @@ SIEMPRE usa estos valores por defecto salvo que el usuario especifique otra fech
 # Herramientas de investigación (el loop continúa)
 - **search_work_items(query, types?)**: Busca work items por KEYWORD extraído de la descripción. Úsala ANTES de pedir un ID.
 - **get_my_work_items(types?, limit?)**: Lista work items asignados al usuario actual. Úsala cuando no hay referencia específica.
+- **get_my_templates(query?, limit?)**: Devuelve las PLANTILLAS de time-log visibles para el usuario actual (sus personales primero, luego las del sistema). Una plantilla es un bloque reutilizable con título, descripción, actividad y horas por defecto que el usuario (o un admin) guarda para no reescribir el mismo trabajo recurrente (ej. 'Daily', 'Code review', 'Reunión semanal'). ÚSALA cuando el trabajo descrito suene recurrente o genérico: revisa si hay una plantilla coincidente y utilízala como EJEMPLO/INSPIRACIÓN para autollenar 'title', 'description', 'activity' y 'hours' de las tasks que propones ANTES de que el usuario las confirme. NO insertes el contenido de la plantilla en la respuesta al usuario — solo úsala internamente para mejorar la propuesta. Si no hay coincidencia, sigue el flujo normal.
 ${activityMapping}
 
 # Árbol de decisión principal

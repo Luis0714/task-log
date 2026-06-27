@@ -3,15 +3,11 @@ import { NextResponse } from "next/server";
 import { getRepositories, isUserPersistenceReady } from "@/lib/db";
 import { isIronSessionConfigured } from "@/lib/auth/session";
 import { getTaskPilotSession } from "@/lib/auth/session";
-import {
-  fetchAuthorNames,
-} from "@/lib/db/adapters/drizzle/drizzle-time-log-template.repository";
 import { createTimeLogTemplateBodySchema } from "@/lib/schemas/time-log-template";
-import type { TimeLogTemplateDto } from "@/lib/schemas/time-log-template";
 import { templateRowToDto } from "@/lib/time-log/template-dto";
 import {
   getRoleNameForUser,
-  listTemplatesForUser,
+  getTemplatesForUser,
 } from "@/lib/time-log/templates";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 
@@ -53,15 +49,7 @@ export async function GET() {
   }
 
   try {
-    const rows = await listTemplatesForUser(auth.userId, auth.roleName);
-    // Resolvemos los authorName de los autores en un solo query (sin N+1).
-    const userIds = Array.from(
-      new Set(rows.map((r) => r.userId).filter((id): id is string => !!id)),
-    );
-    const authorNames = await fetchAuthorNames(userIds);
-    const templates: TimeLogTemplateDto[] = rows.map((r) =>
-      templateRowToDto(r, r.userId ? authorNames.get(r.userId) ?? null : null),
-    );
+    const templates = await getTemplatesForUser(auth.userId, auth.roleName);
     return NextResponse.json({ templates });
   } catch {
     return NextResponse.json(
