@@ -6,7 +6,11 @@ import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import type { SprintContext } from "@/lib/agent";
 import type { CreateTaskBatchItem, LogWorkItem, PreviewResult } from "@/lib/schemas/agent";
-import type { ConversationMessage } from "@/lib/schemas/conversation";
+import type {
+  ConversationMessage,
+  ThinkingIconKind,
+} from "@/lib/schemas/conversation";
+import { THINKING_ICON_KINDS } from "@/lib/schemas/conversation";
 import type { ProviderId } from "@/lib/agent/providers/types";
 import {
   interpretMessage,
@@ -46,11 +50,12 @@ function newId() { return crypto.randomUUID(); }
 const build = {
   user: (content: string): ConversationMessage => ({ role: "user", content, id: newId(), at: newAt() }),
   assistant: (content: string): ConversationMessage => ({ role: "assistant", content, id: newId(), at: newAt() }),
-  thinking: (label?: string): ConversationMessage => ({
+  thinking: (label?: string, iconKind?: ThinkingIconKind): ConversationMessage => ({
     role: "thinking",
     id: newId(),
     at: newAt(),
     ...(label ? { label } : {}),
+    ...(iconKind ? { iconKind } : {}),
   }),
   preview: (preview: PreviewResult): ConversationMessage => ({ role: "preview", preview, id: newId(), at: newAt() }),
   success: (content: string): ConversationMessage => ({ role: "success", content, id: newId(), at: newAt() }),
@@ -125,13 +130,24 @@ export function useCopilot({ appendHistory, sprintContext, providerId }: UseCopi
       push(thinking);
       setPendingPreviewId(null);
 
-      // Forward each streamed progress label to the thinking bubble so the
-      // user sees live updates ("🔍 Buscando historias…", "✔ Encontré 3
-      // historias.", etc.) instead of a frozen spinner.
-      const onProgress = (label: string) => {
+      // Forward each streamed progress event to the thinking bubble so the
+      // user sees live updates ("Buscando historias…", "Encontré 3
+      // historias.", etc.) instead of a frozen spinner. The `iconKind`
+      // drives which lucide-react icon the indicator renders. We narrow
+      // the kind to the schema's literal union and drop unknown values
+      // so the schema validator accepts the message.
+      const isKnownIconKind = (value: string): value is ThinkingIconKind =>
+        (THINKING_ICON_KINDS as readonly string[]).includes(value);
+      const onProgress = ({ kind, label }: { kind: string; label: string }) => {
         const id = thinkingIdRef.current;
         if (!id) return;
-        replace(id, { role: "thinking", id, at: newAt(), label });
+        replace(id, {
+          role: "thinking",
+          id,
+          at: newAt(),
+          label,
+          ...(isKnownIconKind(kind) ? { iconKind: kind } : {}),
+        });
       };
 
       const result = await interpretMessage(trimmed, sprintContext, conversationHistory, {

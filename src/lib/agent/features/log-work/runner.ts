@@ -149,7 +149,7 @@ export async function runLogWorkFeature({
 
     if (terminalCall && intermediateCalls.length === 0) {
       if (terminalCall.name === CREATE_TASKS_BATCH_TOOL_NAME) {
-        onProgress?.("⏳ Registrando tiempo…");
+        onProgress?.({ kind: "logging", label: "Registrando tiempo…" });
       }
       return await resolveTerminalToolCall(terminalCall, executionContext);
     }
@@ -164,34 +164,38 @@ export async function runLogWorkFeature({
         if (!parsed.success) {
           resultJson = JSON.stringify({ error: "Argumentos inválidos para search_work_items." });
         } else {
-          onProgress?.("🔍 Buscando historias…");
+          onProgress?.({ kind: "search", label: "Buscando historias…" });
           const result = await handleSearchWorkItems(parsed.data, { auth, sprintPath });
           resultJson = JSON.stringify(result);
           const hits = countHits(resultJson);
-          onProgress?.(
-            hits === null
-              ? "✔ Historias consultadas."
-              : hits === 0
-                ? "✔ No encontré historias."
-                : `✔ Encontré ${hits} ${hits === 1 ? "historia" : "historias"}.`,
-          );
+          onProgress?.({
+            kind: "found",
+            label:
+              hits === null
+                ? "Historias consultadas."
+                : hits === 0
+                  ? "No encontré historias."
+                  : `Encontré ${hits} ${hits === 1 ? "historia" : "historias"}.`,
+          });
         }
       } else if (call.name === GET_MY_WORK_ITEMS_TOOL_NAME) {
         const parsed = getMyWorkItemsArgsSchema.safeParse(call.arguments);
         if (!parsed.success) {
           resultJson = JSON.stringify({ error: "Argumentos inválidos para get_my_work_items." });
         } else {
-          onProgress?.("🔍 Buscando tareas…");
+          onProgress?.({ kind: "search", label: "Buscando tareas…" });
           const result = await handleGetMyWorkItems(parsed.data, { auth, sprintPath });
           resultJson = JSON.stringify(result);
           const hits = countHits(resultJson);
-          onProgress?.(
-            hits === null
-              ? "✔ Tareas consultadas."
-              : hits === 0
-                ? "✔ No encontré tareas."
-                : `✔ Encontré ${hits} ${hits === 1 ? "tarea" : "tareas"}.`,
-          );
+          onProgress?.({
+            kind: "found",
+            label:
+              hits === null
+                ? "Tareas consultadas."
+                : hits === 0
+                  ? "No encontré tareas."
+                  : `Encontré ${hits} ${hits === 1 ? "tarea" : "tareas"}.`,
+          });
         }
       } else {
         resultJson = JSON.stringify({ error: `Herramienta intermedia desconocida: ${call.name}` });
@@ -200,9 +204,28 @@ export async function runLogWorkFeature({
       toolResults.push({ role: "tool", tool_call_id: call.id, content: resultJson });
     }
 
+    // When the LLM bundles intermediate + terminal calls in the same turn
+    // we only execute the intermediates this iteration and let the LLM
+    // re-invoke the terminal in a subsequent turn with the gathered info.
+    // We must omit the unexecuted terminal call from the assistant message
+    // so every tool_call_id has a matching tool response — otherwise OpenAI
+    // returns a 400 ("tool_calls must be followed by tool messages
+    // responding to each tool_call_id").
+    const rawToolCalls = Array.isArray(response.rawToolCalls)
+      ? (response.rawToolCalls as Array<{ id?: unknown }>)
+      : null;
+    const respondedRawToolCalls =
+      terminalCall && rawToolCalls
+        ? rawToolCalls.filter(
+            (raw) =>
+              typeof raw.id === "string" &&
+              intermediateCalls.some((c) => c.id === raw.id),
+          )
+        : response.rawToolCalls;
+
     messages = [
       ...messages,
-      { role: "assistant", content: null, tool_calls: response.rawToolCalls },
+      { role: "assistant", content: null, tool_calls: respondedRawToolCalls },
       ...toolResults,
     ];
   }

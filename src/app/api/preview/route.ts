@@ -14,7 +14,7 @@ type PreviewBody = {
 };
 
 type SseEvent =
-  | { type: "progress"; label: string }
+  | { type: "progress"; kind: string; label: string }
   | { type: "result"; ok: true; preview: unknown }
   | { type: "result"; ok: false; error: string };
 
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
           userRole: session.userRole,
           executionContext: { auth: auth ?? undefined },
           history: history?.slice(-CONVERSATION_HISTORY_SERVER_CAP),
-          onProgress: (label) => emit({ type: "progress", label }),
+          onProgress: ({ kind, label }) => emit({ type: "progress", kind, label }),
         });
         if (!result.ok) {
           emit({ type: "result", ok: false, error: result.userMessage });

@@ -33,7 +33,7 @@ const thinkingMessageSchema = baseMessage.extend({
    *  emoji. The icon is chosen client-side from `iconKind`. */
   label: z.string().optional(),
   /** Icon hint for the client. See THINKING_ICON_KINDS for valid values. */
-  iconKind: ThinkingIconKind.optional(),
+  iconKind: z.enum(THINKING_ICON_KINDS).optional(),
 });
 
 const previewMessageSchema = baseMessage.extend({

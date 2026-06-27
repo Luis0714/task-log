@@ -58,20 +58,38 @@ function NeosIaViewInner({
   });
   const threadEndRef = useRef<HTMLDivElement>(null);
   const threadScrollRef = useRef<HTMLDivElement>(null);
+  const pinnedRef = useRef(true);
   const hasMessages = copilot.messages.length > 0;
 
-  // Auto-scroll to the latest message, but only if the user is already near
-  // the bottom of the thread (don't yank them away from history they're
-  // reading). 240px is the typical "close enough" threshold.
+  // Track whether the user is "pinned" to the bottom. When they scroll up,
+  // unpin so we don't yank them away from history they're reading. When they
+  // scroll back down close to the bottom, re-pin automatically.
   useEffect(() => {
     const node = threadScrollRef.current;
     if (!node) return;
-    const distanceFromBottom =
-      node.scrollHeight - node.scrollTop - node.clientHeight;
-    if (distanceFromBottom < 240) {
-      threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const onScroll = () => {
+      const distanceFromBottom =
+        node.scrollHeight - node.scrollTop - node.clientHeight;
+      pinnedRef.current = distanceFromBottom < 80;
+    };
+    node.addEventListener("scroll", onScroll, { passive: true });
+    return () => node.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // When the user sends a message, force-pin so they always see the response.
+  useEffect(() => {
+    if (copilot.loadingPreview) {
+      pinnedRef.current = true;
     }
-  }, [copilot.messages.length]);
+  }, [copilot.loadingPreview]);
+
+  // Auto-scroll on every message change (push AND replace), not just length.
+  // This covers: user message added, thinking indicator added, thinking
+  // replaced by assistant reply, preview card added.
+  useEffect(() => {
+    if (!pinnedRef.current) return;
+    threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [copilot.messages]);
 
   // Keep the draft context value in sync with the hook state so the welcome
   // chips can pre-fill the footer's textarea through the shared provider.

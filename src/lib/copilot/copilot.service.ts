@@ -36,12 +36,12 @@ export type CreateTasksResponse = {
 };
 
 type SseEvent =
-  | { type: "progress"; label: string }
+  | { type: "progress"; kind: string; label: string }
   | { type: "result"; ok: true; preview: PreviewResult }
   | { type: "result"; ok: false; error: string };
 
 export type InterpretOptions = {
-  onProgress?: (label: string) => void;
+  onProgress?: (payload: { kind: string; label: string }) => void;
 };
 
 export async function interpretMessage(
@@ -100,7 +100,7 @@ export async function interpretMessage(
         try {
           const event = JSON.parse(data) as SseEvent;
           if (event.type === "progress") {
-            options?.onProgress?.(event.label);
+            options?.onProgress?.({ kind: event.kind, label: event.label });
           } else if (event.type === "result") {
             finalResult = event.ok
               ? { ok: true, preview: event.preview }

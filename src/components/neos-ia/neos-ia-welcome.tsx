@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const SUGGESTION_PROMPTS = [
-  "Hoy trabajé 2h en HU-102",
-  "Crear 3 tareas para el sprint",
-  "¿Qué PBIs tengo activos?",
-  "¿Cómo voy del sprint activo?",
+  "Olvidé reportar mis horas",
+  "Ayúdame a crear mis tareas",
+  "¿Cómo va mi sprint?",
+  "Pregúntame cualquier cosa sobre Azure DevOps",
 ] as const;
 
 export type NeosIaWelcomeProps = {

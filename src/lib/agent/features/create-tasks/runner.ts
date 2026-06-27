@@ -77,7 +77,7 @@ export async function runCreateTasksFeature({
 
   // Surface an early "thinking" hint so the UI doesn't sit on an empty
   // spinner while we fetch process profile + activity values.
-  onProgress?.("🧠 Analizando la solicitud…");
+  onProgress?.({ kind: "thinking", label: "Analizando la solicitud…" });
 
   const auth = executionContext?.auth;
 
@@ -173,9 +173,28 @@ export async function runCreateTasksFeature({
     if (terminalFromSearch) return terminalFromSearch;
     if (toolResults.length === 0) throw new Error("El loop agéntico no produjo resultados.");
 
+    // When the LLM bundles search + terminal calls in the same turn we
+    // only execute the searches this iteration and let the LLM re-invoke
+    // the terminal in a subsequent turn with the gathered info. We must
+    // omit the unexecuted terminal call from the assistant message so
+    // every tool_call_id has a matching tool response — otherwise OpenAI
+    // returns a 400 ("tool_calls must be followed by tool messages
+    // responding to each tool_call_id").
+    const rawToolCalls = Array.isArray(response.rawToolCalls)
+      ? (response.rawToolCalls as Array<{ id?: unknown }>)
+      : null;
+    const respondedRawToolCalls =
+      terminalCall && rawToolCalls
+        ? rawToolCalls.filter(
+            (raw) =>
+              typeof raw.id === "string" &&
+              toolResults.some((r) => r.tool_call_id === raw.id),
+          )
+        : response.rawToolCalls;
+
     messages = [
       ...messages,
-      { role: "assistant", content: null, tool_calls: response.rawToolCalls },
+      { role: "assistant", content: null, tool_calls: respondedRawToolCalls },
       ...toolResults,
     ];
   }
