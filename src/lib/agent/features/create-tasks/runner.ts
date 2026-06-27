@@ -13,6 +13,7 @@ import {
   buildSearchPbiTool,
 } from "@/lib/agent/features/create-tasks/search-pbi-tool";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
+import type { ProgressCallback } from "@/lib/agent/orchestrator/run-feature";
 import type { AgentProvider, ChatMessage, ConversationTurn } from "@/lib/agent/provider/provider.types";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { previewResultSchema, type PbiCandidate } from "@/lib/schemas/agent";
@@ -38,6 +39,7 @@ export type RunCreateTasksArgs = {
   executionContext?: ToolExecutionContext;
   history?: ConversationTurn[];
   userRole?: string;
+  onProgress?: ProgressCallback;
 };
 
 const MAX_ITERATIONS = 8;
@@ -62,6 +64,7 @@ export async function runCreateTasksFeature({
   executionContext,
   history = [],
   userRole,
+  onProgress,
 }: RunCreateTasksArgs): Promise<PreviewResult> {
   const trimmed = message.trim();
   if (!trimmed) {
@@ -71,6 +74,10 @@ export async function runCreateTasksFeature({
         "Cuéntame qué trabajo hiciste, en qué días, cuántas horas y bajo qué PBI padre quieres crear las tasks.",
     };
   }
+
+  // Surface an early "thinking" hint so the UI doesn't sit on an empty
+  // spinner while we fetch process profile + activity values.
+  onProgress?.("🧠 Analizando la solicitud…");
 
   const auth = executionContext?.auth;
 

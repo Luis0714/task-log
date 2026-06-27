@@ -5,6 +5,7 @@ import { listTaskStates, type AdoWorkItemTypeState } from "@/lib/azure-devops/wo
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import { findToolHandler, listToolDefinitions } from "@/lib/agent/tools/registry";
 import { buildCreateTasksBatchDefinition, CREATE_TASKS_BATCH_TOOL_NAME } from "@/lib/agent/features/create-tasks/tool";
+import type { ProgressCallback } from "@/lib/agent/orchestrator/run-feature";
 import type { AgentProvider, ChatMessage, ConversationTurn } from "@/lib/agent/provider/provider.types";
 import { previewResultSchema } from "@/lib/schemas/agent";
 import type { PreviewResult } from "@/lib/schemas/agent";
@@ -30,6 +31,7 @@ export type RunLogWorkArgs = {
   provider: AgentProvider;
   executionContext?: ToolExecutionContext;
   history?: ConversationTurn[];
+  onProgress?: ProgressCallback;
 };
 
 const MAX_ITERATIONS = 10;
@@ -51,12 +53,23 @@ function findDoneState(states: AdoWorkItemTypeState[]): string {
   return states.find((s) => s.category === "Completed")?.name ?? "Closed";
 }
 
+function countHits(rawResultJson: string): number | null {
+  try {
+    const parsed = JSON.parse(rawResultJson) as { items?: unknown[] };
+    if (Array.isArray(parsed.items)) return parsed.items.length;
+  } catch {
+    /* ignore — non-JSON tool output */
+  }
+  return null;
+}
+
 export async function runLogWorkFeature({
   message,
   model,
   provider,
   executionContext,
   history = [],
+  onProgress,
 }: RunLogWorkArgs): Promise<PreviewResult> {
   const trimmed = message.trim();
   if (!trimmed) {
@@ -135,6 +148,9 @@ export async function runLogWorkFeature({
     }
 
     if (terminalCall && intermediateCalls.length === 0) {
+      if (terminalCall.name === CREATE_TASKS_BATCH_TOOL_NAME) {
+        onProgress?.("⏳ Registrando tiempo…");
+      }
       return await resolveTerminalToolCall(terminalCall, executionContext);
     }
 
@@ -148,16 +164,34 @@ export async function runLogWorkFeature({
         if (!parsed.success) {
           resultJson = JSON.stringify({ error: "Argumentos inválidos para search_work_items." });
         } else {
+          onProgress?.("🔍 Buscando historias…");
           const result = await handleSearchWorkItems(parsed.data, { auth, sprintPath });
           resultJson = JSON.stringify(result);
+          const hits = countHits(resultJson);
+          onProgress?.(
+            hits === null
+              ? "✔ Historias consultadas."
+              : hits === 0
+                ? "✔ No encontré historias."
+                : `✔ Encontré ${hits} ${hits === 1 ? "historia" : "historias"}.`,
+          );
         }
       } else if (call.name === GET_MY_WORK_ITEMS_TOOL_NAME) {
         const parsed = getMyWorkItemsArgsSchema.safeParse(call.arguments);
         if (!parsed.success) {
           resultJson = JSON.stringify({ error: "Argumentos inválidos para get_my_work_items." });
         } else {
+          onProgress?.("🔍 Buscando tareas…");
           const result = await handleGetMyWorkItems(parsed.data, { auth, sprintPath });
           resultJson = JSON.stringify(result);
+          const hits = countHits(resultJson);
+          onProgress?.(
+            hits === null
+              ? "✔ Tareas consultadas."
+              : hits === 0
+                ? "✔ No encontré tareas."
+                : `✔ Encontré ${hits} ${hits === 1 ? "tarea" : "tareas"}.`,
+          );
         }
       } else {
         resultJson = JSON.stringify({ error: `Herramienta intermedia desconocida: ${call.name}` });

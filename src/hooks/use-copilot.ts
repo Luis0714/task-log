@@ -125,7 +125,18 @@ export function useCopilot({ appendHistory, sprintContext, providerId }: UseCopi
       push(thinking);
       setPendingPreviewId(null);
 
-      const result = await interpretMessage(trimmed, sprintContext, conversationHistory);
+      // Forward each streamed progress label to the thinking bubble so the
+      // user sees live updates ("🔍 Buscando historias…", "✔ Encontré 3
+      // historias.", etc.) instead of a frozen spinner.
+      const onProgress = (label: string) => {
+        const id = thinkingIdRef.current;
+        if (!id) return;
+        replace(id, { role: "thinking", id, at: newAt(), label });
+      };
+
+      const result = await interpretMessage(trimmed, sprintContext, conversationHistory, {
+        onProgress,
+      });
       thinkingIdRef.current = null;
 
       if (!result.ok) {

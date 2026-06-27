@@ -21,8 +21,16 @@ import { classifyIntent } from "@/lib/agent/orchestrator/router";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
 import type { PreviewResult } from "@/lib/schemas/agent";
 
-/** Progress label pushed back to the UI while a feature runs. */
-export type ProgressCallback = (label: string) => void;
+/**
+ * Progress payload pushed back to the UI while a feature runs.
+ * `kind` is a semantic key the client uses to pick the right icon
+ * (e.g. "search" → Search, "found" → CheckCircle2). `label` is the
+ * plain-text message — no emoji, the icon lives on the client side.
+ */
+export type ProgressCallback = (payload: { kind: ProgressKind; label: string }) => void;
+
+export const PROGRESS_KINDS = ["thinking", "search", "found", "logging"] as const;
+export type ProgressKind = (typeof PROGRESS_KINDS)[number];
 
 export type RunLogWorkInput = {
   kind: "log-work";

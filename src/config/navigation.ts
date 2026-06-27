@@ -55,7 +55,7 @@ const HIDE_DAILY_NAV = true;
  * La página /neos-ia y todo su código permanecen intactos; cambiar este
  * flag a `false` los re-habilita.
  */
-const HIDE_NEOS_IA_NAV = true;
+const HIDE_NEOS_IA_NAV = false;
 
 const BASE_NAVIGATION: NavGroupConfig[] = [
   {
