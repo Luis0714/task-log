@@ -22,7 +22,7 @@ type PageProps = {
 };
 
 export default async function NeosIaPage({ searchParams }: PageProps) {
-  const { searchParams: sp, auth, defaultProject, profile } =
+  const { searchParams: sp, auth, defaultProject } =
     await resolvePageAuthWithProfile(searchParams);
 
   if (!canLoadLiveAdoContent(auth)) {
@@ -49,7 +49,6 @@ export default async function NeosIaPage({ searchParams }: PageProps) {
             catalog={catalog}
             authMethod={auth.authMethod}
             adoExecutionReady
-            userInitials={profile.profileInitials}
           />
         )}
       </AdoCatalogGate>
@@ -61,12 +60,10 @@ async function NeosIaViewWithContext({
   catalog,
   authMethod,
   adoExecutionReady,
-  userInitials,
 }: Readonly<{
   catalog: Parameters<typeof resolveSprintContextForCopilot>[0];
   authMethod: Parameters<typeof NeosIaView>[0]["authMethod"];
   adoExecutionReady: boolean;
-  userInitials?: string | null;
 }>) {
   const resolved = await resolveSprintContextForCopilot(catalog);
   return (
@@ -74,7 +71,6 @@ async function NeosIaViewWithContext({
       adoExecutionReady={adoExecutionReady}
       authMethod={authMethod}
       sprintContext={resolved.ok ? resolved.context : undefined}
-      userInitials={userInitials}
     />
   );
 }

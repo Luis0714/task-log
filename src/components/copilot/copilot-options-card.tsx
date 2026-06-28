@@ -84,11 +84,11 @@ export function CopilotOptionsCard({
       ref={containerRef}
       tabIndex={-1}
       aria-labelledby={`${messageId}-question`}
-      className="bg-card text-card-foreground flex flex-col gap-3 rounded-lg border p-4 shadow-sm"
+      className="space-y-4"
     >
       <h3
         id={`${messageId}-question`}
-        className="text-sm font-medium leading-relaxed"
+        className="text-base font-medium leading-relaxed"
       >
         {payload.question}
       </h3>
@@ -101,7 +101,7 @@ export function CopilotOptionsCard({
         }}
         disabled={disabled}
         aria-label={payload.question}
-        className="flex flex-col gap-2"
+        className="flex flex-col gap-1"
       >
         {payload.options.map((opt, idx) => {
           const isSelected = selectedId === opt.id;
@@ -110,10 +110,10 @@ export function CopilotOptionsCard({
               key={opt.id}
               htmlFor={`${messageId}-${opt.id}`}
               className={cn(
-                "flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors",
+                "flex cursor-pointer items-start gap-3 rounded-md px-3 py-2 transition-colors",
                 "hover:bg-muted/50",
-                "has-data-checked:border-primary has-data-checked:bg-primary/5",
-                isSelected && "border-primary bg-primary/5",
+                "has-data-checked:bg-primary/5",
+                isSelected && "bg-primary/5",
               )}
             >
               <RadioGroup.Root
@@ -158,7 +158,7 @@ export function CopilotOptionsCard({
               if (e.target.value) setSelectedId(null);
             }}
             disabled={disabled}
-            className="h-8 flex-1 text-sm"
+            className="h-9 flex-1 text-sm"
           />
         )}
         <Button

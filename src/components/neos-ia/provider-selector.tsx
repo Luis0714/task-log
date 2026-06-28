@@ -132,7 +132,7 @@ export function ProviderSelector({
     >
       <SelectTrigger
         className={cn(
-          "h-8 w-auto gap-1.5 border-border/60 bg-background px-2.5 text-xs font-medium shadow-none hover:bg-accent hover:text-accent-foreground focus:ring-0",
+          "h-9 w-auto gap-1.5 border-border/60 bg-background px-2.5 text-xs font-medium shadow-none hover:bg-accent hover:text-accent-foreground focus:ring-0",
           currentExhausted && "border-destructive/60 text-destructive hover:text-destructive",
           className,
         )}

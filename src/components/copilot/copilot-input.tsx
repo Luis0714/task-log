@@ -1,22 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { Info, Loader2, Mic, MicOff, Send } from "lucide-react";
-import { Switch as BaseSwitch } from "@base-ui/react/switch";
+import { ArrowUp, Loader2, Mic, MicOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Kbd } from "@/components/ui/kbd";
 import { Textarea } from "@/components/ui/textarea";
-import { useAutoSendVoicePreference } from "@/hooks/use-auto-send-voice";
+import { NeosViewIsotipoBadge } from "@/components/brand/neosview-isotipo-badge";
+import { useTextareaAutosize } from "@/hooks/use-textarea-autosize";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { VoiceSpectrum } from "@/components/copilot/voice-spectrum";
 import { cn } from "@/lib/utils";
@@ -36,18 +26,20 @@ export type CopilotInputProps = {
 };
 
 /**
- * Footer input for Neos IA:
+ * Composer flotante de Neos IA — grid de 3 columnas alineado al patrón de
+ * ChatGPT:
  *
- *   ┌─────────────────────────────────────────────────────────┐
- *   │ [ⓘ]   <textarea auto-grow>                       [🎤][📤]│
- *   └─────────────────────────────────────────────────────────┘
+ *   ┌───────────────────────────────────────────────────────────┐
+ *   │  ⊕            textarea (crece hasta max-h)        🎤 ⬆  │
+ *   └───────────────────────────────────────────────────────────┘
  *
- * The (ⓘ) info button opens an upward dropdown that surfaces:
- *   - keyboard shortcuts (Enter to send, Shift+Enter for newline)
- *   - the auto-send voice preference switch
+ * - Leading: botón `+` (adjuntar / más opciones).
+ * - Primary: textarea con auto-grow (min 2 líneas → max ~13 líneas).
+ * - Trailing: micrófono + enviar.
  *
- * Keeping these discoverable but out of the way keeps the input bar visually
- * minimal and focused on writing.
+ * La superficie entera tiene `cursor-text` para que cualquier click dentro
+ * enfoque el textarea, esquinas `border-radius: 28px` (inline para que la
+ * sombra envuelva correctamente) y `shadow-short-composer` ≈ `shadow-xs/30`.
  */
 export function CopilotInput({
   value,
@@ -59,8 +51,27 @@ export function CopilotInput({
   onRegisterTextarea,
 }: Readonly<CopilotInputProps>) {
   const isDisabled = disabled || loading;
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { autoSend, setAutoSend } = useAutoSendVoicePreference();
+  const textareaNodeRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // El hook maneja el ref + el auto-grow. `onMount` recibe el nodo y lo
+  // publica al padre (`NeosIaView`) para que las quick actions puedan
+  // enfocar el textarea al hacer click. También lo capturamos localmente
+  // para devolver el foco desde el botón del isotipo Neos.
+  const {
+    ref: textareaRefCallback,
+    onChange: handleTextareaChange,
+    onInput: handleTextareaInput,
+  } = useTextareaAutosize(
+    {
+      minHeight: 44,
+      maxHeight: 208,
+      onMount: (node) => {
+        textareaNodeRef.current = node;
+        onRegisterTextarea?.(node);
+      },
+    },
+    (e) => onChange(e.target.value),
+  );
 
   const appendTranscript = useCallback(
     (chunk: string) => {
@@ -71,26 +82,12 @@ export function CopilotInput({
     [value, onChange],
   );
 
-  const handleSpeechEnd = useCallback(() => {
-    if (autoSend && value.trim().length > 0 && !isDisabled) {
-      onSubmit();
-    }
-  }, [autoSend, value, isDisabled, onSubmit]);
-
   const speech = useSpeechRecognition({
     onFinalTranscript: appendTranscript,
-    onEnd: handleSpeechEnd,
+    onEnd: undefined,
   });
 
-  useEffect(() => {
-    if (loading) speech.stop();
-  }, [loading, speech]);
-
-  useEffect(() => {
-    onRegisterTextarea?.(textareaRef.current);
-    return () => onRegisterTextarea?.(null);
-  }, [onRegisterTextarea]);
-
+  // Detener dictado cuando empieza a streamear o se desactiva.
   useEffect(() => {
     if (isDisabled && speech.isListening) {
       speech.stop();
@@ -101,154 +98,222 @@ export function CopilotInput({
   const toggleListening = speech.isListening ? speech.stop : speech.start;
 
   return (
-    <div className="bg-background flex flex-col gap-2">
-      <div className="flex items-end gap-2">
-        {/* Info button — opens an upward dropdown with shortcuts + settings */}
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={(triggerProps) => (
-              <Button
-                {...triggerProps}
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Atajos y opciones de voz"
-                title="Atajos y opciones"
-                className="text-muted-foreground hover:text-foreground size-9 shrink-0"
-              >
-                <Info className="size-4" aria-hidden />
-              </Button>
-            )}
-          />
-          <DropdownMenuContent
-            side="top"
-            align="start"
-            sideOffset={8}
-            className="w-72"
-          >
-            <DropdownMenuLabel>Atajos de teclado</DropdownMenuLabel>
-            <DropdownMenuGroup>
-              <DropdownMenuItem disabled className="justify-between">
-                <span>Interpretar</span>
-                <Kbd>Enter</Kbd>
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled className="justify-between">
-                <span>Nueva línea</span>
-                <span className="flex items-center gap-1">
-                  <Kbd>Mayús</Kbd>
-                  <span>+</span>
-                  <Kbd>Enter</Kbd>
-                </span>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Voz</DropdownMenuLabel>
-            <DropdownMenuItem
-              onSelect={(event) => event.preventDefault()}
-              className="justify-between"
-            >
-              <span className="text-pretty">Enviar al dejar de dictar</span>
-              <BaseSwitch.Root
-                checked={autoSend}
-                onCheckedChange={(checked: boolean) => setAutoSend(checked)}
-                className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-input bg-input transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-checked:border-primary data-checked:bg-primary"
-              >
-                <BaseSwitch.Thumb className="pointer-events-none block size-4 translate-x-0.5 rounded-full bg-background shadow-sm transition-transform data-checked:translate-x-[18px]" />
-              </BaseSwitch.Root>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+    <div
+      data-composer-surface="true"
+      className={cn(
+        // Surface unificado tipo ChatGPT — el `bg-card` aplica al composer
+        // completo, y el textarea es `bg-transparent` para que se vea la
+        // misma superficie. El color de fondo es igual en textarea e iconos
+        // porque ambos viven sobre el mismo `bg-card`.
+        //
+        // Layout cambia según el estado (computed abajo):
+        //  - Empty: 1 fila horizontal [Neos | textarea | mic/send] centrada.
+        //  - Typing: 2 filas [textarea / actions] — textarea crece
+        //    hacia abajo y los iconos se mueven al bottom del composer.
+        "bg-card grid w-full cursor-text overflow-hidden rounded-3xl p-2 shadow-xs/10 motion-safe:transition-colors",
+        canSubmit
+          ? "grid-rows-[1fr_auto] gap-1"
+          : "grid-cols-[auto_1fr_auto] items-end gap-1",
+      )}
+      style={{
+        borderRadius: "28px",
+        gridTemplateAreas: canSubmit
+          ? "'textarea' 'actions'"
+          : "'leading primary trailing'",
+      }}
+    >
+      {/* Primary: textarea con auto-grow. `bg-transparent` para heredar
+          el `bg-card` del composer. El `gridArea` cambia entre "primary"
+          (fila única, empty) y "textarea" (primera fila, typing). */}
+      <Textarea
+        ref={textareaRefCallback}
+        value={value}
+        onChange={handleTextareaChange}
+        onInput={handleTextareaInput}
+        placeholder={placeholder ?? "¿Qué hiciste hoy?"}
+        rows={1}
+        maxLength={2000}
+        disabled={isDisabled}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            if (canSubmit) onSubmit();
+          }
+        }}
+        style={{
+          gridArea: canSubmit ? "textarea" : "primary",
+        }}
+        className={cn(
+          TEXTAREA_BASE_CLASSES,
+          // Mientras escucha, oculta el placeholder para que solo se vea el
+          // espectro de voz dentro del input.
+          speech.isListening && "placeholder:text-transparent",
+        )}
+      />
+      {speech.isListening ? <ListeningOverlay /> : null}
 
-        {/* Center zone: auto-growing textarea wrapped in a relative container
-            so we can overlay the voice spectrum inside it while dictating.
-            `min-w-0` lets the flex item shrink below its intrinsic content
-            width — without it the placeholder string pushes the mic/send
-            buttons off-screen. */}
-        <div className="relative min-w-0 flex-1">
-          <Textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={
-              placeholder ??
-              'Escribe o pulsa el micro para dictar — Ej: "Hoy trabajé 2h en HU-102 y 1h en HU-105"'
-            }
-            rows={1}
-            maxLength={2000}
-            disabled={isDisabled}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                if (canSubmit) onSubmit();
-              }
-            }}
-            className={cn(
-              "min-h-10 min-w-0 w-full resize-none px-3 py-2 text-sm",
-              // Input stays at a fixed height — text that overflows is
-              // ellipsized on a single line instead of growing the textarea
-              // and pushing the layout on mobile.
-              "whitespace-nowrap overflow-hidden text-ellipsis",
-              // While listening, hide the placeholder text so only the
-              // voice spectrum is visible inside the input.
-              speech.isListening && "placeholder:text-transparent",
-            )}
-          />
-          {speech.isListening ? (
-            <div
-              className="pointer-events-none absolute inset-y-0 left-3 flex items-center"
-              aria-hidden
-            >
-              <VoiceSpectrum />
-            </div>
-          ) : null}
-          {speech.isListening ? (
-            <span className="sr-only" role="status" aria-live="polite">
-              Escuchando. Habla ahora.
-            </span>
-          ) : null}
-        </div>
-
-        {/* Right zone: mic + send buttons */}
-        <div className="flex shrink-0 items-center gap-1.5">
-          {speech.isSupported ? (
-            <Button
-              type="button"
-              variant={speech.isListening ? "destructive" : "ghost"}
-              size="icon"
-              onClick={toggleListening}
-              disabled={isDisabled && !speech.isListening}
-              aria-pressed={speech.isListening}
-              aria-label={speech.isListening ? "Detener dictado" : "Iniciar dictado por voz"}
-              title={speech.isListening ? "Detener dictado" : "Iniciar dictado por voz"}
-              className={cn(
-                "size-9 motion-safe:transition-colors",
-                speech.isListening && "motion-safe:animate-pulse",
-              )}
-            >
-              {speech.isListening ? (
-                <MicOff className="size-4" aria-hidden />
-              ) : (
-                <Mic className="size-4" aria-hidden />
-              )}
-            </Button>
-          ) : null}
-          <Button
+      {canSubmit ? (
+        // Estado escribiendo: fila inferior con [Neos] a la izquierda
+        // y [mic/send] a la derecha. Ambos comparten el grid area "actions".
+        <div
+          style={{ gridArea: "actions" }}
+          className="flex items-center justify-between"
+        >
+          <button
             type="button"
-            size="icon"
-            onClick={onSubmit}
-            disabled={!canSubmit}
-            aria-label="Interpretar mensaje"
-            title="Interpretar mensaje (Enter)"
-            className="size-9"
+            aria-label="Neos IA — enfocar el composer"
+            title="Neos IA"
+            onClick={() => textareaNodeRef.current?.focus()}
+            className="inline-flex size-9 shrink-0 items-center justify-center rounded-full"
           >
-            {loading ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
+            <span
+              aria-hidden
+              className="bg-brand-mark/15 text-brand-mark inline-flex size-7 items-center justify-center rounded-md"
+            >
+              <NeosViewIsotipoBadge className="size-4" />
+            </span>
+          </button>
+          <div className="flex items-end gap-1">
+            {speech.isListening ? (
+              <MicButton
+                isListening
+                isDisabled={isDisabled}
+                onToggle={toggleListening}
+              />
             ) : (
-              <Send className="size-4" aria-hidden />
+              <SendButton loading={loading} onSubmit={onSubmit} />
             )}
-          </Button>
+          </div>
         </div>
-      </div>
+      ) : (
+        // Estado vacío: una sola fila con [Neos] a la izquierda y
+        // [mic] a la derecha del textarea. El textarea ocupa el centro
+        // (`flex-1` en su clase base).
+        <>
+          <button
+            type="button"
+            aria-label="Neos IA — enfocar el composer"
+            title="Neos IA"
+            onClick={() => textareaNodeRef.current?.focus()}
+            style={{ gridArea: "leading" }}
+            className="inline-flex size-9 shrink-0 items-center justify-center rounded-full"
+          >
+            <span
+              aria-hidden
+              className="bg-brand-mark/15 text-brand-mark inline-flex size-7 items-center justify-center rounded-md"
+            >
+              <NeosViewIsotipoBadge className="size-4" />
+            </span>
+          </button>
+          <div
+            style={{ gridArea: "trailing" }}
+            className="ms-auto flex items-end gap-1"
+          >
+            {speech.isSupported ? (
+              <MicButton
+                isListening={false}
+                isDisabled={isDisabled}
+                onToggle={toggleListening}
+              />
+            ) : null}
+          </div>
+        </>
+      )}
     </div>
+  );
+}
+
+// ---------- subcomponentes extraídos para bajar la complejidad cognitiva ----------
+
+const TEXTAREA_BASE_CLASSES = cn(
+  // `[field-sizing:fixed]` desactiva `field-sizing-content` del shadcn Textarea
+  // para que no crezca al alto del placeholder en navegadores que lo miden.
+  // `bg-transparent` es explícito: el textarea NO tiene surface propio —
+  // el `bg-card` del composer se ve a través para que parezca una sola
+  // superficie continua.
+  // `flex-1` toma el espacio horizontal entre los iconos leading/trailing
+  // cuando el composer es flex-row. Las reglas con `[&::placeholder]:`
+  // fuerzan el placeholder a una sola línea con ellipsis si no cabe.
+  // Sin border — el contenedor padre ya provee la superficie.
+  "neosia-chat-input flex-1 resize-none self-center border-0 bg-transparent px-2 py-2 text-sm leading-relaxed shadow-none focus-visible:border-0 focus-visible:ring-0 [field-sizing:fixed] [&::placeholder]:whitespace-nowrap [&::placeholder]:overflow-hidden [&::placeholder]:text-ellipsis",
+);
+
+function ListeningOverlay() {
+  return (
+    <>
+      <div
+        className="pointer-events-none absolute inset-y-0 left-2 flex items-center"
+        aria-hidden
+      >
+        <VoiceSpectrum />
+      </div>
+      <span className="sr-only" role="status" aria-live="polite">
+        Escuchando. Habla ahora.
+      </span>
+    </>
+  );
+}
+
+type MicButtonProps = {
+  isListening: boolean;
+  isDisabled: boolean;
+  onToggle: () => void;
+};
+
+function MicButton({ isListening, isDisabled, onToggle }: Readonly<MicButtonProps>) {
+  const label = isListening ? "Detener dictado" : "Iniciar dictado por voz";
+  return (
+    <Button
+      type="button"
+      variant={isListening ? "destructive" : "ghost"}
+      size="icon"
+      onClick={onToggle}
+      disabled={isDisabled && !isListening}
+      aria-pressed={isListening}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "text-muted-foreground hover:text-foreground size-9 rounded-full motion-safe:transition-colors",
+        isListening && "motion-safe:animate-pulse",
+      )}
+    >
+      {isListening ? (
+        <MicOff className="size-4" aria-hidden />
+      ) : (
+        <Mic className="size-4" aria-hidden />
+      )}
+    </Button>
+  );
+}
+
+type SendButtonProps = {
+  loading: boolean;
+  onSubmit: () => void;
+};
+
+function SendButton({ loading, onSubmit }: Readonly<SendButtonProps>) {
+  return (
+    <Button
+      type="button"
+      size="icon"
+      onClick={onSubmit}
+      disabled={loading}
+      aria-label="Enviar mensaje"
+      title="Enviar mensaje (Enter)"
+      className={cn(
+        // Botón neutro estilo ChatGPT: bg-foreground invierte el color de
+        // texto. En dark mode queda blanco con flecha oscura; en light mode
+        // queda oscuro con flecha clara. Sin color brand — el "enviar" es
+        // una acción obvia, no promocional.
+        "bg-foreground text-background hover:bg-foreground/90 size-9 rounded-full transition-opacity",
+        "disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70",
+      )}
+    >
+      {loading ? (
+        <Loader2 className="size-4 animate-spin" aria-hidden />
+      ) : (
+        <ArrowUp className="size-4" aria-hidden />
+      )}
+    </Button>
   );
 }

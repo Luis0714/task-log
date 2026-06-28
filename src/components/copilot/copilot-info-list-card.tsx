@@ -44,12 +44,12 @@ export function CopilotInfoListCard({
   return (
     <section
       aria-labelledby={`${messageId}-title`}
-      className="bg-card text-card-foreground flex flex-col gap-3 rounded-lg border p-4 shadow-sm"
+      className="space-y-4"
     >
       <header className="flex items-baseline justify-between gap-2">
         <h3
           id={`${messageId}-title`}
-          className="text-sm font-semibold leading-snug"
+          className="text-base font-medium leading-snug"
         >
           {payload.title}
         </h3>
@@ -67,7 +67,7 @@ export function CopilotInfoListCard({
           {payload.emptyHint ?? "No encontré elementos que coincidan con tu consulta."}
         </p>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           {grouped.map((group) => {
             const meta = TYPE_META[group.key as InfoListItem["type"]];
             const Icon = meta?.Icon ?? ListChecks;
@@ -82,7 +82,7 @@ export function CopilotInfoListCard({
                     ({group.items.length})
                   </span>
                 </div>
-                <ul className="flex flex-col gap-1" role="list">
+                <ul className="flex flex-col gap-0.5" role="list">
                   {group.items.map((item) => (
                     <InfoListItemRow key={`${group.key}-${item.id}`} item={item} />
                   ))}
