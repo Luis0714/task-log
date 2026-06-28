@@ -5,12 +5,6 @@ export type NeosIaFooterSkeletonProps = {
   className?: string;
 };
 
-/**
- * Skeleton del composer flotante de Neos IA. Refleja el layout de
- * {@link import("@/components/copilot/copilot-input").CopilotInput}:
- * un único bloque redondeado (textarea + mic + send) sin popover
- * secundario. Aparece sobre `bg-background` con margen inferior generoso.
- */
 export function NeosIaFooterSkeleton({ className }: Readonly<NeosIaFooterSkeletonProps>) {
   return (
     <footer
@@ -21,10 +15,8 @@ export function NeosIaFooterSkeleton({ className }: Readonly<NeosIaFooterSkeleto
         className,
       )}
     >
-      <div className="mx-auto flex w-full max-w-3xl items-end gap-2 px-4">
-        <Skeleton className="bg-background border-border/60 h-12 w-full rounded-2xl border" />
-        <Skeleton className="size-9 rounded-md" />
-        <Skeleton className="size-9 rounded-md" />
+      <div className="mx-auto w-full max-w-3xl px-4">
+        <Skeleton className="h-[68px] w-full rounded-[28px]" />
       </div>
     </footer>
   );

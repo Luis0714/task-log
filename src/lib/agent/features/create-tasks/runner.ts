@@ -125,7 +125,18 @@ export async function runCreateTasksFeature({
   ];
 
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
-    const response = await provider.chat({ model, temperature: 0.1, systemPrompt, messages, tools });
+    const response = await provider.chat({
+      model,
+      temperature: 0.1,
+      systemPrompt,
+      messages,
+      tools,
+      // Forzamos al LLM a emitir al menos una tool call por turno. Sin esto,
+      // ante meta-requests (ej. "Crear tareas" sin detalles) el LLM devuelve
+      // texto plano en vez de `needs_clarification` / `search_pbi`, y el
+      // runner lanza `no_tool_call`.
+      toolChoice: "required",
+    });
 
     if (!response.toolCalls?.length) {
       throw new Error("La IA no invocó ninguna herramienta.");

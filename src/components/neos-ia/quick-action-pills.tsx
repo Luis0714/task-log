@@ -7,29 +7,39 @@ import { cn } from "@/lib/utils";
 type QuickAction = {
   id: string;
   label: string;
+  prompt: string;
   icon: React.ComponentType<{ className?: string }>;
 };
 
 /**
  * Quick actions cortas que disparan el flujo principal del agente cuando el
  * usuario aún no escribió nada. Cada una es un atajo semántico al feature
- * correspondiente (log-work, create-tasks, sprint-review) — el copy refleja
- * la acción, NO la pantalla de ChatGPT.
+ * correspondiente (log-work, create-tasks, sprint-review) — el `label` es
+ * el copy que ve el usuario (la acción), y el `prompt` es el texto
+ * accionable que se inyecta en el composer para que el LLM tenga
+ * intención + contexto suficientes y elija una herramienta
+ * (`get_my_templates`, `get_my_work_items`, `list_work_items`).
  */
 const ACTIONS: ReadonlyArray<QuickAction> = [
   {
     id: "log-hours",
     label: "Registrar mis horas",
+    prompt:
+      "Muéstrame las plantillas de horas que tengo guardadas para registrar el trabajo de hoy.",
     icon: Clock,
   },
   {
     id: "create-tasks",
     label: "Crear tareas",
+    prompt:
+      "Muéstrame mis tareas activas en el sprint actual para entender el contexto antes de crear nuevas.",
     icon: ClipboardList,
   },
   {
     id: "sprint-status",
     label: "¿Cómo va mi sprint?",
+    prompt:
+      "Muéstrame el estado actual de mi sprint: tareas activas, en progreso y recién completadas.",
     icon: TrendingUp,
   },
 ];
@@ -58,12 +68,12 @@ export function QuickActionPills({ onPick, className }: QuickActionPillsProps) {
         className,
       )}
     >
-      {ACTIONS.map(({ id, label, icon: Icon }) => (
+      {ACTIONS.map(({ id, label, prompt, icon: Icon }) => (
         <button
           key={id}
           type="button"
           role="listitem"
-          onClick={() => onPick?.(label)}
+          onClick={() => onPick?.(prompt)}
           aria-label={label}
           className="text-muted-foreground hover:text-foreground hover:bg-muted/60 inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-1.5 text-xs transition-colors sm:text-sm"
         >

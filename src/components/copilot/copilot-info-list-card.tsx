@@ -1,6 +1,6 @@
 "use client";
 
-import { Bug, ExternalLink, ListChecks, Sparkles } from "lucide-react";
+import { Brain, Bug, ExternalLink, ListChecks, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -62,6 +62,10 @@ export function CopilotInfoListCard({
         </span>
       </header>
 
+      {payload.summary ? (
+        <SummaryBlock summary={payload.summary} />
+      ) : null}
+
       {total === 0 ? (
         <p className="text-muted-foreground text-sm leading-relaxed">
           {payload.emptyHint ?? "No encontré elementos que coincidan con tu consulta."}
@@ -93,6 +97,30 @@ export function CopilotInfoListCard({
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Bloque de análisis razonado del agente (ReAct Observation → conclusión).
+ * Se muestra arriba de la lista cuando el LLM hace el ciclo completo
+ * de Thought → Action(observation) → Thought(análisis) → Action(terminal con
+ * `summary`). Visualmente se distingue con un icono "Brain" y un fondo
+ * sutil para diferenciarlo de los datos crudos de la lista.
+ */
+function SummaryBlock({ summary }: { summary: string }) {
+  return (
+    <div className="bg-muted/40 border-border/60 flex gap-2.5 rounded-md border px-3 py-2.5">
+      <Brain
+        className="text-muted-foreground mt-0.5 size-4 shrink-0"
+        aria-hidden
+      />
+      <p className="text-foreground/90 text-sm leading-relaxed">
+        <span className="text-muted-foreground mr-1 text-xs font-medium tracking-wide uppercase">
+          Análisis
+        </span>
+        {summary}
+      </p>
+    </div>
   );
 }
 

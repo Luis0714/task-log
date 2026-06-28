@@ -197,6 +197,17 @@ const listWorkItemsArgsSchema = z.object({
   title: z.string().min(1).max(200),
   groupBy: z.enum(["type", "state"]).optional(),
   emptyHint: z.string().max(300).optional(),
+  /**
+   * Análisis razonado que el LLM incluye cuando ya observó los datos en
+   * un turno previo. Su presencia cambia la semántica de la llamada:
+   *   - SIN `summary`  → llamada INTERMEDIA (Observation): trae los datos
+   *                      y los devuelve al LLM para que razone.
+   *   - CON `summary`  → llamada TERMINAL (respuesta al usuario): trae
+   *                      los datos + el análisis del LLM y se muestra
+   *                      en la UI como `info_list` con resumen.
+   * El runner decide el modo según la presencia de este campo.
+   */
+  summary: z.string().min(1).max(2000).optional(),
 });
 
 export const listWorkItemsTool: ToolHandler<
@@ -250,6 +261,13 @@ export const listWorkItemsTool: ToolHandler<
           description:
             "Mensaje a mostrar si la consulta no devuelve resultados (ej. 'No tienes bugs activos en este sprint.').",
         },
+        summary: {
+          type: "string",
+          minLength: 1,
+          maxLength: 2000,
+          description:
+            "Análisis razonado del LLM (ReAct Observation → conclusión). SOLO incluir cuando ya llamaste esta herramienta SIN summary en un turno previo y observaste los datos. Su presencia indica que esta llamada es TERMINAL (respuesta al usuario con análisis). El resumen se renderiza en la UI como un encabezado interpretativo sobre la lista.",
+        },
       },
       required: ["title"],
       additionalProperties: false,
@@ -274,6 +292,7 @@ export const listWorkItemsTool: ToolHandler<
         .max(20),
       groupBy: z.enum(["type", "state"]),
       emptyHint: z.string().max(300).optional(),
+      summary: z.string().min(1).max(2000).optional(),
     }),
     z.object({
       action: z.literal("unsupported"),
@@ -303,6 +322,7 @@ export const listWorkItemsTool: ToolHandler<
       items: result.items,
       groupBy: args.groupBy ?? "type",
       ...(args.emptyHint ? { emptyHint: args.emptyHint } : {}),
+      ...(args.summary ? { summary: args.summary } : {}),
     };
   },
 };

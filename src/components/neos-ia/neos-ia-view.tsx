@@ -307,6 +307,17 @@ type EmptyStateLayoutProps = {
 };
 
 function EmptyStateLayout({ copilotInputProps }: Readonly<EmptyStateLayoutProps>) {
+  const { onChange } = copilotInputProps;
+  const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const handlePickPrompt = useCallback(
+    (prompt: string) => {
+      onChange(prompt);
+      composerTextareaRef.current?.focus();
+    },
+    [onChange],
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-4 py-6">
       <div
@@ -316,8 +327,13 @@ function EmptyStateLayout({ copilotInputProps }: Readonly<EmptyStateLayoutProps>
         )}
       >
         <NeosIaWelcome />
-        <CopilotInput {...copilotInputProps} />
-        <QuickActionPills />
+        <CopilotInput
+          {...copilotInputProps}
+          onRegisterTextarea={(node) => {
+            composerTextareaRef.current = node;
+          }}
+        />
+        <QuickActionPills onPick={handlePickPrompt} />
       </div>
     </div>
   );

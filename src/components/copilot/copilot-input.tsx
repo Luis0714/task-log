@@ -68,20 +68,22 @@ export function CopilotInput({
   }, [isDisabled, speech]);
 
   const canSubmit = !isDisabled && value.trim().length > 0;
+  const hasLineBreak = value.includes("\n");
+  const useExpandedLayout = canSubmit && hasLineBreak;
   const toggleListening = speech.isListening ? speech.stop : speech.start;
 
   return (
     <div
       data-composer-surface="true"
       className={cn(
-        "bg-card items-center grid w-full cursor-text overflow-hidden rounded-3xl p-3 shadow-xs/10 motion-safe:transition-colors",
-        canSubmit
+        "bg-card relative items-center grid w-full cursor-text overflow-hidden rounded-xl pt-1 pb-2 pl-2 pr-2 shadow-xs/10 motion-safe:transition-colors",
+        useExpandedLayout
           ? "grid-rows-[1fr_auto] gap-1"
           : "grid-cols-[1fr_auto] items-center gap-1",
       )}
       style={{
         borderRadius: "28px",
-        gridTemplateAreas: canSubmit
+        gridTemplateAreas: useExpandedLayout
           ? "'textarea' 'actions'"
           : "'primary trailing'",
       }}
@@ -102,7 +104,7 @@ export function CopilotInput({
           }
         }}
         style={{
-          gridArea: canSubmit ? "textarea" : "primary",
+          gridArea: useExpandedLayout ? "textarea" : "primary",
         }}
         className={cn(
           TEXTAREA_BASE_CLASSES,
@@ -111,10 +113,13 @@ export function CopilotInput({
       />
       {speech.isListening ? <ListeningOverlay /> : null}
 
-      {canSubmit ? (
+      {speech.isListening || canSubmit || speech.isSupported ? (
         <div
-          style={{ gridArea: "actions" }}
-          className="flex items-end justify-end gap-1"
+          style={{ gridArea: useExpandedLayout ? "actions" : "trailing" }}
+          className={cn(
+            "flex items-end gap-1",
+            useExpandedLayout && "justify-end",
+          )}
         >
           {speech.isListening ? (
             <MicButton
@@ -122,24 +127,17 @@ export function CopilotInput({
               isDisabled={isDisabled}
               onToggle={toggleListening}
             />
-          ) : (
+          ) : canSubmit ? (
             <SendButton loading={loading} onSubmit={onSubmit} />
-          )}
-        </div>
-      ) : (
-        <div
-          style={{ gridArea: "trailing" }}
-          className="flex items-end gap-1"
-        >
-          {speech.isSupported ? (
+          ) : (
             <MicButton
               isListening={false}
               isDisabled={isDisabled}
               onToggle={toggleListening}
             />
-          ) : null}
+          )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -152,7 +150,7 @@ function ListeningOverlay() {
   return (
     <>
       <div
-        className="pointer-events-none absolute inset-y-0 left-2 flex items-center"
+        className="pointer-events-none absolute inset-y-0 left-4 flex items-center"
         aria-hidden
       >
         <VoiceSpectrum />

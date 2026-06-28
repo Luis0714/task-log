@@ -128,6 +128,15 @@ export const infoListPayloadSchema = z.object({
   items: z.array(infoListItemSchema).min(0).max(20),
   groupBy: z.enum(["type", "state"]).default("type"),
   emptyHint: z.string().max(300).optional(),
+  /**
+   * Análisis razonado del LLM (ReAct Observation → conclusión). Solo se
+   * incluye cuando el LLM hace el ciclo completo: primero llama
+   * `list_work_items` sin `summary` para ver los datos, y luego vuelve a
+   * llamarlo CON `summary` para devolver el resultado analizado al usuario.
+   * En ese caso, el `summary` aparece en la UI como un encabezado
+   * interpretativo (no como lista de items otra vez).
+   */
+  summary: z.string().min(1).max(2000).optional(),
 });
 export type InfoListPayload = z.infer<typeof infoListPayloadSchema>;
 
