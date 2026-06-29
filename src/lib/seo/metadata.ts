@@ -91,7 +91,15 @@ export function buildRootMetadata(): Metadata {
     openGraph: buildOpenGraph(SITE_NAME, SITE_DESCRIPTION, "/"),
     twitter: buildTwitter(SITE_NAME, SITE_DESCRIPTION),
     icons: {
-      icon: [{ url: DEFAULT_ICON_PATH, type: "image/svg+xml" }],
+      // Explicit entries for every browser slot so no `favicon.ico` or
+      // default fallback can sneak in. The SVG `icon.svg` wins wherever
+      // SVG is supported; the OG/Apple paths are 180×180 PNG for legacy.
+      icon: [
+        { url: DEFAULT_ICON_PATH, type: "image/svg+xml", sizes: "any" },
+      ],
+      shortcut: [
+        { url: DEFAULT_ICON_PATH, type: "image/svg+xml" },
+      ],
       apple: [
         { url: APPLE_TOUCH_ICON_PATH, sizes: "180x180", type: "image/png" },
       ],

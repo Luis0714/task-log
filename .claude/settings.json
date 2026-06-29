@@ -7,7 +7,8 @@
       "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\\\tmp\\\\diag-lock.ps1\")",
       "Bash(node -e ' *)",
       "Bash(node scripts/apply-0018.cjs)",
-      "Bash(node scripts/apply-0018.mjs)"
+      "Bash(node scripts/apply-0018.mjs)",
+      "Bash(grep -c \"^\\\\`\\\\\\\\|\\\\\\\\\\\\\\\\\\\\`\\\\\\\\| \\\\`\" src/lib/agent/features/create-tasks/prompt.ts)"
     ]
   }
 }

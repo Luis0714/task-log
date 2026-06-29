@@ -6,7 +6,12 @@ import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import type { SprintContext } from "@/lib/agent";
 import type { CreateTaskBatchItem, LogWorkItem, PreviewResult } from "@/lib/schemas/agent";
-import type { ConversationMessage } from "@/lib/schemas/conversation";
+import type {
+  ConversationMessage,
+  ThinkingIconKind,
+} from "@/lib/schemas/conversation";
+import { THINKING_ICON_KINDS } from "@/lib/schemas/conversation";
+import type { ProviderId } from "@/lib/agent/providers/types";
 import {
   interpretMessage,
   executeLogWork as apiExecuteLogWork,
@@ -17,6 +22,7 @@ import {
   buildLogWorkSuccessSummary,
   totalHours,
 } from "@/lib/copilot/copilot.utils";
+import { previewToSyntheticToolCall } from "@/lib/agent/features/log-work/selection-resolver";
 import { useConversationStore } from "@/store/conversation-store";
 import { CONVERSATION_HISTORY_LIMIT } from "@/lib/copilot/conversation.constants";
 
@@ -25,7 +31,38 @@ export type { ConversationMessage };
 type UseCopilotOptions = {
   appendHistory: (entry: CopilotHistoryEntry) => void;
   sprintContext?: SprintContext;
+  providerId?: ProviderId;
 };
+
+// Detects when a provider has burned through its quota (e.g. Gemini free
+// tier returns "You exceeded your current quota … limit: 0"). The substring
+// match is intentionally loose because the provider's error wording can
+// change between releases and the SDK wraps the raw message.
+const QUOTA_EXHAUSTED_PATTERN =
+  /exceeded your current quota|free_tier_requests|free_tier_input_token_count|rate.?limit/i;
+
+function looksLikeQuotaExhausted(error: string): boolean {
+  return QUOTA_EXHAUSTED_PATTERN.test(error);
+}
+
+/**
+ * Devuelve el último mensaje de tipo `preview` de la conversación, o
+ * null si no hay ninguno. El preview es la representación UI de la
+ * respuesta interactiva del LLM (question_with_options,
+ * needs_clarification, info_list, etc.) — la necesitamos para
+ * reconstruir los tool calls originales y permitir que el runner
+ * resuelva la selección del usuario sin que el LLM tenga que parsear.
+ */
+function findLastPreview(
+  messages: ReadonlyArray<ConversationMessage>,
+): Extract<ConversationMessage, { role: "preview" }> | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.role === "preview") {
+      return messages[i] as Extract<ConversationMessage, { role: "preview" }>;
+    }
+  }
+  return null;
+}
 
 function newAt() { return new Date().toISOString(); }
 function newId() { return crypto.randomUUID(); }
@@ -33,7 +70,13 @@ function newId() { return crypto.randomUUID(); }
 const build = {
   user: (content: string): ConversationMessage => ({ role: "user", content, id: newId(), at: newAt() }),
   assistant: (content: string): ConversationMessage => ({ role: "assistant", content, id: newId(), at: newAt() }),
-  thinking: (): ConversationMessage => ({ role: "thinking", id: newId(), at: newAt() }),
+  thinking: (label?: string, iconKind?: ThinkingIconKind): ConversationMessage => ({
+    role: "thinking",
+    id: newId(),
+    at: newAt(),
+    ...(label ? { label } : {}),
+    ...(iconKind ? { iconKind } : {}),
+  }),
   preview: (preview: PreviewResult): ConversationMessage => ({ role: "preview", preview, id: newId(), at: newAt() }),
   success: (content: string): ConversationMessage => ({ role: "success", content, id: newId(), at: newAt() }),
   error: (content: string): ConversationMessage => ({ role: "error", content, id: newId(), at: newAt() }),
@@ -43,11 +86,14 @@ function historyEntry(summary: string, ok: boolean): CopilotHistoryEntry {
   return { id: newId(), at: newAt(), summary, ok };
 }
 
-export function useCopilot({ appendHistory, sprintContext }: UseCopilotOptions) {
+export function useCopilot({ appendHistory, sprintContext, providerId }: UseCopilotOptions) {
   const [message, setMessage] = useState("");
   const [pendingPreviewId, setPendingPreviewId] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [loadingExecute, setLoadingExecute] = useState(false);
+  const [exhaustedProviders, setExhaustedProviders] = useState<ReadonlySet<ProviderId>>(
+    () => new Set(),
+  );
   const thinkingIdRef = useRef<string | null>(null);
   const pendingPreviewIdRef = useRef<string | null>(null);
 
@@ -97,6 +143,18 @@ export function useCopilot({ appendHistory, sprintContext }: UseCopilotOptions) 
           content: (m as { content: string }).content,
         }));
 
+      // Reconstruimos los tool calls del último turno del assistant
+      // a partir del preview que se le mostró al usuario. Esto permite
+      // al runner detectar si el usuario está respondiendo a una
+      // `question_with_options` y resolver la selección localmente
+      // sin que el LLM tenga que parsear IDs.
+      const lastPreview = findLastPreview(prior);
+      const lastAssistantToolCalls = lastPreview
+        ? [previewToSyntheticToolCall(lastPreview.preview)].filter(
+            (tc): tc is Record<string, unknown> => tc !== null,
+          )
+        : undefined;
+
       push(build.user(trimmed));
 
       const thinking = build.thinking();
@@ -104,12 +162,60 @@ export function useCopilot({ appendHistory, sprintContext }: UseCopilotOptions) 
       push(thinking);
       setPendingPreviewId(null);
 
-      const result = await interpretMessage(trimmed, sprintContext, conversationHistory);
+      // Forward each streamed progress event to the thinking bubble so the
+      // user sees live updates ("Buscando historias…", "Encontré 3
+      // historias.", etc.) instead of a frozen spinner. The `iconKind`
+      // drives which lucide-react icon the indicator renders. We narrow
+      // the kind to the schema's literal union and drop unknown values
+      // so the schema validator accepts the message.
+      const isKnownIconKind = (value: string): value is ThinkingIconKind =>
+        (THINKING_ICON_KINDS as readonly string[]).includes(value);
+      const onProgress = ({ kind, label }: { kind: string; label: string }) => {
+        const id = thinkingIdRef.current;
+        if (!id) return;
+        replace(id, {
+          role: "thinking",
+          id,
+          at: newAt(),
+          label,
+          ...(isKnownIconKind(kind) ? { iconKind: kind } : {}),
+        });
+      };
+
+      const result = await interpretMessage(
+        trimmed,
+        sprintContext,
+        conversationHistory,
+        lastAssistantToolCalls,
+        { onProgress },
+      );
       thinkingIdRef.current = null;
 
       if (!result.ok) {
+        if (providerId && looksLikeQuotaExhausted(result.error)) {
+          const exhaustedId = providerId;
+          setExhaustedProviders((prev) => {
+            if (prev.has(exhaustedId)) return prev;
+            const next = new Set(prev);
+            next.add(exhaustedId);
+            return next;
+          });
+        }
         replace(thinking.id, build.error(result.error));
         return;
+      }
+
+      // Successful response — if this provider was previously marked as
+      // exhausted, the quota must have reset. Clear the marker so the
+      // selector UI returns to normal.
+      if (providerId) {
+        const recoveredId = providerId;
+        setExhaustedProviders((prev) => {
+          if (!prev.has(recoveredId)) return prev;
+          const next = new Set(prev);
+          next.delete(recoveredId);
+          return next;
+        });
       }
 
       const preview = result.preview;
@@ -301,6 +407,7 @@ export function useCopilot({ appendHistory, sprintContext }: UseCopilotOptions) 
     messages,
     loadingPreview,
     loadingExecute,
+    exhaustedProviders,
     interpret,
     submitOptionValue,
     submitPbiId,

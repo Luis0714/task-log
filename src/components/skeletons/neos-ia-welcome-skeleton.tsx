@@ -6,34 +6,19 @@ export type NeosIaWelcomeSkeletonProps = {
 };
 
 /**
- * Skeleton for the empty-state welcome screen of `/neos-ia`. Mirrors the
- * layout of {@link import("@/components/neos-ia/neos-ia-welcome").NeosIaWelcome}:
- * a centered column with a rounded badge, a large title, a multi-line
- * paragraph and a row of suggestion chips.
+ * Skeleton para el empty-state de `/neos-ia`. Refleja el layout de
+ * {@link import("@/components/neos-ia/neos-ia-welcome").NeosIaWelcome}:
+ * un único `<h1>` "¿En qué trabajaste hoy?" con tamaño
+ * `text-2xl font-semibold sm:text-3xl`. Las quick action pills viven
+ * en el layout padre, no aquí.
  */
-export function NeosIaWelcomeSkeleton({ className }: Readonly<NeosIaWelcomeSkeletonProps>) {
+export function NeosIaWelcomeSkeleton({
+  className,
+}: Readonly<NeosIaWelcomeSkeletonProps>) {
   return (
-    <section
+    <Skeleton
       aria-hidden
-      className={cn(
-        "grid min-h-full place-items-center px-4 py-8 sm:py-12",
-        className,
-      )}
-    >
-      <div className="flex max-w-2xl flex-col items-center gap-6 text-center">
-        <Skeleton className="size-10 rounded-full" />
-        <Skeleton className="h-10 w-72 max-w-full sm:h-12 sm:w-96" />
-        <div className="flex w-full max-w-xl flex-col items-center gap-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-11/12" />
-          <Skeleton className="h-4 w-10/12" />
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <Skeleton className="h-7 w-40 rounded-full" />
-          <Skeleton className="h-7 w-44 rounded-full" />
-          <Skeleton className="h-7 w-48 rounded-full" />
-        </div>
-      </div>
-    </section>
+      className={cn("h-7 w-56 sm:h-9 sm:w-72", className)}
+    />
   );
 }

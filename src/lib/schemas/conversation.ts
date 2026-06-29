@@ -17,8 +17,23 @@ const assistantMessageSchema = baseMessage.extend({
   content: z.string().min(1),
 });
 
+/** Semantic keys the server sends so the client can render the right icon. */
+export const THINKING_ICON_KINDS = [
+  "thinking",
+  "search",
+  "found",
+  "logging",
+] as const;
+
+export type ThinkingIconKind = (typeof THINKING_ICON_KINDS)[number];
+
 const thinkingMessageSchema = baseMessage.extend({
   role: z.literal("thinking"),
+  /** Streamed progress label (e.g. "Buscando historias…"). Plain text — no
+   *  emoji. The icon is chosen client-side from `iconKind`. */
+  label: z.string().optional(),
+  /** Icon hint for the client. See THINKING_ICON_KINDS for valid values. */
+  iconKind: z.enum(THINKING_ICON_KINDS).optional(),
 });
 
 const previewMessageSchema = baseMessage.extend({

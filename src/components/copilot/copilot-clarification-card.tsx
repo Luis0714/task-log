@@ -35,14 +35,14 @@ export function CopilotClarificationCard({
 
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-3">
         <CardTitle>Necesito un dato</CardTitle>
         <CardDescription className="text-pretty">
           {preview.question}
         </CardDescription>
       </CardHeader>
       {hasCandidates && (
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-1">
           {candidates.map((pbi) => (
             <CandidateRow
               key={pbi.id}
@@ -53,7 +53,7 @@ export function CopilotClarificationCard({
           ))}
         </CardContent>
       )}
-      <CardFooter className="justify-end">
+      <CardFooter className="justify-end pt-2">
         <Button
           type="button"
           variant="outline"
@@ -82,7 +82,7 @@ function CandidateRow({
       type="button"
       disabled={loading}
       onClick={onPick}
-      className="hover:bg-muted/40 focus-visible:ring-ring flex w-full items-start justify-between gap-3 rounded-md border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50"
+      className="hover:bg-muted/40 focus-visible:ring-ring flex w-full items-start justify-between gap-3 rounded-md px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50"
     >
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">

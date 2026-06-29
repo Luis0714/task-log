@@ -13,7 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { CopilotTaskRow } from "@/components/copilot/copilot-task-row";
 import type { CreateTaskBatchItem, CreateTasksBatch } from "@/lib/schemas/agent";
 import {
@@ -166,20 +165,21 @@ function SinglePbiTaskList({
   onRemove,
 }: Readonly<TaskListProps>) {
   return (
-    <>
+    <div className="divide-border/60 divide-y">
       {tasks.map((task, index) => (
-        <CopilotTaskRow
-          key={`${index}-${task.pbiId}-${task.workingDate}`}
-          task={task}
-          sprintPath={sprintPath}
-          activities={activities}
-          stateNames={stateNames}
-          onChange={(next) => onUpdate(index, next)}
-          onRemove={() => onRemove(index)}
-          disabled={loading}
-        />
+        <div key={`${index}-${task.pbiId}-${task.workingDate}`} className="py-4 first:pt-0 last:pb-0">
+          <CopilotTaskRow
+            task={task}
+            sprintPath={sprintPath}
+            activities={activities}
+            stateNames={stateNames}
+            onChange={(next) => onUpdate(index, next)}
+            onRemove={() => onRemove(index)}
+            disabled={loading}
+          />
+        </div>
       ))}
-    </>
+    </div>
   );
 }
 
@@ -194,8 +194,8 @@ function MultiPbiTaskList({
   onRemove,
 }: Readonly<MultiPbiTaskListProps>) {
   return (
-    <>
-      {[...groups.entries()].map(([pbiId, groupTasks], groupIdx) => {
+    <div className="space-y-6">
+      {[...groups.entries()].map(([pbiId, groupTasks]) => {
         const pbiTitle = groupTasks[0]?.pbiTitle ?? "";
         const groupHours = totalHours(groupTasks);
         const globalIndices = tasks
@@ -204,7 +204,6 @@ function MultiPbiTaskList({
 
         return (
           <div key={pbiId} className="space-y-3">
-            {groupIdx > 0 && <Separator />}
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="font-mono text-xs">
                 #{pbiId}
@@ -212,24 +211,31 @@ function MultiPbiTaskList({
               <span className="truncate text-sm font-medium">{pbiTitle}</span>
               <span className="text-muted-foreground ml-auto shrink-0 text-xs">{groupHours}h</span>
             </div>
-            {groupTasks.map((task, localIdx) => {
-              const globalIdx = globalIndices[localIdx]!;
-              return (
-                <CopilotTaskRow
-                  key={`${globalIdx}-${task.pbiId}-${task.workingDate}`}
-                  task={task}
-                  sprintPath={sprintPath}
-                  activities={activities}
-                  stateNames={stateNames}
-                  onChange={(next) => onUpdate(globalIdx, next)}
-                  onRemove={() => onRemove(globalIdx)}
-                  disabled={loading}
-                />
-              );
-            })}
+            <div className="divide-border/60 divide-y">
+              {groupTasks.map((task, localIdx) => {
+                const globalIdx = globalIndices[localIdx];
+                if (globalIdx === undefined) return null;
+                return (
+                  <div
+                    key={`${globalIdx}-${task.pbiId}-${task.workingDate}`}
+                    className="py-4 first:pt-0 last:pb-0"
+                  >
+                    <CopilotTaskRow
+                      task={task}
+                      sprintPath={sprintPath}
+                      activities={activities}
+                      stateNames={stateNames}
+                      onChange={(next) => onUpdate(globalIdx, next)}
+                      onRemove={() => onRemove(globalIdx)}
+                      disabled={loading}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       })}
-    </>
+    </div>
   );
 }

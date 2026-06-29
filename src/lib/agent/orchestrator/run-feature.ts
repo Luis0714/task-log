@@ -21,11 +21,30 @@ import { classifyIntent } from "@/lib/agent/orchestrator/router";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
 import type { PreviewResult } from "@/lib/schemas/agent";
 
+/**
+ * Progress payload pushed back to the UI while a feature runs.
+ * `kind` is a semantic key the client uses to pick the right icon
+ * (e.g. "search" → Search, "found" → CheckCircle2). `label` is the
+ * plain-text message — no emoji, the icon lives on the client side.
+ */
+export type ProgressCallback = (payload: { kind: ProgressKind; label: string }) => void;
+
+export const PROGRESS_KINDS = ["thinking", "search", "found", "logging"] as const;
+export type ProgressKind = (typeof PROGRESS_KINDS)[number];
+
 export type RunLogWorkInput = {
   kind: "log-work";
   message: string;
   sprintContext?: SprintContext;
   history?: ConversationTurn[];
+  /**
+   * Tool calls crudos del ÚLTIMO turno del assistant. Permite al
+   * runner detectar preguntas interactivas previas (`question_with_options`)
+   * y resolver la selección del usuario sin que el LLM tenga que parsear.
+   * Si se omite, el runner no intentará resolver selecciones previas
+   * (modo compatible con versiones anteriores).
+   */
+  lastAssistantToolCalls?: ReadonlyArray<unknown>;
   userRole?: string;
 };
 
@@ -34,6 +53,7 @@ export type RunCreateTasksInput = {
   message: string;
   sprintContext: SprintContext;
   history?: ConversationTurn[];
+  lastAssistantToolCalls?: ReadonlyArray<unknown>;
   userRole?: string;
 };
 
@@ -43,6 +63,8 @@ export type RunFeatureOptions = {
   userId: string;
   provider?: AgentProvider;
   executionContext?: ToolExecutionContext;
+  /** Forwarded to feature runners so the UI can render live progress. */
+  onProgress?: ProgressCallback;
 };
 
 export async function runFeature(
@@ -54,6 +76,7 @@ export async function runFeature(
   const model = provider.defaultModel;
   const startedAt = Date.now();
   const requestHash = hashRequest(input);
+  const onProgress = options.onProgress;
 
   const limiter = getPreviewRateLimiter();
   const limit = limiter.consume(userId);
@@ -92,24 +115,6 @@ export async function runFeature(
         routerResult = { intent: "time_registration", confidence: "low" };
       }
 
-      if (routerResult.intent === "unsupported") {
-        const data: PreviewResult = {
-          action: "unsupported",
-          reason:
-            "Esta consulta está fuera del alcance del registro de tiempo. Puedo ayudarte a registrar horas en tus work items de Azure DevOps.",
-        };
-        logInteraction({
-          userId,
-          feature: featureKind,
-          model,
-          latencyMs: Date.now() - startedAt,
-          requestHash,
-          responseJson: data,
-          ok: true,
-        });
-        return { ok: true, kind: featureKind, data };
-      }
-
       if (routerResult.intent === "work_item_management" && input.sprintContext) {
         const data = await runCreateTasksFeature({
           message: input.message,
@@ -119,6 +124,7 @@ export async function runFeature(
           executionContext: options.executionContext,
           history: input.history,
           userRole: input.userRole,
+          ...(onProgress ? { onProgress } : {}),
         });
         logInteraction({
           userId,
@@ -138,6 +144,8 @@ export async function runFeature(
         provider,
         executionContext: {
           ...options.executionContext,
+          userId: options.userId,
+          userRole: input.userRole ?? options.executionContext?.userRole ?? null,
           ...(input.sprintContext
             ? {
                 sprintContext: {
@@ -148,6 +156,8 @@ export async function runFeature(
             : {}),
         },
         history: input.history,
+        lastAssistantToolCalls: input.lastAssistantToolCalls,
+        ...(onProgress ? { onProgress } : {}),
       });
       logInteraction({
         userId,
@@ -167,9 +177,14 @@ export async function runFeature(
         model,
         provider,
         sprintContext: input.sprintContext,
-        executionContext: options.executionContext,
+        executionContext: {
+          ...options.executionContext,
+          userId: options.userId,
+          userRole: input.userRole,
+        },
         history: input.history,
         userRole: input.userRole,
+        ...(onProgress ? { onProgress } : {}),
       });
       logInteraction({
         userId,

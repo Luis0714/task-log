@@ -13,6 +13,7 @@ import {
   buildSearchPbiTool,
 } from "@/lib/agent/features/create-tasks/search-pbi-tool";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
+import type { ProgressCallback } from "@/lib/agent/orchestrator/run-feature";
 import type { AgentProvider, ChatMessage, ConversationTurn } from "@/lib/agent/provider/provider.types";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { previewResultSchema, type PbiCandidate } from "@/lib/schemas/agent";
@@ -38,6 +39,7 @@ export type RunCreateTasksArgs = {
   executionContext?: ToolExecutionContext;
   history?: ConversationTurn[];
   userRole?: string;
+  onProgress?: ProgressCallback;
 };
 
 const MAX_ITERATIONS = 8;
@@ -62,6 +64,7 @@ export async function runCreateTasksFeature({
   executionContext,
   history = [],
   userRole,
+  onProgress,
 }: RunCreateTasksArgs): Promise<PreviewResult> {
   const trimmed = message.trim();
   if (!trimmed) {
@@ -71,6 +74,10 @@ export async function runCreateTasksFeature({
         "Cuéntame qué trabajo hiciste, en qué días, cuántas horas y bajo qué PBI padre quieres crear las tasks.",
     };
   }
+
+  // Surface an early "thinking" hint so the UI doesn't sit on an empty
+  // spinner while we fetch process profile + activity values.
+  onProgress?.({ kind: "thinking", label: "Analizando la solicitud…" });
 
   const auth = executionContext?.auth;
 
@@ -118,7 +125,18 @@ export async function runCreateTasksFeature({
   ];
 
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
-    const response = await provider.chat({ model, temperature: 0.1, systemPrompt, messages, tools });
+    const response = await provider.chat({
+      model,
+      temperature: 0.1,
+      systemPrompt,
+      messages,
+      tools,
+      // Forzamos al LLM a emitir al menos una tool call por turno. Sin esto,
+      // ante meta-requests (ej. "Crear tareas" sin detalles) el LLM devuelve
+      // texto plano en vez de `needs_clarification` / `search_pbi`, y el
+      // runner lanza `no_tool_call`.
+      toolChoice: "required",
+    });
 
     if (!response.toolCalls?.length) {
       throw new Error("La IA no invocó ninguna herramienta.");
@@ -166,9 +184,28 @@ export async function runCreateTasksFeature({
     if (terminalFromSearch) return terminalFromSearch;
     if (toolResults.length === 0) throw new Error("El loop agéntico no produjo resultados.");
 
+    // When the LLM bundles search + terminal calls in the same turn we
+    // only execute the searches this iteration and let the LLM re-invoke
+    // the terminal in a subsequent turn with the gathered info. We must
+    // omit the unexecuted terminal call from the assistant message so
+    // every tool_call_id has a matching tool response — otherwise OpenAI
+    // returns a 400 ("tool_calls must be followed by tool messages
+    // responding to each tool_call_id").
+    const rawToolCalls = Array.isArray(response.rawToolCalls)
+      ? (response.rawToolCalls as Array<{ id?: unknown }>)
+      : null;
+    const respondedRawToolCalls =
+      terminalCall && rawToolCalls
+        ? rawToolCalls.filter(
+            (raw) =>
+              typeof raw.id === "string" &&
+              toolResults.some((r) => r.tool_call_id === raw.id),
+          )
+        : response.rawToolCalls;
+
     messages = [
       ...messages,
-      { role: "assistant", content: null, tool_calls: response.rawToolCalls },
+      { role: "assistant", content: null, tool_calls: respondedRawToolCalls },
       ...toolResults,
     ];
   }
