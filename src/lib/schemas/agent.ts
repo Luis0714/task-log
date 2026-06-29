@@ -107,6 +107,15 @@ export const questionWithOptionsPayloadSchema = z.object({
   question: z.string().min(1).max(500),
   options: z.array(questionOptionSchema).min(2).max(8),
   allowFreeText: z.boolean().default(true),
+  /**
+   * Si true, el usuario puede seleccionar MÚLTIPLES opciones (la UI
+   * renderiza checkboxes en vez de radio buttons). Caso típico:
+   * "¿En cuáles items trabajaste?" — el usuario marca 1, 2 o más
+   * work items en una sola pregunta. El handler recibe un array de
+   * `value`s concatenados por coma (o el `onSubmit` se llama una vez
+   * por cada selección acumulada).
+   */
+  multiSelect: z.boolean().default(false),
 });
 export type QuestionWithOptionsPayload = z.infer<
   typeof questionWithOptionsPayloadSchema

@@ -21,6 +21,7 @@ export async function interpretUserMessage(
     sprintContext?: SprintContext;
     executionContext?: ToolExecutionContext;
     history?: ConversationTurn[];
+    lastAssistantToolCalls?: ReadonlyArray<unknown>;
     userRole?: string;
     onProgress?: ProgressCallback;
   },
@@ -30,6 +31,7 @@ export async function interpretUserMessage(
     message,
     sprintContext: options.sprintContext,
     history: options.history,
+    lastAssistantToolCalls: options.lastAssistantToolCalls,
     userRole: options.userRole,
   };
   const result = await runFeature(input, {

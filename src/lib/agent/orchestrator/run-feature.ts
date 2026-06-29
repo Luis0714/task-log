@@ -37,6 +37,14 @@ export type RunLogWorkInput = {
   message: string;
   sprintContext?: SprintContext;
   history?: ConversationTurn[];
+  /**
+   * Tool calls crudos del ÚLTIMO turno del assistant. Permite al
+   * runner detectar preguntas interactivas previas (`question_with_options`)
+   * y resolver la selección del usuario sin que el LLM tenga que parsear.
+   * Si se omite, el runner no intentará resolver selecciones previas
+   * (modo compatible con versiones anteriores).
+   */
+  lastAssistantToolCalls?: ReadonlyArray<unknown>;
   userRole?: string;
 };
 
@@ -45,6 +53,7 @@ export type RunCreateTasksInput = {
   message: string;
   sprintContext: SprintContext;
   history?: ConversationTurn[];
+  lastAssistantToolCalls?: ReadonlyArray<unknown>;
   userRole?: string;
 };
 
@@ -147,6 +156,7 @@ export async function runFeature(
             : {}),
         },
         history: input.history,
+        lastAssistantToolCalls: input.lastAssistantToolCalls,
         ...(onProgress ? { onProgress } : {}),
       });
       logInteraction({

@@ -186,14 +186,14 @@ export function buildCreateTasksSystemPrompt(context: CreateTasksPromptContext):
 
       Esta regla está por encima de cualquier otra. Si la incumples, las tasks se crearán con datos incorrectos en ADO y habrá que revertir el lote manualmente. Asume que TODO dato sobre work items (ID, título, descripción, estado, actividad, sprint, equipo, horas) debe venir de una herramienta (search_pbi, list_work_items) o del usuario en este turno — NUNCA de tu imaginación.
 
-      - NUNCA inventes un pbiId. Si search_pbi devuelve 1 candidato claro, úsalo. Si devuelve varios, NO escojas tú: usa needs_clarification con los candidatos reales. Si devuelve 0, NO inventes uno: needs_clarification pidiendo más detalle.
+      - NUNCA inventes un pbiId. Si search_pbi devuelve 1 candidato claro, úsalo. Si devuelve varios, NO escojas tú: usa question_with_options con los candidatos como opciones clickeables. Si devuelve 0, NO inventes uno: needs_clarification pidiendo más detalle.
       - NUNCA inventes un pbiTitle. El título que envíes en create_tasks_batch debe coincidir con el que search_pbi te devolvió (o el que el usuario confirmó).
       - NUNCA asumas el estado, actividad, sprint, equipo o proyecto si no los obtuviste de una herramienta o del usuario. Si no tienes el dato, pregunta.
       - Si el usuario da un ID numérico (HU 105, PBI 500, #300, Historia 45): confirma con search_pbi("ID") antes de usarlo. Si el ID no existe en ADO, NO inventes un sustituto.
-      - Si el usuario NO menciona ninguna PBI: needs_clarification. NO asumas ni inventes una historia padre.
+      - Si el usuario NO menciona ninguna PBI: NO le pidas que escriba el ID a mano. Primero llama list_work_items o get_my_work_items para ver el contexto, luego usa question_with_options con las PBIs asignadas como opciones clickeables. Si no hay PBIs en el sprint, ahí sí usa needs_clarification.
       - Cuando dos o más historias parezcan candidatas (por título, número o descripción): SIEMPRE presenta los candidatos al usuario. Tu trabajo es investigar, no decidir a espaldas del usuario.
 
-      En resumen: investiga, consulta, muestra candidatos reales. Nunca decidas tú solo qué work item usar.
+      En resumen: investiga, consulta, muestra candidatos reales como opciones clickeables. NUNCA pidas un ID a mano cuando el sistema puede mostrarte los candidatos.
 
       ---
 

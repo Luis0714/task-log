@@ -22,6 +22,7 @@ import {
   buildLogWorkSuccessSummary,
   totalHours,
 } from "@/lib/copilot/copilot.utils";
+import { previewToSyntheticToolCall } from "@/lib/agent/features/log-work/selection-resolver";
 import { useConversationStore } from "@/store/conversation-store";
 import { CONVERSATION_HISTORY_LIMIT } from "@/lib/copilot/conversation.constants";
 
@@ -42,6 +43,25 @@ const QUOTA_EXHAUSTED_PATTERN =
 
 function looksLikeQuotaExhausted(error: string): boolean {
   return QUOTA_EXHAUSTED_PATTERN.test(error);
+}
+
+/**
+ * Devuelve el último mensaje de tipo `preview` de la conversación, o
+ * null si no hay ninguno. El preview es la representación UI de la
+ * respuesta interactiva del LLM (question_with_options,
+ * needs_clarification, info_list, etc.) — la necesitamos para
+ * reconstruir los tool calls originales y permitir que el runner
+ * resuelva la selección del usuario sin que el LLM tenga que parsear.
+ */
+function findLastPreview(
+  messages: ReadonlyArray<ConversationMessage>,
+): Extract<ConversationMessage, { role: "preview" }> | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.role === "preview") {
+      return messages[i] as Extract<ConversationMessage, { role: "preview" }>;
+    }
+  }
+  return null;
 }
 
 function newAt() { return new Date().toISOString(); }
@@ -123,6 +143,18 @@ export function useCopilot({ appendHistory, sprintContext, providerId }: UseCopi
           content: (m as { content: string }).content,
         }));
 
+      // Reconstruimos los tool calls del último turno del assistant
+      // a partir del preview que se le mostró al usuario. Esto permite
+      // al runner detectar si el usuario está respondiendo a una
+      // `question_with_options` y resolver la selección localmente
+      // sin que el LLM tenga que parsear IDs.
+      const lastPreview = findLastPreview(prior);
+      const lastAssistantToolCalls = lastPreview
+        ? [previewToSyntheticToolCall(lastPreview.preview)].filter(
+            (tc): tc is Record<string, unknown> => tc !== null,
+          )
+        : undefined;
+
       push(build.user(trimmed));
 
       const thinking = build.thinking();
@@ -150,9 +182,13 @@ export function useCopilot({ appendHistory, sprintContext, providerId }: UseCopi
         });
       };
 
-      const result = await interpretMessage(trimmed, sprintContext, conversationHistory, {
-        onProgress,
-      });
+      const result = await interpretMessage(
+        trimmed,
+        sprintContext,
+        conversationHistory,
+        lastAssistantToolCalls,
+        { onProgress },
+      );
       thinkingIdRef.current = null;
 
       if (!result.ok) {

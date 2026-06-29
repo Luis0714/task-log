@@ -11,6 +11,7 @@ type PreviewBody = {
   message?: string;
   sprintContext?: SprintContext;
   history?: ConversationTurn[];
+  lastAssistantToolCalls?: ReadonlyArray<unknown>;
 };
 
 type SseEvent =
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
     return jsonError(USER_MESSAGES.invalidForm, 400);
   }
 
-  const { message, sprintContext, history } = parseBody(body);
+  const { message, sprintContext, history, lastAssistantToolCalls } = parseBody(body);
 
   if (!message) {
     return jsonError(USER_MESSAGES.invalidForm, 400);
@@ -71,6 +72,7 @@ export async function POST(req: Request) {
       userRole: session.userRole,
       executionContext: { auth: auth ?? undefined },
       history: history?.slice(-CONVERSATION_HISTORY_SERVER_CAP),
+      lastAssistantToolCalls,
     });
     if (!result.ok) {
       const status = result.userMessage === USER_MESSAGES.tooManyRequests ? 429 : 502;
@@ -95,6 +97,7 @@ export async function POST(req: Request) {
           userRole: session.userRole,
           executionContext: { auth: auth ?? undefined },
           history: history?.slice(-CONVERSATION_HISTORY_SERVER_CAP),
+          lastAssistantToolCalls,
           onProgress: ({ kind, label }) => emit({ type: "progress", kind, label }),
         });
         if (!result.ok) {
@@ -121,7 +124,10 @@ function parseBody(raw: unknown): PreviewBody {
   const message = typeof obj.message === "string" ? obj.message : "";
   const sprintContext = parseSprintContext(obj.sprintContext);
   const history = parseHistory(obj.history);
-  return { message, sprintContext, history };
+  const lastAssistantToolCalls = Array.isArray(obj.lastAssistantToolCalls)
+    ? (obj.lastAssistantToolCalls as ReadonlyArray<unknown>)
+    : undefined;
+  return { message, sprintContext, history, lastAssistantToolCalls };
 }
 
 function parseHistory(raw: unknown): ConversationTurn[] | undefined {

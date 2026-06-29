@@ -145,7 +145,7 @@ function CopilotUserMessage({ content }: Readonly<{ content: string }>) {
       >
         <p
           className={cn(
-            "bg-primary/5 ring-primary/10 text-foreground max-w-prose rounded-2xl rounded-tr-sm px-4 py-2.5 text-base leading-relaxed whitespace-pre-wrap ring-1",
+            "bg-primary/5 ring-primary/10 text-foreground max-w-prose rounded-2xl rounded-tr-sm px-4 py-2.5 text-base leading-relaxed whitespace-pre-wrap wrap-break-word ring-1",
           )}
         >
           {content}

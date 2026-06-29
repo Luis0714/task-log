@@ -58,47 +58,29 @@ function NeosIaViewInner({
     providerId,
   });
   const scrollRef = useRef<HTMLDivElement>(null);
-  const pinnedRef = useRef(true);
   const hasMessages = copilot.messages.length > 0;
 
-  /**
-   * Track "pinned to bottom" via the internal scroller (not `window`). We
-   * unpin whenever the user scrolls more than ~80 px above the bottom so
-   * they can review history without being yanked back. Re-pin when a new
-   * response starts streaming — handled in the next effect.
-   */
+  // Always scroll to the bottom on any conversation change — new messages,
+  // streaming tokens, or the user typing a new draft. The user prefers to
+  // stay anchored to the latest content over preserving their scroll-up
+  // position. We split the two triggers so typing uses an instant snap
+  // (frequent updates would cancel a smooth animation on every keystroke)
+  // while messages/streaming keep the smooth animation.
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const onScroll = () => {
-      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-      pinnedRef.current = distanceFromBottom < 80;
-    };
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, []);
-
-  // Force-pin when the user submits so they always see the response arrive,
-  // even if they had scrolled up before submitting.
-  useEffect(() => {
-    if (copilot.loadingPreview) {
-      pinnedRef.current = true;
-    }
-  }, [copilot.loadingPreview]);
-
-  // Auto-scroll on every message change while pinned. We touch the internal
-  // scroller's `scrollTop`, not the window, so the header/footer stay put.
-  useEffect(() => {
-    if (!pinnedRef.current) return;
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [copilot.messages]);
 
-  // After a "Nueva conversación" we should re-pin for the next response.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
+  }, [copilot.message]);
+
+  // On "Nueva conversación", scroll back to the top.
   useEffect(() => {
     if (!hasMessages) {
-      pinnedRef.current = true;
       const el = scrollRef.current;
       if (el) el.scrollTo({ top: 0, behavior: "auto" });
     }

@@ -81,7 +81,12 @@ export async function handleGetMyWorkItems(
       types: args.types ?? ["pbi", "bug", "task"],
       assignedToMe: true,
       sprintPath: ctx.sprintPath,
-      limit: args.limit ?? 10,
+      // Default 8 (no 10) para alinear con el maximo de opciones de
+      // question_with_options — el LLM no podria mostrar mas de 8
+      // como opciones clickeables, asi que traer 10 por default forzaba
+      // un invalid_args al pasarlos a la UI. Si el sprint tiene mas,
+      // el LLM debe filtrar por tipo primero (sub-categorizar).
+      limit: args.limit ?? 8,
     },
     ctx.auth,
   );

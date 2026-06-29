@@ -48,10 +48,12 @@ export async function interpretMessage(
   message: string,
   sprintContext: SprintContext | undefined,
   history?: ConversationTurn[],
+  lastAssistantToolCalls?: ReadonlyArray<unknown>,
   options?: InterpretOptions,
 ): Promise<InterpretResponse> {
+  let res: Response;
   try {
-    const res = await fetch("/api/preview", {
+    res = await fetch("/api/preview", {
       method: "POST",
       // Tell the route we want SSE so we can read `progress` events in
       // real time. The route still falls back to a JSON response for
@@ -64,57 +66,100 @@ export async function interpretMessage(
         message,
         sprintContext: sprintContext ?? null,
         history: history?.length ? history : undefined,
+        ...(lastAssistantToolCalls ? { lastAssistantToolCalls } : {}),
       }),
     });
-
-    if (!res.ok) {
-      // Error responses are still JSON — try to extract a user-facing message.
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      return { ok: false, error: data.error ?? "Error al interpretar el mensaje." };
-    }
-
-    if (!res.body) {
-      return { ok: false, error: "No se recibió respuesta del servidor." };
-    }
-
-    // SSE stream: read `data: {…}\n\n` chunks until `[DONE]`.
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let finalResult: InterpretResponse | null = null;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const data = line.slice(6).trim();
-        if (data === "[DONE]") {
-          return finalResult ?? { ok: false, error: "No se recibió respuesta del copiloto." };
-        }
-        try {
-          const event = JSON.parse(data) as SseEvent;
-          if (event.type === "progress") {
-            options?.onProgress?.({ kind: event.kind, label: event.label });
-          } else if (event.type === "result") {
-            finalResult = event.ok
-              ? { ok: true, preview: event.preview }
-              : { ok: false, error: event.error };
-          }
-        } catch {
-          // ignore malformed event lines
-        }
-      }
-    }
-
-    return finalResult ?? { ok: false, error: "No se recibió respuesta del copiloto." };
   } catch {
     return { ok: false, error: "No se pudo conectar con el servidor. Intenta de nuevo." };
+  }
+
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: data.error ?? "Error al interpretar el mensaje." };
+  }
+
+  if (!res.body) {
+    return { ok: false, error: "No se recibió respuesta del servidor." };
+  }
+
+  return await consumeSseStream(res.body, options);
+}
+
+/**
+ * Consume el stream SSE de `/api/preview` y devuelve el `InterpretResponse`
+ * final. Extraído de `interpretMessage` para bajar la complejidad
+ * cognitiva y hacerlo testeable de forma aislada.
+ */
+async function consumeSseStream(
+  body: ReadableStream<Uint8Array>,
+  options: InterpretOptions | undefined,
+): Promise<InterpretResponse> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalResult: InterpretResponse | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const remaining = processSseBuffer(buffer, options, finalResult);
+    buffer = remaining.buffer;
+    if (remaining.done) return remaining.result;
+    if (remaining.result) finalResult = remaining.result;
+  }
+
+  return finalResult ?? { ok: false, error: "No se recibió respuesta del copiloto." };
+}
+
+type SseProcessResult = {
+  buffer: string;
+  result?: InterpretResponse;
+  done: boolean;
+};
+
+function processSseBuffer(
+  buffer: string,
+  options: InterpretOptions | undefined,
+  currentResult: InterpretResponse | null,
+): SseProcessResult {
+  const lines = buffer.split("\n");
+  const newBuffer = lines.pop() ?? "";
+
+  for (const line of lines) {
+    if (!line.startsWith("data: ")) continue;
+    const data = line.slice(6).trim();
+    if (data === "[DONE]") {
+      return {
+        buffer: newBuffer,
+        done: true,
+        result: currentResult ?? {
+          ok: false,
+          error: "No se recibió respuesta del copiloto.",
+        },
+      };
+    }
+    const event = parseSseEvent(data);
+    if (!event) continue;
+    if (event.type === "progress") {
+      options?.onProgress?.({ kind: event.kind, label: event.label });
+    } else {
+      // event.type === "result"
+      const result: InterpretResponse = event.ok
+        ? { ok: true, preview: event.preview }
+        : { ok: false, error: event.error };
+      return { buffer: newBuffer, result, done: false };
+    }
+  }
+
+  return { buffer: newBuffer, done: false };
+}
+
+function parseSseEvent(data: string): SseEvent | null {
+  try {
+    return JSON.parse(data) as SseEvent;
+  } catch {
+    return null;
   }
 }
 

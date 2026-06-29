@@ -34,6 +34,7 @@ const questionWithOptionsArgsSchema = z.object({
     .min(2)
     .max(8),
   allowFreeText: z.boolean(),
+  multiSelect: z.boolean().optional(),
 });
 
 export const needsClarificationTool: ToolHandler<
@@ -44,7 +45,7 @@ export const needsClarificationTool: ToolHandler<
     name: NEEDS_CLARIFICATION_NAME,
     strict: true,
     description:
-      "Devuelve esta herramienta cuando falta información esencial (work item ID, horas, descripción del trabajo) y la ambigüedad es sobre una PBI o épica concreta. Formula UNA pregunta concreta y breve. Para preguntas genéricas con opciones predefinidas (fechas, tipo de trabajo, formato), usa `question_with_options` en su lugar.",
+      "Devuelve esta herramienta cuando necesitas una respuesta en TEXTO LIBRE del usuario (no hay candidatos ni opciones predefinidas que mostrar). Úsala para preguntas abiertas como '¿Qué trabajo realizaste?' o '¿Cuántas horas trabajaste en total?'. La UI muestra un campo de texto. SIEMPRE que tengas 2 o más candidatos concretos (work items del sprint, duraciones típicas, fechas), prefiere `question_with_options` — el usuario hace click en la opción correcta en vez de escribir a mano. Una sola pregunta por turno.",
     parameters: {
       type: "object",
       properties: {
@@ -123,7 +124,7 @@ export const questionWithOptionsTool: ToolHandler<
     name: QUESTION_WITH_OPTIONS_NAME,
     strict: true,
     description:
-      "Devuelve esta herramienta cuando necesitas una decisión del usuario sobre algo que NO es una PBI: fechas relativas ('ayer o anteayer'), tipo de trabajo ('bug o mejora'), formato de unidades ('horas o puntos'), etc. La UI la renderiza como un selector de opciones tipo radio; el usuario puede hacer click en una opción (que se envía automáticamente) o seguir escribiendo texto libre si `allowFreeText` es true. Distínguela de `needs_clarification`: usa `needs_clarification` solo para candidatos PBI concretos. Una sola pregunta por turno; no la combines con `create_tasks_batch` o `log_work_batch` en la misma respuesta.",
+      "Devuelve esta herramienta cuando el usuario debe ELEGIR entre 2 y 8 opciones predefinidas. La UI las renderiza como radio buttons clickeables (single-select por default) o checkboxes (si `multiSelect: true`) — el usuario hace click y la respuesta se envía automáticamente, sin escribir. Casos de uso típicos: (1) **work items del sprint** como candidatos (cuando el usuario no sabe el ID o el sistema ya los conoce vía get_my_work_items / search_pbi — el `label` debe incluir el ID y título para que el usuario identifique cuál es). USA `multiSelect: true` cuando el usuario puede trabajar en VARIOS items en una sola sesión de registro (ej. 'Hoy trabajé en 3 historias distintas') — la UI muestra checkboxes y el botón muestra el contador '(3)'. (2) duraciones típicas ('1h', '2h', '4h', '8h') para horas; (3) fechas relativas ('hoy', 'ayer', 'anteayer'); (4) tipos de trabajo. `id` en kebab-case estable, `label` legible. `value` opcional: si lo pasas, ese string se envía al agente cuando el usuario selecciona la opción (útil cuando `id` no es lo que necesitas en el siguiente turno, ej. el `value` es el workItemId numérico). En multiSelect, el agente recibe un string con los `value`s concatenados por coma (ej. '123,124,125') — debes hacer split(',') para parsear. `description` opcional aparece como texto secundario bajo el label. `allowFreeText: true` permite al usuario ignorar las opciones y escribir texto libre (ej. horas custom o IDs separados por coma). NUNCA uses `needs_clarification` cuando tienes candidatos concretos — el usuario prefiere clickar a escribir. MÁXIMO 8 opciones por pregunta (límite del schema).",
     parameters: {
       type: "object",
       properties: {
@@ -134,7 +135,7 @@ export const questionWithOptionsTool: ToolHandler<
         options: {
           type: "array",
           description:
-            "Lista de 2 a 8 opciones excluyentes. `id` en kebab-case estable; `label` legible y conciso.",
+            "Lista de 2 a 8 opciones. `id` en kebab-case estable; `label` legible y conciso.",
           items: {
             type: "object",
             properties: {
@@ -156,8 +157,13 @@ export const questionWithOptionsTool: ToolHandler<
           description:
             "Si true, el usuario puede ignorar las opciones y escribir texto libre en su lugar.",
         },
+        multiSelect: {
+          type: "boolean",
+          description:
+            "Si true, la UI renderiza checkboxes (no radio buttons) y el usuario puede marcar varias opciones. El agente recibe los `value`s concatenados por coma (ej. '123,124,125'). Default false. Úsalo para work items cuando el usuario pudo haber trabajado en varios.",
+        },
       },
-      required: ["question", "options", "allowFreeText"],
+      required: ["question", "options", "allowFreeText", "multiSelect"],
       additionalProperties: false,
     },
   },
@@ -177,12 +183,14 @@ export const questionWithOptionsTool: ToolHandler<
       .min(2)
       .max(8),
     allowFreeText: z.boolean(),
+    multiSelect: z.boolean().default(false),
   }),
   handle: (args): QuestionWithOptionsPayload => ({
     action: "question_with_options",
     question: args.question,
     options: args.options.map((opt) => ({ id: opt.id, label: opt.label })),
     allowFreeText: args.allowFreeText,
+    multiSelect: args.multiSelect ?? false,
   }),
 };
 
