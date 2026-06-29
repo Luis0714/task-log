@@ -50,22 +50,10 @@ const HIDE_SETTINGS_NAV = false;
  */
 const HIDE_DAILY_NAV = true;
 
-/**
- * Kill-switch para ocultar la entrada "Neos IA" del menú lateral.
- * La página /neos-ia y todo su código permanecen intactos; cambiar este
- * flag a `false` los re-habilita.
- */
-const HIDE_NEOS_IA_NAV = false;
-
 const BASE_NAVIGATION: NavGroupConfig[] = [
   {
     title: "Principal",
-    items: [
-      { href: "/", label: "Dashboard", icon: LayoutDashboard },
-      ...(HIDE_NEOS_IA_NAV
-        ? []
-        : [{ href: "/neos-ia", label: "Neos IA", icon: Sparkles }]),
-    ],
+    items: [{ href: "/", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
     title: "Trabajo",
@@ -87,22 +75,40 @@ const BASE_NAVIGATION: NavGroupConfig[] = [
   },
 ];
 
+const NEOS_IA_ITEM: NavItemConfig = {
+  href: "/neos-ia",
+  label: "Neos IA",
+  icon: Sparkles,
+};
+
 const SETTINGS_GROUP: NavGroupConfig = {
   title: "Sistema",
   items: [{ href: "/settings", label: "Configuración", icon: Settings }],
 };
 
+const ADMIN_GROUP: NavGroupConfig = {
+  title: "Administración",
+  items: [
+    { href: "/admin/usuarios", label: "Usuarios", icon: Users },
+    { href: "/admin/plantillas", label: "Plantillas", icon: TbTemplate },
+  ],
+};
+
+/**
+ * Neos IA sólo está disponible para super admin. Para no admins se omite la
+ * entrada del sidebar; la página /neos-ia y los endpoints /api/preview +
+ * /api/execute aplican su propia guarda (redirect / 403) como defensa en
+ * profundidad.
+ */
 export function getNavigation(isAdmin: boolean): NavGroupConfig[] {
-  const groups = [...BASE_NAVIGATION];
+  const groups: NavGroupConfig[] = BASE_NAVIGATION.map((group, idx) =>
+    idx === 0 && isAdmin
+      ? { ...group, items: [...group.items, NEOS_IA_ITEM] }
+      : group,
+  );
 
   if (isAdmin) {
-    groups.push({
-      title: "Administración",
-      items: [
-        { href: "/admin/usuarios", label: "Usuarios", icon: Users },
-        { href: "/admin/plantillas", label: "Plantillas", icon: TbTemplate },
-      ],
-    });
+    groups.push(ADMIN_GROUP);
   }
 
   if (!HIDE_SETTINGS_NAV) {

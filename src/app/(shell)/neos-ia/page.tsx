@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 
 import { AdoCatalogGate } from "@/components/ado/ado-catalog-gate";
 import { AuthRequiredPageLayout } from "@/components/auth/auth-required-page-layout";
@@ -7,6 +8,7 @@ import { NeosIaPageSkeleton } from "@/components/skeletons/neos-ia-page-skeleton
 import { resolveSprintContextForCopilot } from "@/lib/agent/resolve-sprint-context";
 import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
 import { resolvePageAuthWithProfile } from "@/lib/auth/resolve-page-auth";
+import { getServerAuthBootstrap } from "@/lib/auth/server-state";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
 
@@ -22,6 +24,9 @@ type PageProps = {
 };
 
 export default async function NeosIaPage({ searchParams }: PageProps) {
+  const bootstrap = await getServerAuthBootstrap();
+  if (!bootstrap.isAdmin) redirect("/");
+
   const { searchParams: sp, auth, defaultProject } =
     await resolvePageAuthWithProfile(searchParams);
 
