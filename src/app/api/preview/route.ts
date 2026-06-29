@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { interpretUserMessage, type SprintContext } from "@/lib/agent";
+import { requireAdminOr403 } from "@/lib/auth/require-admin";
 import type { ConversationTurn } from "@/lib/agent/provider/provider.types";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import { getTaskPilotSession } from "@/lib/auth/session";
@@ -42,6 +43,9 @@ function jsonError(message: string, status: number) {
 }
 
 export async function POST(req: Request) {
+  const adminGate = await requireAdminOr403();
+  if (adminGate) return adminGate;
+
   let body: unknown;
   try {
     body = await req.json();
