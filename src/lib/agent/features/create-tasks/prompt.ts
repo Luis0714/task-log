@@ -423,7 +423,7 @@ export function buildCreateTasksSystemPrompt(context: CreateTasksPromptContext):
 
       ↓
 
-      ${doneState}
+      ${stateSection}
 
       ---
 

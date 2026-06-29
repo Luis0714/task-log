@@ -205,12 +205,6 @@ function extractPendingQuestion(
   );
 }
 
-type BuildUserMessageDeps = {
-  history: ReadonlyArray<ConversationTurn>;
-  sanitizedInput: string;
-  pendingQuestion: PendingSelectionQuestion | null;
-};
-
 function buildUserMessageForLlm(
   sanitizedInput: string,
   pendingQuestion: PendingSelectionQuestion | null,

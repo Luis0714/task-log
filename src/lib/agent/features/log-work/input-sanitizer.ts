@@ -36,7 +36,7 @@ export function sanitizeUserInput(input: string): string {
   s = s.replace(/[\x00-\x08\x0B-\x1F\x7F]/g, "");
 
   // 3) Colapsar repeticiones largas
-  s = s.replace(REPEATED_CHAR_PATTERN, (match, ch) => ch.repeat(MAX_REPEAT));
+  s = s.replace(REPEATED_CHAR_PATTERN, (_match, ch) => ch.repeat(MAX_REPEAT));
 
   // 4) Cap de longitud
   if (s.length > MAX_LENGTH) {

@@ -105,7 +105,14 @@ async function consumeSseStream(
     buffer += decoder.decode(value, { stream: true });
     const remaining = processSseBuffer(buffer, options, finalResult);
     buffer = remaining.buffer;
-    if (remaining.done) return remaining.result;
+    if (remaining.done) {
+      return (
+        remaining.result ?? {
+          ok: false,
+          error: "No se recibió respuesta del copiloto.",
+        }
+      );
+    }
     if (remaining.result) finalResult = remaining.result;
   }
 
