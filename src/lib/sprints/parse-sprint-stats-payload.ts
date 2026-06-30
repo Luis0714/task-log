@@ -137,7 +137,6 @@ function parseWorkflowMetrics(value: unknown): SprintSnapshotOperationalMetrics[
 
   return {
     pbiProgress: parsePbiProgress(value.pbiProgress),
-    stateBars: parsePbiStateBars(value.stateBars),
   };
 }
 

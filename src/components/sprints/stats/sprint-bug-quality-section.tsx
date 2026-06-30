@@ -15,8 +15,11 @@ import { Badge } from "@/components/ui/badge";
 import { SprintBugDetailList } from "@/components/sprints/stats/sprint-bug-detail-list";
 import { WorkItemAssigneeLabel } from "@/components/work-items/work-item-assignee-tag";
 import { useSprintBugDetailFilter } from "@/hooks/sprints/use-sprint-bug-detail-filter";
+import { useCurrentProject } from "@/hooks/use-current-project";
+import { useBugStates } from "@/hooks/use-bug-states";
 import { buildGoalBugsKpiViewModel } from "@/lib/dashboard/progress-ring/build-view-models";
 import { SPRINT_BUG_UNASSIGNED_LABEL } from "@/lib/sprints/filter-sprint-bug-detail-items";
+import { getStateChartColor } from "@/lib/work-items/pbi-state-colors";
 import type { SprintBugQualityMetrics } from "@/lib/sprints/sprint-stats-types";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +40,12 @@ export function SprintBugQualitySection({
   const stateBars = bugs.stateBars ?? [];
   const assigneeRows = bugs.assigneeRows ?? [];
   const goalBugsKpi = buildGoalBugsKpiViewModel(bugs);
+
+  // Los estados del chart son de BUGS (no de PBI): usamos el catálogo de Bug
+  // del proyecto activo para que el color de cada barra venga directo de Azure.
+  const currentProject = useCurrentProject();
+  const { states: bugStates } = useBugStates(currentProject);
+  const bugStateColorLookup = (state: string) => getStateChartColor(bugStates, state);
 
   const {
     detailFilter,
@@ -81,6 +90,7 @@ export function SprintBugQualitySection({
               selectedBarKeys={selectedStateKeys}
               onBarClick={(bar) => toggleStateFilter(bar.state)}
               tooltipValueLabel="bugs"
+              stateColorLookup={bugStateColorLookup}
             />
           </ChartPanel>
 
