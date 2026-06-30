@@ -6,7 +6,7 @@ import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
 import { catalogToSprintContext } from "@/lib/ado/sprint-data-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { withAdoProject } from "@/lib/azure-devops/projects";
-import { listBugItemsInSprint, listTasksInSprint } from "@/lib/azure-devops/work-items";
+import { listBugItemsInSprint, listTasksInSprint, enrichItemsWithParentTitles } from "@/lib/azure-devops/work-items";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { SprintItemsKind } from "@/lib/sprint-items/types";
 
@@ -30,10 +30,11 @@ export const loadSprintItemsList = cache(async function loadSprintItemsList(
 
   try {
     const scopedAuth = withAdoProject(caller.auth, ctx.project);
-    const items =
+    const rawItems =
       kind === "tasks"
         ? await listTasksInSprint(scopedAuth, ctx.sprintPath, { assignee: ctx.assignee })
         : await listBugItemsInSprint(scopedAuth, ctx.sprintPath, { assignee: ctx.assignee });
+    const items = await enrichItemsWithParentTitles(scopedAuth, rawItems);
     return { items, error: null };
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : "Error desconocido";

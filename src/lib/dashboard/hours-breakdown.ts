@@ -1,4 +1,4 @@
-import { sumAttendedBugHoursForDay, sumAttendedBugHoursForDayKeys, sumAttendedBugHoursThroughDay } from "@/lib/dashboard/bug-hours";
+import { sumBugHoursForDay, sumBugHoursForDayKeys, sumBugHoursThroughDay } from "@/lib/dashboard/bug-hours";
 import type { SprintBugHoursSource } from "@/lib/dashboard/bug-hours";
 import {
   sumDoneTaskHoursForDay,
@@ -6,7 +6,6 @@ import {
   sumDoneTaskHoursThroughDay,
 } from "@/lib/dashboard/task-hours";
 import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
-import type { SprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 
 export type HoursBreakdown = {
   taskHours: number;
@@ -30,11 +29,10 @@ export function sumHoursBreakdownForDay(
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
   dayKey: string,
-  bugMapping: SprintStatusMapping,
 ): HoursBreakdown {
   return {
     taskHours: sumDoneTaskHoursForDay(tasks, dayKey),
-    bugHours: sumAttendedBugHoursForDay(bugs, dayKey, bugMapping),
+    bugHours: sumBugHoursForDay(bugs, dayKey),
   };
 }
 
@@ -42,11 +40,10 @@ export function sumHoursBreakdownThroughDay(
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
   dayKey: string,
-  bugMapping: SprintStatusMapping,
 ): HoursBreakdown {
   return {
     taskHours: sumDoneTaskHoursThroughDay(tasks, dayKey),
-    bugHours: sumAttendedBugHoursThroughDay(bugs, dayKey, bugMapping),
+    bugHours: sumBugHoursThroughDay(bugs, dayKey),
   };
 }
 
@@ -55,10 +52,9 @@ export function sumHoursBreakdownForDayKeys(
   bugs: SprintBugHoursSource[],
   dayKeys: readonly string[],
   maxDayKey: string,
-  bugMapping: SprintStatusMapping,
 ): HoursBreakdown {
   return {
     taskHours: sumDoneTaskHoursForDayKeys(tasks, dayKeys, maxDayKey),
-    bugHours: sumAttendedBugHoursForDayKeys(bugs, dayKeys, maxDayKey, bugMapping),
+    bugHours: sumBugHoursForDayKeys(bugs, dayKeys, maxDayKey),
   };
 }

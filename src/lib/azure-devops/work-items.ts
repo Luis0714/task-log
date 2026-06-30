@@ -32,6 +32,7 @@ import { parseIdentityDisplayName } from "@/lib/azure-devops/identity-field";
 import { mapBacklogItemFields } from "@/lib/azure-devops/map-backlog-item-fields";
 import { parseAdoWorkItemTags } from "@/lib/work-items/ado-work-item-tags";
 import type { WorkItemFieldPatchOp } from "@/lib/azure-devops/work-item-patch";
+import { toWorkingDateKey } from "@/lib/azure-devops/working-date-field";
 import {
   pickDefaultCompletedTaskState,
   pickDefaultOpenTaskState,
@@ -383,6 +384,13 @@ const PARENT = "System.Parent";
 const SYSTEM_TAGS = "System.Tags";
 const DESCRIPTION_FIELD = "System.Description";
 const ACCEPTANCE_CRITERIA_FIELD = "Microsoft.VSTS.Common.AcceptanceCriteria";
+const ACTIVITY_FIELD = ADO_FIELD_DEFAULTS.activityField;
+const REOPENED_WORKING_DATE_FIELD = "Custom.ReOpenedWorkingDate";
+const REOPENED_BOOLEAN_FIELD = "Custom.Reopenedboolean";
+
+function isReopenedStateName(state: string): boolean {
+  return state.trim().toLowerCase() === "reopened";
+}
 function parseNumericField(value: string | number | undefined): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
@@ -438,6 +446,7 @@ async function fetchWorkItemDetails(
     SYSTEM_TAGS,
     DESCRIPTION_FIELD,
     ACCEPTANCE_CRITERIA_FIELD,
+    ACTIVITY_FIELD,
     ...processProfile.workItemDateFieldNames,
     ...backlogFetchFields,
     ...(processProfile.completedWorkField ? [processProfile.completedWorkField] : []),
@@ -484,6 +493,10 @@ async function fetchWorkItemDetails(
             ? workItem.fields[SYSTEM_TAGS]
             : undefined,
         ),
+        activity:
+          typeof workItem.fields?.[ACTIVITY_FIELD] === "string"
+            ? (workItem.fields[ACTIVITY_FIELD] as string) || undefined
+            : undefined,
         ...mapBacklogItemFields(workItem.fields, responsableFields),
       });
     }
@@ -497,6 +510,38 @@ export async function fetchWorkItemsByIds(
   ids: readonly number[],
 ): Promise<AdoWorkItemOption[]> {
   return fetchWorkItemDetails(auth, [...ids]);
+}
+
+export async function enrichItemsWithParentTitles(
+  auth: AdoCallerAuth,
+  items: AdoWorkItemOption[],
+): Promise<AdoWorkItemOption[]> {
+  const parentIds = [...new Set(items.map((i) => i.parentId).filter((id): id is number => id !== undefined))];
+  if (parentIds.length === 0) return items;
+
+  try {
+    const chunkSize = 200;
+    const titleMap = new Map<number, string>();
+
+    for (let i = 0; i < parentIds.length; i += chunkSize) {
+      const chunk = parentIds.slice(i, i + chunkSize);
+      const data = await fetchWorkItemsBatchWithFieldFallback(auth, chunk, [TITLE]);
+      for (const wi of data.value ?? []) {
+        const t = wi.fields?.[TITLE];
+        if (typeof t === "string" && t.trim()) {
+          titleMap.set(wi.id, t.trim());
+        }
+      }
+    }
+
+    return items.map((item) =>
+      item.parentId !== undefined && titleMap.has(item.parentId)
+        ? { ...item, parentTitle: titleMap.get(item.parentId) }
+        : item,
+    );
+  } catch {
+    return items;
+  }
 }
 
 /**
@@ -664,7 +709,24 @@ export type UpdateWorkItemStateResult =
 
 function looksLikeDateField(referenceName: string): boolean {
   const lower = referenceName.toLowerCase();
-  return lower.includes("date") || lower.includes("fecha");
+  // Cubre los nombres comunes en proyectos Scrum-like: Working Date, Fecha de
+  // trabajo, FechaTrabajo, WorkingDate, FechaTrabajo, FechaInicio, StartDate, etc.
+  return (
+    lower.includes("date") ||
+    lower.includes("fecha") ||
+    lower.includes("working")
+  );
+}
+
+function isStandardAdoDateTimeField(referenceName: string): boolean {
+  // Standard ADO DateTime fields accept either a full ISO DateTime with offset
+  // or a plain "YYYY-MM-DD" (treated as midnight UTC). Custom Date-type fields
+  // (Custom.*) reject DateTime strings with TF401320 "ReadOnly, InvalidNotOldValue",
+  // so we only build the DateTime value for the standard namespaces.
+  return (
+    referenceName.startsWith("Microsoft.VSTS.Scheduling.") ||
+    referenceName.startsWith("System.")
+  );
 }
 
 function buildWorkingDatePatchOps(
@@ -674,16 +736,18 @@ function buildWorkingDatePatchOps(
   timeZone: string,
   workingDateFieldNames: readonly string[],
 ): WorkItemFieldPatchOp[] {
-  const dateValue = buildWorkingDateTimeValue(dateKey, timeStr, timeZone);
   const ops: WorkItemFieldPatchOp[] = [];
 
   for (const fieldName of workingDateFieldNames) {
     const hadValue =
       fields?.[fieldName] !== undefined && fields?.[fieldName] !== null && fields?.[fieldName] !== "";
+    const value = isStandardAdoDateTimeField(fieldName)
+      ? buildWorkingDateTimeValue(dateKey, timeStr, timeZone)
+      : dateKey;
     ops.push({
       op: hadValue ? "replace" : "add",
       path: `/fields/${fieldName}`,
-      value: dateValue,
+      value,
     });
   }
 
@@ -716,6 +780,10 @@ export async function updateWorkItemState(
     workingDate?: string;
     workingTime?: string;
     completedWork?: number;
+    title?: string;
+    description?: string;
+    activity?: string;
+    reopenedDate?: string;
   },
   auth: AdoCallerAuth,
 ): Promise<UpdateWorkItemStateResult> {
@@ -775,6 +843,27 @@ export async function updateWorkItemState(
     patchOps.push(...buildCompletedWorkPatchOps(wi.fields, params.completedWork, processProfile.completedWorkField));
   }
 
+  if (params.title) {
+    patchOps.push({ op: "replace", path: `/fields/${TITLE}`, value: params.title.trim() });
+  }
+
+  if (params.description !== undefined) {
+    patchOps.push({ op: "replace", path: `/fields/${DESCRIPTION_FIELD}`, value: params.description });
+  }
+
+  if (params.activity) {
+    patchOps.push({ op: "replace", path: `/fields/${ACTIVITY_FIELD}`, value: params.activity.trim() });
+  }
+
+  if (isReopenedStateName(state)) {
+    const reopenedDate = params.reopenedDate ? toWorkingDateKey(params.reopenedDate) : null;
+    if (reopenedDate) {
+      patchOps.push({ op: "replace", path: `/fields/${REOPENED_WORKING_DATE_FIELD}`, value: reopenedDate });
+    }
+    // Custom.Reopenedboolean es integer-typed (default "0" en el proceso).
+    patchOps.push({ op: "replace", path: `/fields/${REOPENED_BOOLEAN_FIELD}`, value: 1 });
+  }
+
   patchOps.push({ op: "replace", path: `/fields/${SYSTEM_STATE}`, value: state });
 
   const patchUrl = `${base}/${params.workItemId}?${api}`;
@@ -787,17 +876,52 @@ export async function updateWorkItemState(
   if (!patchRes.ok) {
     const body = await patchRes.text();
 
-    // Some ADO projects enforce field rules on state transitions (e.g. Done requires
-    // a custom Working Date field that isn't in the process profile). When TF401320
-    // reports required+invalidEmpty fields that we didn't include, retry with those
-    // fields set to the working date so the transition succeeds.
-    if (patchRes.status === 400 && body.includes("TF401320") && params.workingDate) {
+    // Some ADO projects enforce field rules on state transitions (e.g. moving
+    // a Bug to a "attended" state requires a custom Working Date field that
+    // isn't in the process profile). When ADO reports a required+invalidEmpty
+    // date-like field that we didn't include, retry with that field set to the
+    // working date so the transition succeeds.
+    //
+    // Cubrimos tres formatos de error:
+    //   1. TF401320 (rule validation) → parseamos `RuleValidationErrors`.
+    //   2. Cuerpo con "Working Date"/"Fecha de trabajo" + "is required"/"required"
+    //      → inferimos que ADO pide un campo de fecha custom.
+    //   3. Cuerpo con "TF400813"/"TF50027" (resource field conflict) → reintentamos
+    //      con todos los campos de fecha-like.
+    const isRuleError = patchRes.status === 400 && body.includes("TF401320");
+    const mentionsRequiredDate =
+      patchRes.status === 400 &&
+      params.workingDate &&
+      /(working date|fecha\s+de\s+trabajo|workingdate)/i.test(body) &&
+      /required|is required|requerid/i.test(body);
+    const isResourceConflict =
+      patchRes.status === 400 &&
+      (body.includes("TF400813") || body.includes("TF50027"));
+    // Some ADO processes mark the custom Working Date field as read-only on
+    // certain work item types (e.g. Bug) so PATCH is rejected with
+    // TF401320 "ReadOnly, InvalidNotOldValue". Drop the Working Date op and
+    // let the state transition / workflow set it instead.
+    const isReadOnlyWorkingDate =
+      patchRes.status === 400 &&
+      body.includes("TF401320") &&
+      /(working date|fecha\s+de\s+trabajo|workingdate)/i.test(body) &&
+      /readonly|invalidnotoldvalue/i.test(body);
+
+    if (params.workingDate && (isRuleError || mentionsRequiredDate || isResourceConflict || isReadOnlyWorkingDate)) {
       const requiredFields = parseRequiredEmptyFieldsFromAdoError(body);
       const patchedPaths = new Set(patchOps.map((op) => op.path));
+
+      // Si la respuesta no es TF401320 pero el cuerpo menciona un campo de fecha
+      // requerido, no tenemos el reference name; pedimos al usuario configurar
+      // el campo en Configuración → Proceso.
       const missingDateFields = requiredFields.filter(
         (f) => !patchedPaths.has(`/fields/${f}`) && looksLikeDateField(f),
       );
 
+      // Fallback: si el cuerpo menciona un campo de fecha por su etiqueta pero no
+      // viene en `RuleValidationErrors` (algunas versiones de ADO solo incluyen
+      // el nombre legible), la app no puede inferir el Reference Name. Lo dejamos
+      // pasar al cliente con un mensaje accionable.
       if (missingDateFields.length > 0) {
         const retryOps: WorkItemFieldPatchOp[] = [
           ...patchOps,
@@ -825,6 +949,37 @@ export async function updateWorkItemState(
 
         return { ok: true, state };
       }
+
+      // Si ADO marca el Working Date como read-only en este work item type,
+      // reintentamos sin esa op; el workflow / la transición de estado se
+      // encarga del campo.
+      if (isReadOnlyWorkingDate) {
+        const workingDatePaths = new Set(
+          workingDateFieldNamesForUpdate.map((f) => `/fields/${f}`),
+        );
+        const retryOps = patchOps.filter((op) => !workingDatePaths.has(op.path));
+
+        if (retryOps.length < patchOps.length) {
+          const retryRes = await adoFetch(auth, patchUrl, {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify(retryOps),
+          });
+
+          if (!retryRes.ok) {
+            const retryBody = await retryRes.text();
+            return {
+              ok: false,
+              status: retryRes.status,
+              body:
+                retryBody.slice(0, 500) ||
+                "No se pudo actualizar el estado del work item.",
+            };
+          }
+
+          return { ok: true, state };
+        }
+      }
     }
 
     return {
@@ -851,6 +1006,69 @@ export async function deleteWorkItem(
   if (!res.ok) {
     const body = await res.text();
     return { ok: false, status: res.status, body: body.slice(0, 500) };
+  }
+
+  return { ok: true };
+}
+
+export type ChangeWorkItemParentResult =
+  | { ok: true }
+  | { ok: false; status: number; body: string };
+
+export async function changeWorkItemParent(
+  workItemId: number,
+  newParentId: number,
+  auth: AdoCallerAuth,
+): Promise<ChangeWorkItemParentResult> {
+  const api = "api-version=7.1";
+  const base = `${adoProjectBase(auth)}/_apis/wit/workitems`;
+
+  // Read current relations to find the index of the existing parent link
+  const getUrl = `${base}/${workItemId}?${api}&$expand=relations`;
+  const getRes = await adoFetch(auth, getUrl);
+  if (!getRes.ok) {
+    const body = await getRes.text();
+    return { ok: false, status: getRes.status, body: body.slice(0, 500) };
+  }
+
+  const wi = (await getRes.json()) as {
+    relations?: Array<{ rel: string; url: string }>;
+  };
+
+  const relations = wi.relations ?? [];
+  const parentRelIndex = relations.findIndex(
+    (r) => r.rel === "System.LinkTypes.Hierarchy-Reverse",
+  );
+
+  const newParentUrl = `${adoOrgBase(auth)}/_apis/wit/workitems/${newParentId}`;
+  const headers: Record<string, string> = {
+    Authorization: authHeader(auth),
+    "Content-Type": "application/json-patch+json",
+  };
+  const patchUrl = `${base}/${workItemId}?${api}`;
+
+  // If there's an existing parent, remove it and add new; otherwise just add.
+  const ops: Array<{ op: string; path: string; value?: unknown }> = [];
+
+  if (parentRelIndex >= 0) {
+    ops.push({ op: "remove", path: `/relations/${parentRelIndex}` });
+  }
+
+  ops.push({
+    op: "add",
+    path: "/relations/-",
+    value: { rel: "System.LinkTypes.Hierarchy-Reverse", url: newParentUrl },
+  });
+
+  const patchRes = await adoFetch(auth, patchUrl, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(ops),
+  });
+
+  if (!patchRes.ok) {
+    const body = await patchRes.text();
+    return { ok: false, status: patchRes.status, body: body.slice(0, 500) };
   }
 
   return { ok: true };

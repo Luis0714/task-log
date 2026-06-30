@@ -43,6 +43,16 @@ export const updateWorkItemBodySchema = z.object({
   workflowTag: userStoryWorkflowTagSchema.optional(),
   /** Tags completos de la HU (`System.Tags`). */
   tags: z.array(z.string().trim().min(1).max(200)).optional(),
+  /** Título del work item (System.Title). */
+  title: z.string().trim().min(1).max(255).optional(),
+  /** Descripción del work item (System.Description). */
+  description: z.string().optional(),
+  /** Actividad de la tarea (Microsoft.VSTS.Common.Activity). */
+  activity: z.string().trim().max(100).optional(),
+  /** ID del nuevo work item padre para re-asignación. */
+  newParentId: z.number().int().positive().optional(),
+  /** Fecha de reapertura (Custom.ReOpenedWorkingDate). Requerida al pasar a "Reopened". */
+  reopenedDate: dateKeySchema.optional(),
 });
 
 export function isBacklogWorkItemUpdate(body: UpdateWorkItemBody): boolean {

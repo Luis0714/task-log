@@ -4,7 +4,6 @@ import { toLocalDateKey, type SprintWorkingDay } from "@/lib/dashboard/sprint-da
 import type { SprintBugHoursSource } from "@/lib/dashboard/bug-hours";
 import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
 import type { SprintWeekMetrics } from "@/lib/dashboard/types";
-import type { SprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 
 function getMondayOfWeek(date: Date): Date {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -49,14 +48,13 @@ function buildWeekMetrics(
   label: string,
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
-  bugMapping: SprintStatusMapping,
 ): SprintWeekMetrics | null {
   if (days.length === 0) return null;
 
   const dayKeys = days.map((day) => day.value);
   const weekEndKey = dayKeys[dayKeys.length - 1] ?? "";
   const hours = weekEndKey
-    ? sumHoursBreakdownForDayKeys(tasks, bugs, dayKeys, weekEndKey, bugMapping)
+    ? sumHoursBreakdownForDayKeys(tasks, bugs, dayKeys, weekEndKey)
     : { taskHours: 0, bugHours: 0 };
 
   return {
@@ -73,11 +71,10 @@ export function computeSprintWeekMetrics(
   workingDays: readonly SprintWorkingDay[],
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
-  bugMapping: SprintStatusMapping,
 ): SprintWeekMetrics[] {
   return splitSprintIntoWeeks(workingDays)
     .map((days, index) =>
-      buildWeekMetrics(days, `Semana ${index + 1}`, tasks, bugs, bugMapping),
+      buildWeekMetrics(days, `Semana ${index + 1}`, tasks, bugs),
     )
     .filter((week): week is SprintWeekMetrics => week !== null);
 }

@@ -83,7 +83,7 @@ export function buildDashboardMetrics({
   );
   const sprintEndKey = sprintWorkingDays[sprintWorkingDays.length - 1]?.value ?? "";
 
-  const hoursToday = sumHoursBreakdownForDay(bundle.tasks, bundle.bugs, hoursDayKey, bugMapping);
+  const hoursToday = sumHoursBreakdownForDay(bundle.tasks, bundle.bugs, hoursDayKey);
   const hoursSprintTarget = computeSprintCapacityHours(
     currentSprint?.startDate,
     currentSprint?.finishDate,
@@ -92,19 +92,17 @@ export function buildDashboardMetrics({
   const allSprintDayKeys = sprintWorkingDays.map((d) => d.value);
   const hoursSprintCurrent =
     allSprintDayKeys.length > 0
-      ? sumHoursBreakdownForDayKeys(bundle.tasks, bundle.bugs, allSprintDayKeys, sprintEndKey, bugMapping)
+      ? sumHoursBreakdownForDayKeys(bundle.tasks, bundle.bugs, allSprintDayKeys, sprintEndKey)
       : { taskHours: 0, bugHours: 0 };
   const hoursByDay = computeSprintHoursSeries(
     sprintWorkingDays,
     bundle.tasks,
     bundle.bugs,
-    bugMapping,
   );
   const sprintWeeks = computeSprintWeekMetrics(
     sprintWorkingDays,
     bundle.tasks,
     bundle.bugs,
-    bugMapping,
   );
 
   const metrics = computeDashboardMetrics(hoursToday, {

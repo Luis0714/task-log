@@ -41,6 +41,11 @@ export function SprintItemRow({
         <p className="text-foreground mt-0.5 truncate text-sm font-medium" title={item.title}>
           {item.title}
         </p>
+        {item.parentTitle ? (
+          <p className="text-muted-foreground mt-0.5 truncate text-xs" title={item.parentTitle}>
+            HU: {item.parentTitle}
+          </p>
+        ) : null}
       </div>
 
       <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">

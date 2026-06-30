@@ -19,6 +19,12 @@ export type BulkUpdateStatePayload = {
   workingTime?: string;
 };
 
+export type BulkReassignParentPayload = {
+  project: string;
+  ids: number[];
+  newParentId: number;
+};
+
 /**
  * Elimina varias tareas en una sola llamada. Si una falla, las demás se siguen
  * intentando; el servidor devuelve el total esperado y el realmente eliminado.
@@ -84,6 +90,40 @@ export async function bulkUpdateWorkItemsState(
       processed: 0,
       failed: payload.ids,
       errorMessage: body.error ?? "No se pudo cambiar el estado de las tareas.",
+    };
+  }
+
+  return {
+    ok: true,
+    expected: body.expected ?? payload.ids.length,
+    processed: body.updated ?? 0,
+    failed: body.failed ?? [],
+  };
+}
+
+export async function bulkReassignWorkItemsParent(
+  payload: BulkReassignParentPayload,
+): Promise<BulkWorkItemResult> {
+  const response = await fetch("/api/ado/work-items/bulk-reassign-parent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const body = (await response.json()) as {
+    ok?: boolean;
+    expected?: number;
+    updated?: number;
+    failed?: number[];
+    error?: string;
+  };
+
+  if (!response.ok || !body.ok) {
+    return {
+      ok: false,
+      expected: payload.ids.length,
+      processed: 0,
+      failed: payload.ids,
+      errorMessage: body.error ?? "No se pudo re-asignar la HU padre de las tareas.",
     };
   }
 

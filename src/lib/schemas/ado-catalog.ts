@@ -66,6 +66,10 @@ export const adoWorkItemOptionSchema = z.object({
   responsables: z.record(z.string(), z.string()).optional(),
   /** Tags de Azure DevOps (`System.Tags`), parseados. */
   tags: z.array(z.string()).optional(),
+  /** Título del work item padre (HU/PBI). */
+  parentTitle: z.string().optional(),
+  /** Actividad de la tarea (Microsoft.VSTS.Common.Activity). */
+  activity: z.string().optional(),
 });
 
 export const adoSprintsResponseSchema = z.object({

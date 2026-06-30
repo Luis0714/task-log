@@ -5,7 +5,9 @@ export type { AzdoAuthMethod, ConnectAuthOptions } from "@/lib/auth/auth-method"
 export {
   buildConnectionMetaLine,
   getAuthMethodLabel,
+  humanizeRole,
 } from "@/lib/auth/connection-display-labels";
+export type { ConnectionMetaLine } from "@/lib/auth/connection-display-labels";
 
 export type AdoConnectionDisplay = {
   authMethod: ServerAuthState["authMethod"];

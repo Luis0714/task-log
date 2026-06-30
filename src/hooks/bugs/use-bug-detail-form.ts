@@ -13,6 +13,10 @@ import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-ca
 import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
 import { isDateKeyValid } from "@/lib/validation/date-key";
 
+export function isReopenedState(state: string): boolean {
+  return state.trim().toLowerCase() === "reopened";
+}
+
 export type UseBugDetailFormOptions = {
   bug: AdoWorkItemOptionDto | null;
   bugStates: readonly AdoTaskStateDto[];
@@ -35,6 +39,8 @@ export function useBugDetailForm({
   const [draftState, setDraftState] = useState("");
   const [draftWorkingDate, setDraftWorkingDate] = useState("");
   const [draftCompletedWork, setDraftCompletedWork] = useState("0");
+  const [draftReopenedDate, setDraftReopenedDate] = useState("");
+  const [draftNewParentId, setDraftNewParentId] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
 
   const stateOptions = useMemo(() => bugStates.map((state) => state.name), [bugStates]);
@@ -49,22 +55,31 @@ export function useBugDetailForm({
     setDraftState(bug.state);
     setDraftWorkingDate(bug.workingDate?.trim() || getDefaultWorkingDate());
     setDraftCompletedWork(formatInitialCompletedWork(bug.loggedHours));
+    setDraftReopenedDate("");
+    setDraftNewParentId(undefined);
   }, [bug?.id, bug?.state, bug?.workingDate, bug?.loggedHours]);
 
   const initialWorkingDate = bug?.workingDate?.trim() ?? "";
   const initialCompletedWork = bug?.loggedHours ?? 0;
   const parsedCompletedWork = parseCompletedWorkInput(draftCompletedWork);
+  const reopening = isReopenedState(draftState);
 
   const isStateDirty = Boolean(bug && draftState !== bug.state);
   const isDateDirty = Boolean(bug && draftWorkingDate !== initialWorkingDate);
   const isHoursDirty = Boolean(
     bug && parsedCompletedWork !== null && parsedCompletedWork !== initialCompletedWork,
   );
-  const isDirty = isStateDirty || isDateDirty || isHoursDirty;
+  const isParentDirty = Boolean(bug && draftNewParentId !== undefined);
+  const isDirty = isStateDirty || isDateDirty || isHoursDirty || isParentDirty;
+
+  const isReopenedDateValid = !reopening || isDateKeyValid(draftReopenedDate);
 
   const canSave = computeDraftCanSave({
     isDirty,
-    isValid: isDateKeyValid(draftWorkingDate) && parsedCompletedWork !== null,
+    isValid:
+      isDateKeyValid(draftWorkingDate) &&
+      parsedCompletedWork !== null &&
+      isReopenedDateValid,
     externalReady: statesReady && Boolean(project),
     isSubmitting: saving,
   });
@@ -83,6 +98,8 @@ export function useBugDetailForm({
         state: draftState,
         workingDate: isDateDirty ? draftWorkingDate : undefined,
         completedWork: parsedCompletedWork,
+        reopenedDate: reopening && draftReopenedDate ? draftReopenedDate : undefined,
+        newParentId: draftNewParentId,
       });
 
       if (!result.ok) return result;
@@ -100,6 +117,10 @@ export function useBugDetailForm({
     parsedCompletedWork,
     draftState,
     draftWorkingDate,
+    isDateDirty,
+    draftReopenedDate,
+    reopening,
+    draftNewParentId,
     onSaved,
     onClose,
   ]);
@@ -111,6 +132,11 @@ export function useBugDetailForm({
     setDraftWorkingDate,
     draftCompletedWork,
     setDraftCompletedWork,
+    draftReopenedDate,
+    setDraftReopenedDate,
+    draftNewParentId,
+    setDraftNewParentId,
+    reopening,
     stateOptions,
     statesReady,
     statesLoading,

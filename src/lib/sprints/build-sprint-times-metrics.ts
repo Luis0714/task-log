@@ -27,7 +27,6 @@ export type BuildSprintTimesMetricsInput = {
   sprintStartDate?: string | null;
   sprintFinishDate?: string | null;
   nonWorkingDates?: readonly string[];
-  bugMapping: import("@/lib/dashboard/sprint-status-mapping").SprintStatusMapping;
   /** Roster del equipo + asignados del sprint (misma fuente que filtros de HUs y bugs). */
   assigneeRoster?: readonly AdoTeamMemberDto[];
 };
@@ -78,7 +77,6 @@ function buildPersonRow(
   week2DayKeys: readonly string[],
   allSprintDayKeys: readonly string[],
   sprintEndKey: string,
-  bugMapping: import("@/lib/dashboard/sprint-status-mapping").SprintStatusMapping,
 ): SprintTimesPersonRow {
   const personTasks = filterItemsByAssignee(tasks, assignee, roster);
   const personBugs = filterItemsByAssignee(bugs, assignee, roster);
@@ -88,17 +86,17 @@ function buildPersonRow(
 
   const week1 =
     week1DayKeys.length > 0 && week1EndKey
-      ? sumHoursBreakdownForDayKeys(personTasks, personBugs, week1DayKeys, week1EndKey, bugMapping)
+      ? sumHoursBreakdownForDayKeys(personTasks, personBugs, week1DayKeys, week1EndKey)
       : EMPTY_HOURS_BREAKDOWN;
 
   const week2 =
     week2DayKeys.length > 0 && week2EndKey
-      ? sumHoursBreakdownForDayKeys(personTasks, personBugs, week2DayKeys, week2EndKey, bugMapping)
+      ? sumHoursBreakdownForDayKeys(personTasks, personBugs, week2DayKeys, week2EndKey)
       : EMPTY_HOURS_BREAKDOWN;
 
   const sprint =
     allSprintDayKeys.length > 0
-      ? sumHoursBreakdownForDayKeys(personTasks, personBugs, allSprintDayKeys, sprintEndKey, bugMapping)
+      ? sumHoursBreakdownForDayKeys(personTasks, personBugs, allSprintDayKeys, sprintEndKey)
       : EMPTY_HOURS_BREAKDOWN;
 
   return { assignee, week1, week2, sprint };
@@ -207,7 +205,6 @@ export function buildSprintTimesMetrics(
         week2DayKeys,
         allSprintDayKeys,
         sprintEndKey,
-        input.bugMapping,
       ),
     ),
   );

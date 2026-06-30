@@ -43,7 +43,7 @@ function parsePbiStateBar(value: unknown): PbiStateBar | null {
   const state = typeof value.state === "string" ? value.state : "";
   const count = Number(value.count ?? 0);
   if (!state || count <= 0) return null;
-  return { state, count };
+  return { state, count, items: [] };
 }
 
 function parseBugAssigneeRow(value: unknown): SprintBugAssigneeRow | null {
@@ -112,13 +112,6 @@ function parseBugQualityMetrics(value: unknown): SprintBugQualityMetrics | null 
     goalStoriesWithOpenBugs: Number(value.goalStoriesWithOpenBugs ?? 0),
     items: parseBugDetailItems(value.items),
   };
-}
-
-function parsePbiStateBars(value: unknown): PbiStateBar[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map(parsePbiStateBar)
-    .filter((bar): bar is PbiStateBar => bar !== null);
 }
 
 function parsePbiProgress(value: unknown): SprintPbiProgress {
@@ -199,6 +192,8 @@ function parseDeliveryMetrics(value: unknown): SprintSnapshotOperationalMetrics[
     storyPointsAssigned: Number(value.storyPointsAssigned ?? 0),
     storyPointsDeveloped: Number(value.storyPointsDeveloped ?? 0),
     pbiProgress: parsePbiProgress(value.pbiProgress),
+    huStateGroups: [],
+    bugStateGroups: [],
   };
 }
 

@@ -75,7 +75,6 @@ export function buildSprintOperationalMetrics(
       sprintStartDate: input.sprintStartDate,
       sprintFinishDate: input.sprintFinishDate,
       nonWorkingDates: input.nonWorkingDates,
-      bugMapping,
       assigneeRoster: input.assigneeRoster,
     }),
   };

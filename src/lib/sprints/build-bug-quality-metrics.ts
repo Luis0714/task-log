@@ -10,15 +10,20 @@ import { buildSprintBugAssigneeRows } from "@/lib/sprints/build-sprint-bug-assig
 import type { SprintBugQualityMetrics } from "@/lib/sprints/sprint-stats-types";
 
 function buildBugStateBars(bugs: readonly AdoWorkItemOptionDto[]): PbiStateBar[] {
-  const counts = new Map<string, number>();
+  const stateMap = new Map<string, { id: number; title: string }[]>();
 
   for (const bug of bugs) {
     const state = bug.state?.trim() || "Sin estado";
-    counts.set(state, (counts.get(state) ?? 0) + 1);
+    const existing = stateMap.get(state);
+    if (existing) {
+      existing.push({ id: bug.id, title: bug.title });
+    } else {
+      stateMap.set(state, [{ id: bug.id, title: bug.title }]);
+    }
   }
 
-  return [...counts.entries()]
-    .map(([state, count]) => ({ state, count }))
+  return [...stateMap.entries()]
+    .map(([state, items]) => ({ state, count: items.length, items }))
     .sort((left, right) => right.count - left.count || left.state.localeCompare(right.state, "es"));
 }
 
