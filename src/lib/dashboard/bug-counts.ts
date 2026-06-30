@@ -1,5 +1,4 @@
 import {
-  BUG_STATUS_MAPPING,
   stateMatchesCompletedState,
   type SprintStatusMapping,
 } from "@/lib/dashboard/sprint-status-mapping";
@@ -10,9 +9,13 @@ export type BugCountsForParent = {
   attended: number;
 };
 
+/**
+ * Agrupa bugs por HU padre y cuenta cuántos están atendidos.
+ * El `bugMapping` se construye con `buildSprintStatusMapping(bugStates)`.
+ */
 export function buildBugCountsByParentId(
   bugs: readonly Pick<AdoWorkItemOptionDto, "parentId" | "state">[],
-  mapping: SprintStatusMapping = BUG_STATUS_MAPPING,
+  mapping: SprintStatusMapping,
 ): Map<number, BugCountsForParent> {
   const counts = new Map<number, BugCountsForParent>();
 

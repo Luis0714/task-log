@@ -1,5 +1,6 @@
 import type { AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { PbiStateBar } from "@/lib/dashboard/pbi-state-chart-data";
+import type { SprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import {
   buildParentTitleLookup,
   buildSprintBugDetailItems,
@@ -24,13 +25,14 @@ function buildBugStateBars(bugs: readonly AdoWorkItemOptionDto[]): PbiStateBar[]
 function countGoalStoriesWithOpenBugs(
   bugs: readonly AdoWorkItemOptionDto[],
   goalWorkItemIds: ReadonlySet<number>,
+  bugMapping: SprintStatusMapping,
 ): number {
   const storiesWithOpenBugs = new Set<number>();
 
   for (const bug of bugs) {
     const parentId = bug.parentId;
     if (!parentId || !goalWorkItemIds.has(parentId)) continue;
-    if (!isSprintBugAttended(bug.state)) {
+    if (!isSprintBugAttended(bug.state, bugMapping)) {
       storiesWithOpenBugs.add(parentId);
     }
   }
@@ -44,10 +46,11 @@ export type BuildBugQualityMetricsInput = {
   parentTitlesById?: ReadonlyMap<number, string>;
   /** Roster del equipo + asignados del sprint (misma fuente que filtros de HUs). */
   assigneeRoster?: readonly AdoTeamMemberDto[];
+  bugMapping: SprintStatusMapping;
 };
 
 export function buildBugQualityMetrics(input: BuildBugQualityMetricsInput): SprintBugQualityMetrics {
-  const { bugs, goalWorkItemIds, parentTitlesById, assigneeRoster = [] } = input;
+  const { bugs, goalWorkItemIds, parentTitlesById, assigneeRoster = [], bugMapping } = input;
   let attended = 0;
   let unassigned = 0;
   let goalBugsTotal = 0;
@@ -56,7 +59,7 @@ export function buildBugQualityMetrics(input: BuildBugQualityMetricsInput): Spri
   for (const bug of bugs) {
     if (!bug.assignedTo?.trim()) unassigned += 1;
 
-    const attendedBug = isSprintBugAttended(bug.state);
+    const attendedBug = isSprintBugAttended(bug.state, bugMapping);
     if (attendedBug) attended += 1;
 
     const parentId = bug.parentId;
@@ -76,11 +79,11 @@ export function buildBugQualityMetrics(input: BuildBugQualityMetricsInput): Spri
     unassigned,
     attendedPercent: total > 0 ? Math.round((attended / total) * 100) : 0,
     stateBars: buildBugStateBars(bugs),
-    assigneeRows: buildSprintBugAssigneeRows(bugs, assigneeRoster),
+    assigneeRows: buildSprintBugAssigneeRows(bugs, assigneeRoster, bugMapping),
     goalBugsTotal,
     goalBugsOpen,
-    goalStoriesWithOpenBugs: countGoalStoriesWithOpenBugs(bugs, goalWorkItemIds),
-    items: buildSprintBugDetailItems({ bugs, goalWorkItemIds, parentTitlesById }),
+    goalStoriesWithOpenBugs: countGoalStoriesWithOpenBugs(bugs, goalWorkItemIds, bugMapping),
+    items: buildSprintBugDetailItems({ bugs, goalWorkItemIds, parentTitlesById, bugMapping }),
   };
 }
 

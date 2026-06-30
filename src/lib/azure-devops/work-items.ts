@@ -9,7 +9,7 @@ import {
 } from "@/lib/azure-devops/client";
 import { resolveAdoCaller, type AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { listTaskStates } from "@/lib/azure-devops/work-item-type-states";
-import { fetchTaskActivityValues } from "@/lib/azure-devops/fetch-task-activity-values";
+import { fetchActivityValues } from "@/lib/azure-devops/activity-values";
 import { ADO_FIELD_DEFAULTS } from "@/lib/azure-devops/ado-field-defaults";
 import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
 import { buildAssigneeWiqlCondition } from "@/lib/filters/assignee-wiql";
@@ -130,47 +130,13 @@ export async function createTaskUnderPbi(
     };
   }
 
-  // Resolve the activity field to use. processProfile.activityField may be null when
-  // discovery stored null due to a failed project fields listing (empty set), even for
-  // Scrum/Agile projects that have Activity. If the user provided an activity, check
-  // whether the project actually has the field by querying ADO allowed values.
-  let resolvedActivityField = processProfile.activityField;
-  let cachedAllowedActivities: readonly string[] | null = null;
-  if (!resolvedActivityField && params.activity) {
-    const discovered = await fetchTaskActivityValues(
-      auth,
-      processProfile.taskWorkItemType,
-      ADO_FIELD_DEFAULTS.activityField,
-    );
-    if (discovered.length > 0) {
-      resolvedActivityField = ADO_FIELD_DEFAULTS.activityField;
-      cachedAllowedActivities = discovered;
-    }
-  }
-
-  if (resolvedActivityField) {
-    if (!params.activity) {
+  if (params.activity) {
+    const allowedActivities = await fetchActivityValues(auth);
+    if (allowedActivities.length > 0 && !allowedActivities.includes(params.activity)) {
       return {
         ok: false,
         status: 422,
-        body: "El proyecto requiere el campo Activity, pero no se proporcionó ningún valor.",
-      };
-    }
-    const allowedActivities =
-      cachedAllowedActivities ??
-      (await fetchTaskActivityValues(
-        auth,
-        processProfile.taskWorkItemType,
-        resolvedActivityField,
-      ));
-    if (
-      allowedActivities.length > 0 &&
-      !allowedActivities.includes(params.activity)
-    ) {
-      return {
-        ok: false,
-        status: 422,
-        body: `La actividad "${params.activity}" no está permitida en este proyecto. Valores válidos: ${allowedActivities.join(", ")}.`,
+        body: `La actividad "${params.activity}" no está permitida. Valores válidos: ${allowedActivities.join(", ")}.`,
       };
     }
   }
@@ -216,8 +182,8 @@ export async function createTaskUnderPbi(
     ops.push({ op: "add", path: `/fields/${processProfile.remainingWorkField}`, value: 0 });
   }
 
-  if (resolvedActivityField && params.activity) {
-    ops.push({ op: "add", path: `/fields/${resolvedActivityField}`, value: params.activity });
+  if (params.activity) {
+    ops.push({ op: "add", path: `/fields/${ADO_FIELD_DEFAULTS.activityField}`, value: params.activity });
   }
 
   const description = params.description?.trim();

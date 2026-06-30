@@ -1,16 +1,8 @@
 import {
   stateMatchesCategory,
   stateMatchesCompletedState,
-  USER_STORY_STATUS_MAPPING,
+  type SprintStatusMapping,
 } from "@/lib/dashboard/sprint-status-mapping";
-
-function isCommittedPbiState(state: string): boolean {
-  return stateMatchesCategory(state, USER_STORY_STATUS_MAPPING.inProgress);
-}
-
-function isDevelopedPbiState(state: string): boolean {
-  return stateMatchesCompletedState(state, USER_STORY_STATUS_MAPPING);
-}
 import { workItemHasTag } from "@/lib/work-items/ado-work-item-tags";
 import { HU_WORKFLOW_TAG_LABELS } from "@/lib/work-items/user-story-workflow-tags";
 
@@ -25,10 +17,22 @@ function itemTags(item: UserStoryWorkflowItem): readonly string[] {
   return item.tags ?? [];
 }
 
-function isPendingState(state: string): boolean {
+/**
+ * El mapeo es dinámico — debe venir del catálogo ADO cargado por el caller
+ * (ver `buildSprintStatusMapping`). Estos helpers privados lo reciben siempre.
+ */
+function isCommittedPbiState(state: string, mapping: SprintStatusMapping): boolean {
+  return stateMatchesCategory(state, mapping.inProgress);
+}
+
+function isDevelopedPbiState(state: string, mapping: SprintStatusMapping): boolean {
+  return stateMatchesCompletedState(state, mapping);
+}
+
+function isPendingState(state: string, mapping: SprintStatusMapping): boolean {
   return (
-    isCommittedPbiState(state) ||
-    stateMatchesCategory(state, USER_STORY_STATUS_MAPPING.pending)
+    isCommittedPbiState(state, mapping) ||
+    stateMatchesCategory(state, mapping.pending)
   );
 }
 
@@ -36,44 +40,43 @@ function hasWorkflowTag(item: UserStoryWorkflowItem, label: string): boolean {
   return workItemHasTag(itemTags(item), label);
 }
 
-export function isDevelopedUserStory(item: UserStoryWorkflowItem): boolean {
-  if (isDevelopedPbiState(item.state)) return true;
-
-  return (
-    isCommittedPbiState(item.state) &&
-    hasWorkflowTag(item, HU_WORKFLOW_TAG_LABELS.DESARROLLADA)
-  );
-}
-
-export function isInProgressUserStory(item: UserStoryWorkflowItem): boolean {
-  return (
-    isCommittedPbiState(item.state) &&
-    hasWorkflowTag(item, HU_WORKFLOW_TAG_LABELS.EN_DESARROLLO) &&
-    !hasWorkflowTag(item, HU_WORKFLOW_TAG_LABELS.DESARROLLADA)
-  );
-}
-
-export function isPendingUserStory(item: UserStoryWorkflowItem): boolean {
-  if (!isPendingState(item.state)) return false;
-
-  return (
-    !hasWorkflowTag(item, HU_WORKFLOW_TAG_LABELS.EN_DESARROLLO) &&
-    !hasWorkflowTag(item, HU_WORKFLOW_TAG_LABELS.DESARROLLADA)
-  );
-}
-
+/**
+ * Clasifica una HU. El `mapping` se construye en el loader con
+ * `buildSprintStatusMapping(states)` a partir del catálogo de Azure.
+ */
 export function classifyUserStoryWorkflow(
   item: UserStoryWorkflowItem,
+  mapping: SprintStatusMapping,
 ): UserStoryWorkflowCategory {
-  if (isDevelopedUserStory(item)) return "developed";
-  if (isInProgressUserStory(item)) return "inProgress";
-  if (isPendingUserStory(item)) return "pending";
+  const committed = isCommittedPbiState(item.state, mapping);
+  const developed = isDevelopedPbiState(item.state, mapping);
+  const pending = isPendingState(item.state, mapping);
+
+  if (developed) return "developed";
+
+  if (committed && hasWorkflowTag(item, HU_WORKFLOW_TAG_LABELS.EN_DESARROLLO)) {
+    return hasWorkflowTag(item, HU_WORKFLOW_TAG_LABELS.DESARROLLADA)
+      ? "developed"
+      : "inProgress";
+  }
+
+  if (committed && hasWorkflowTag(item, HU_WORKFLOW_TAG_LABELS.DESARROLLADA)) {
+    return "developed";
+  }
+
+  if (pending) {
+    const enDesarrollo = hasWorkflowTag(item, HU_WORKFLOW_TAG_LABELS.EN_DESARROLLO);
+    const desarrollada = hasWorkflowTag(item, HU_WORKFLOW_TAG_LABELS.DESARROLLADA);
+    if (!enDesarrollo && !desarrollada) return "pending";
+  }
+
   return "other";
 }
 
 export function filterUserStoriesByWorkflowCategory<T extends UserStoryWorkflowItem>(
   items: readonly T[],
   category: UserStoryWorkflowCategory,
+  mapping: SprintStatusMapping,
 ): T[] {
-  return items.filter((item) => classifyUserStoryWorkflow(item) === category);
+  return items.filter((item) => classifyUserStoryWorkflow(item, mapping) === category);
 }

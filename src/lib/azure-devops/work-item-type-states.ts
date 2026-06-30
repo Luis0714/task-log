@@ -5,7 +5,10 @@ import { createTtlCache } from "@/lib/cache/ttl-cache";
 
 export type AdoWorkItemTypeState = {
   name: string;
+  /** Categoría de Azure DevOps: "Proposed" | "InProgress" | "Resolved" | "Completed" | "Removed". */
   category: string;
+  /** Color hexadecimal sin prefijo "#" (formato exacto que devuelve la API de Azure). */
+  color: string;
 };
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -28,7 +31,7 @@ export async function listWorkItemTypeStates(
   const cached = statesCache.get(key);
   if (cached) return cached;
 
-  const url = `${adoProjectBase(auth)}/_apis/wit/workitemtypes/${encodeURIComponent(typeName)}?api-version=7.1`;
+  const url = `${adoProjectBase(auth)}/_apis/wit/workitemtypes/${encodeURIComponent(typeName)}/states?api-version=7.1`;
   const res = await adoFetch(auth, url);
 
   if (!res.ok) {
@@ -37,13 +40,14 @@ export async function listWorkItemTypeStates(
   }
 
   const data = (await res.json()) as {
-    states?: Array<{ name?: string; category?: string }>;
+    value?: Array<{ name?: string; category?: string; color?: string }>;
   };
 
-  const states = (data.states ?? [])
+  const states = (data.value ?? [])
     .map((state) => ({
       name: state.name?.trim() ?? "",
       category: state.category?.trim() ?? "",
+      color: state.color?.trim() || "b2b2b2",
     }))
     .filter((state) => state.name.length > 0);
 

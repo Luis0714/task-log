@@ -32,10 +32,16 @@ function SharePdfTagsHeaderCell({ label }: { label: string }) {
   );
 }
 
-function SharePdfStateCell({ state }: { state: string }) {
+function SharePdfStateCell({
+  state,
+  backlogStates,
+}: Readonly<{
+  state: string;
+  backlogStates: SprintGoalSharePayload["backlogStates"];
+}>) {
   return (
     <View style={sprintGoalSharePdfStyles.colStateCell}>
-      <SprintGoalSharePdfStateBadge state={state} />
+      <SprintGoalSharePdfStateBadge state={state} backlogStates={backlogStates} />
     </View>
   );
 }
@@ -74,11 +80,11 @@ export function SprintGoalSharePdfTableSection({ payload }: SprintGoalSharePdfTa
               STORY_TITLE_MAX_LENGTH,
             )}
           </Text>
-          <SharePdfStateCell state={story.originalState} />
+          <SharePdfStateCell state={story.originalState} backlogStates={payload.backlogStates} />
           <SharePdfTagsCell value={story.originalTags} />
-          <SharePdfStateCell state={story.targetState} />
+          <SharePdfStateCell state={story.targetState} backlogStates={payload.backlogStates} />
           <SharePdfTagsCell value={story.targetTags} />
-          <SharePdfStateCell state={story.currentState} />
+          <SharePdfStateCell state={story.currentState} backlogStates={payload.backlogStates} />
           <SharePdfTagsCell value={story.currentTags} />
         </View>
       ))}

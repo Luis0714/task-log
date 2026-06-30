@@ -22,7 +22,8 @@ import {
   isValidTask,
 } from "@/lib/copilot/task-preview.utils";
 import { totalHours } from "@/lib/copilot/copilot.utils";
-import { useTaskMeta } from "@/hooks/use-task-meta";
+import { useActivityValues } from "@/hooks/use-activity-values";
+import { useTaskStates } from "@/hooks/use-task-states";
 
 export type CopilotCreateTasksFormProps = {
   preview: CreateTasksBatch;
@@ -46,7 +47,9 @@ export function CopilotCreateTasksForm({
   const [tasks, setTasks] = useState<CreateTaskBatchItem[]>(() =>
     preview.tasks.map((t) => ({ ...t, markAsDone: true })),
   );
-  const { activities, stateNames } = useTaskMeta();
+  const { values: activities } = useActivityValues();
+  const { states } = useTaskStates();
+  const stateNames = states.map((s) => s.name);
 
   const updateTask = (index: number, next: CreateTaskBatchItem) => {
     setTasks((current) => current.map((task, i) => (i === index ? next : task)));

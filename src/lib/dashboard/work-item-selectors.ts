@@ -4,7 +4,6 @@ import { DEFAULT_SPRINT_HOURS_TARGET } from "@/lib/dashboard/constants";
 import {
   stateMatchesCategory,
   stateMatchesCompletedState,
-  USER_STORY_STATUS_MAPPING,
   type SprintStatusMapping,
 } from "@/lib/dashboard/sprint-status-mapping";
 import {
@@ -27,79 +26,34 @@ import type { SprintDayHoursPoint } from "@/lib/dashboard/sprint-hours-series";
 import type { SprintWeekMetrics } from "@/lib/dashboard/types";
 import {
   isCommittedPbiState as isCommittedPbiStateFromLib,
-  isUpcomingPbiState,
   selectInProgressWorkItems,
   selectUpcomingWorkItems,
 } from "@/lib/azure-devops/work-items-filters";
-import { resolveStateIndexInBacklogOrder } from "@/lib/sprints/evaluate-sprint-story-goal-status";
 
-function normalizeState(state: string): string {
-  return state.trim().toLowerCase();
-}
-
-export function isCommittedPbiState(state: string): boolean {
-  return isCommittedPbiStateFromLib(state);
-}
-
-export function isUpcomingState(state: string): boolean {
-  return isUpcomingPbiState(state);
-}
-
-export function isQaState(state: string): boolean {
-  const normalized = normalizeState(state);
-  return (
-    normalized.includes("qa") ||
-    normalized.includes("test") ||
-    normalized.includes("review") ||
-    normalized.includes("validat")
-  );
-}
-
-export function isDoneState(state: string): boolean {
-  const normalized = normalizeState(state);
-  return ["done", "closed", "completed", "resolved"].includes(normalized);
+export function isCommittedPbiState(
+  state: string,
+  mapping: SprintStatusMapping,
+): boolean {
+  return isCommittedPbiStateFromLib(state, mapping);
 }
 
 export function isPendingSprintPbiState(
   state: string,
-  mapping: SprintStatusMapping = USER_STORY_STATUS_MAPPING,
+  mapping: SprintStatusMapping,
 ): boolean {
   return stateMatchesCategory(state, mapping.pending);
 }
 
 export function isWorkedSprintPbiState(
   state: string,
-  mapping: SprintStatusMapping = USER_STORY_STATUS_MAPPING,
+  mapping: SprintStatusMapping,
 ): boolean {
   return stateMatchesCompletedState(state, mapping);
 }
 
-export function findQaStartIndexInStateOrder(stateOrder: readonly string[]): number | null {
-  const index = stateOrder.findIndex((state) => isQaState(state) || isDoneState(state));
-  return index >= 0 ? index : null;
-}
-
-export function isSprintPbiCompletedByWorkflow(
-  state: string,
-  stateOrder: readonly string[],
-): boolean {
-  const qaStart = findQaStartIndexInStateOrder(stateOrder);
-  if (qaStart === null) {
-    return isQaState(state) || isDoneState(state);
-  }
-
-  const stateIndex = resolveStateIndexInBacklogOrder(state, stateOrder);
-  if (stateIndex === null) {
-    return isQaState(state) || isDoneState(state);
-  }
-
-  return stateIndex >= qaStart;
-}
-
 export function computeSprintPbiProgress(
   items: DashboardWorkItem[],
-  _stateOrder: readonly string[] = [],
-  _mapping: SprintStatusMapping = USER_STORY_STATUS_MAPPING,
+  mapping: SprintStatusMapping,
 ): SprintPbiProgress {
   const totalCount = items.length;
   if (totalCount === 0) {
@@ -116,7 +70,7 @@ export function computeSprintPbiProgress(
   let pendingCount = 0;
 
   for (const item of items) {
-    const category = classifyUserStoryWorkflow(item);
+    const category = classifyUserStoryWorkflow(item, mapping);
     if (category === "developed") {
       completedCount += 1;
     } else if (category === "pending") {
@@ -160,18 +114,27 @@ export function computeAssignedStoryPoints(items: DashboardWorkItem[]): number {
 }
 
 /** Suma de story points de HUs en estado desarrollado (workflow). */
-export function computeDevelopedStoryPoints(items: DashboardWorkItem[]): number {
+export function computeDevelopedStoryPoints(
+  items: DashboardWorkItem[],
+  mapping: SprintStatusMapping,
+): number {
   return sumStoryPointsEffort(
-    filterUserStoriesByWorkflowCategory(items, "developed"),
+    filterUserStoriesByWorkflowCategory(items, "developed", mapping),
   );
 }
 
-export function selectInProgressItems(items: DashboardWorkItem[]): DashboardWorkItem[] {
-  return selectInProgressWorkItems(items);
+export function selectInProgressItems(
+  items: DashboardWorkItem[],
+  mapping: SprintStatusMapping,
+): DashboardWorkItem[] {
+  return selectInProgressWorkItems(items, mapping);
 }
 
-export function selectUpcomingItems(items: DashboardWorkItem[]): DashboardWorkItem[] {
-  return selectUpcomingWorkItems(items);
+export function selectUpcomingItems(
+  items: DashboardWorkItem[],
+  mapping: SprintStatusMapping,
+): DashboardWorkItem[] {
+  return selectUpcomingWorkItems(items, mapping);
 }
 
 export type SprintHoursInput = {

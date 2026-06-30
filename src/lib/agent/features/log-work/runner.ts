@@ -1,6 +1,6 @@
 import "server-only";
 
-import { fetchTaskActivityValues } from "@/lib/azure-devops/fetch-task-activity-values";
+import { fetchActivityValues } from "@/lib/azure-devops/activity-values";
 import { listTaskStates, type AdoWorkItemTypeState } from "@/lib/azure-devops/work-item-type-states";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import { findToolHandler, listToolDefinitions } from "@/lib/agent/tools/registry";
@@ -76,11 +76,7 @@ export async function runLogWorkFeature({
   const [activityValues, taskStates] =
     auth && processProfile
       ? await Promise.all([
-          fetchTaskActivityValues(
-            auth,
-            processProfile.taskWorkItemType,
-            processProfile.activityField,
-          ),
+          fetchActivityValues(auth),
           listTaskStates(auth, processProfile.taskWorkItemType),
         ])
       : [[] as readonly string[], [] as AdoWorkItemTypeState[]];

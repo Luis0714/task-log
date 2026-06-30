@@ -22,9 +22,6 @@ export const TASK_ACTIVITY_LABELS: Record<string, string> = {
   Meeting: "Reunión",
 };
 
-/** Fallback legacy — no usar en UI; los estados deben cargarse desde Azure DevOps. */
-export const FALLBACK_TASK_STATE_OPTIONS = ["To Do", "Closed"] as const;
-
 export const DEFAULT_TASK_ACTIVITY: TaskActivity = "Development";
 
 /** @deprecated Usa resolveDefaultWorkingDate con fechas del sprint cuando estén disponibles. */

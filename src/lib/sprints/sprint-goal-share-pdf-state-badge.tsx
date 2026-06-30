@@ -1,8 +1,6 @@
 import { sprintGoalShareTheme } from "@/lib/sprints/sprint-goal-share-theme";
-import {
-  getPbiStateExportBadgeStyle,
-  isPbiStateBadgeRenderable,
-} from "@/lib/work-items/pbi-state-colors";
+import { getStateExportBadgeStyle } from "@/lib/work-items/pbi-state-colors";
+import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
 
 const badgeStyles = StyleSheet.create({
@@ -30,16 +28,20 @@ const badgeStyles = StyleSheet.create({
   },
 });
 
-export type SprintGoalSharePdfStateBadgeProps = {
+export type SprintGoalSharePdfStateBadgeProps = Readonly<{
   state: string;
-};
+  backlogStates: readonly AdoTaskStateDto[];
+}>;
 
-export function SprintGoalSharePdfStateBadge({ state }: SprintGoalSharePdfStateBadgeProps) {
-  if (!isPbiStateBadgeRenderable(state)) {
+export function SprintGoalSharePdfStateBadge({
+  state,
+  backlogStates,
+}: Readonly<SprintGoalSharePdfStateBadgeProps>) {
+  if (!state || state === "—") {
     return <Text style={badgeStyles.placeholder}>{state}</Text>;
   }
 
-  const badgeStyle = getPbiStateExportBadgeStyle(state);
+  const badgeStyle = getStateExportBadgeStyle(backlogStates, state);
 
   return (
     <View
@@ -52,7 +54,7 @@ export function SprintGoalSharePdfStateBadge({ state }: SprintGoalSharePdfStateB
       ]}
     >
       <Text style={[badgeStyles.label, { color: badgeStyle.color }]}>
-        <Text style={[badgeStyles.dot, { color: badgeStyle.dotColor }]}>{"\u25CF "}</Text>
+        <Text style={[badgeStyles.dot, { color: badgeStyle.dotColor }]}>{"● "}</Text>
         {state}
       </Text>
     </View>

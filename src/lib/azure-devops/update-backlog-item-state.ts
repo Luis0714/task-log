@@ -15,7 +15,7 @@ import {
   buildScalarFieldPatchOps,
   type WorkItemFieldPatchOp,
 } from "@/lib/azure-devops/work-item-patch";
-import { listTeamMembers } from "@/lib/azure-devops/work-item-type-states";
+import { listBacklogItemStates, listTeamMembers } from "@/lib/azure-devops/work-item-type-states";
 import { toWorkingDateKey } from "@/lib/azure-devops/working-date-field";
 import {
   buildWorkItemTagsPatchOp,
@@ -169,8 +169,9 @@ export async function updateBacklogItemState(
   }
 
   const responsableFields = await resolveBacklogResponsableFields(auth);
+  const backlogStates = await listBacklogItemStates(auth);
 
-  const validationError = validateBacklogStateTransition(state, params, responsableFields.length, responsableFields);
+  const validationError = validateBacklogStateTransition(state, params, backlogStates, responsableFields.length, responsableFields);
   if (validationError) {
     return { ok: false, status: 400, body: validationError };
   }

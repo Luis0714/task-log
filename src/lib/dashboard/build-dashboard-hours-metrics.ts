@@ -15,6 +15,7 @@ import {
   resolveEffectiveSprintDayKey,
 } from "@/lib/dashboard/sprint-days";
 import { computeDashboardMetrics } from "@/lib/dashboard/work-item-selectors";
+import type { SprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
 export type BuildDashboardHoursMetricsInput = {
@@ -23,6 +24,7 @@ export type BuildDashboardHoursMetricsInput = {
   nonWorkingDates: string[];
   catalog: AdoCatalogSnapshot;
   sprintDayKey: string;
+  bugMapping: SprintStatusMapping;
 };
 
 export type BuildDashboardHoursMetricsResult = {
@@ -37,6 +39,7 @@ export function buildDashboardHoursMetrics({
   nonWorkingDates,
   catalog,
   sprintDayKey,
+  bugMapping,
 }: BuildDashboardHoursMetricsInput): BuildDashboardHoursMetricsResult {
   const currentSprint = resolveCurrentSprint(catalog);
   const workingDayOptions = { nonWorkingDates: new Set(nonWorkingDates) };
@@ -53,7 +56,7 @@ export function buildDashboardHoursMetrics({
   const hoursDayKey = effectiveSprintDayKey;
   const sprintEndKey = sprintWorkingDays[sprintWorkingDays.length - 1]?.value ?? "";
 
-  const hoursToday = sumHoursBreakdownForDay(tasks, bugs, hoursDayKey);
+  const hoursToday = sumHoursBreakdownForDay(tasks, bugs, hoursDayKey, bugMapping);
   const hoursSprintTarget = computeSprintCapacityHours(
     currentSprint?.startDate,
     currentSprint?.finishDate,
@@ -62,14 +65,14 @@ export function buildDashboardHoursMetrics({
   const allSprintDayKeys = sprintWorkingDays.map((d) => d.value);
   const hoursSprintCurrent =
     allSprintDayKeys.length > 0
-      ? sumHoursBreakdownForDayKeys(tasks, bugs, allSprintDayKeys, sprintEndKey)
+      ? sumHoursBreakdownForDayKeys(tasks, bugs, allSprintDayKeys, sprintEndKey, bugMapping)
       : { taskHours: 0, bugHours: 0 };
 
   const metrics = computeDashboardMetrics(hoursToday, {
     sprintHours: { hoursSprintCurrent, hoursSprintTarget },
     sprintWorkingDaysCount: sprintWorkingDays.length,
-    hoursByDay: computeSprintHoursSeries(sprintWorkingDays, tasks, bugs),
-    sprintWeeks: computeSprintWeekMetrics(sprintWorkingDays, tasks, bugs),
+    hoursByDay: computeSprintHoursSeries(sprintWorkingDays, tasks, bugs, bugMapping),
+    sprintWeeks: computeSprintWeekMetrics(sprintWorkingDays, tasks, bugs, bugMapping),
   });
 
   const selectedSprintDay =

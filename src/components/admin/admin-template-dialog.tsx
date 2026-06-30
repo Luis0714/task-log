@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useTaskMeta } from "@/hooks/use-task-meta";
+import { useActivityValues } from "@/hooks/use-activity-values";
 import {
   isValidTemplateHoursString,
   parseTemplateHoursString,
@@ -133,10 +133,7 @@ export function AdminTemplateDialog({
 }: AdminTemplateDialogProps) {
   const fallbackScope: AdminTemplateScope =
     defaultScope ?? scopeOptions[0]?.value ?? "global";
-  // Mismas activities que el form Individual y el `SaveAsTemplateDialog`
-  // per-user: provienen de Azure vía `/api/copilot/task-meta` con fallback a
-  // `TASK_ACTIVITY_VALUES` si la API falla.
-  const { activities: activityOptions } = useTaskMeta();
+  const { values: activityOptions } = useActivityValues();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");

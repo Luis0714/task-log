@@ -1,6 +1,8 @@
 /** Máximo de filas renderizadas; por encima se muestra aviso de overflow. */
 export const SPRINT_GOAL_SHARE_MAX_RENDERED_STORIES = 50;
 
+import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
+
 export type SprintGoalShareStoryRow = {
   workItemId: number;
   title: string;
@@ -33,6 +35,8 @@ export type SprintGoalSharePayload = {
   visibleStories: SprintGoalShareStoryRow[];
   overflowCount: number;
   scopeLabel: string;
+  /** Catálogo de estados del PBI del proyecto (Azure). Se usa para colorear los badges. */
+  backlogStates: AdoTaskStateDto[];
 };
 
 export type SprintGoalShareContext = {
@@ -42,4 +46,6 @@ export type SprintGoalShareContext = {
   sprintStartDate?: string;
   sprintFinishDate?: string;
   generalObjective: string;
+  /** Estados del PBI del proyecto (Azure). Necesarios para colorear los badges. */
+  backlogStates?: AdoTaskStateDto[];
 };

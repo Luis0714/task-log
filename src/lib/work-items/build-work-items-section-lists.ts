@@ -1,4 +1,5 @@
 import { attachBugCounts, buildBugCountsByParentId } from "@/lib/dashboard/bug-counts";
+import { buildSprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import type { WorkItemsBaseSnapshot } from "@/lib/work-items/load-work-items-base";
 import {
   filterWorkItemsByClientCriteria,
@@ -10,16 +11,36 @@ import type { DashboardWorkItem } from "@/lib/dashboard/types";
 import { mapToDashboardWorkItems } from "@/lib/dashboard/work-item-selectors";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 
-export function buildWorkItemsSectionLists(
-  base: WorkItemsBaseSnapshot,
-  filters: WorkItemFilters,
-): {
+export type WorkItemsSectionLists = {
   filteredItems: DashboardWorkItem[];
   inProgress: DashboardWorkItem[];
   upcoming: DashboardWorkItem[];
   developed: DashboardWorkItem[];
-} {
-  const bugCountsByParentId = buildBugCountsByParentId(base.sprintBugs);
+};
+
+/**
+ * Construye las secciones del panel de HUs.
+ *
+ * `userStoryMapping` y `bugMapping` deben venir del snapshot cargado por
+ * `loadWorkItemsBase`. Si no están disponibles (snapshot antiguo), se derivan
+ * de `backlogStates`/`bugStates` como fallback.
+ */
+export function buildWorkItemsSectionLists(
+  base: WorkItemsBaseSnapshot,
+  filters: WorkItemFilters,
+  mappings?: {
+    userStoryMapping?: ReturnType<typeof buildSprintStatusMapping>;
+    bugMapping?: ReturnType<typeof buildSprintStatusMapping>;
+  },
+): WorkItemsSectionLists {
+  const userStoryMapping =
+    mappings?.userStoryMapping ??
+    buildSprintStatusMapping(base.backlogStates ?? []);
+  const bugMapping =
+    mappings?.bugMapping ??
+    buildSprintStatusMapping(base.bugStates ?? []);
+
+  const bugCountsByParentId = buildBugCountsByParentId(base.sprintBugs, bugMapping);
   const filtered = filterWorkItemsByClientCriteria(base.sprintWorkItems, {
     search: filters.search,
     states: filters.states,
@@ -30,8 +51,8 @@ export function buildWorkItemsSectionLists(
 
   return {
     filteredItems: withBugCounts(filtered),
-    inProgress: withBugCounts(selectInProgressWorkItems(filtered)),
-    upcoming: withBugCounts(selectUpcomingWorkItems(filtered)),
-    developed: withBugCounts(selectDevelopedWorkItems(filtered)),
+    inProgress: withBugCounts(selectInProgressWorkItems(filtered, userStoryMapping)),
+    upcoming: withBugCounts(selectUpcomingWorkItems(filtered, userStoryMapping)),
+    developed: withBugCounts(selectDevelopedWorkItems(filtered, userStoryMapping)),
   };
 }

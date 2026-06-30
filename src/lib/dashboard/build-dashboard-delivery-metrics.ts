@@ -1,7 +1,4 @@
-import {
-  BUG_STATUS_MAPPING,
-  USER_STORY_STATUS_MAPPING,
-} from "@/lib/dashboard/sprint-status-mapping";
+import { buildSprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import { computeSprintStatusOverview } from "@/lib/dashboard/sprint-status-overview";
 import type { DashboardDeliveryMetrics } from "@/lib/dashboard/types";
 import {
@@ -12,25 +9,36 @@ import {
   mapToDashboardWorkItems,
 } from "@/lib/dashboard/work-item-selectors";
 import { EMPTY_HOURS_BREAKDOWN } from "@/lib/dashboard/hours-breakdown";
-import { collectWorkItemStates } from "@/lib/time-log/filter-work-items";
+import type { AdoWorkItemTypeState } from "@/lib/azure-devops/work-item-type-states";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
-export function buildDashboardDeliveryMetrics(
-  workItems: AdoWorkItemOptionDto[],
-  bugs: AdoWorkItemOptionDto[],
-): DashboardDeliveryMetrics {
+export type BuildDashboardDeliveryMetricsInput = {
+  workItems: AdoWorkItemOptionDto[];
+  bugs: AdoWorkItemOptionDto[];
+  backlogStates: readonly AdoWorkItemTypeState[];
+  bugStates: readonly AdoWorkItemTypeState[];
+};
+
+export function buildDashboardDeliveryMetrics({
+  workItems,
+  bugs,
+  backlogStates,
+  bugStates,
+}: BuildDashboardDeliveryMetricsInput): DashboardDeliveryMetrics {
+  const userStoryMapping = buildSprintStatusMapping(backlogStates);
+  const bugMapping = buildSprintStatusMapping(bugStates);
+
   const assigned = mapToDashboardWorkItems(workItems);
   const assignedBugs = mapToDashboardWorkItems(bugs);
-  const workItemStates = collectWorkItemStates(workItems);
   const sprintStatusOverview = computeSprintStatusOverview(assigned, assignedBugs, {
-    userStories: USER_STORY_STATUS_MAPPING,
-    bugs: BUG_STATUS_MAPPING,
+    userStories: userStoryMapping,
+    bugs: bugMapping,
   });
 
   return computeDashboardMetrics(EMPTY_HOURS_BREAKDOWN, {
     sprintStatusOverview,
     storyPointsAssigned: computeAssignedStoryPoints(assigned),
-    storyPointsDeveloped: computeDevelopedStoryPoints(assigned),
-    pbiProgress: computeSprintPbiProgress(assigned, workItemStates),
+    storyPointsDeveloped: computeDevelopedStoryPoints(assigned, userStoryMapping),
+    pbiProgress: computeSprintPbiProgress(assigned, userStoryMapping),
   });
 }

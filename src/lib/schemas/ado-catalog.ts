@@ -79,6 +79,8 @@ export const adoWorkItemsResponseSchema = z.object({
 export const adoTaskStateSchema = z.object({
   name: z.string(),
   category: z.string(),
+  /** Color hexadecimal sin "#" que Azure devuelve en el catálogo de estados. */
+  color: z.string(),
 });
 
 export const adoTaskStatesResponseSchema = z.object({

@@ -9,6 +9,7 @@ import {
   type SprintWorkingDay,
 } from "@/lib/dashboard/sprint-days";
 import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
+import type { SprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 
 export type SprintDayHoursPoint = {
   dayKey: string;
@@ -46,12 +47,13 @@ export function computeSprintHoursSeries(
   workingDays: readonly SprintWorkingDay[],
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
+  bugMapping: SprintStatusMapping,
 ): SprintDayHoursPoint[] {
   if (workingDays.length === 0) return [];
 
   let runningTotal = 0;
   return workingDays.map((day, index) => {
-    const breakdown = sumHoursBreakdownForDay(tasks, bugs, day.value);
+    const breakdown = sumHoursBreakdownForDay(tasks, bugs, day.value, bugMapping);
     runningTotal += totalHoursBreakdown(breakdown);
 
     return {

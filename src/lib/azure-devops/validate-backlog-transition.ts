@@ -2,6 +2,7 @@ import {
   requiresCommittedDates,
   requiresQaResponsables,
 } from "@/lib/work-items/pbi-state-transition";
+import type { AdoWorkItemTypeState } from "@/lib/azure-devops/work-item-type-states";
 import type { BacklogResponsableFieldConfig } from "@/lib/azure-devops/backlog-item-fields-config";
 
 export type BacklogTransitionInput = {
@@ -13,10 +14,11 @@ export type BacklogTransitionInput = {
 export function validateBacklogStateTransition(
   targetState: string,
   input: BacklogTransitionInput,
+  states: readonly AdoWorkItemTypeState[],
   configuredResponsableCount = 0,
   responsableFields: readonly BacklogResponsableFieldConfig[] = [],
 ): string | null {
-  if (requiresCommittedDates(targetState)) {
+  if (requiresCommittedDates(targetState, states)) {
     if (!input.startDate?.trim()) {
       return "Indica la fecha de inicio para pasar a Comprometido.";
     }
@@ -25,7 +27,7 @@ export function validateBacklogStateTransition(
     }
   }
 
-  if (requiresQaResponsables(targetState)) {
+  if (requiresQaResponsables(targetState, states)) {
     if (responsableFields.length === 0) {
       return (
         "Este proyecto no tiene campos Responsable configurados. " +
@@ -49,7 +51,7 @@ export function validateBacklogStateTransition(
   // Backwards-compat: si alguien sigue pasando el viejo `configuredResponsableCount`,
   // mantenemos el mensaje legacy para proyectos sin campos nuevos.
   if (
-    requiresQaResponsables(targetState) &&
+    requiresQaResponsables(targetState, states) &&
     responsableFields.length === 0 &&
     configuredResponsableCount > 0 &&
     configuredResponsableCount < 3

@@ -26,6 +26,7 @@ vi.mock("@/lib/azure-devops/resolve-identity-patch-value", () => ({
 }));
 vi.mock("@/lib/azure-devops/work-item-type-states", () => ({
   listTeamMembers: vi.fn(async () => []),
+  listBacklogItemStates: vi.fn(async () => []),
 }));
 vi.mock("@/lib/auth/resolve-ado-profile", () => ({
   resolveAdoProfile: vi.fn(async () => ({

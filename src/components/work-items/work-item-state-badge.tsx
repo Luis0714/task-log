@@ -9,11 +9,11 @@ export type WorkItemStateBadgeProps = {
 };
 
 export function WorkItemStateBadge({ state, className }: WorkItemStateBadgeProps) {
-  const { slug, badgeStyle, dotStyle } = usePbiStateColors(state);
+  const { category, badgeStyle, dotStyle } = usePbiStateColors(state);
 
   return (
     <span
-      data-pbi-state={slug}
+      data-pbi-state={category}
       style={badgeStyle}
       className={cn(
         "inline-flex min-w-0 max-w-[58%] shrink items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium",

@@ -5,10 +5,7 @@ import {
   sumHoursBreakdownForDay,
   sumHoursBreakdownForDayKeys,
 } from "@/lib/dashboard/hours-breakdown";
-import {
-  BUG_STATUS_MAPPING,
-  USER_STORY_STATUS_MAPPING,
-} from "@/lib/dashboard/sprint-status-mapping";
+import { buildSprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import { computeSprintStatusOverview } from "@/lib/dashboard/sprint-status-overview";
 import {
   computeAssignedStoryPoints,
@@ -69,12 +66,15 @@ export function buildDashboardMetrics({
     workingDayOptions,
   );
 
-  const pbiProgress = computeSprintPbiProgress(assigned, workItemStates);
+  const userStoryMapping = buildSprintStatusMapping(bundle.backlogStates);
+  const bugMapping = buildSprintStatusMapping(bundle.bugStates ?? bundle.backlogStates);
+
+  const pbiProgress = computeSprintPbiProgress(assigned, userStoryMapping);
   const storyPointsAssigned = computeAssignedStoryPoints(assigned);
-  const storyPointsDeveloped = computeDevelopedStoryPoints(assigned);
+  const storyPointsDeveloped = computeDevelopedStoryPoints(assigned, userStoryMapping);
   const sprintStatusOverview = computeSprintStatusOverview(assigned, assignedBugs, {
-    userStories: USER_STORY_STATUS_MAPPING,
-    bugs: BUG_STATUS_MAPPING,
+    userStories: userStoryMapping,
+    bugs: bugMapping,
   });
 
   const hoursDayKey = resolveEffectiveSprintDayKey(
@@ -83,7 +83,7 @@ export function buildDashboardMetrics({
   );
   const sprintEndKey = sprintWorkingDays[sprintWorkingDays.length - 1]?.value ?? "";
 
-  const hoursToday = sumHoursBreakdownForDay(bundle.tasks, bundle.bugs, hoursDayKey);
+  const hoursToday = sumHoursBreakdownForDay(bundle.tasks, bundle.bugs, hoursDayKey, bugMapping);
   const hoursSprintTarget = computeSprintCapacityHours(
     currentSprint?.startDate,
     currentSprint?.finishDate,
@@ -92,17 +92,19 @@ export function buildDashboardMetrics({
   const allSprintDayKeys = sprintWorkingDays.map((d) => d.value);
   const hoursSprintCurrent =
     allSprintDayKeys.length > 0
-      ? sumHoursBreakdownForDayKeys(bundle.tasks, bundle.bugs, allSprintDayKeys, sprintEndKey)
+      ? sumHoursBreakdownForDayKeys(bundle.tasks, bundle.bugs, allSprintDayKeys, sprintEndKey, bugMapping)
       : { taskHours: 0, bugHours: 0 };
   const hoursByDay = computeSprintHoursSeries(
     sprintWorkingDays,
     bundle.tasks,
     bundle.bugs,
+    bugMapping,
   );
   const sprintWeeks = computeSprintWeekMetrics(
     sprintWorkingDays,
     bundle.tasks,
     bundle.bugs,
+    bugMapping,
   );
 
   const metrics = computeDashboardMetrics(hoursToday, {
@@ -117,7 +119,7 @@ export function buildDashboardMetrics({
     sprintWeeks,
   });
 
-  const inProgress = selectInProgressItems(assigned);
+  const inProgress = selectInProgressItems(assigned, userStoryMapping);
 
   return { metrics, sprintWorkingDays, assigned, inProgress };
 }

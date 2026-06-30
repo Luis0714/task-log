@@ -29,7 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
-import { useTaskMeta } from "@/hooks/use-task-meta";
+import { useActivityValues } from "@/hooks/use-activity-values";
 import { useTimeLogTemplates } from "@/hooks/use-time-log-templates";
 import {
   mapBulkTaskIssuesToErrors,
@@ -76,11 +76,7 @@ export function TimeLogBulkForm({
 
   const { templates, loading: templatesLoading, error: templatesError } =
     useTimeLogTemplates();
-  // Activities reales del proyecto (mismo origen que el form Individual y
-  // que el `SaveAsTemplateDialog`). `useTaskMeta` ya hace fallback a la
-  // lista canónica si la API falla o devuelve vacío, así que el select
-  // nunca queda sin opciones válidas.
-  const { activities } = useTaskMeta();
+  const { values: activities } = useActivityValues();
 
   const bulkGroupsOptions = useMemo<UseBulkGroupsOptions>(
     () => ({

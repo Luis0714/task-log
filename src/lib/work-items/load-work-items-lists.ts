@@ -5,9 +5,13 @@ import { cache } from "react";
 import type { WorkItemsListsSnapshot } from "@/lib/ado/types";
 import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
 import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
-import { listBacklogItemStates } from "@/lib/azure-devops/work-item-type-states";
+import {
+  listBacklogItemStates,
+  listBugStates,
+} from "@/lib/azure-devops/work-item-type-states";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import { listBugItemsInSprint, listWorkItemsInSprint } from "@/lib/azure-devops/work-items";
+import { buildSprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 
 const emptyLists: WorkItemsListsSnapshot = {
@@ -36,17 +40,24 @@ export const loadWorkItemsLists = cache(async function loadWorkItemsLists(
 
   try {
     const processProfile = await resolveProcessProfile(auth);
-    const [sprintWorkItems, sprintBugs, backlogStates, teamMembers] = await Promise.all([
+    const [sprintWorkItems, sprintBugs, backlogStates, bugStates, teamMembers] = await Promise.all([
       listWorkItemsInSprint(auth, sprintPath, { assignee }),
       listBugItemsInSprint(auth, sprintPath, { assignee: WORK_ITEM_ASSIGNEE_ALL }),
       listBacklogItemStates(auth, processProfile.backlogItemType),
+      listBugStates(auth, processProfile.bugWorkItemType),
       loadAssigneeFilterMembers(project, team, sprintPath, "workItems"),
     ]);
+
+    const userStoryMapping = buildSprintStatusMapping(backlogStates);
+    const bugMapping = buildSprintStatusMapping(bugStates);
 
     return {
       sprintWorkItems,
       sprintBugs,
       backlogStates,
+      bugStates,
+      userStoryMapping,
+      bugMapping,
       teamMembers,
       error: null,
     };

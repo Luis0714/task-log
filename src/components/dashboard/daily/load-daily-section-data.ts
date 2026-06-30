@@ -1,6 +1,7 @@
-import { firstSprintDataError, loadSprintWorkItems } from "@/lib/ado/load-sprint-data";
+import { firstSprintDataError, loadSprintBacklogStates, loadSprintWorkItems } from "@/lib/ado/load-sprint-data";
 import { catalogToSprintContext } from "@/lib/ado/sprint-data-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
+import { buildSprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import { resolveCurrentSprint } from "@/lib/dashboard/build-dashboard-metrics";
 import {
   mapToDashboardWorkItems,
@@ -24,16 +25,17 @@ export async function loadDailySectionData(
     return { ok: false, error: "No hay un sprint activo en el catálogo." };
   }
 
-  const workItems = await loadSprintWorkItems(
-    ctx.project,
-    ctx.sprintPath,
-    ctx.assignee,
-  );
-  const error = firstSprintDataError(workItems);
+  const [workItems, backlogStates] = await Promise.all([
+    loadSprintWorkItems(ctx.project, ctx.sprintPath, ctx.assignee),
+    loadSprintBacklogStates(ctx.project),
+  ]);
+  const error = firstSprintDataError(workItems, backlogStates);
   if (error) return { ok: false, error };
 
+  const userStoryMapping = buildSprintStatusMapping(backlogStates.data);
   const inProgress = selectInProgressItems(
     mapToDashboardWorkItems(workItems.data),
+    userStoryMapping,
   );
   const currentSprint = resolveCurrentSprint(catalog);
 

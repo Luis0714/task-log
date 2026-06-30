@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { registerTool, type ToolHandler } from "@/lib/agent/tools/registry";
-import { TASK_ACTIVITY_VALUES, type CreateTasksBatch } from "@/lib/schemas/agent";
+import type { CreateTasksBatch } from "@/lib/schemas/agent";
 import type { ToolDefinition } from "@/lib/agent/provider/provider.types";
 
 export const CREATE_TASKS_BATCH_TOOL_NAME = "create_tasks_batch";
@@ -186,7 +186,7 @@ export const createTasksBatchTool: ToolHandler<
   z.infer<typeof FALLBACK_ARGS_SCHEMA>,
   CreateTasksBatch
 > = {
-  definition: buildCreateTasksBatchDefinition(TASK_ACTIVITY_VALUES, []),
+  definition: buildCreateTasksBatchDefinition([], []),
   argsSchema: FALLBACK_ARGS_SCHEMA,
   outputSchema: z.object({
     action: z.literal("create_tasks_batch"),

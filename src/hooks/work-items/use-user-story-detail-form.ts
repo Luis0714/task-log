@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
 import type { BacklogResponsableFieldDto } from "@/lib/schemas/ado-backlog-fields";
 import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
+import { useBacklogItemStates } from "@/hooks/work-items/use-backlog-item-states";
 import { getTodayDateKey } from "@/lib/time-log/working-date-default";
 import { resolveResponsableDraftValue } from "@/lib/work-items/resolve-default-assignee";
 import { computeDraftCanSave } from "@/lib/forms/can-submit";
@@ -71,9 +72,11 @@ export function useUserStoryDetailForm({
   const [draftTags, setDraftTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  const { states: backlogStates } = useBacklogItemStates();
+
   const transitionKind = useMemo(
-    () => (draftState ? getPbiTransitionKind(draftState) : "other"),
-    [draftState],
+    () => (draftState ? getPbiTransitionKind(draftState, backlogStates) : "other"),
+    [draftState, backlogStates],
   );
 
   const hasResponsableFields = responsableFields.length > 0;
@@ -144,13 +147,13 @@ export function useUserStoryDetailForm({
   const isDirty = isStateDirty || isTagsDirty || isDatesDirty || isResponsablesDirty;
 
   const committedValid =
-    !requiresCommittedDates(draftState) ||
+    !requiresCommittedDates(draftState, backlogStates) ||
     (isDateKeyValid(draftStartDate) && isDateKeyValid(draftTargetDate));
 
   // Para QA, los Responsables con defaultToCurrentUser=true pueden quedarse vacíos
   // (el servidor rellena con el usuario logueado). El resto deben tener valor.
   const qaValid =
-    !requiresQaResponsables(draftState) ||
+    !requiresQaResponsables(draftState, backlogStates) ||
     responsableFields.every((field) => {
       if (field.defaultToCurrentUser) return true;
       return Boolean(draftResponsables[field.referenceName]?.trim());
@@ -183,14 +186,14 @@ export function useUserStoryDetailForm({
       };
       if (team?.trim()) body.team = team.trim();
 
-      if (isDatesDirty || requiresCommittedDates(draftState)) {
+      if (isDatesDirty || requiresCommittedDates(draftState, backlogStates)) {
         body.startDate = draftStartDate;
         body.targetDate = draftTargetDate;
       }
 
       if (
         hasResponsableFields &&
-        (isResponsablesDirty || requiresQaResponsables(draftState))
+        (isResponsablesDirty || requiresQaResponsables(draftState, backlogStates))
       ) {
         const trimmed: Record<string, string> = {};
         for (const [ref, value] of Object.entries(draftResponsables)) {
@@ -240,6 +243,7 @@ export function useUserStoryDetailForm({
     isTagsDirty,
     draftTags,
     hasResponsableFields,
+    backlogStates,
     onSaved,
     onClose,
   ]);

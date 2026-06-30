@@ -1,7 +1,7 @@
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import {
-  BUG_STATUS_MAPPING,
   stateMatchesCompletedState,
+  type SprintStatusMapping,
 } from "@/lib/dashboard/sprint-status-mapping";
 
 export type SprintBugHoursSource = Pick<
@@ -14,9 +14,12 @@ function roundHours(value: number): number {
 }
 
 /** Bug atendido: estado completado del mapeo y Completed Work registrado. */
-function isLoggedAttendedBug(bug: SprintBugHoursSource): boolean {
+function isLoggedAttendedBug(
+  bug: SprintBugHoursSource,
+  mapping: SprintStatusMapping,
+): boolean {
   return (
-    stateMatchesCompletedState(bug.state, BUG_STATUS_MAPPING) &&
+    stateMatchesCompletedState(bug.state, mapping) &&
     typeof bug.loggedHours === "number"
   );
 }
@@ -25,9 +28,10 @@ function isLoggedAttendedBug(bug: SprintBugHoursSource): boolean {
 export function sumAttendedBugHoursForDay(
   bugs: SprintBugHoursSource[],
   dayKey: string,
+  mapping: SprintStatusMapping,
 ): number {
   const total = bugs.reduce((sum, bug) => {
-    if (!isLoggedAttendedBug(bug) || bug.workingDate !== dayKey) return sum;
+    if (!isLoggedAttendedBug(bug, mapping) || bug.workingDate !== dayKey) return sum;
     return sum + (bug.loggedHours ?? 0);
   }, 0);
   return roundHours(total);
@@ -37,9 +41,10 @@ export function sumAttendedBugHoursForDay(
 export function sumAttendedBugHoursThroughDay(
   bugs: SprintBugHoursSource[],
   dayKey: string,
+  mapping: SprintStatusMapping,
 ): number {
   const total = bugs.reduce((sum, bug) => {
-    if (!isLoggedAttendedBug(bug)) return sum;
+    if (!isLoggedAttendedBug(bug, mapping)) return sum;
     const workDay = bug.workingDate;
     if (!workDay || workDay > dayKey) return sum;
     return sum + (bug.loggedHours ?? 0);
@@ -52,12 +57,13 @@ export function sumAttendedBugHoursForDayKeys(
   bugs: SprintBugHoursSource[],
   dayKeys: readonly string[],
   maxDayKey: string,
+  mapping: SprintStatusMapping,
 ): number {
   if (dayKeys.length === 0) return 0;
 
   const allowedDays = new Set(dayKeys);
   const total = bugs.reduce((sum, bug) => {
-    if (!isLoggedAttendedBug(bug)) return sum;
+    if (!isLoggedAttendedBug(bug, mapping)) return sum;
     const workDay = bug.workingDate;
     if (!workDay || !allowedDays.has(workDay) || workDay > maxDayKey) return sum;
     return sum + (bug.loggedHours ?? 0);

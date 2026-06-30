@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
-import { listBacklogItemStates } from "@/lib/azure-devops/work-item-type-states";
+import { listBacklogItemStates, listBugStates } from "@/lib/azure-devops/work-item-type-states";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
@@ -103,6 +103,22 @@ export const loadSprintBacklogStates = cache(async function loadSprintBacklogSta
     }
     const processProfile = await resolveProcessProfile(auth);
     const data = await listBacklogItemStates(auth, processProfile.backlogItemType);
+    return { data, error: null };
+  } catch (cause) {
+    return { data: [], error: formatSprintDataError(cause) };
+  }
+});
+
+export const loadSprintBugStates = cache(async function loadSprintBugStates(
+  project: string,
+): Promise<SprintDataPart<AdoTaskStateDto[]>> {
+  try {
+    const auth = await resolveScopedAuth(project);
+    if (!auth) {
+      return { data: [], error: "Conecta Azure DevOps para cargar estados de bugs." };
+    }
+    const processProfile = await resolveProcessProfile(auth);
+    const data = await listBugStates(auth, processProfile.bugWorkItemType);
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };
