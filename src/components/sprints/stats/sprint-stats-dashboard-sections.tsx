@@ -51,9 +51,6 @@ export function SprintStatsDashboardSections({
 
   return (
     <div className="flex flex-col gap-6">
-      <SprintGoalProgressSection goal={normalizedStats.goal} description={goalDescription} />
-      <SprintBugQualitySection bugs={normalizedStats.bugs} project={project} loading={loading} />
-
       <SprintTimesSection
         times={normalizedStats.times}
         description={timesDescription(goalOnly)}
@@ -70,6 +67,9 @@ export function SprintStatsDashboardSections({
       </DashboardSection>
 
       <SprintGoalRiskList items={normalizedStats.goal.objectiveItems} />
+
+      <SprintGoalProgressSection goal={normalizedStats.goal} description={goalDescription} />
+      <SprintBugQualitySection bugs={normalizedStats.bugs} project={project} loading={loading} />
     </div>
   );
 }

@@ -21,7 +21,7 @@ export type AppSidebarProps = {
   connection: AdoConnectionDisplay;
   connectionFooter?: React.ReactNode;
   activePath: string;
-  isAdmin: boolean;
+  userRole: string | null;
 };
 
 function SidebarHeaderContent() {
@@ -41,8 +41,8 @@ function SidebarHeaderContent() {
   );
 }
 
-export function AppSidebar({ connection, connectionFooter, activePath, isAdmin }: AppSidebarProps) {
-  const navGroups = getNavigation(isAdmin);
+export function AppSidebar({ connection, connectionFooter, activePath, userRole }: AppSidebarProps) {
+  const navGroups = getNavigation(userRole);
   return (
     <Sidebar collapsible="icon" variant="sidebar">
       <SidebarHeader className="border-sidebar-border border-b px-3 py-3">
