@@ -4,7 +4,7 @@ import { z } from "zod";
 import { searchPbiByText, type PbiSearchHit } from "@/lib/azure-devops/search-pbi-by-text";
 import { listWorkItemsForQuery } from "@/lib/azure-devops/list-work-items-for-query";
 import { fetchPbiSummary } from "@/lib/azure-devops/fetch-pbi-summary";
-import { fetchTaskActivityValues } from "@/lib/azure-devops/fetch-task-activity-values";
+import { fetchActivityValues } from "@/lib/azure-devops/activity-values";
 import { listTaskStates, type AdoWorkItemTypeState } from "@/lib/azure-devops/work-item-type-states";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import { findToolHandler, listToolDefinitions } from "@/lib/agent/tools/registry";
@@ -12,6 +12,7 @@ import {
   SEARCH_PBI_TOOL_NAME,
   buildSearchPbiTool,
 } from "@/lib/agent/features/create-tasks/search-pbi-tool";
+import { getTodayDateKey } from "@/lib/time-log/working-date-default";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
 import type { ProgressCallback } from "@/lib/agent/orchestrator/run-feature";
 import type { AgentProvider, ChatMessage, ConversationTurn } from "@/lib/agent/provider/provider.types";
@@ -86,11 +87,7 @@ export async function runCreateTasksFeature({
   const [activityValues, taskStates] =
     auth && processProfile
       ? await Promise.all([
-          fetchTaskActivityValues(
-            auth,
-            processProfile.taskWorkItemType,
-            processProfile.activityField,
-          ),
+          fetchActivityValues(auth),
           listTaskStates(auth, processProfile.taskWorkItemType),
         ])
       : [[] as readonly string[], [] as AdoWorkItemTypeState[]];
@@ -104,7 +101,7 @@ export async function runCreateTasksFeature({
     taskStateNames,
     doneState,
     userRole,
-    today: new Date().toISOString().slice(0, 10),
+    today: getTodayDateKey(),
   });
 
   const searchPbiToolDef = buildSearchPbiTool({

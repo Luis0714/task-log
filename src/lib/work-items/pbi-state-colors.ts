@@ -1,218 +1,157 @@
 /**
- * Paleta consistente para estados de work items (HU/PBI, Task, Bug).
- * Los tokens CSS viven en globals.css (`--pbi-state-*`) con variantes :root y .dark.
+ * Resolución visual de estados de work items (HU/PBI, Task, Bug).
+ *
+ * Single source of truth para colores: el `color` viene de Azure DevOps
+ * (`GET /wit/workitemtypes/{type}/states?api-version=7.1`) — NO hay paletas
+ * hardcodeadas aquí. Si Azure no devuelve el estado buscado, se usa un color
+ * gris neutro de fallback.
+ *
+ * Patrón de uso en el cliente:
+ *   const { states } = useBacklogItemStates(currentProject);
+ *   const presentation = getStatePresentation(states, stateName);
+ *
+ * Patrón de uso en el servidor:
+ *   const states = await listBacklogItemStates(auth);
+ *   const badge = getStateExportBadgeStyle(states, stateName);
  */
 
 import type { CSSProperties } from "react";
 
-export const PBI_STATE_SLUGS = [
-  "new",
-  "approved",
-  "committed",
-  "impediment",
-  "reopened",
-  "qa",
-  "review-po",
-  "in-stage",
-  "done",
-  "unknown",
-] as const;
+import type { AdoWorkItemTypeState } from "@/lib/azure-devops/work-item-type-states";
 
-export type PbiStateSlug = (typeof PBI_STATE_SLUGS)[number];
+export type WorkItemState = AdoWorkItemTypeState;
 
-export type PbiStateBadgeStyle = {
+export type WorkItemStateBadgeStyle = {
   borderColor: string;
   backgroundColor: string;
+  /** Color del texto del badge (calculado según luminancia del background). */
   color: string;
-};
-
-export type PbiStateColorPresentation = {
-  slug: PbiStateSlug;
-  badgeStyle: PbiStateBadgeStyle;
-  dotStyle: Pick<CSSProperties, "backgroundColor">;
-  surfaceStyle: Pick<CSSProperties, "borderColor" | "backgroundColor">;
-  chartColor: string;
-};
-
-function normalizeStateKey(state: string): string {
-  return state.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-const STATE_MATCHERS: ReadonlyArray<{ slug: Exclude<PbiStateSlug, "unknown">; test: (n: string) => boolean }> =
-  [
-    {
-      slug: "done",
-      test: (n) => ["done", "closed", "completed", "resolved"].includes(n),
-    },
-    {
-      slug: "impediment",
-      test: (n) => n.includes("impediment"),
-    },
-    {
-      slug: "reopened",
-      test: (n) => n === "reopened" || n.includes("reopened"),
-    },
-    {
-      slug: "review-po",
-      test: (n) =>
-        n === "review po" ||
-        n === "review p.o." ||
-        n === "in review" ||
-        (n.includes("review") && n.includes("po")),
-    },
-    {
-      slug: "qa",
-      test: (n) => n === "qa" || n.startsWith("qa ") || n.includes("quality assurance"),
-    },
-    {
-      slug: "in-stage",
-      test: (n) =>
-        n === "in stage" ||
-        n === "in - stage" ||
-        n.includes("in stage") ||
-        (n.includes("stage") && !n.includes("impediment")),
-    },
-    {
-      slug: "committed",
-      test: (n) => n === "committed" || n === "commited" || n === "in progress" || n === "active",
-    },
-    {
-      slug: "approved",
-      test: (n) => n === "approved",
-    },
-    {
-      slug: "new",
-      test: (n) =>
-        ["new", "proposed", "to do", "todo", "pending", "ready"].includes(n),
-    },
-  ];
-
-export function resolvePbiStateSlug(state: string): PbiStateSlug {
-  const normalized = normalizeStateKey(state);
-  if (!normalized) return "unknown";
-
-  for (const { slug, test } of STATE_MATCHERS) {
-    if (test(normalized)) return slug;
-  }
-
-  return "unknown";
-}
-
-function cssVar(slug: PbiStateSlug, token: "bg" | "border" | "text" | "dot" | "chart"): string {
-  return `var(--pbi-state-${slug}-${token})`;
-}
-
-function buildPresentation(slug: PbiStateSlug): PbiStateColorPresentation {
-  const badgeStyle: PbiStateBadgeStyle = {
-    borderColor: cssVar(slug, "border"),
-    backgroundColor: cssVar(slug, "bg"),
-    color: cssVar(slug, "text"),
-  };
-
-  return {
-    slug,
-    badgeStyle,
-    dotStyle: { backgroundColor: cssVar(slug, "dot") },
-    surfaceStyle: {
-      borderColor: cssVar(slug, "border"),
-      backgroundColor: cssVar(slug, "bg"),
-    },
-    chartColor: cssVar(slug, "chart"),
-  };
-}
-
-const PRESENTATION_CACHE = new Map<PbiStateSlug, PbiStateColorPresentation>(
-  PBI_STATE_SLUGS.map((slug) => [slug, buildPresentation(slug)]),
-);
-
-/** Fuente única de colores por estado (tags, gráficas, filtros, filas). */
-export function getPbiStateColorPresentation(state: string): PbiStateColorPresentation {
-  const slug = resolvePbiStateSlug(state);
-  return PRESENTATION_CACHE.get(slug) ?? PRESENTATION_CACHE.get("unknown")!;
-}
-
-export function getPbiStateChartColor(state: string): string {
-  return getPbiStateColorPresentation(state).chartColor;
-}
-
-export type PbiStateExportBadgeStyle = PbiStateBadgeStyle & {
   dotColor: string;
 };
 
-/**
- * Equivalentes hex del tema claro (`:root` en globals.css) para exportación
- * (OG image, PDF) donde no aplican variables CSS.
- */
-const PBI_STATE_EXPORT_BADGE_STYLES: Record<PbiStateSlug, PbiStateExportBadgeStyle> = {
-  new: {
-    borderColor: "#c5c9d4",
-    backgroundColor: "#f2f3f6",
-    color: "#525868",
-    dotColor: "#828899",
-  },
-  approved: {
-    borderColor: "#d4d4d4",
-    backgroundColor: "#fafafa",
-    color: "#404040",
-    dotColor: "#a3a3a3",
-  },
-  committed: {
-    borderColor: "#3b82f6",
-    backgroundColor: "#eff6ff",
-    color: "#1e40af",
-    dotColor: "#2563eb",
-  },
-  impediment: {
-    borderColor: "#ef4444",
-    backgroundColor: "#fef2f2",
-    color: "#991b1b",
-    dotColor: "#dc2626",
-  },
-  reopened: {
-    borderColor: "#f59e0b",
-    backgroundColor: "#fffbeb",
-    color: "#92400e",
-    dotColor: "#d97706",
-  },
-  qa: {
-    borderColor: "#ca8a04",
-    backgroundColor: "#fefce8",
-    color: "#854d0e",
-    dotColor: "#eab308",
-  },
-  "review-po": {
-    borderColor: "#db2777",
-    backgroundColor: "#fdf2f8",
-    color: "#9d174d",
-    dotColor: "#ec4899",
-  },
-  "in-stage": {
-    borderColor: "#0891b2",
-    backgroundColor: "#ecfeff",
-    color: "#155e75",
-    dotColor: "#06b6d4",
-  },
-  done: {
-    borderColor: "#16a34a",
-    backgroundColor: "#f0fdf4",
-    color: "#166534",
-    dotColor: "#22c55e",
-  },
-  unknown: {
-    borderColor: "#d4d4d4",
-    backgroundColor: "#f5f5f5",
-    color: "#737373",
-    dotColor: "#a3a3a3",
-  },
+export type WorkItemStatePresentation = {
+  /** Estado resuelto de Azure, o `null` si no se encontró. */
+  state: WorkItemState | null;
+  /** Categoría de Azure ("Proposed" | "InProgress" | ...), o "unknown". */
+  category: string;
+  badgeStyle: WorkItemStateBadgeStyle;
+  dotStyle: Pick<CSSProperties, "backgroundColor">;
+  surfaceStyle: Pick<CSSProperties, "borderColor" | "backgroundColor">;
+  /** Color sólido (sin alpha) para usar en charts. */
+  chartColor: string;
 };
 
+const FALLBACK_COLOR = "b2b2b2";
+
+function normalizeHex(input: string): string {
+  return input.trim().replace(/^#/, "").toLowerCase();
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const clean = normalizeHex(hex);
+  if (clean.length === 3) {
+    return {
+      r: Number.parseInt(clean[0] + clean[0], 16),
+      g: Number.parseInt(clean[1] + clean[1], 16),
+      b: Number.parseInt(clean[2] + clean[2], 16),
+    };
+  }
+  if (clean.length === 6) {
+    return {
+      r: Number.parseInt(clean.slice(0, 2), 16),
+      g: Number.parseInt(clean.slice(2, 4), 16),
+      b: Number.parseInt(clean.slice(4, 6), 16),
+    };
+  }
+  return null;
+}
+
+/** Luminancia relativa sRGB (0..1). */
+function relativeLuminance(hex: string): number {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 0.5;
+  return (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
+}
+
+/** Elige blanco o negro para el texto según la luminancia del background. */
+function pickForeground(hex: string): string {
+  return relativeLuminance(hex) > 0.55 ? "#1a1a1a" : "#ffffff";
+}
+
+function buildBadgeStyle(hex: string): WorkItemStateBadgeStyle {
+  const clean = normalizeHex(hex) || FALLBACK_COLOR;
+  return {
+    borderColor: `#${clean}`,
+    // Fondo al ~10% de opacidad para que el texto lea bien sobre cualquier tema.
+    backgroundColor: `#${clean}1a`,
+    color: pickForeground(clean),
+    dotColor: `#${clean}`,
+  };
+}
+
+function buildPresentation(state: WorkItemState | null): WorkItemStatePresentation {
+  const color = state?.color || FALLBACK_COLOR;
+  const badgeStyle = buildBadgeStyle(color);
+  return {
+    state,
+    category: state?.category || "unknown",
+    badgeStyle,
+    dotStyle: { backgroundColor: badgeStyle.dotColor },
+    surfaceStyle: {
+      borderColor: badgeStyle.borderColor,
+      backgroundColor: badgeStyle.backgroundColor,
+    },
+    chartColor: badgeStyle.dotColor,
+  };
+}
+
+const FALLBACK_PRESENTATION = buildPresentation(null);
+
+/** Busca un estado por nombre exacto en la lista devuelta por Azure. */
+export function findStateByName(
+  states: readonly WorkItemState[],
+  name: string,
+): WorkItemState | undefined {
+  const trimmed = name.trim();
+  if (!trimmed) return undefined;
+  return states.find((s) => s.name === trimmed);
+}
+
+/** Devuelve la categoría de Azure para un nombre de estado, o `"unknown"`. */
+export function getStateCategory(
+  states: readonly WorkItemState[],
+  name: string,
+): string {
+  return findStateByName(states, name)?.category || "unknown";
+}
+
+/** Devuelve la presentación visual para un nombre de estado. */
+export function getStatePresentation(
+  states: readonly WorkItemState[],
+  name: string,
+): WorkItemStatePresentation {
+  const state = findStateByName(states, name);
+  return state ? buildPresentation(state) : FALLBACK_PRESENTATION;
+}
+
+/** Devuelve el color sólido (sin alpha) para gráficos de un estado. */
+export function getStateChartColor(
+  states: readonly WorkItemState[],
+  name: string,
+): string {
+  return getStatePresentation(states, name).chartColor;
+}
+
+/** Devuelve el estilo de badge con colores sólidos para export (OG/PDF). */
+export function getStateExportBadgeStyle(
+  states: readonly WorkItemState[],
+  name: string,
+): WorkItemStateBadgeStyle {
+  return getStatePresentation(states, name).badgeStyle;
+}
+
+/** Indica si un estado debe renderizar un badge (no vacío, no es `—`). */
 export function isPbiStateBadgeRenderable(state: string): boolean {
   const trimmed = state.trim();
   return Boolean(trimmed && trimmed !== "—");
-}
-
-/** Estilos de badge con colores sólidos para imagen/PDF. */
-export function getPbiStateExportBadgeStyle(state: string): PbiStateExportBadgeStyle {
-  const slug = resolvePbiStateSlug(state);
-  return PBI_STATE_EXPORT_BADGE_STYLES[slug];
 }

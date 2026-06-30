@@ -1,5 +1,3 @@
-import { TASK_ACTIVITY_VALUES } from "@/lib/schemas/agent";
-
 const ROLE_DEFAULT_ACTIVITY: Record<string, string> = {
   developer: "Development",
   qa: "QA",
@@ -22,7 +20,7 @@ function buildActivitySection(
   activityValues: readonly string[],
   userRole: string | undefined,
 ): string {
-  const validValues = activityValues.length > 0 ? activityValues : TASK_ACTIVITY_VALUES;
+  const validValues = activityValues;
   const defaultActivity = userRole ? (ROLE_DEFAULT_ACTIVITY[userRole] ?? null) : null;
   const roleLabel = userRole ? (ROLE_LABEL[userRole] ?? userRole) : null;
 

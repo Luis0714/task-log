@@ -27,6 +27,11 @@ export type TaskUpdatePayload = {
   state: string;
   workingDate: string;
   workingTime: string;
+  title?: string;
+  description?: string;
+  activity?: string;
+  completedWork?: number;
+  newParentId?: number;
 };
 
 export type TaskUpdateResponse = {
@@ -49,6 +54,6 @@ export async function patchTaskWorkItem(
 
   return {
     ok: false,
-    errorMessage: body.error ?? "No se pudo guardar el estado.",
+    errorMessage: body.error ?? "No se pudo guardar la tarea.",
   };
 }

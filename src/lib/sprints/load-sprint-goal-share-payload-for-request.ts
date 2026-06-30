@@ -31,6 +31,7 @@ export async function loadSprintGoalSharePayloadForRequest(
     sprintStartDate: query.sprintStartDate,
     sprintFinishDate: query.sprintFinishDate,
     generalObjective: snapshot.generalObjective,
+    backlogStates: snapshot.backlogStates,
   });
 
   if (!payload) {

@@ -41,7 +41,6 @@ export type WorkItemsSelectionHostProps = {
   sprintWorkingDays?: readonly SprintWorkingDay[];
   project: string | null;
   team: string | null;
-  currentUserDisplayName?: string | null;
   members: readonly AdoTeamMemberDto[];
   children: ReactNode;
 };
@@ -54,7 +53,6 @@ export function WorkItemsSelectionHost({
   sprintWorkingDays = [],
   project,
   team,
-  currentUserDisplayName = null,
   members,
   children,
 }: WorkItemsSelectionHostProps) {
@@ -98,7 +96,6 @@ export function WorkItemsSelectionHost({
         responsableFields={responsableFields}
         project={project}
         team={team}
-        currentUserDisplayName={currentUserDisplayName}
         members={members}
         onBugClick={handleBugClick}
         onSaved={() => router.refresh()}

@@ -41,6 +41,11 @@ export function useTaskDetailDraftController({
   const [draftState, setDraftState] = useState("");
   const [draftWorkingDate, setDraftWorkingDate] = useState("");
   const [draftWorkingTime, setDraftWorkingTime] = useState(DEFAULT_WORKING_TIME);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftDescription, setDraftDescription] = useState("");
+  const [draftActivity, setDraftActivity] = useState("");
+  const [draftHours, setDraftHours] = useState<number | undefined>(undefined);
+  const [draftNewParentId, setDraftNewParentId] = useState<number | undefined>(undefined);
 
   const stateOptions = useMemo(() => taskStates.map((state) => state.name), [taskStates]);
   const statesReady = !statesLoading && stateOptions.length > 0;
@@ -55,17 +60,35 @@ export function useTaskDetailDraftController({
     setDraftState(task.state);
     setDraftWorkingDate(task.workingDate?.trim() || getDefaultWorkingDate());
     setDraftWorkingTime(task.workingTime?.trim() || DEFAULT_WORKING_TIME);
-  }, [task?.id, task?.state, task?.workingDate, task?.workingTime]);
+    setDraftTitle(task.title ?? "");
+    setDraftDescription(task.description ?? "");
+    setDraftActivity(task.activity ?? "");
+    setDraftHours(task.loggedHours);
+    setDraftNewParentId(undefined);
+  }, [task?.id]);
 
   const initialWorkingDate = task?.workingDate?.trim() ?? "";
   const initialWorkingTime = task?.workingTime?.trim() || DEFAULT_WORKING_TIME;
-  const isStateDirty = Boolean(task && draftState !== task.state);
-  const isDateDirty = Boolean(task && draftWorkingDate !== initialWorkingDate);
-  const isTimeDirty = Boolean(task && draftWorkingTime !== initialWorkingTime);
-  const isDirty = isStateDirty || isDateDirty || isTimeDirty;
+
+  const isDirty = Boolean(
+    task && (
+      draftState !== task.state ||
+      draftWorkingDate !== initialWorkingDate ||
+      draftWorkingTime !== initialWorkingTime ||
+      draftTitle !== (task.title ?? "") ||
+      draftDescription !== (task.description ?? "") ||
+      draftActivity !== (task.activity ?? "") ||
+      draftHours !== task.loggedHours ||
+      draftNewParentId !== undefined
+    ),
+  );
+
   const canSave = computeDraftCanSave({
     isDirty,
-    isValid: isDateKeyValid(draftWorkingDate) && isValidWorkingTime(draftWorkingTime),
+    isValid:
+      isDateKeyValid(draftWorkingDate) &&
+      isValidWorkingTime(draftWorkingTime) &&
+      draftTitle.trim().length > 0,
     externalReady: statesReady && Boolean(project),
     isSubmitting: saving,
   });
@@ -77,6 +100,16 @@ export function useTaskDetailDraftController({
     setDraftWorkingDate,
     draftWorkingTime,
     setDraftWorkingTime,
+    draftTitle,
+    setDraftTitle,
+    draftDescription,
+    setDraftDescription,
+    draftActivity,
+    setDraftActivity,
+    draftHours,
+    setDraftHours,
+    draftNewParentId,
+    setDraftNewParentId,
     stateOptions,
     statesReady,
     sprintDateBounds,

@@ -6,7 +6,7 @@ import { BugDetailSheet } from "@/components/bugs/bug-detail-sheet";
 import { SprintLoggedHoursBadge } from "@/components/dashboard/metrics/sprint-logged-hours-badge";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { SprintItemList, type SprintItemListSelection } from "@/components/sprint-items/sprint-item-list";
-import { TaskDetailSheet } from "@/components/tasks/task-detail-sheet";
+import { TaskDetailSheet, type ParentHuOption } from "@/components/tasks/task-detail-sheet";
 import { BulkTasksActionsBar } from "@/components/tasks/bulk-tasks-actions-bar";
 import { useSprintItemsLists } from "@/hooks/sprint-items/use-sprint-items-lists";
 import type { SprintItemsDataSnapshot } from "@/lib/sprint-items/load-sprint-items-data";
@@ -15,6 +15,18 @@ import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 import { sumTaskLoggedHours } from "@/lib/dashboard/task-hours";
+
+function buildParentHuOptions(items: readonly AdoWorkItemOptionDto[]): ParentHuOption[] {
+  const seen = new Set<number>();
+  const options: ParentHuOption[] = [];
+  for (const item of items) {
+    if (item.parentId !== undefined && !seen.has(item.parentId)) {
+      seen.add(item.parentId);
+      options.push({ id: item.parentId, title: item.parentTitle ?? `HU #${item.parentId}` });
+    }
+  }
+  return options;
+}
 
 const COPY: Record<
   SprintItemsKind,
@@ -60,9 +72,13 @@ export function SprintItemsLists({
 
   const [selectedItem, setSelectedItem] = useState<AdoWorkItemOptionDto | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  // Selección bulk. Sólo se usa cuando kind === "tasks"; para "bugs" se ignora.
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<number>>(
     () => new Set<number>(),
+  );
+
+  const parentHuOptions = useMemo(
+    () => buildParentHuOptions(filteredItems),
+    [filteredItems],
   );
 
   const handleItemClick = useCallback((item: AdoWorkItemOptionDto) => {
@@ -103,9 +119,6 @@ export function SprintItemsLists({
   }, []);
 
   const handleBulkCompleted = useCallback(() => {
-    // Tras un cambio bulk, refrescar datos del servidor y limpiar la selección
-    // (los IDs eliminados ya no existen; los actualizados pueden seguir si
-    // el usuario quiere repetir, pero la convención más limpia es limpiar).
     setSelectedIds(new Set());
     onSaved();
   }, [onSaved]);
@@ -134,6 +147,7 @@ export function SprintItemsLists({
             project={project}
             selectedIds={Array.from(selectedIds)}
             stateNames={stateNames}
+            parentHuOptions={parentHuOptions}
             workingDate={dayKey}
             onClear={handleClearSelection}
             onCompleted={handleBulkCompleted}
@@ -155,6 +169,7 @@ export function SprintItemsLists({
           bugStates={snapshot.itemStates}
           project={project}
           sprintWorkingDays={sprintWorkingDays}
+          parentHuOptions={parentHuOptions}
           onSaved={onSaved}
         />
       ) : (
@@ -165,6 +180,7 @@ export function SprintItemsLists({
           taskStates={snapshot.itemStates}
           project={project}
           sprintWorkingDays={sprintWorkingDays}
+          parentHuOptions={parentHuOptions}
           onSaved={onSaved}
         />
       )}

@@ -1,6 +1,7 @@
 import { mergeTeamMembersWithWorkItemAssignees } from "@/lib/filters/merge-team-members-with-assignees";
 import { findTeamMemberByAssigneeName } from "@/lib/filters/person-name";
 import type { AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import type { SprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import { isSprintBugAttended } from "@/lib/sprints/build-sprint-bug-detail-items";
 import { SPRINT_BUG_UNASSIGNED_LABEL } from "@/lib/sprints/filter-sprint-bug-detail-items";
 import type { SprintBugAssigneeRow, SprintBugDetailItem } from "@/lib/sprints/sprint-stats-types";
@@ -23,10 +24,13 @@ function resolveBugAssigneeLabel(
   return findTeamMemberByAssigneeName(roster, trimmed)?.displayName ?? trimmed;
 }
 
-function toAssigneeSourceFromWorkItem(bug: AdoWorkItemOptionDto): SprintBugAssigneeSource {
+function toAssigneeSourceFromWorkItem(
+  bug: AdoWorkItemOptionDto,
+  mapping: SprintStatusMapping,
+): SprintBugAssigneeSource {
   return {
     assignedTo: bug.assignedTo?.trim() || null,
-    isAttended: isSprintBugAttended(bug.state),
+    isAttended: isSprintBugAttended(bug.state, mapping),
   };
 }
 
@@ -101,9 +105,10 @@ function buildSprintBugAssigneeRowsFromSources(
 export function buildSprintBugAssigneeRows(
   bugs: readonly AdoWorkItemOptionDto[],
   assigneeRoster: readonly AdoTeamMemberDto[],
+  mapping: SprintStatusMapping,
 ): SprintBugAssigneeRow[] {
   return buildSprintBugAssigneeRowsFromSources(
-    bugs.map(toAssigneeSourceFromWorkItem),
+    bugs.map((bug) => toAssigneeSourceFromWorkItem(bug, mapping)),
     assigneeRoster,
   );
 }

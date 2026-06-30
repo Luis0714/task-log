@@ -5,6 +5,7 @@ import { cache } from "react";
 import {
   firstSprintDataError,
   loadSprintBacklogStates,
+  loadSprintBugStates,
   loadSprintBugs,
   loadSprintNonWorkingDates,
   loadSprintTasks,
@@ -45,23 +46,32 @@ export const loadSprintBundle = cache(async function loadSprintBundle(
   };
 
   const includeDaysOff = input.includeDaysOff ?? true;
-  const [workItems, bugs, tasks, backlogStates, nonWorkingDates] = await Promise.all([
+  const [workItems, bugs, tasks, backlogStates, bugStates, nonWorkingDates] = await Promise.all([
     loadSprintWorkItems(ctx.project, ctx.sprintPath, ctx.assignee),
     loadSprintBugs(ctx.project, ctx.sprintPath, ctx.assignee),
     loadSprintTasks(ctx.project, ctx.sprintPath, ctx.assignee),
     loadSprintBacklogStates(ctx.project),
+    loadSprintBugStates(ctx.project),
     includeDaysOff
       ? loadSprintNonWorkingDates(ctx.project, ctx.team)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
-  const error = firstSprintDataError(workItems, bugs, tasks, backlogStates, nonWorkingDates);
+  const error = firstSprintDataError(
+    workItems,
+    bugs,
+    tasks,
+    backlogStates,
+    bugStates,
+    nonWorkingDates,
+  );
 
   return {
     workItems: workItems.data,
     bugs: bugs.data,
     tasks: tasks.data,
     backlogStates: backlogStates.data,
+    bugStates: bugStates.data,
     nonWorkingDates: nonWorkingDates.data,
     error,
   };

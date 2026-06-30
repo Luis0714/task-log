@@ -5,6 +5,7 @@ import { SprintDeliverySection } from "@/components/dashboard/sections/sprint-de
 import {
   firstSprintDataError,
   loadSprintBacklogStates,
+  loadSprintBugStates,
   loadSprintBugs,
   loadSprintWorkItems,
 } from "@/lib/ado/load-sprint-data";
@@ -23,16 +24,22 @@ export async function DashboardDeliverySectionServer({
   const ctx = catalogToSprintContext(catalog);
   if (!ctx) return null;
 
-  const [workItems, bugs, backlogStates] = await Promise.all([
+  const [workItems, bugs, backlogStates, bugStates] = await Promise.all([
     loadSprintWorkItems(ctx.project, ctx.sprintPath, ctx.assignee),
     loadSprintBugs(ctx.project, ctx.sprintPath, ctx.assignee),
     loadSprintBacklogStates(ctx.project),
+    loadSprintBugStates(ctx.project),
   ]);
 
-  const error = firstSprintDataError(workItems, bugs, backlogStates);
+  const error = firstSprintDataError(workItems, bugs, backlogStates, bugStates);
   if (error) return <CopilotErrorAlert message={error} />;
 
-  const metrics = buildDashboardDeliveryMetrics(workItems.data, bugs.data);
+  const metrics = buildDashboardDeliveryMetrics({
+    workItems: workItems.data,
+    bugs: bugs.data,
+    backlogStates: backlogStates.data,
+    bugStates: bugStates.data,
+  });
   const huCount = metrics.sprintStatusOverview.userStories.assigned;
 
   return (

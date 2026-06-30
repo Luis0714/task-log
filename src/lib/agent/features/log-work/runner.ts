@@ -1,6 +1,6 @@
 import "server-only";
 
-import { fetchTaskActivityValues } from "@/lib/azure-devops/fetch-task-activity-values";
+import { fetchActivityValues } from "@/lib/azure-devops/activity-values";
 import { listTaskStates, type AdoWorkItemTypeState } from "@/lib/azure-devops/work-item-type-states";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import { findToolHandler, listToolDefinitions } from "@/lib/agent/tools/registry";
@@ -11,6 +11,7 @@ import { previewResultSchema } from "@/lib/schemas/agent";
 import type { PreviewResult } from "@/lib/schemas/agent";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
 
+import { getTodayDateKey } from "@/lib/time-log/working-date-default";
 import { buildTimeAgentSystemPrompt } from "./time-agent-prompt";
 import { sanitizeUserInput } from "./input-sanitizer";
 import {
@@ -88,18 +89,14 @@ export async function runLogWorkFeature({
   const auth = executionContext?.auth;
   const sprintPath = executionContext?.sprintContext?.sprintPath ?? "";
   const team = executionContext?.sprintContext?.team ?? "";
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayDateKey();
 
   const processProfile = auth ? await resolveProcessProfile(auth) : null;
 
   const [activityValues, taskStates] =
     auth && processProfile
       ? await Promise.all([
-          fetchTaskActivityValues(
-            auth,
-            processProfile.taskWorkItemType,
-            processProfile.activityField,
-          ),
+          fetchActivityValues(auth),
           listTaskStates(auth, processProfile.taskWorkItemType),
         ])
       : [[] as readonly string[], [] as AdoWorkItemTypeState[]];

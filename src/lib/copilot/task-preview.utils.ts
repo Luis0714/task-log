@@ -1,4 +1,5 @@
 import type { CreateTaskBatchItem } from "@/lib/schemas/agent";
+import { getTodayDateKey } from "@/lib/time-log/working-date-default";
 
 export function groupTasksByPbi(tasks: CreateTaskBatchItem[]): Map<number, CreateTaskBatchItem[]> {
   return tasks.reduce((map, task) => {
@@ -16,7 +17,7 @@ export function buildEmptyTask(sprintPath: string, team: string): CreateTaskBatc
     hours: 1,
     description: "",
     activity: "",
-    workingDate: new Date().toISOString().slice(0, 10),
+    workingDate: getTodayDateKey(),
     workingTime: "09:00",
     state: "Closed",
     markAsDone: true,

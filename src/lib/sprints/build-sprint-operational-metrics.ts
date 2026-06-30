@@ -1,4 +1,5 @@
 import type { AdoTaskStateDto, AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import { buildSprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import { buildDashboardDeliveryMetrics } from "@/lib/dashboard/build-dashboard-delivery-metrics";
 import { buildSprintWorkflowSectionMetrics } from "@/lib/sprints/build-sprint-workflow-section-metrics";
 import { buildBugQualityMetrics, buildParentTitleLookup } from "@/lib/sprints/build-bug-quality-metrics";
@@ -16,6 +17,7 @@ export type BuildSprintOperationalMetricsInput = {
   bugs: readonly AdoWorkItemOptionDto[];
   tasks?: readonly AdoWorkItemOptionDto[];
   backlogStates: readonly AdoTaskStateDto[];
+  bugStates?: readonly AdoTaskStateDto[];
   goalWorkItemIds: ReadonlySet<number>;
   scope: SprintStatsScope;
   sprintStartDate?: string | null;
@@ -48,14 +50,24 @@ export function buildSprintOperationalMetrics(
   const tasks = resolveScopedTasks(input);
   const parentTitlesById = buildParentTitleLookup(input.workItems);
 
+  // Sin bugStates del proyecto caemos a los backlogStates (mismo proceso Scrum-like).
+  const effectiveBugStates = input.bugStates ?? input.backlogStates;
+  const bugMapping = buildSprintStatusMapping(effectiveBugStates);
+
   return {
-    delivery: buildDashboardDeliveryMetrics(workItems, bugs),
+    delivery: buildDashboardDeliveryMetrics({
+      workItems,
+      bugs,
+      backlogStates: input.backlogStates,
+      bugStates: effectiveBugStates,
+    }),
     workflow: buildSprintWorkflowSectionMetrics(workItems, input.backlogStates),
     bugs: buildBugQualityMetrics({
       bugs,
       goalWorkItemIds: input.goalWorkItemIds,
       parentTitlesById,
       assigneeRoster: input.assigneeRoster,
+      bugMapping,
     }),
     times: buildSprintTimesMetrics({
       tasks,

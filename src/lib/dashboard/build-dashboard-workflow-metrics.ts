@@ -1,4 +1,5 @@
 import type { DashboardWorkflowMetrics } from "@/lib/dashboard/types";
+import { buildSprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import {
   computeDashboardMetrics,
   computeSprintPbiProgress,
@@ -9,12 +10,15 @@ import {
   collectWorkItemStates,
   groupWorkItemsByStates,
 } from "@/lib/time-log/filter-work-items";
-import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import type { AdoWorkItemTypeState } from "@/lib/azure-devops/work-item-type-states";
+import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
 export function buildDashboardWorkflowMetrics(
   workItems: AdoWorkItemOptionDto[],
-  backlogStates: AdoTaskStateDto[],
+  backlogStates: readonly AdoWorkItemTypeState[],
 ): DashboardWorkflowMetrics {
+  const userStoryMapping = buildSprintStatusMapping(backlogStates);
+
   const assigned = mapToDashboardWorkItems(workItems);
   const workItemStates = backlogStates.map((state) => state.name);
   const stateOrder =
@@ -23,6 +27,6 @@ export function buildDashboardWorkflowMetrics(
 
   return computeDashboardMetrics(EMPTY_HOURS_BREAKDOWN, {
     pbiStateGroups,
-    pbiProgress: computeSprintPbiProgress(assigned, workItemStates),
+    pbiProgress: computeSprintPbiProgress(assigned, userStoryMapping),
   });
 }

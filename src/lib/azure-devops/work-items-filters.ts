@@ -1,8 +1,4 @@
-import {
-  stateMatchesCategory,
-  stateMatchesCompletedState,
-  USER_STORY_STATUS_MAPPING,
-} from "@/lib/dashboard/sprint-status-mapping";
+import { stateMatchesCategory, type SprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import {
   workItemMatchesStates,
@@ -17,16 +13,18 @@ export type WorkItemsByStateGroup = {
   items: AdoWorkItemOption[];
 };
 
-function normalizeState(state: string): string {
-  return state.trim().toLowerCase();
-}
-
 function compareByPriority(a: AdoWorkItemOption, b: AdoWorkItemOption): number {
   const priorityA = typeof a.priority === "number" ? a.priority : 99;
   const priorityB = typeof b.priority === "number" ? b.priority : 99;
   if (priorityA !== priorityB) return priorityA - priorityB;
   return a.title.localeCompare(b.title, "es");
 }
+
+function normalizeState(state: string): string {
+  return state.trim().toLowerCase();
+}
+
+export { normalizeState };
 
 export function filterWorkItemsByClientCriteria(
   items: AdoWorkItemOption[],
@@ -83,41 +81,56 @@ export function groupWorkItemsByStates(
   return ordered;
 }
 
-export function isCommittedPbiState(state: string): boolean {
-  return stateMatchesCategory(state, USER_STORY_STATUS_MAPPING.inProgress);
+export function isCommittedPbiState(
+  state: string,
+  mapping: SprintStatusMapping,
+): boolean {
+  return stateMatchesCategory(state, mapping.inProgress);
 }
 
 /** Nombre exacto del estado Committed en el catálogo ADO (p. ej. registro de tiempo). */
-export function resolveCommittedBacklogStateName(states: readonly string[]): string {
-  return states.find((state) => isCommittedPbiState(state)) ?? "";
+export function resolveCommittedBacklogStateName(
+  states: readonly string[],
+  mapping: SprintStatusMapping,
+): string {
+  return states.find((state) => isCommittedPbiState(state, mapping)) ?? "";
 }
 
-/** Pendientes del sprint que aún no están en curso (próximo trabajo). */
-const UPCOMING_PENDING_NORMALIZED = USER_STORY_STATUS_MAPPING.pending.map(normalizeState);
-
-const UPCOMING_STATE_ALIASES = ["proposed", "to do", "todo", "pending", "ready"] as const;
-
-export function isUpcomingPbiState(state: string): boolean {
-  if (isCommittedPbiState(state)) return false;
-
-  const normalized = normalizeState(state);
-  if (UPCOMING_PENDING_NORMALIZED.includes(normalized)) return true;
-
-  return (UPCOMING_STATE_ALIASES as readonly string[]).includes(normalized);
+/**
+ * Pendientes del sprint que aún no están en curso (próximo trabajo).
+ * El mapeo se construye en el loader con `buildSprintStatusMapping(states)`.
+ */
+export function isUpcomingPbiState(
+  state: string,
+  mapping: SprintStatusMapping,
+): boolean {
+  if (isCommittedPbiState(state, mapping)) return false;
+  return stateMatchesCategory(state, mapping.pending);
 }
 
-export function selectInProgressWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
-  return filterUserStoriesByWorkflowCategory(items, "inProgress").sort(compareByPriority);
+export function selectInProgressWorkItems(
+  items: AdoWorkItemOption[],
+  mapping: SprintStatusMapping,
+): AdoWorkItemOption[] {
+  return filterUserStoriesByWorkflowCategory(items, "inProgress", mapping).sort(
+    compareByPriority,
+  );
 }
 
-export function selectUpcomingWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
-  return filterUserStoriesByWorkflowCategory(items, "pending").sort(compareByPriority);
+export function selectUpcomingWorkItems(
+  items: AdoWorkItemOption[],
+  mapping: SprintStatusMapping,
+): AdoWorkItemOption[] {
+  return filterUserStoriesByWorkflowCategory(items, "pending", mapping).sort(
+    compareByPriority,
+  );
 }
 
-export function isDevelopedPbiState(state: string): boolean {
-  return stateMatchesCompletedState(state, USER_STORY_STATUS_MAPPING);
-}
-
-export function selectDevelopedWorkItems(items: AdoWorkItemOption[]): AdoWorkItemOption[] {
-  return filterUserStoriesByWorkflowCategory(items, "developed").sort(compareByPriority);
+export function selectDevelopedWorkItems(
+  items: AdoWorkItemOption[],
+  mapping: SprintStatusMapping,
+): AdoWorkItemOption[] {
+  return filterUserStoriesByWorkflowCategory(items, "developed", mapping).sort(
+    compareByPriority,
+  );
 }

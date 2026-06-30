@@ -34,11 +34,17 @@ export async function resolveOrDiscoverProjectConfig(
   const backlogWIT = resolveBacklogWorkItemTypeName();
   const timezone = resolveAdoTimeZone();
 
-  const [projectFields, taskStates, workingDateDiscovered] = await Promise.all([
-    listProjectFieldReferenceNames(auth),
-    listTaskStates(auth),
-    discoverWorkingDateFieldReference(auth, taskWIT),
-  ]);
+  const [projectFields, taskStates, taskWorkingDate, bugWorkingDate] =
+    await Promise.all([
+      listProjectFieldReferenceNames(auth),
+      listTaskStates(auth),
+      discoverWorkingDateFieldReference(auth, taskWIT),
+      // Buscamos también contra Bug: en algunos proyectos el campo Working
+      // Date existe solo en el tipo Bug (no en Task). Si Task no tiene un
+      // match, caemos al campo de Bug.
+      discoverWorkingDateFieldReference(auth, bugWIT),
+    ]);
+  const workingDateDiscovered = taskWorkingDate ?? bugWorkingDate;
 
   const envField = process.env.AZDO_WORKING_DATE_FIELD?.trim();
   let workingDateField: string;

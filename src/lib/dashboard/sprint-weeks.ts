@@ -73,7 +73,9 @@ export function computeSprintWeekMetrics(
   bugs: SprintBugHoursSource[],
 ): SprintWeekMetrics[] {
   return splitSprintIntoWeeks(workingDays)
-    .map((days, index) => buildWeekMetrics(days, `Semana ${index + 1}`, tasks, bugs))
+    .map((days, index) =>
+      buildWeekMetrics(days, `Semana ${index + 1}`, tasks, bugs),
+    )
     .filter((week): week is SprintWeekMetrics => week !== null);
 }
 

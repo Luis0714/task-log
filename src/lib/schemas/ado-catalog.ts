@@ -66,6 +66,10 @@ export const adoWorkItemOptionSchema = z.object({
   responsables: z.record(z.string(), z.string()).optional(),
   /** Tags de Azure DevOps (`System.Tags`), parseados. */
   tags: z.array(z.string()).optional(),
+  /** Título del work item padre (HU/PBI). */
+  parentTitle: z.string().optional(),
+  /** Actividad de la tarea (Microsoft.VSTS.Common.Activity). */
+  activity: z.string().optional(),
 });
 
 export const adoSprintsResponseSchema = z.object({
@@ -79,6 +83,8 @@ export const adoWorkItemsResponseSchema = z.object({
 export const adoTaskStateSchema = z.object({
   name: z.string(),
   category: z.string(),
+  /** Color hexadecimal sin "#" que Azure devuelve en el catálogo de estados. */
+  color: z.string(),
 });
 
 export const adoTaskStatesResponseSchema = z.object({

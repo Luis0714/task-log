@@ -1,4 +1,4 @@
-import { sumAttendedBugHoursForDay, sumAttendedBugHoursForDayKeys, sumAttendedBugHoursThroughDay } from "@/lib/dashboard/bug-hours";
+import { sumBugHoursForDay, sumBugHoursForDayKeys, sumBugHoursThroughDay } from "@/lib/dashboard/bug-hours";
 import type { SprintBugHoursSource } from "@/lib/dashboard/bug-hours";
 import {
   sumDoneTaskHoursForDay,
@@ -32,7 +32,7 @@ export function sumHoursBreakdownForDay(
 ): HoursBreakdown {
   return {
     taskHours: sumDoneTaskHoursForDay(tasks, dayKey),
-    bugHours: sumAttendedBugHoursForDay(bugs, dayKey),
+    bugHours: sumBugHoursForDay(bugs, dayKey),
   };
 }
 
@@ -43,7 +43,7 @@ export function sumHoursBreakdownThroughDay(
 ): HoursBreakdown {
   return {
     taskHours: sumDoneTaskHoursThroughDay(tasks, dayKey),
-    bugHours: sumAttendedBugHoursThroughDay(bugs, dayKey),
+    bugHours: sumBugHoursThroughDay(bugs, dayKey),
   };
 }
 
@@ -55,6 +55,6 @@ export function sumHoursBreakdownForDayKeys(
 ): HoursBreakdown {
   return {
     taskHours: sumDoneTaskHoursForDayKeys(tasks, dayKeys, maxDayKey),
-    bugHours: sumAttendedBugHoursForDayKeys(bugs, dayKeys, maxDayKey),
+    bugHours: sumBugHoursForDayKeys(bugs, dayKeys, maxDayKey),
   };
 }

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { ADO_SIGN_IN_REQUIRED_MESSAGE } from "@/lib/auth/ado-auth-messages";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { updateBacklogItemState } from "@/lib/azure-devops/update-backlog-item-state";
-import { updateWorkItemState, deleteWorkItem } from "@/lib/azure-devops/work-items";
+import { updateWorkItemState, deleteWorkItem, changeWorkItemParent } from "@/lib/azure-devops/work-items";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import {
   apiErrorFromCause,
@@ -73,6 +73,10 @@ export async function PATCH(req: Request, context: RouteContext) {
             workingDate: parsed.data.workingDate,
             workingTime: parsed.data.workingTime,
             completedWork: parsed.data.completedWork,
+            title: parsed.data.title,
+            description: parsed.data.description,
+            activity: parsed.data.activity,
+            reopenedDate: parsed.data.reopenedDate,
           },
           scopedAuth,
         );
@@ -84,6 +88,17 @@ export async function PATCH(req: Request, context: RouteContext) {
         message,
         result.status >= 400 && result.status < 600 ? result.status : 502,
       );
+    }
+
+    if (parsed.data.newParentId && !isBacklogWorkItemUpdate(parsed.data)) {
+      const parentResult = await changeWorkItemParent(workItemId, parsed.data.newParentId, scopedAuth);
+      if (!parentResult.ok) {
+        logApiError("ado/work-items PATCH parent", { status: parentResult.status, body: parentResult.body });
+        return apiErrorResponse(
+          "Los campos se guardaron pero no se pudo re-asignar la HU padre.",
+          parentResult.status >= 400 && parentResult.status < 600 ? parentResult.status : 502,
+        );
+      }
     }
 
     return NextResponse.json({ ok: true, state: result.state });

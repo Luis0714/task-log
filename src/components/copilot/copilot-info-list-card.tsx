@@ -3,7 +3,9 @@
 import { Brain, Bug, ExternalLink, ListChecks, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { useCurrentProject } from "@/hooks/use-current-project";
+import { useBacklogItemStates } from "@/hooks/work-items/use-backlog-item-states";
+import { getStatePresentation } from "@/lib/work-items/pbi-state-colors";
 import type { InfoListItem, InfoListPayload } from "@/lib/schemas/agent";
 
 export type CopilotInfoListCardProps = {
@@ -15,16 +17,6 @@ const TYPE_META: Record<InfoListItem["type"], { label: string; Icon: typeof Bug 
   pbi: { label: "Historias", Icon: ListChecks },
   bug: { label: "Bugs", Icon: Bug },
   task: { label: "Tareas", Icon: Sparkles },
-};
-
-const STATE_TONE: Record<string, string> = {
-  New: "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300",
-  Active: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
-  "In Progress": "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
-  Resolved: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
-  Closed: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
-  Done: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
-  Removed: "bg-zinc-100 text-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-300",
 };
 
 /**
@@ -125,6 +117,19 @@ function SummaryBlock({ summary }: { summary: string }) {
 }
 
 function InfoListItemRow({ item }: { item: InfoListItem }) {
+  const project = useCurrentProject();
+  const { states } = useBacklogItemStates(project);
+  const presentation = item.state
+    ? getStatePresentation(states, item.state)
+    : null;
+  // Descartamos `badgeStyle.color` (calculado por luminancia, no respeta el
+  // tema) y aplicamos `text-foreground` para garantizar contraste en dark y
+  // light mode. El fondo tintado (~10% alpha) es lo bastante sutil para que
+  // el foreground del tema siga siendo legible.
+  const badgeSurfaceStyle = presentation?.state
+    ? (({ color: _ignored, ...rest }) => rest)(presentation.badgeStyle)
+    : undefined;
+
   const content = (
     <>
       <span className="text-muted-foreground font-mono text-xs tabular-nums">
@@ -136,10 +141,9 @@ function InfoListItemRow({ item }: { item: InfoListItem }) {
       {item.state ? (
         <Badge
           variant="secondary"
-          className={cn(
-            "shrink-0 rounded-full px-2 py-0 text-[10px] font-medium tracking-wide uppercase",
-            STATE_TONE[item.state] ?? "bg-muted text-muted-foreground",
-          )}
+          data-pbi-state={presentation?.category}
+          className="text-foreground shrink-0 rounded-full px-2 py-0 text-[10px] font-medium tracking-wide uppercase"
+          style={badgeSurfaceStyle}
         >
           {item.state}
         </Badge>

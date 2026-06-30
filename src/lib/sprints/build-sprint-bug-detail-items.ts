@@ -1,15 +1,18 @@
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import {
-  BUG_STATUS_MAPPING,
   stateMatchesCompletedState,
+  type SprintStatusMapping,
 } from "@/lib/dashboard/sprint-status-mapping";
 import type { SprintBugDetailItem } from "@/lib/sprints/sprint-stats-types";
 
 const UNASSIGNED_LABEL = "Sin asignar";
 
-export function isSprintBugAttended(state: string | undefined | null): boolean {
+export function isSprintBugAttended(
+  state: string | undefined | null,
+  mapping: SprintStatusMapping,
+): boolean {
   if (!state?.trim()) return false;
-  return stateMatchesCompletedState(state, BUG_STATUS_MAPPING);
+  return stateMatchesCompletedState(state, mapping);
 }
 
 export function buildParentTitleLookup(
@@ -38,12 +41,13 @@ export type BuildSprintBugDetailItemsInput = {
   bugs: readonly AdoWorkItemOptionDto[];
   goalWorkItemIds: ReadonlySet<number>;
   parentTitlesById?: ReadonlyMap<number, string>;
+  bugMapping: SprintStatusMapping;
 };
 
 export function buildSprintBugDetailItems(
   input: BuildSprintBugDetailItemsInput,
 ): SprintBugDetailItem[] {
-  const { bugs, goalWorkItemIds, parentTitlesById } = input;
+  const { bugs, goalWorkItemIds, parentTitlesById, bugMapping } = input;
 
   return bugs
     .map((bug): SprintBugDetailItem => {
@@ -55,7 +59,7 @@ export function buildSprintBugDetailItems(
         title: bug.title,
         assignedTo: bug.assignedTo?.trim() || null,
         state: bug.state?.trim() || "Sin estado",
-        isAttended: isSprintBugAttended(bug.state),
+        isAttended: isSprintBugAttended(bug.state, bugMapping),
         parentId,
         parentTitle: parentId ? parentTitlesById?.get(parentId) ?? null : null,
         inGoalScope,

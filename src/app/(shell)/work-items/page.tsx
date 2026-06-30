@@ -11,7 +11,6 @@ import {
   WorkItemsUpcomingSectionSkeleton,
 } from "@/components/skeletons/work-items-section-skeletons";
 import { WorkItemsShellSkeleton } from "@/components/skeletons/work-items-shell-skeleton";
-import { emptyServerProfileFields } from "@/lib/auth/profile-display";
 import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
 import { resolvePageAuthWithProfile } from "@/lib/auth/resolve-page-auth";
 import { resolveFilterDefaults } from "@/services/user/resolve-filter-defaults";
@@ -29,10 +28,9 @@ type PageProps = {
 };
 
 export default async function WorkItemsPage({ searchParams }: PageProps) {
-  const { searchParams: sp, auth, defaultProject, profile } =
+  const { searchParams: sp, auth, defaultProject } =
     await resolvePageAuthWithProfile(searchParams);
   const showLiveData = canLoadLiveAdoContent(auth);
-  const profileFields = showLiveData ? profile : emptyServerProfileFields;
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
   const { filters: savedFilters } = await resolveFilterDefaults(USER_FILTER_SCOPES.userHistories);
@@ -72,7 +70,6 @@ export default async function WorkItemsPage({ searchParams }: PageProps) {
               defaultProject={defaultProject}
               adoExecutionReady={showLiveData}
               assignee={urlAssignee}
-              currentUserDisplayName={profileFields.profileDisplayName}
             />
           </Suspense>
         }

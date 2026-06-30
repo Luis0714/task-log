@@ -68,7 +68,10 @@ export type DashboardMetrics = {
 export type DashboardDeliveryMetrics = Pick<
   DashboardMetrics,
   "sprintStatusOverview" | "storyPointsAssigned" | "storyPointsDeveloped" | "pbiProgress"
->;
+> & {
+  huStateGroups: readonly DashboardPbiStateGroup[];
+  bugStateGroups: readonly DashboardPbiStateGroup[];
+};
 
 export type DashboardWorkflowMetrics = Pick<
   DashboardMetrics,

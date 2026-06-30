@@ -67,7 +67,6 @@ export type SprintBugQualityMetrics = {
 
 export type SprintWorkflowSectionMetrics = {
   pbiProgress: SprintPbiProgress;
-  stateBars: PbiStateBar[];
 };
 
 export type SprintTimesWeekColumn = {

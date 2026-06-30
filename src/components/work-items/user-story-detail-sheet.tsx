@@ -45,7 +45,6 @@ export type UserStoryDetailSheetProps = {
   statesLoading?: boolean;
   project: string | null;
   team: string | null;
-  currentUserDisplayName: string | null;
   members: readonly AdoTeamMemberDto[];
   membersLoading?: boolean;
   onBugClick?: (bug: AdoWorkItemOptionDto) => void;
@@ -62,7 +61,6 @@ export function UserStoryDetailSheet({
   statesLoading = false,
   project,
   team,
-  currentUserDisplayName,
   members,
   membersLoading = false,
   onBugClick,
@@ -79,7 +77,6 @@ export function UserStoryDetailSheet({
     workItem,
     project,
     team,
-    currentUserDisplayName,
     members,
     responsableFields,
     statesReady,

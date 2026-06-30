@@ -1,21 +1,23 @@
 import { sprintGoalShareImageColors } from "@/lib/sprints/sprint-goal-share-image-theme";
-import {
-  getPbiStateExportBadgeStyle,
-  isPbiStateBadgeRenderable,
-} from "@/lib/work-items/pbi-state-colors";
+import { getStateExportBadgeStyle } from "@/lib/work-items/pbi-state-colors";
+import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
 
-export type SprintGoalShareImageStateBadgeProps = {
+export type SprintGoalShareImageStateBadgeProps = Readonly<{
   state: string;
-};
+  backlogStates: readonly AdoTaskStateDto[];
+}>;
 
-export function SprintGoalShareImageStateBadge({ state }: SprintGoalShareImageStateBadgeProps) {
-  if (!isPbiStateBadgeRenderable(state)) {
+export function SprintGoalShareImageStateBadge({
+  state,
+  backlogStates,
+}: Readonly<SprintGoalShareImageStateBadgeProps>) {
+  if (!state || state === "—") {
     return (
       <span style={{ color: sprintGoalShareImageColors.muted, fontSize: 13 }}>{state}</span>
     );
   }
 
-  const badgeStyle = getPbiStateExportBadgeStyle(state);
+  const badgeStyle = getStateExportBadgeStyle(backlogStates, state);
 
   return (
     <span

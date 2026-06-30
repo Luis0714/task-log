@@ -6,9 +6,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ShellSidebarConnection } from "@/components/layout/shell-sidebar-connection";
 import { mapAuthStateToConnectionDisplay } from "@/lib/auth/connection-display";
 import { getHistoryScopeKey } from "@/lib/auth/history-scope";
-import { mergeServerAuthState } from "@/lib/auth/merge-auth-state";
-import { emptyServerProfileFields } from "@/lib/auth/profile-display";
-import { getServerAuthBootstrap } from "@/lib/auth/server-state";
+import { getServerAuthState } from "@/lib/auth/server-state";
 import { getSidebarDefaultOpen } from "@/lib/layout/sidebar-state";
 
 export const metadata = buildShellLayoutMetadata();
@@ -20,26 +18,24 @@ export default async function ShellLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [bootstrap, defaultSidebarOpen, historyScopeKey] = await Promise.all([
-    getServerAuthBootstrap(),
+  const [authState, defaultSidebarOpen, historyScopeKey] = await Promise.all([
+    getServerAuthState(),
     getSidebarDefaultOpen(),
     getHistoryScopeKey(),
   ]);
-  const connection = mapAuthStateToConnectionDisplay(
-    mergeServerAuthState(bootstrap, emptyServerProfileFields),
-  );
+  const connection = mapAuthStateToConnectionDisplay(authState);
 
   return (
     <AppShell
       connection={connection}
       historyScopeKey={historyScopeKey}
       defaultSidebarOpen={defaultSidebarOpen}
-      isAdmin={bootstrap.isAdmin}
+      isAdmin={authState.isAdmin}
       sidebarConnection={
         <Suspense
           fallback={<AdoConnectionBadgeSkeleton connection={connection} />}
         >
-          <ShellSidebarConnection />
+          <ShellSidebarConnection connection={connection} />
         </Suspense>
       }
     >

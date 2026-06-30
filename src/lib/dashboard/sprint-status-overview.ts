@@ -32,13 +32,14 @@ export function computeWorkItemStatusCounts(
 
 export function computeUserStoryStatusCounts(
   items: readonly DashboardWorkItem[],
+  mapping: SprintStatusMapping,
 ): WorkItemStatusCounts {
   let pending = 0;
   let inProgress = 0;
   let completed = 0;
 
   for (const item of items) {
-    const category = classifyUserStoryWorkflow(item);
+    const category = classifyUserStoryWorkflow(item, mapping);
     if (category === "developed") completed += 1;
     else if (category === "inProgress") inProgress += 1;
     else if (category === "pending") pending += 1;
@@ -61,7 +62,7 @@ export function computeSprintStatusOverview(
   },
 ): SprintStatusOverview {
   return {
-    userStories: computeUserStoryStatusCounts(userStories),
+    userStories: computeUserStoryStatusCounts(userStories, mappings.userStories),
     bugs: computeWorkItemStatusCounts(bugs, mappings.bugs),
   };
 }

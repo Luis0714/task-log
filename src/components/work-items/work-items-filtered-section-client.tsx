@@ -74,7 +74,11 @@ export function WorkItemsFilteredSectionClient({
   const { filters, isAssigneeNavigating } = useWorkItemsFiltersContext();
 
   const lists = useMemo(
-    () => buildWorkItemsSectionLists(base, filters),
+    () =>
+      buildWorkItemsSectionLists(base, filters, {
+        userStoryMapping: base.userStoryMapping,
+        bugMapping: base.bugMapping,
+      }),
     [base, filters],
   );
   const copy = SECTION_COPY[section];

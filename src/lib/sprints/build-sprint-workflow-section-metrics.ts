@@ -1,6 +1,5 @@
 import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import { buildDashboardWorkflowMetrics } from "@/lib/dashboard/build-dashboard-workflow-metrics";
-import { buildPbiStateBars } from "@/lib/dashboard/pbi-state-chart-data";
 import type { SprintWorkflowSectionMetrics } from "@/lib/sprints/sprint-stats-types";
 
 export function buildSprintWorkflowSectionMetrics(
@@ -11,6 +10,5 @@ export function buildSprintWorkflowSectionMetrics(
 
   return {
     pbiProgress: workflow.pbiProgress,
-    stateBars: buildPbiStateBars(workflow.pbiStateGroups),
   };
 }

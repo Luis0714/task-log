@@ -3,6 +3,8 @@ export type UpdateBugInAdoPayload = {
   state: string;
   workingDate?: string;
   completedWork: number;
+  reopenedDate?: string;
+  newParentId?: number;
 };
 
 export async function updateBugInAdo(

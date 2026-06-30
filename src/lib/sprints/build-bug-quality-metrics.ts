@@ -1,5 +1,6 @@
 import type { AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { PbiStateBar } from "@/lib/dashboard/pbi-state-chart-data";
+import type { SprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import {
   buildParentTitleLookup,
   buildSprintBugDetailItems,
@@ -9,28 +10,34 @@ import { buildSprintBugAssigneeRows } from "@/lib/sprints/build-sprint-bug-assig
 import type { SprintBugQualityMetrics } from "@/lib/sprints/sprint-stats-types";
 
 function buildBugStateBars(bugs: readonly AdoWorkItemOptionDto[]): PbiStateBar[] {
-  const counts = new Map<string, number>();
+  const stateMap = new Map<string, { id: number; title: string }[]>();
 
   for (const bug of bugs) {
     const state = bug.state?.trim() || "Sin estado";
-    counts.set(state, (counts.get(state) ?? 0) + 1);
+    const existing = stateMap.get(state);
+    if (existing) {
+      existing.push({ id: bug.id, title: bug.title });
+    } else {
+      stateMap.set(state, [{ id: bug.id, title: bug.title }]);
+    }
   }
 
-  return [...counts.entries()]
-    .map(([state, count]) => ({ state, count }))
+  return [...stateMap.entries()]
+    .map(([state, items]) => ({ state, count: items.length, items }))
     .sort((left, right) => right.count - left.count || left.state.localeCompare(right.state, "es"));
 }
 
 function countGoalStoriesWithOpenBugs(
   bugs: readonly AdoWorkItemOptionDto[],
   goalWorkItemIds: ReadonlySet<number>,
+  bugMapping: SprintStatusMapping,
 ): number {
   const storiesWithOpenBugs = new Set<number>();
 
   for (const bug of bugs) {
     const parentId = bug.parentId;
     if (!parentId || !goalWorkItemIds.has(parentId)) continue;
-    if (!isSprintBugAttended(bug.state)) {
+    if (!isSprintBugAttended(bug.state, bugMapping)) {
       storiesWithOpenBugs.add(parentId);
     }
   }
@@ -44,10 +51,11 @@ export type BuildBugQualityMetricsInput = {
   parentTitlesById?: ReadonlyMap<number, string>;
   /** Roster del equipo + asignados del sprint (misma fuente que filtros de HUs). */
   assigneeRoster?: readonly AdoTeamMemberDto[];
+  bugMapping: SprintStatusMapping;
 };
 
 export function buildBugQualityMetrics(input: BuildBugQualityMetricsInput): SprintBugQualityMetrics {
-  const { bugs, goalWorkItemIds, parentTitlesById, assigneeRoster = [] } = input;
+  const { bugs, goalWorkItemIds, parentTitlesById, assigneeRoster = [], bugMapping } = input;
   let attended = 0;
   let unassigned = 0;
   let goalBugsTotal = 0;
@@ -56,7 +64,7 @@ export function buildBugQualityMetrics(input: BuildBugQualityMetricsInput): Spri
   for (const bug of bugs) {
     if (!bug.assignedTo?.trim()) unassigned += 1;
 
-    const attendedBug = isSprintBugAttended(bug.state);
+    const attendedBug = isSprintBugAttended(bug.state, bugMapping);
     if (attendedBug) attended += 1;
 
     const parentId = bug.parentId;
@@ -76,11 +84,11 @@ export function buildBugQualityMetrics(input: BuildBugQualityMetricsInput): Spri
     unassigned,
     attendedPercent: total > 0 ? Math.round((attended / total) * 100) : 0,
     stateBars: buildBugStateBars(bugs),
-    assigneeRows: buildSprintBugAssigneeRows(bugs, assigneeRoster),
+    assigneeRows: buildSprintBugAssigneeRows(bugs, assigneeRoster, bugMapping),
     goalBugsTotal,
     goalBugsOpen,
-    goalStoriesWithOpenBugs: countGoalStoriesWithOpenBugs(bugs, goalWorkItemIds),
-    items: buildSprintBugDetailItems({ bugs, goalWorkItemIds, parentTitlesById }),
+    goalStoriesWithOpenBugs: countGoalStoriesWithOpenBugs(bugs, goalWorkItemIds, bugMapping),
+    items: buildSprintBugDetailItems({ bugs, goalWorkItemIds, parentTitlesById, bugMapping }),
   };
 }
 

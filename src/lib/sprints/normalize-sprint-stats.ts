@@ -55,9 +55,6 @@ export function normalizeSprintStatsScreenData(
     },
     bugs: normalizeSprintBugQualityMetrics(stats.bugs),
     times: normalizeSprintTimesMetrics(stats.times),
-    workflow: {
-      ...stats.workflow,
-      stateBars: stats.workflow?.stateBars ?? [],
-    },
+    workflow: stats.workflow ?? { pbiProgress: { percent: 0, completedCount: 0, pendingCount: 0, otherCount: 0, totalCount: 0 } },
   };
 }

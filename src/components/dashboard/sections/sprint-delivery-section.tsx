@@ -3,9 +3,8 @@
 import { Bug, Gauge, ListChecks } from "lucide-react";
 
 import { ChartPanel } from "@/components/dashboard/charts/chart-panel";
-
 import { GroupedBarChart } from "@/components/dashboard/charts/grouped-bar-chart";
-
+import { HorizontalBarChart } from "@/components/dashboard/charts/horizontal-bar-chart";
 import { DeliveryMetricCard } from "@/components/dashboard/metrics/delivery-metric-card";
 
 import {
@@ -22,10 +21,13 @@ import {
 } from "@/lib/dashboard/delivery-metric-variant";
 
 import { kpiProgressPercent } from "@/lib/dashboard/kpi-variant";
-
+import { buildPbiStateBars } from "@/lib/dashboard/pbi-state-chart-data";
 import type { DashboardDeliveryMetrics } from "@/lib/dashboard/types";
-
 import { formatStoryPoints } from "@/lib/dashboard/work-item-selectors";
+import { getStateChartColor } from "@/lib/work-items/pbi-state-colors";
+import { useCurrentProject } from "@/hooks/use-current-project";
+import { useBugStates } from "@/hooks/use-bug-states";
+import { useBacklogItemStates } from "@/hooks/work-items/use-backlog-item-states";
 
 import {
   BUG_ICON_ATTENDED_CLASS,
@@ -116,11 +118,18 @@ export function SprintDeliverySection({
   const viewModel = buildSprintDeliveryViewModel(metrics);
   const { userStories, bugs } = metrics.sprintStatusOverview;
 
+  const project = useCurrentProject();
+  const { states: backlogStates } = useBacklogItemStates(project);
+  const { states: bugStates } = useBugStates(project);
+
+  const huBars = buildPbiStateBars(metrics.huStateGroups);
+  const bugBars = buildPbiStateBars(metrics.bugStateGroups);
+
   return (
     <div className={cn("grid gap-3 lg:grid-cols-12", className)}>
       <div className="grid min-w-0 grid-cols-3 gap-2 lg:col-span-4 lg:grid-cols-1 lg:gap-2">
         <DeliveryMetricCard
-          title="Desarrolladas"
+          title="Completadas"
           icon={ListChecks}
           value={viewModel.huVariant === "empty" ? "—" : `${viewModel.huPercent}%`}
           progress={
@@ -185,17 +194,49 @@ export function SprintDeliverySection({
         />
       </div>
 
-      <ChartPanel
-        title="Estado de entrega"
-        size="compact"
-        loading={loading}
-        isEmpty={!viewModel.hasData}
-        emptyMessage="Sin historias ni Bugs asignados en este sprint."
-        highlight={viewModel.huPercent >= 75 || viewModel.bugPercent >= 75}
-        className="min-w-0 lg:col-span-8"
-      >
-        <GroupedBarChart rows={viewModel.rows} className="h-[140px] sm:h-[150px]" />
-      </ChartPanel>
+      <div className="flex min-w-0 flex-col gap-3 lg:col-span-8">
+        <ChartPanel
+          title="Estado de entrega"
+          size="compact"
+          loading={loading}
+          isEmpty={!viewModel.hasData}
+          emptyMessage="Sin historias ni Bugs asignados en este sprint."
+          highlight={viewModel.huPercent >= 75 || viewModel.bugPercent >= 75}
+        >
+          <GroupedBarChart rows={viewModel.rows} className="h-[140px] sm:h-[150px]" />
+        </ChartPanel>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ChartPanel
+            title="HUs por estado"
+            size="compact"
+            loading={loading}
+            isEmpty={huBars.length === 0}
+            emptyMessage="Sin historias asignadas."
+          >
+            <HorizontalBarChart
+              bars={huBars}
+              showItemsInTooltip
+              stateColorLookup={(state) => getStateChartColor(backlogStates, state)}
+            />
+          </ChartPanel>
+
+          <ChartPanel
+            title="Bugs por estado"
+            size="compact"
+            loading={loading}
+            isEmpty={bugBars.length === 0}
+            emptyMessage="Sin bugs en el sprint."
+          >
+            <HorizontalBarChart
+              bars={bugBars}
+              showItemsInTooltip
+              tooltipValueLabel="bugs"
+              stateColorLookup={(state) => getStateChartColor(bugStates, state)}
+            />
+          </ChartPanel>
+        </div>
+      </div>
     </div>
   );
 }

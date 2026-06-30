@@ -15,6 +15,7 @@ import { appToast } from "@/lib/toast";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import { cn } from "@/lib/utils";
+import type { ParentHuOption } from "@/components/tasks/task-detail-sheet";
 
 export type BugDetailSheetProps = {
   open: boolean;
@@ -24,6 +25,7 @@ export type BugDetailSheetProps = {
   statesLoading?: boolean;
   project: string | null;
   sprintWorkingDays?: readonly SprintWorkingDay[];
+  parentHuOptions?: readonly ParentHuOption[];
   onSaved?: () => void;
 };
 
@@ -35,6 +37,7 @@ export function BugDetailSheet({
   statesLoading = false,
   project,
   sprintWorkingDays = [],
+  parentHuOptions = [],
   onSaved,
 }: BugDetailSheetProps) {
   const form = useBugDetailForm({
@@ -46,6 +49,12 @@ export function BugDetailSheet({
     onSaved,
     onClose: () => onOpenChange(false),
   });
+
+  const currentParent =
+    bug?.parentId !== undefined
+      ? (parentHuOptions.find((o) => o.id === bug.parentId) ??
+        { id: bug.parentId, title: bug.parentTitle ?? `HU #${bug.parentId}` })
+      : null;
 
   async function handleSave() {
     const result = await form.save();
@@ -74,6 +83,13 @@ export function BugDetailSheet({
               onDraftWorkingDateChange={form.setDraftWorkingDate}
               draftCompletedWork={form.draftCompletedWork}
               onDraftCompletedWorkChange={form.setDraftCompletedWork}
+              draftReopenedDate={form.draftReopenedDate}
+              onDraftReopenedDateChange={form.setDraftReopenedDate}
+              draftNewParentId={form.draftNewParentId}
+              onDraftNewParentIdChange={form.setDraftNewParentId}
+              currentParent={currentParent}
+              parentHuOptions={parentHuOptions}
+              reopening={form.reopening}
               stateOptions={form.stateOptions}
               statesReady={form.statesReady}
               statesLoading={form.statesLoading}

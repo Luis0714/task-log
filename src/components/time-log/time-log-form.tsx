@@ -10,7 +10,7 @@ import { SaveAsTemplateDialog } from "@/components/time-log/save-as-template-dia
 import { Button } from "@/components/ui/button";
 import type { TimeLogCatalog } from "@/lib/time-log/catalog-types";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
-import { useTaskMeta } from "@/hooks/use-task-meta";
+import { useActivityValues } from "@/hooks/use-activity-values";
 
 export type TimeLogFormProps = {
   form: UseFormReturn<TimeLogFormValues>;
@@ -34,7 +34,7 @@ export function TimeLogForm({
   onSubmit,
   lastSubmitted = null,
 }: Readonly<TimeLogFormProps>) {
-  const { activities } = useTaskMeta();
+  const { values: activities } = useActivityValues();
   const canSaveTemplate =
     lastSubmitted !== null &&
     lastSubmitted.taskTitle.trim().length > 0 &&

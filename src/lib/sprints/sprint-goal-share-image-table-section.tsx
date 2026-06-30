@@ -52,10 +52,18 @@ function ShareImageHeaderCell({
   );
 }
 
-function ShareImageStateCell({ state, flex }: { state: string; flex: number }) {
+function ShareImageStateCell({
+  state,
+  flex,
+  backlogStates,
+}: Readonly<{
+  state: string;
+  flex: number;
+  backlogStates: SprintGoalSharePayload["backlogStates"];
+}>) {
   return (
     <span style={{ flex, ...centeredCellStyle }}>
-      <SprintGoalShareImageStateBadge state={state} />
+      <SprintGoalShareImageStateBadge state={state} backlogStates={backlogStates} />
     </span>
   );
 }
@@ -137,11 +145,11 @@ export function SprintGoalShareImageTableSection({ payload }: SprintGoalShareIma
               {truncateSprintGoalShareText(storyRow.title, STORY_TITLE_MAX_LENGTH)}
             </span>
           </span>
-          <ShareImageStateCell state={storyRow.originalState} flex={state} />
+          <ShareImageStateCell state={storyRow.originalState} flex={state} backlogStates={payload.backlogStates} />
           <ShareImageTagsCell value={storyRow.originalTags} flex={tags} />
-          <ShareImageStateCell state={storyRow.targetState} flex={state} />
+          <ShareImageStateCell state={storyRow.targetState} flex={state} backlogStates={payload.backlogStates} />
           <ShareImageTagsCell value={storyRow.targetTags} flex={tags} />
-          <ShareImageStateCell state={storyRow.currentState} flex={state} />
+          <ShareImageStateCell state={storyRow.currentState} flex={state} backlogStates={payload.backlogStates} />
           <ShareImageTagsCell value={storyRow.currentTags} flex={tags} />
         </div>
       ))}

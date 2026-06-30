@@ -5,25 +5,24 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BulkDeleteTasksDialog } from "@/components/tasks/bulk-delete-tasks-dialog";
 import { BulkChangeStatusTasksDialog } from "@/components/tasks/bulk-change-status-tasks-dialog";
+import { BulkReassignParentTasksDialog } from "@/components/tasks/bulk-reassign-parent-tasks-dialog";
+import type { ParentHuOption } from "@/components/tasks/task-detail-sheet";
 
 export type BulkTasksActionsBarProps = {
   project: string | null;
   selectedIds: number[];
   stateNames: readonly string[];
+  parentHuOptions: readonly ParentHuOption[];
   workingDate?: string;
   onClear: () => void;
   onCompleted: () => void;
 };
 
-/**
- * Barra flotante que aparece cuando hay tareas seleccionadas. Contiene los
- * disparadores para cambio masivo de estado y eliminación masiva. La barra
- * es invisible si no hay selección.
- */
 export function BulkTasksActionsBar({
   project,
   selectedIds,
   stateNames,
+  parentHuOptions,
   workingDate,
   onClear,
   onCompleted,
@@ -43,6 +42,12 @@ export function BulkTasksActionsBar({
         {count} {noun}
       </span>
       <div className="ml-auto flex flex-wrap items-center gap-2">
+        <BulkReassignParentTasksDialog
+          project={project ?? ""}
+          ids={selectedIds}
+          parentHuOptions={parentHuOptions}
+          onCompleted={onCompleted}
+        />
         <BulkChangeStatusTasksDialog
           project={project ?? ""}
           ids={selectedIds}

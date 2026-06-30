@@ -118,6 +118,7 @@ function buildPayloadFromSources(
     visibleStories,
     overflowCount,
     scopeLabel: `${context.projectName.trim()} · ${context.teamName.trim()} · ${context.sprintName.trim()}`,
+    backlogStates: context.backlogStates ?? [],
   };
 }
 
