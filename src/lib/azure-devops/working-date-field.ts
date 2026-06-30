@@ -67,6 +67,32 @@ export function toWorkingDateKey(
   return formatDateKeyInTimeZone(instant, timeZone);
 }
 
+/**
+ * Construye un ISO 8601 con offset para enviar a campos DateTime de Azure DevOps.
+ * Ej: ("2026-06-30", "11:25", "America/Bogota") → "2026-06-30T11:25:00-05:00"
+ * Azure almacena el UTC equivalente y lo muestra correctamente en cualquier timezone.
+ */
+export function buildWorkingDateTimeValue(
+  dateKey: string,
+  timeStr: string,
+  timeZone: string,
+): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    timeZoneName: "shortOffset",
+  }).formatToParts(new Date(`${dateKey}T${timeStr}:00Z`));
+
+  const tzPart = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+  const match = tzPart.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
+  if (!match) return `${dateKey}T${timeStr}:00Z`;
+
+  const sign = match[1];
+  const hours = match[2].padStart(2, "0");
+  const mins = (match[3] ?? "00").padStart(2, "0");
+
+  return `${dateKey}T${timeStr}:00${sign}${hours}:${mins}`;
+}
+
 /** Primera fecha válida entre los campos indicados (p. ej. desde resolveProcessProfile). */
 export function resolveWorkingDateKeyFromFields(
   fields: Record<string, string | number | undefined> | undefined,

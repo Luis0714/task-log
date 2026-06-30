@@ -10,6 +10,7 @@ import { previewResultSchema } from "@/lib/schemas/agent";
 import type { PreviewResult } from "@/lib/schemas/agent";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
 
+import { getTodayDateKey } from "@/lib/time-log/working-date-default";
 import { buildTimeAgentSystemPrompt } from "./time-agent-prompt";
 import {
   SEARCH_WORK_ITEMS_TOOL_NAME,
@@ -69,7 +70,7 @@ export async function runLogWorkFeature({
   const auth = executionContext?.auth;
   const sprintPath = executionContext?.sprintContext?.sprintPath ?? "";
   const team = executionContext?.sprintContext?.team ?? "";
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayDateKey();
 
   const processProfile = auth ? await resolveProcessProfile(auth) : null;
 

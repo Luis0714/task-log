@@ -39,7 +39,7 @@ export default async function ShellLayout({
         <Suspense
           fallback={<AdoConnectionBadgeSkeleton connection={connection} />}
         >
-          <ShellSidebarConnection />
+          <ShellSidebarConnection connection={connection} />
         </Suspense>
       }
     >

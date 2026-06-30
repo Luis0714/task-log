@@ -16,7 +16,10 @@ import { buildAssigneeWiqlCondition } from "@/lib/filters/assignee-wiql";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import { resolveWorkingTimeFromFields } from "@/lib/date/ado-datetime";
-import { resolveWorkingDateKeyFromFields } from "@/lib/azure-devops/working-date-field";
+import {
+  buildWorkingDateTimeValue,
+  resolveWorkingDateKeyFromFields,
+} from "@/lib/azure-devops/working-date-field";
 import {
   fetchWorkItemsBatchWithFieldFallback,
   filterFieldsToProject,
@@ -164,9 +167,11 @@ export async function createTaskUnderPbi(
     {
       op: "add",
       path: `/fields/${processProfile.workingDateField}`,
-      // Always send date-only (YYYY-MM-DD). Custom Date-type fields reject DateTime
-      // strings; standard ADO DateTime fields (e.g. StartDate) also accept date-only.
-      value: params.workingDate,
+      value: buildWorkingDateTimeValue(
+        params.workingDate,
+        params.workingTime,
+        processProfile.timezone,
+      ),
     },
     {
       op: "add",
@@ -664,9 +669,12 @@ function looksLikeDateField(referenceName: string): boolean {
 
 function buildWorkingDatePatchOps(
   fields: Record<string, string | number | undefined> | undefined,
-  dateValue: string,
+  dateKey: string,
+  timeStr: string,
+  timeZone: string,
   workingDateFieldNames: readonly string[],
 ): WorkItemFieldPatchOp[] {
+  const dateValue = buildWorkingDateTimeValue(dateKey, timeStr, timeZone);
   const ops: WorkItemFieldPatchOp[] = [];
 
   for (const fieldName of workingDateFieldNames) {
@@ -751,10 +759,16 @@ export async function updateWorkItemState(
 
   const patchOps: WorkItemFieldPatchOp[] = [];
 
-  // Always use date-only (YYYY-MM-DD) for the working date field. Custom Date-type
-  // fields reject DateTime strings; standard ADO DateTime fields also accept date-only.
   if (params.workingDate) {
-    patchOps.push(...buildWorkingDatePatchOps(wi.fields, params.workingDate, workingDateFieldNamesForUpdate));
+    patchOps.push(
+      ...buildWorkingDatePatchOps(
+        wi.fields,
+        params.workingDate,
+        params.workingTime ?? "12:00",
+        processProfile.timezone,
+        workingDateFieldNamesForUpdate,
+      ),
+    );
   }
 
   if (params.completedWork !== undefined && Number.isFinite(params.completedWork) && processProfile.completedWorkField) {

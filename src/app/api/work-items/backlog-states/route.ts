@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import {
@@ -10,19 +11,24 @@ import {
 /**
  * Endpoint único para los estados del work item "Product Backlog Item" (HU).
  *
- * Devuelve el catálogo canónico de Azure DevOps:
- *   `GET /wit/workitemtypes/{type}/states?api-version=7.1`
- * con shape `{ name, category, color }` por estado. Cacheado 1h server-side.
+ * Acepta `?project=<name>` para que el cliente pueda pedir explícitamente los
+ * estados del proyecto seleccionado (no solo del proyecto por defecto del
+ * caller). Sin `project`, usa el caller autenticado.
  *
- * El cliente debe cachear localmente (ver `useBacklogItemStates`) para evitar
- * fetches repetidos entre páginas.
+ * Cacheado 1h server-side (ver `createTtlCache` en `work-item-type-states`).
  */
 export type BacklogStatesResponse = {
   states: AdoWorkItemTypeState[];
 };
 
-export async function GET(): Promise<NextResponse<BacklogStatesResponse>> {
-  const auth = await resolveAdoCaller({ persistOAuthTokens: true });
+export async function GET(req: Request): Promise<NextResponse<BacklogStatesResponse>> {
+  const url = new URL(req.url);
+  const projectParam = url.searchParams.get("project")?.trim();
+
+  const auth = projectParam
+    ? await getScopedProjectAuth(projectParam)
+    : await resolveAdoCaller({ persistOAuthTokens: true });
+
   if (!auth) {
     return NextResponse.json<BacklogStatesResponse>({ states: [] }, { status: 401 });
   }
@@ -34,7 +40,7 @@ export async function GET(): Promise<NextResponse<BacklogStatesResponse>> {
     { states },
     {
       headers: {
-        // Cache del navegador (no-store en dev, cacheado en prod).
+        // Cache del navegador: 5 min. El server cache de Azure maneja 1h.
         "Cache-Control": "private, max-age=300",
       },
     },

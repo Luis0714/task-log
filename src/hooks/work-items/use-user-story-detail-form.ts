@@ -21,7 +21,6 @@ export type UseUserStoryDetailFormOptions = {
   workItem: DashboardWorkItem | null;
   project: string | null;
   team: string | null;
-  currentUserDisplayName: string | null;
   members: readonly AdoTeamMemberDto[];
   responsableFields: readonly BacklogResponsableFieldDto[];
   statesReady?: boolean;
@@ -49,16 +48,13 @@ function readWorkItemResponsable(
   workItem: DashboardWorkItem,
   referenceName: string,
 ): string | undefined {
-  const wi = workItem as unknown as Record<string, unknown>;
-  const value = wi[referenceName];
-  return typeof value === "string" ? value : undefined;
+  return workItem.responsables?.[referenceName];
 }
 
 export function useUserStoryDetailForm({
   workItem,
   project,
   team,
-  currentUserDisplayName,
   members,
   responsableFields,
   statesReady = true,
@@ -72,7 +68,7 @@ export function useUserStoryDetailForm({
   const [draftTags, setDraftTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const { states: backlogStates } = useBacklogItemStates();
+  const { states: backlogStates } = useBacklogItemStates(project);
 
   const transitionKind = useMemo(
     () => (draftState ? getPbiTransitionKind(draftState, backlogStates) : "other"),
@@ -91,17 +87,12 @@ export function useUserStoryDetailForm({
     const nextResponsables: Record<string, string> = {};
     for (const field of responsableFields) {
       const stored = readWorkItemResponsable(workItem, field.referenceName);
-      nextResponsables[field.referenceName] = resolveResponsableDraftValue(
-        stored,
-        currentUserDisplayName,
-        members,
-        field.defaultToCurrentUser,
-      );
+      nextResponsables[field.referenceName] = resolveResponsableDraftValue(stored, members);
     }
     setDraftResponsables(nextResponsables);
 
     setDraftTags(readWorkItemTags(workItem.tags));
-  }, [workItem, currentUserDisplayName, members, responsableFields]);
+  }, [workItem, members, responsableFields]);
 
   useEffect(() => {
     syncDraftsFromWorkItem();
@@ -112,12 +103,7 @@ export function useUserStoryDetailForm({
     const initialResponsables: Record<string, string> = {};
     for (const field of responsableFields) {
       const stored = readWorkItemResponsable(workItem, field.referenceName);
-      initialResponsables[field.referenceName] = resolveResponsableDraftValue(
-        stored,
-        currentUserDisplayName,
-        members,
-        field.defaultToCurrentUser,
-      );
+      initialResponsables[field.referenceName] = resolveResponsableDraftValue(stored, members);
     }
     return {
       state: workItem.state,
@@ -126,7 +112,7 @@ export function useUserStoryDetailForm({
       responsables: initialResponsables,
       tags: readWorkItemTags(workItem.tags),
     };
-  }, [workItem, currentUserDisplayName, members, responsableFields]);
+  }, [workItem, members, responsableFields]);
 
   const isStateDirty = Boolean(workItem && draftState !== workItem.state);
   const isTagsDirty =

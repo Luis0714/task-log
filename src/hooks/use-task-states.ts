@@ -13,15 +13,27 @@ type State = {
   loading: boolean;
 };
 
-export function useTaskStates(): State {
+/**
+ * Estados de tareas (Task) del proyecto activo.
+ *
+ * Acepta `project` para que el endpoint devuelva los estados del proyecto
+ * seleccionado, no del proyecto por defecto del caller. Si el proyecto
+ * cambia, el hook refetchea automáticamente.
+ */
+export function useTaskStates(project?: string | null): State {
   const [states, setStates] = useState<readonly TaskState[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/api/ado/task-states")
-      .then((res) => (res.ok ? res.json() as Promise<{ states: TaskState[] }> : null))
+    const url = project
+      ? `/api/ado/task-states?project=${encodeURIComponent(project)}`
+      : "/api/ado/task-states";
+
+    setLoading(true);
+    fetch(url)
+      .then((res) => (res.ok ? (res.json() as Promise<{ states: TaskState[] }>) : null))
       .then((data) => {
         if (cancelled || !data) return;
         setStates(data.states);
@@ -31,8 +43,10 @@ export function useTaskStates(): State {
         if (!cancelled) setLoading(false);
       });
 
-    return () => { cancelled = true; };
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [project]);
 
   return { states, loading };
 }

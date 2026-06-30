@@ -9,7 +9,6 @@ export type WorkItemsStreamLoaderProps = {
   defaultProject: string | null;
   adoExecutionReady: boolean;
   assignee: string;
-  currentUserDisplayName?: string | null;
 };
 
 export async function WorkItemsStreamLoader({
@@ -17,7 +16,6 @@ export async function WorkItemsStreamLoader({
   defaultProject,
   adoExecutionReady,
   assignee,
-  currentUserDisplayName = null,
 }: WorkItemsStreamLoaderProps) {
   const urlAssignee = assignee || DEFAULT_WORK_ITEM_FILTERS.assignee;
 
@@ -31,7 +29,6 @@ export async function WorkItemsStreamLoader({
         <WorkItemsSheetMetaServer
           catalog={catalog}
           assignee={urlAssignee}
-          currentUserDisplayName={currentUserDisplayName}
         >
           <WorkItemsSectionsStream catalog={catalog} assignee={urlAssignee} />
         </WorkItemsSheetMetaServer>

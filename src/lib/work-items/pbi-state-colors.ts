@@ -7,7 +7,7 @@
  * gris neutro de fallback.
  *
  * Patrón de uso en el cliente:
- *   const { states } = useBacklogItemStates();
+ *   const { states } = useBacklogItemStates(currentProject);
  *   const presentation = getStatePresentation(states, stateName);
  *
  * Patrón de uso en el servidor:
@@ -51,16 +51,16 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const clean = normalizeHex(hex);
   if (clean.length === 3) {
     return {
-      r: parseInt(clean[0] + clean[0], 16),
-      g: parseInt(clean[1] + clean[1], 16),
-      b: parseInt(clean[2] + clean[2], 16),
+      r: Number.parseInt(clean[0] + clean[0], 16),
+      g: Number.parseInt(clean[1] + clean[1], 16),
+      b: Number.parseInt(clean[2] + clean[2], 16),
     };
   }
   if (clean.length === 6) {
     return {
-      r: parseInt(clean.slice(0, 2), 16),
-      g: parseInt(clean.slice(2, 4), 16),
-      b: parseInt(clean.slice(4, 6), 16),
+      r: Number.parseInt(clean.slice(0, 2), 16),
+      g: Number.parseInt(clean.slice(2, 4), 16),
+      b: Number.parseInt(clean.slice(4, 6), 16),
     };
   }
   return null;

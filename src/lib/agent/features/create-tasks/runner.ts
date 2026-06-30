@@ -12,6 +12,7 @@ import {
   SEARCH_PBI_TOOL_NAME,
   buildSearchPbiTool,
 } from "@/lib/agent/features/create-tasks/search-pbi-tool";
+import { getTodayDateKey } from "@/lib/time-log/working-date-default";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
 import type { AgentProvider, ChatMessage, ConversationTurn } from "@/lib/agent/provider/provider.types";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
@@ -93,7 +94,7 @@ export async function runCreateTasksFeature({
     taskStateNames,
     doneState,
     userRole,
-    today: new Date().toISOString().slice(0, 10),
+    today: getTodayDateKey(),
   });
 
   const searchPbiToolDef = buildSearchPbiTool({

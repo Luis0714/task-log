@@ -3,6 +3,7 @@
 import { Bug, ExternalLink, ListChecks, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { useCurrentProject } from "@/hooks/use-current-project";
 import { useBacklogItemStates } from "@/hooks/work-items/use-backlog-item-states";
 import { getStatePresentation } from "@/lib/work-items/pbi-state-colors";
 import type { InfoListItem, InfoListPayload } from "@/lib/schemas/agent";
@@ -88,10 +89,18 @@ export function CopilotInfoListCard({
 }
 
 function InfoListItemRow({ item }: { item: InfoListItem }) {
-  const { states } = useBacklogItemStates();
+  const project = useCurrentProject();
+  const { states } = useBacklogItemStates(project);
   const presentation = item.state
     ? getStatePresentation(states, item.state)
     : null;
+  // Descartamos `badgeStyle.color` (calculado por luminancia, no respeta el
+  // tema) y aplicamos `text-foreground` para garantizar contraste en dark y
+  // light mode. El fondo tintado (~10% alpha) es lo bastante sutil para que
+  // el foreground del tema siga siendo legible.
+  const badgeSurfaceStyle = presentation?.state
+    ? (({ color: _ignored, ...rest }) => rest)(presentation.badgeStyle)
+    : undefined;
 
   const content = (
     <>
@@ -105,8 +114,8 @@ function InfoListItemRow({ item }: { item: InfoListItem }) {
         <Badge
           variant="secondary"
           data-pbi-state={presentation?.category}
-          className="shrink-0 rounded-full px-2 py-0 text-[10px] font-medium tracking-wide uppercase"
-          style={presentation?.state ? presentation.badgeStyle : undefined}
+          className="text-foreground shrink-0 rounded-full px-2 py-0 text-[10px] font-medium tracking-wide uppercase"
+          style={badgeSurfaceStyle}
         >
           {item.state}
         </Badge>

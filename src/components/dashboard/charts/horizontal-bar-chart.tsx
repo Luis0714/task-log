@@ -10,6 +10,7 @@ import {
   chartContainerClass,
   pbiStateChartConfig,
 } from "@/lib/dashboard/chart-config";
+import { useCurrentProject } from "@/hooks/use-current-project";
 import { useBacklogItemStates } from "@/hooks/work-items/use-backlog-item-states";
 import { getStateChartColor } from "@/lib/work-items/pbi-state-colors";
 
@@ -30,7 +31,8 @@ export function HorizontalBarChart({
   onBarClick,
   tooltipValueLabel = "historias de usuario",
 }: HorizontalBarChartProps) {
-  const { states } = useBacklogItemStates();
+  const project = useCurrentProject();
+  const { states } = useBacklogItemStates(project);
   if (bars.length === 0) return null;
 
   const maxCount = Math.max(...bars.map((b) => b.count), 1);
