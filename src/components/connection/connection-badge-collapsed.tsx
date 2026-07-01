@@ -29,6 +29,7 @@ export function ConnectionBadgeCollapsed({
           connectOptions={connectOptions}
           savedConnectionTarget={savedConnectionTarget}
           fullWidth
+          iconOnly
         />
       ) : null}
     </div>
