@@ -28,14 +28,24 @@ function defaultWeekMeta(index: number): SprintTimesWeekColumn {
   };
 }
 
-function sumBreakdowns(
+function sumWeekBreakdowns(
   rows: readonly SprintTimesPersonRow[],
-  key: "week1" | "week2" | "sprint",
+  weekIndex: number,
 ): HoursBreakdown {
   return rows.reduce(
+    (acc, row) => {
+      const w = row.weeks[weekIndex] ?? EMPTY_HOURS_BREAKDOWN;
+      return { taskHours: acc.taskHours + w.taskHours, bugHours: acc.bugHours + w.bugHours };
+    },
+    { ...EMPTY_HOURS_BREAKDOWN },
+  );
+}
+
+function sumSprintBreakdowns(rows: readonly SprintTimesPersonRow[]): HoursBreakdown {
+  return rows.reduce(
     (acc, row) => ({
-      taskHours: acc.taskHours + row[key].taskHours,
-      bugHours: acc.bugHours + row[key].bugHours,
+      taskHours: acc.taskHours + row.sprint.taskHours,
+      bugHours: acc.bugHours + row.sprint.bugHours,
     }),
     { ...EMPTY_HOURS_BREAKDOWN },
   );
@@ -53,20 +63,14 @@ function mapPersonRow(
   row: SprintTimesPersonRow,
   variant: SprintTimesShareVariant,
 ): SprintTimesShareTableRow {
+  const week1 = row.weeks[0] ?? EMPTY_HOURS_BREAKDOWN;
+  const week2 = row.weeks[1] ?? EMPTY_HOURS_BREAKDOWN;
   const weekTotal =
-    variant === "week1"
-      ? row.week1
-      : variant === "week2"
-        ? row.week2
-        : null;
+    variant === "week1" ? week1
+    : variant === "week2" ? week2
+    : null;
 
-  return {
-    assignee: row.assignee,
-    week1: row.week1,
-    week2: row.week2,
-    sprint: row.sprint,
-    weekTotal,
-  };
+  return { assignee: row.assignee, week1, week2, sprint: row.sprint, weekTotal };
 }
 
 function buildColumns(
@@ -102,23 +106,19 @@ function buildTableLayout(
   variant: SprintTimesShareVariant,
 ): SprintTimesShareTableLayout {
   const rows = times.rows.map((row) => mapPersonRow(row, variant));
-  const totals = {
-    week1: sumBreakdowns(times.rows, "week1"),
-    week2: sumBreakdowns(times.rows, "week2"),
-    sprint: sumBreakdowns(times.rows, "sprint"),
-  };
+  const week1Total = sumWeekBreakdowns(times.rows, 0);
+  const week2Total = sumWeekBreakdowns(times.rows, 1);
+  const sprintTotal = sumSprintBreakdowns(times.rows);
 
   const teamTotalRow: SprintTimesShareTableRow = {
     assignee: SPRINT_TIMES_SHARE_LABELS.teamTotal,
-    week1: totals.week1,
-    week2: totals.week2,
-    sprint: totals.sprint,
+    week1: week1Total,
+    week2: week2Total,
+    sprint: sprintTotal,
     weekTotal:
-      variant === "week1"
-        ? totals.week1
-        : variant === "week2"
-          ? totals.week2
-          : null,
+      variant === "week1" ? week1Total
+      : variant === "week2" ? week2Total
+      : null,
     emphasized: true,
   };
 

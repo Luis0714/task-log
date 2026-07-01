@@ -46,14 +46,12 @@ export function SprintStatsDashboardSections({
   timesShareScope,
   loading = false,
 }: SprintStatsDashboardSectionsProps & { loading?: boolean }) {
+  const showGoalSections = false;
   const normalizedStats = normalizeSprintStatsScreenData(stats);
   if (!normalizedStats) return null;
 
   return (
     <div className="flex flex-col gap-6">
-      <SprintGoalProgressSection goal={normalizedStats.goal} description={goalDescription} />
-      <SprintBugQualitySection bugs={normalizedStats.bugs} project={project} loading={loading} />
-
       <SprintTimesSection
         times={normalizedStats.times}
         description={timesDescription(goalOnly)}
@@ -61,6 +59,7 @@ export function SprintStatsDashboardSections({
         shareScope={timesShareScope}
       />
 
+     {showGoalSections && <>  
       <DashboardSection title="Entrega del sprint" description={deliveryDescription(goalOnly)}>
         <SprintDeliverySection metrics={normalizedStats.delivery} />
       </DashboardSection>
@@ -70,6 +69,11 @@ export function SprintStatsDashboardSections({
       </DashboardSection>
 
       <SprintGoalRiskList items={normalizedStats.goal.objectiveItems} />
+
+      <SprintGoalProgressSection goal={normalizedStats.goal} description={goalDescription} />
+      <SprintBugQualitySection bugs={normalizedStats.bugs} project={project} loading={loading} />
+      </>
+      }
     </div>
   );
 }

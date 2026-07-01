@@ -15,6 +15,11 @@ export type ConnectSignInTriggerProps = {
   savedConnectionTarget?: SavedConnectionTarget | null;
   className?: string;
   fullWidth?: boolean;
+  /**
+   * Renderiza sólo el icono (sin texto). Lo usan los callers dentro de la
+   * sidebar colapsada para que el botón no se desborde del rail angosto.
+   */
+  iconOnly?: boolean;
 };
 
 export function ConnectSignInTrigger({
@@ -22,6 +27,7 @@ export function ConnectSignInTrigger({
   savedConnectionTarget: _savedConnectionTarget = null,
   className,
   fullWidth = false,
+  iconOnly = false,
 }: ConnectSignInTriggerProps) {
   const [open, setOpen] = useState(false);
 
@@ -31,9 +37,11 @@ export function ConnectSignInTrigger({
         type="button"
         className={cn(fullWidth && "w-full", className)}
         onClick={() => setOpen(true)}
+        title={iconOnly ? CONNECT_ADO_COPY.signInButton : undefined}
+        aria-label={iconOnly ? CONNECT_ADO_COPY.signInButton : undefined}
       >
         <LogIn className="size-4" aria-hidden />
-        {CONNECT_ADO_COPY.signInButton}
+        {iconOnly ? null : CONNECT_ADO_COPY.signInButton}
       </Button>
       <ConnectAdoSheet
         connectOptions={connectOptions}

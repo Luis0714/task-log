@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 import { TbTemplate } from "react-icons/tb";
@@ -18,6 +18,17 @@ import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 export type TemplateSelectFieldProps = Readonly<{
   form: UseFormReturn<TimeLogFormValues>;
   activities: readonly string[];
+  /**
+   * Última tarea enviada con éxito desde el formulario Individual. Se
+   * reasigna a un objeto nuevo en cada save exitoso y se usa como señal
+   * para limpiar la plantilla seleccionada tras el guardado.
+   */
+  lastSubmitted?: {
+    taskTitle: string;
+    description: string;
+    activity?: string;
+    hours?: string;
+  } | null;
 }>;
 
 type TemplateCardProps = Readonly<{
@@ -177,6 +188,7 @@ function TemplatesList({
 export function TemplateSelectField({
   form,
   activities,
+  lastSubmitted = null,
 }: TemplateSelectFieldProps) {
   const { templates, loading, findById, remove } = useTimeLogTemplates();
   const [selectedId, setSelectedId] = useState<string>("");
@@ -192,6 +204,18 @@ export function TemplateSelectField({
     setSelectedId("");
     clear();
   };
+
+  // Tras un save exitoso el formulario se resetea desde `useCreateTask`.
+  // Como `lastSubmitted` recibe una referencia nueva en cada guardado,
+  // usamos el patrón "store information from previous renders" para
+  // detectar el cambio y limpiar también la plantilla seleccionada.
+  const prevLastSubmittedRef = useRef(lastSubmitted);
+  if (prevLastSubmittedRef.current !== lastSubmitted) {
+    prevLastSubmittedRef.current = lastSubmitted;
+    if (lastSubmitted) {
+      handleClear();
+    }
+  }
 
   const currentTitle = form.watch("taskTitle") ?? "";
   const currentDescription = form.watch("description") ?? "";

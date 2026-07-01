@@ -224,11 +224,17 @@ export function TimeLogBulkForm({
       });
     }
 
-    // Al enviar el lote, colapsamos todas las historias para que el usuario
-    // vea de un vistazo el resumen de lo creado y pueda empezar un nuevo
-    // envío sin ruido visual.
-    if (result.response.successCount > 0) {
-      bulk.setOpenGroupId(null);
+    // Siempre colapsamos todo al terminar para que el usuario vea el resumen.
+    bulk.setOpenGroupId(null);
+
+    // Si hay fallos, expandimos solo el primer grupo afectado para que el
+    // usuario vea la alerta de error sin auto-abrir tareas individuales ni
+    // forzar foco en ningún campo.
+    const firstFailedGroupId = result.results.find(
+      (r) => !r.ok && !r.message?.startsWith("No enviado"),
+    )?.groupId;
+    if (firstFailedGroupId) {
+      bulk.setOpenGroupId(firstFailedGroupId);
     }
   };
 
@@ -255,28 +261,6 @@ export function TimeLogBulkForm({
               seleccionada. Por defecto las tareas se crean en estado abierto;
               marca «Done al crear» por tarea si quieres que se cierren
               automáticamente.
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <Alert>
-            <CheckCircle2 aria-hidden />
-            <AlertTitle>Las tareas se crearán automáticamente como Done</AlertTitle>
-            <AlertDescription>
-              {catalog.defaultCompletedTaskState
-                ? `Al enviar el lote, cada tarea quedará en «${catalog.defaultCompletedTaskState}» y contará de inmediato en las horas del día.`
-                : "Al enviar el lote, cada tarea quedará en Done y contará de inmediato en las horas del día."}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {catalog.defaultCompletedTaskState === null && !isTaskCreationMode ? (
-          <Alert variant="destructive">
-            <AlertTriangle aria-hidden />
-            <AlertTitle>Sin estado de tarea completado configurado</AlertTitle>
-            <AlertDescription>
-              No se encontró un estado «Done» por defecto. Revisa la
-              configuración del proceso antes de continuar o algunas tareas
-              podrían no crearse correctamente.
             </AlertDescription>
           </Alert>
         ) : null}
@@ -361,6 +345,37 @@ export function TimeLogBulkForm({
                     </li>
                   ))}
                 </ul>
+                {group.tasks.some(
+                  (t) =>
+                    t.result?.ok === false &&
+                    !t.result.message?.startsWith("No enviado"),
+                ) ? (
+                  <Alert variant="destructive" className="mt-3 py-2.5">
+                    <AlertTriangle className="size-4" aria-hidden />
+                    <AlertTitle className="text-sm">
+                      {group.tasks.filter(
+                        (t) =>
+                          t.result?.ok === false &&
+                          !t.result.message?.startsWith("No enviado"),
+                      ).length === 1
+                        ? "No se pudo crear 1 tarea"
+                        : `No se pudieron crear ${group.tasks.filter((t) => t.result?.ok === false && !t.result.message?.startsWith("No enviado")).length} tareas`}
+                    </AlertTitle>
+                    {(() => {
+                      const first = group.tasks.find(
+                        (t) =>
+                          t.result?.ok === false &&
+                          !t.result.message?.startsWith("No enviado"),
+                      );
+                      return first?.result?.ok === false &&
+                        first.result.message ? (
+                        <AlertDescription className="text-xs">
+                          {first.result.message}
+                        </AlertDescription>
+                      ) : null;
+                    })()}
+                  </Alert>
+                ) : null}
                 <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-border/60 pt-3">
                   <Button
                     type="button"
@@ -392,7 +407,7 @@ export function TimeLogBulkForm({
           ))}
         </ul>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
           <Button
             type="button"
             variant="outline"
@@ -410,8 +425,14 @@ export function TimeLogBulkForm({
 
           <div className="text-muted-foreground flex items-center gap-4 text-sm">
             <span>
-              Total Tareas:{" "}
-              <strong className="text-foreground">{bulk.totalTaskCount}</strong>
+              Tareas:{" "}
+              <strong
+                className={
+                  bulk.isAtLimit ? "text-destructive" : "text-foreground"
+                }
+              >
+                {bulk.totalTaskCount}/{BULK_GROUP_LIMIT}
+              </strong>
             </span>
             <span>
               Total horas:{" "}
@@ -432,7 +453,9 @@ export function TimeLogBulkForm({
             {batch.loading ? (
               <>
                 <Loader2 className="size-4 animate-spin" aria-hidden />
-                Enviando…
+                {batch.progress
+                  ? `Creando tarea ${batch.progress.current} de ${batch.progress.total}…`
+                  : "Enviando…"}
               </>
             ) : (
               <>

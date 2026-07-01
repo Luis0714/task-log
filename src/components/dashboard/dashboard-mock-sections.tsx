@@ -17,7 +17,6 @@ export function DashboardMockSections() {
   return (
     <div className="flex flex-col gap-6 opacity-95">
       <DashboardDemoBanner />
-
       <DashboardSection
         title="Entrega del sprint"
         action={

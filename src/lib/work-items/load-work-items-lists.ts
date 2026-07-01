@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import type { WorkItemsListsSnapshot } from "@/lib/ado/types";
 import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
-import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import {
   listBacklogItemStates,
   listBugStates,
@@ -45,7 +45,7 @@ export const loadWorkItemsLists = cache(async function loadWorkItemsLists(
       listBugItemsInSprint(auth, sprintPath, { assignee: WORK_ITEM_ASSIGNEE_ALL }),
       listBacklogItemStates(auth, processProfile.backlogItemType),
       listBugStates(auth, processProfile.bugWorkItemType),
-      loadAssigneeFilterMembers(project, team, sprintPath, "workItems"),
+      loadTeamMembers({ project, team, sprintPath, source: "workItems" }),
     ]);
 
     const userStoryMapping = buildSprintStatusMapping(backlogStates);

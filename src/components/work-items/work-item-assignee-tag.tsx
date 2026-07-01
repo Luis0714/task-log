@@ -1,5 +1,4 @@
-import { UserRound } from "lucide-react";
-
+import { TeamMemberAvatar } from "@/components/team-members/team-member-avatar";
 import { getAssigneeTagClasses } from "@/lib/work-items/assignee-tag-colors";
 import { cn } from "@/lib/utils";
 
@@ -8,7 +7,10 @@ export type WorkItemAssigneeTagProps = {
   className?: string;
 };
 
-export function WorkItemAssigneeTag({ name, className }: WorkItemAssigneeTagProps) {
+export function WorkItemAssigneeTag({
+  name,
+  className,
+}: WorkItemAssigneeTagProps) {
   return (
     <span
       className={cn(
@@ -18,7 +20,7 @@ export function WorkItemAssigneeTag({ name, className }: WorkItemAssigneeTagProp
       )}
       title={name}
     >
-      <UserRound className="size-3 shrink-0" aria-hidden />
+      <TeamMemberAvatar name={name} size="sm" className="size-3" />
       <span className="truncate">{name}</span>
     </span>
   );
@@ -29,7 +31,10 @@ export type WorkItemAssigneeLabelProps = {
   className?: string;
 };
 
-export function WorkItemAssigneeLabel({ assignee, className }: WorkItemAssigneeLabelProps) {
+export function WorkItemAssigneeLabel({
+  assignee,
+  className,
+}: WorkItemAssigneeLabelProps) {
   const name = assignee?.trim();
   if (name) {
     return <WorkItemAssigneeTag name={name} className={className} />;
@@ -42,7 +47,6 @@ export function WorkItemAssigneeLabel({ assignee, className }: WorkItemAssigneeL
         className,
       )}
     >
-      <UserRound className="size-3 shrink-0" aria-hidden />
       <span>Sin asignar</span>
     </span>
   );

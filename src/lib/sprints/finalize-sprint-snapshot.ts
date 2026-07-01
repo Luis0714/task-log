@@ -9,7 +9,7 @@ import {
   loadSprintWorkItems,
 } from "@/lib/ado/load-sprint-data";
 import { fetchWorkItemsByIds } from "@/lib/azure-devops/work-items";
-import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { isDatabaseConfigured } from "@/lib/db/client";
@@ -71,12 +71,12 @@ export async function finalizeSprintSnapshot(
       loadSprintBacklogStates(input.scope.project),
       loadProjectWorkItemTags(input.scope.project),
       loadSprintNonWorkingDates(input.scope.project, input.scope.team),
-      loadAssigneeFilterMembers(
-        input.scope.project,
-        input.scope.team,
-        input.scope.sprintPath,
-        "workItems",
-      ),
+      loadTeamMembers({
+        project: input.scope.project,
+        team: input.scope.team,
+        sprintPath: input.scope.sprintPath,
+        source: "workItems",
+      }),
       getRepositories().sprintStoryGoal.listByScope(input.scope),
       getRepositories().sprintGoal.getByScope(input.scope),
     ]);

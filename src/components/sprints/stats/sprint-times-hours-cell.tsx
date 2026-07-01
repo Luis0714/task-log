@@ -105,6 +105,34 @@ export function SprintTimesBugSubColumnHeader({ className }: { className?: strin
   );
 }
 
+export function SprintTimesWeekTotalValue({ value, className }: { value: number; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "text-foreground inline-flex items-center justify-center gap-1 text-xs font-semibold tabular-nums",
+        className,
+      )}
+    >
+      <Clock className="text-primary/80 size-3 shrink-0" aria-hidden />
+      <span>{formatHours(value)}</span>
+    </span>
+  );
+}
+
+export function SprintTimesTotalSubColumnHeader({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "text-muted-foreground inline-flex items-center justify-center gap-1 text-[10px] font-medium uppercase tracking-wide",
+        className,
+      )}
+    >
+      <Clock className="text-primary/80 size-3 shrink-0" aria-hidden />
+      Total
+    </span>
+  );
+}
+
 export function SprintTimesLegend({ className }: SprintTimesLegendProps) {
   return (
     <div className={cn("text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-[11px]", className)}>

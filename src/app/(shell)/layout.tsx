@@ -30,7 +30,7 @@ export default async function ShellLayout({
       connection={connection}
       historyScopeKey={historyScopeKey}
       defaultSidebarOpen={defaultSidebarOpen}
-      isAdmin={authState.isAdmin}
+      userRole={authState.userRole}
       sidebarConnection={
         <Suspense
           fallback={<AdoConnectionBadgeSkeleton connection={connection} />}

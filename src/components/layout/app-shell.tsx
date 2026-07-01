@@ -21,7 +21,7 @@ export type AppShellProps = {
   defaultSidebarOpen?: boolean;
   sidebarConnection?: React.ReactNode;
   children: React.ReactNode;
-  isAdmin?: boolean;
+  userRole?: string | null;
 };
 
 export function AppShell({
@@ -30,7 +30,7 @@ export function AppShell({
   defaultSidebarOpen = true,
   sidebarConnection,
   children,
-  isAdmin = false,
+  userRole = null,
 }: AppShellProps) {
   const pathname = usePathname();
 
@@ -44,7 +44,7 @@ export function AppShell({
           connection={connection}
           connectionFooter={sidebarConnection}
           activePath={pathname}
-          isAdmin={isAdmin}
+          userRole={userRole}
         />
 
         <SidebarInset className="min-w-0">

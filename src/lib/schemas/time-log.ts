@@ -44,7 +44,11 @@ export const timeLogTaskStepSchema = z.object({
     .trim()
     .min(1, "Ingresa la descripción de lo realizado.")
     .max(2000, "Máximo 2000 caracteres."),
-  activity: z.string().max(100).optional(),
+  activity: z
+    .string()
+    .trim()
+    .min(1, "Selecciona una actividad.")
+    .max(100),
   workingDate: z
     .string()
     .trim()
@@ -135,7 +139,7 @@ export function mapTimeLogFormToPayload(
     title: values.taskTitle.trim(),
     hours: Number.parseFloat(values.hours.replace(",", ".")),
     description: values.description.trim(),
-    activity: values.activity?.trim() || undefined,
+    activity: values.activity.trim(),
     workingDate: values.workingDate,
     workingTime: values.workingTime,
     state: values.taskState,
@@ -160,7 +164,11 @@ export const bulkTaskSchema = z.object({
     .trim()
     .min(1, "Ingresa la descripción de lo realizado.")
     .max(2000, "Máximo 2000 caracteres."),
-  activity: z.string().max(100).optional(),
+  activity: z
+    .string()
+    .trim()
+    .min(1, "Selecciona una actividad.")
+    .max(100),
   workingDate: z
     .string()
     .trim()
@@ -202,7 +210,7 @@ export function mapBulkTaskToTaskItem(
     title: values.taskTitle.trim(),
     hours: Number.parseFloat(values.hours.replace(",", ".")),
     description: values.description.trim(),
-    activity: values.activity?.trim() || undefined,
+    activity: values.activity.trim(),
     workingDate: values.workingDate,
     workingTime: values.workingTime,
     state: values.taskState,

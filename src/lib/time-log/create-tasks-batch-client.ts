@@ -39,6 +39,22 @@ export async function createTasksBatchInAdo(
     error?: string;
   };
 
+  if (!res.ok) {
+    console.error(
+      "[Batch] API respondió con status %d — tasks=%d",
+      res.status,
+      tasks.length,
+      { error: data.error, results: data.results },
+    );
+  } else if ((data.failureCount ?? 0) > 0) {
+    console.warn(
+      "[Batch] %d/%d tarea(s) fallaron — primer error: %s",
+      data.failureCount,
+      tasks.length,
+      data.error ?? "(sin mensaje)",
+    );
+  }
+
   if (!res.ok && !Array.isArray(data.results)) {
     return {
       results: [],

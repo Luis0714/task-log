@@ -112,7 +112,7 @@ export function BulkReassignParentTasksDialog({
         <div className="flex flex-col gap-2">
           <Label htmlFor="bulk-task-parent-hu">HU padre</Label>
           <Select
-            value={newParentId !== null ? String(newParentId) : undefined}
+            value={newParentId !== null ? String(newParentId) : ""}
             onValueChange={(v) => setNewParentId(v ? Number(v) : null)}
             disabled={saving || parentHuOptions.length === 0}
           >

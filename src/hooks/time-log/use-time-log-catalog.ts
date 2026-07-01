@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useTransition } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { UseFormReturn } from "react-hook-form";
 
-import { buildAdoContextQuery } from "@/lib/ado/parse-context-search-params";
+import { mergeAdoContextIntoSearchParams } from "@/lib/ado/parse-context-search-params";
 
 import { useAssigneeFilterFromUrl } from "@/hooks/filters/use-assignee-filter-from-url";
 import { useCatalogAutoDefaults } from "@/hooks/time-log/use-catalog-auto-defaults";
@@ -58,6 +58,7 @@ export function useTimeLogCatalog({
 }: UseTimeLogCatalogOptions): TimeLogCatalog {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { pushAssignee } = usePushWorkItemAssigneeUrl();
   const { catalog } = serverBaseline;
   const { isPending: contextPending, pendingField, runPending } =
@@ -205,15 +206,18 @@ export function useTimeLogCatalog({
   const pushContextToUrl = useCallback(
     (next: { project?: string; team?: string; sprint?: string }) => {
       const values = form.getValues();
-      router.push(
-        `${pathname}${buildAdoContextQuery({
-          project: next.project ?? values.project,
-          team: next.team ?? values.team,
-          sprint: next.sprint ?? values.sprintPath,
-        })}`,
-      );
+      // Mergemos sobre los search params actuales para preservar flags que
+      // no son del contexto ADO (p. ej. `modo=multiple`), en lugar de
+      // reconstruir la URL desde cero y perderlos.
+      const current = new URLSearchParams(searchParams.toString());
+      const query = mergeAdoContextIntoSearchParams(current, {
+        project: next.project ?? values.project,
+        team: next.team ?? values.team,
+        sprint: next.sprint ?? values.sprintPath,
+      });
+      router.push(`${pathname}${query}`, { scroll: false });
     },
-    [form, pathname, router],
+    [form, pathname, router, searchParams],
   );
 
   const onProjectChange = runPending("project", () => {

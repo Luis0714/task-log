@@ -5,7 +5,7 @@ import { cache } from "react";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
 import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
-import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import {
   listBacklogItemStates,
   listTaskStates,
@@ -45,12 +45,12 @@ export const loadTimeLogFormMeta = cache(async function loadTimeLogFormMeta(
 
   const profile = await resolveProcessProfile(auth);
   const [teamMembers, backlogStates, taskStates, nonWorkingDates] = await Promise.all([
-    loadAssigneeFilterMembers(
-      catalog.project,
-      catalog.team,
-      catalog.sprintPath,
-      "workItems",
-    ),
+    loadTeamMembers({
+      project: catalog.project,
+      team: catalog.team,
+      sprintPath: catalog.sprintPath,
+      source: "workItems",
+    }),
     listBacklogItemStates(auth, profile.backlogItemType),
     listTaskStates(auth, profile.taskWorkItemType),
     loadNonWorkingDates(catalog.project, catalog.team),

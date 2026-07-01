@@ -1,4 +1,4 @@
-import { Wifi, WifiOff } from "lucide-react";
+import { WifiOff } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 
@@ -17,7 +17,6 @@ export function ConnectionStatusBadge({ isConnected }: ConnectionStatusBadgeProp
           <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/60" />
           <span className="size-2 rounded-full bg-emerald-400" />
         </span>
-        <Wifi className="size-3" aria-hidden />
         Conectado
       </Badge>
     );

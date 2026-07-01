@@ -2,6 +2,7 @@ import {
   EMPTY_HOURS_BREAKDOWN,
   sumHoursBreakdownForDayKeys,
   totalHoursBreakdown,
+  type HoursBreakdown,
 } from "@/lib/dashboard/hours-breakdown";
 import { listSprintWorkingDays, type SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import {
@@ -68,38 +69,42 @@ function buildWeekColumn(
   };
 }
 
+function buildWeekBreakdown(
+  tasks: AdoWorkItemOptionDto[],
+  bugs: AdoWorkItemOptionDto[],
+  dayKeys: readonly string[],
+): HoursBreakdown {
+  const endKey = dayKeys[dayKeys.length - 1] ?? "";
+  if (dayKeys.length === 0 || !endKey) return EMPTY_HOURS_BREAKDOWN;
+  return sumHoursBreakdownForDayKeys(tasks, bugs, dayKeys, endKey);
+}
+
 function buildPersonRow(
   assignee: string,
   tasks: readonly AdoWorkItemOptionDto[],
   bugs: readonly AdoWorkItemOptionDto[],
   roster: readonly AdoTeamMemberDto[],
-  week1DayKeys: readonly string[],
-  week2DayKeys: readonly string[],
+  weekDayKeys: readonly (readonly string[])[],
   allSprintDayKeys: readonly string[],
   sprintEndKey: string,
 ): SprintTimesPersonRow {
   const personTasks = filterItemsByAssignee(tasks, assignee, roster);
   const personBugs = filterItemsByAssignee(bugs, assignee, roster);
 
-  const week1EndKey = week1DayKeys[week1DayKeys.length - 1] ?? "";
-  const week2EndKey = week2DayKeys[week2DayKeys.length - 1] ?? "";
-
-  const week1 =
-    week1DayKeys.length > 0 && week1EndKey
-      ? sumHoursBreakdownForDayKeys(personTasks, personBugs, week1DayKeys, week1EndKey)
-      : EMPTY_HOURS_BREAKDOWN;
-
-  const week2 =
-    week2DayKeys.length > 0 && week2EndKey
-      ? sumHoursBreakdownForDayKeys(personTasks, personBugs, week2DayKeys, week2EndKey)
-      : EMPTY_HOURS_BREAKDOWN;
+  const weeks = weekDayKeys.map((dayKeys) =>
+    buildWeekBreakdown(personTasks, personBugs, dayKeys),
+  );
 
   const sprint =
     allSprintDayKeys.length > 0
       ? sumHoursBreakdownForDayKeys(personTasks, personBugs, allSprintDayKeys, sprintEndKey)
       : EMPTY_HOURS_BREAKDOWN;
 
-  return { assignee, week1, week2, sprint };
+  return {
+    assignee,
+    weeks,
+    sprint,
+  };
 }
 
 function sortPersonRows(rows: SprintTimesPersonRow[]): SprintTimesPersonRow[] {
@@ -175,17 +180,13 @@ export function buildSprintTimesMetrics(
   }
 
   const weekGroups = splitSprintIntoWeeks(workingDays);
-  const firstWeekDays = weekGroups[0] ?? [];
-  const secondWeekDays = weekGroups[1] ?? [];
-  const week1DayKeys = firstWeekDays.map((day) => day.value);
-  const week2DayKeys = secondWeekDays.map((day) => day.value);
+  const weekDayKeys = weekGroups.map((days) => days.map((day) => day.value));
   const allSprintDayKeys = workingDays.map((day) => day.value);
   const sprintEndKey = workingDays[workingDays.length - 1]?.value ?? "";
 
-  const weeks = [
-    buildWeekColumn(firstWeekDays, "Semana 1"),
-    buildWeekColumn(secondWeekDays, "Semana 2"),
-  ].filter((week): week is SprintTimesWeekColumn => week !== null);
+  const weeks = weekGroups
+    .map((days, index) => buildWeekColumn(days, `Semana ${index + 1}`))
+    .filter((week): week is SprintTimesWeekColumn => week !== null);
 
   const assigneeRoster = input.assigneeRoster ?? [];
   const scopedItems = [...input.tasks, ...input.bugs];
@@ -196,16 +197,7 @@ export function buildSprintTimesMetrics(
   const assignees = resolveAssigneeLabels(input.tasks, input.bugs, assigneeRoster);
   const rows = sortPersonRows(
     assignees.map((assignee) =>
-      buildPersonRow(
-        assignee,
-        input.tasks,
-        input.bugs,
-        roster,
-        week1DayKeys,
-        week2DayKeys,
-        allSprintDayKeys,
-        sprintEndKey,
-      ),
+      buildPersonRow(assignee, input.tasks, input.bugs, roster, weekDayKeys, allSprintDayKeys, sprintEndKey),
     ),
   );
 

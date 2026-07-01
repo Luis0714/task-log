@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
-import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import {
   listBugStates,
   listTaskStates,
@@ -38,7 +38,7 @@ export const loadSprintItemsListMeta = cache(async function loadSprintItemsListM
       kind === "tasks"
         ? listTaskStates(auth, profile.taskWorkItemType)
         : listBugStates(auth, profile.bugWorkItemType),
-      loadAssigneeFilterMembers(project, team, sprintPath, sprintSource),
+      loadTeamMembers({ project, team, sprintPath, source: sprintSource }),
     ]);
     return { itemStates, teamMembers };
   } catch {

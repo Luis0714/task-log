@@ -88,9 +88,20 @@ export function TimeLogBodyClient({
   if (displayedView !== view && !isNavigating) {
     setDisplayedView(view);
   }
+  // Vista optimista que alimenta únicamente al `SegmentedControl`. Se
+  // actualiza de forma síncrona al hacer clic en una pestaña para que el
+  // indicador visual del tab cambie al instante, sin esperar a que
+  // `router.push` complete y `useSearchParams` refleje el nuevo `modo`.
+  const [optimisticView, setOptimisticView] = useState<TimeLogViewId>(view);
+  if (optimisticView !== view && !isNavigating) {
+    setOptimisticView(view);
+  }
 
   const requestViewChange = useCallback(
     (next: TimeLogViewId) => {
+      // Reflejamos la selección en el tab de inmediato; la URL y la
+      // navegación siguen su curso en paralelo.
+      setOptimisticView(next);
       if (next === view) return;
       // Sólo pedimos confirmación al salir de Múltiple con datos sin guardar.
       if (view === "multiple" && bulkHasData && next !== "multiple") {
@@ -104,6 +115,7 @@ export function TimeLogBodyClient({
 
   const confirmViewChange = useCallback(() => {
     if (pendingView) {
+      setOptimisticView(pendingView);
       setView(pendingView);
       setPendingView(null);
     }
@@ -111,7 +123,10 @@ export function TimeLogBodyClient({
 
   const cancelViewChange = useCallback(() => {
     setPendingView(null);
-  }, []);
+    // Revertimos la pestaña seleccionada a la vista real, ya que el
+    // usuario descartó el cambio.
+    setOptimisticView(view);
+  }, [view]);
 
   const isSwitchingView = isNavigating || displayedView !== view;
 
@@ -119,7 +134,7 @@ export function TimeLogBodyClient({
     <div className="flex w-full min-w-0 flex-col gap-5">
       <SegmentedControl
         items={TIME_LOG_VIEW_ITEMS}
-        value={view}
+        value={optimisticView}
         onValueChange={requestViewChange}
         ariaLabel="Modo de registro de tiempo"
         fullWidth
@@ -136,7 +151,10 @@ export function TimeLogBodyClient({
         // se completa la transición (router.push → re-render del server
         // component). Sin esto, el usuario vería el formulario anterior
         // hasta que el nuevo termina de cargar.
-        <TimeLogFormSkeleton view={view} />
+        // Usamos `optimisticView` (no `view`) para que el skeleton refleje
+        // la pestaña que el usuario acaba de pulsar, no la que aún vive en
+        // la URL mientras dura la transición.
+        <TimeLogFormSkeleton view={optimisticView} />
       ) : displayedView === "individual" ? (
         <Form {...form.form}>
           <Card className="min-w-0">

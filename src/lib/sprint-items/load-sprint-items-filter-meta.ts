@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
-import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import type { SprintItemsKind } from "@/lib/sprint-items/types";
 import {
   listBugStates,
@@ -35,7 +35,7 @@ export const loadSprintItemsFilterMeta = cache(async function loadSprintItemsFil
   try {
     const profile = await resolveProcessProfile(auth);
     const [members, states] = await Promise.all([
-      loadAssigneeFilterMembers(project, team, sprintPath, sprintSource),
+      loadTeamMembers({ project, team, sprintPath, source: sprintSource }),
       kind === "tasks"
         ? listTaskStates(auth, profile.taskWorkItemType)
         : listBugStates(auth, profile.bugWorkItemType),
