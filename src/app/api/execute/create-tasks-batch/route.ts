@@ -1,5 +1,4 @@
 import { ADO_SIGN_IN_REQUIRED_MESSAGE } from "@/lib/auth/ado-auth-messages";
-import { requireAdminOr403 } from "@/lib/auth/require-admin";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import { createTaskUnderPbi } from "@/lib/azure-devops/work-items";
@@ -39,9 +38,6 @@ type CreateTasksBatchResponse = {
 };
 
 export async function POST(req: Request): Promise<Response> {
-  const adminGate = await requireAdminOr403();
-  if (adminGate) return adminGate;
-
   let raw: unknown;
   try {
     raw = await req.json();
