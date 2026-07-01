@@ -763,17 +763,6 @@ function looksLikeDateField(referenceName: string): boolean {
   );
 }
 
-function isStandardAdoDateTimeField(referenceName: string): boolean {
-  // Standard ADO DateTime fields accept either a full ISO DateTime with offset
-  // or a plain "YYYY-MM-DD" (treated as midnight UTC). Custom Date-type fields
-  // (Custom.*) reject DateTime strings with TF401320 "ReadOnly, InvalidNotOldValue",
-  // so we only build the DateTime value for the standard namespaces.
-  return (
-    referenceName.startsWith("Microsoft.VSTS.Scheduling.") ||
-    referenceName.startsWith("System.")
-  );
-}
-
 function buildWorkingDatePatchOps(
   fields: Record<string, string | number | undefined> | undefined,
   dateKey: string,
@@ -781,22 +770,16 @@ function buildWorkingDatePatchOps(
   timeZone: string,
   workingDateFieldNames: readonly string[],
 ): WorkItemFieldPatchOp[] {
-  const ops: WorkItemFieldPatchOp[] = [];
-
-  for (const fieldName of workingDateFieldNames) {
+  const value = buildWorkingDateTimeValue(dateKey, timeStr, timeZone);
+  return workingDateFieldNames.map((fieldName) => {
     const hadValue =
       fields?.[fieldName] !== undefined && fields?.[fieldName] !== null && fields?.[fieldName] !== "";
-    const value = isStandardAdoDateTimeField(fieldName)
-      ? buildWorkingDateTimeValue(dateKey, timeStr, timeZone)
-      : dateKey;
-    ops.push({
+    return {
       op: hadValue ? "replace" : "add",
       path: `/fields/${fieldName}`,
       value,
-    });
-  }
-
-  return ops;
+    };
+  });
 }
 
 function buildCompletedWorkPatchOps(

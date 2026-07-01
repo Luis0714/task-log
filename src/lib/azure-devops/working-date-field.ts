@@ -1,3 +1,5 @@
+import { toAdoDateTimeValue } from "@/lib/date/ado-datetime";
+
 export const DEFAULT_WORKING_DATE_FIELD = "Microsoft.VSTS.Scheduling.StartDate";
 
 export const FALLBACK_DATE_FIELDS = [
@@ -68,29 +70,20 @@ export function toWorkingDateKey(
 }
 
 /**
- * Construye un ISO 8601 con offset para enviar a campos DateTime de Azure DevOps.
- * Ej: ("2026-06-30", "11:25", "America/Bogota") → "2026-06-30T11:25:00-05:00"
- * Azure almacena el UTC equivalente y lo muestra correctamente en cualquier timezone.
+ * Convierte fecha civil + hora local (IANA) a ISO UTC para campos DateTime de Azure DevOps.
+ * Delega en toAdoDateTimeValue para que toda la lógica de conversión viva en un único lugar.
+ * Ej: ("2026-06-30", "11:25", "America/Bogota") → "2026-06-30T16:25:00.000Z"
  */
 export function buildWorkingDateTimeValue(
   dateKey: string,
   timeStr: string,
   timeZone: string,
 ): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    timeZoneName: "shortOffset",
-  }).formatToParts(new Date(`${dateKey}T${timeStr}:00Z`));
-
-  const tzPart = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
-  const match = tzPart.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
-  if (!match) return `${dateKey}T${timeStr}:00Z`;
-
-  const sign = match[1];
-  const hours = match[2].padStart(2, "0");
-  const mins = (match[3] ?? "00").padStart(2, "0");
-
-  return `${dateKey}T${timeStr}:00${sign}${hours}:${mins}`;
+  try {
+    return toAdoDateTimeValue(dateKey, timeStr, timeZone);
+  } catch {
+    return `${dateKey}T${timeStr}:00Z`;
+  }
 }
 
 /** Primera fecha válida entre los campos indicados (p. ej. desde resolveProcessProfile). */
