@@ -237,13 +237,18 @@ export function TimeLogBulkTask({
           ) : null}
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor={`${idPrefix}-activity`}>Actividad</Label>
+          <Label htmlFor={`${idPrefix}-activity`}>
+            Actividad <span className="text-destructive">*</span>
+          </Label>
           <Select
             value={task.activity || null}
             onValueChange={(value) => onChange({ activity: value ?? "" })}
             disabled={disabled}
           >
-            <SelectTrigger id={`${idPrefix}-activity`}>
+            <SelectTrigger
+              id={`${idPrefix}-activity`}
+              aria-invalid={Boolean(task.errors.activity)}
+            >
               <SelectValue placeholder="Selecciona actividad" />
             </SelectTrigger>
             <SelectContent>
@@ -254,6 +259,9 @@ export function TimeLogBulkTask({
               ))}
             </SelectContent>
           </Select>
+          {task.errors.activity ? (
+            <p className="text-destructive text-xs">{task.errors.activity}</p>
+          ) : null}
         </div>
       </div>
 

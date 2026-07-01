@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Loader2, Save } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 
@@ -40,6 +41,19 @@ export function TimeLogForm({
     lastSubmitted.taskTitle.trim().length > 0 &&
     lastSubmitted.description.trim().length > 0;
 
+  // Pre-rellenamos la actividad con la primera disponible para que el
+  // formulario Individual arranque en un estado válido y se mantenga
+  // válido tras cada guardado (donde `useCreateTask` resetea la actividad
+  // a ""). No pisamos una selección consciente del usuario ni el
+  // resultado de aplicar una plantilla: si el valor actual está dentro
+  // de la lista de actividades permitidas, lo dejamos tal cual.
+  const currentActivity = form.watch("activity");
+  useEffect(() => {
+    if (activities.length === 0) return;
+    if (currentActivity && activities.includes(currentActivity)) return;
+    form.setValue("activity", activities[0], { shouldValidate: true });
+  }, [activities, currentActivity, form]);
+
   return (
     <form
       className="flex min-w-0 flex-col gap-3"
@@ -48,7 +62,7 @@ export function TimeLogForm({
         onSubmit();
       }}
     >
-      <TemplateSelectField form={form} activities={activities} />
+      <TemplateSelectField form={form} activities={activities} lastSubmitted={lastSubmitted} />
 
       <PbiSelectField form={form} catalog={catalog} />
 

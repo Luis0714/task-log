@@ -77,8 +77,8 @@ export type SprintTimesWeekColumn = {
 
 export type SprintTimesPersonRow = {
   assignee: string;
-  week1: HoursBreakdown;
-  week2: HoursBreakdown;
+  /** Una entrada por semana calendario del sprint (puede ser 2, 3 o más). */
+  weeks: HoursBreakdown[];
   sprint: HoursBreakdown;
 };
 

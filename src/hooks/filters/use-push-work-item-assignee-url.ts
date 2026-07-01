@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { buildAdoContextQuery } from "@/lib/ado/parse-context-search-params";
+import { mergeAdoContextIntoSearchParams } from "@/lib/ado/parse-context-search-params";
 
 export type PushWorkItemAssigneeUrlContext = {
   project: string;
@@ -15,21 +15,24 @@ export type PushWorkItemAssigneeUrlContext = {
 export function usePushWorkItemAssigneeUrl() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const pushAssignee = useCallback(
     (assignee: string, context: PushWorkItemAssigneeUrlContext) => {
-      router.push(
-        `${pathname}${buildAdoContextQuery({
-          project: context.project,
-          team: context.team,
-          sprint: context.sprint,
-          sprintDay: context.sprintDay,
-          assignee,
-        })}`,
-        { scroll: false },
-      );
+      // Mergemos sobre los search params actuales para preservar flags que
+      // no son del contexto ADO (p. ej. `modo=multiple`), en lugar de
+      // reconstruir la URL desde cero y perderlos.
+      const current = new URLSearchParams(searchParams.toString());
+      const query = mergeAdoContextIntoSearchParams(current, {
+        project: context.project,
+        team: context.team,
+        sprint: context.sprint,
+        sprintDay: context.sprintDay,
+        assignee,
+      });
+      router.push(`${pathname}${query}`, { scroll: false });
     },
-    [pathname, router],
+    [pathname, router, searchParams],
   );
 
   return { pushAssignee };

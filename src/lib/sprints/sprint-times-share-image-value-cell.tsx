@@ -97,12 +97,17 @@ export function SprintTimesShareSubColumnHeader({
   kind,
   label,
 }: {
-  kind: "dev" | "bug";
+  kind: "dev" | "bug" | "total";
   label: string;
 }) {
   const color =
-    kind === "dev" ? sprintTimesShareImageColors.development : sprintTimesShareImageColors.bug;
-  const Icon = kind === "dev" ? SprintTimesShareDevIconSvg : SprintTimesShareBugIconSvg;
+    kind === "dev" ? sprintTimesShareImageColors.development
+    : kind === "bug" ? sprintTimesShareImageColors.bug
+    : sprintTimesShareImageColors.sprintTotal;
+  const Icon =
+    kind === "dev" ? SprintTimesShareDevIconSvg
+    : kind === "bug" ? SprintTimesShareBugIconSvg
+    : SprintTimesShareClockIconSvg;
 
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
@@ -117,5 +122,16 @@ export function SprintTimesShareSubColumnHeader({
         {label.toUpperCase()}
       </span>
     </div>
+  );
+}
+
+export function SprintTimesShareWeekTotalCell({ value }: { value: number }) {
+  return (
+    <HoursValue
+      value={value}
+      icon="clock"
+      color={sprintTimesShareImageColors.sprintTotal}
+      fontWeight={700}
+    />
   );
 }

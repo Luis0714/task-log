@@ -6,7 +6,6 @@ import { buildBugQualityMetrics, buildParentTitleLookup } from "@/lib/sprints/bu
 import { buildSprintTimesMetrics } from "@/lib/sprints/build-sprint-times-metrics";
 import {
   filterBugsToGoalScope,
-  filterTasksToGoalScope,
   filterWorkItemsToGoalScope,
   type SprintStatsScope,
 } from "@/lib/sprints/filter-sprint-stats-scope";
@@ -36,18 +35,12 @@ function resolveScopedBugs(input: BuildSprintOperationalMetricsInput): AdoWorkIt
   return filterBugsToGoalScope(input.bugs, input.goalWorkItemIds);
 }
 
-function resolveScopedTasks(input: BuildSprintOperationalMetricsInput): AdoWorkItemOptionDto[] {
-  const tasks = input.tasks ?? [];
-  if (input.scope === "team") return [...tasks];
-  return filterTasksToGoalScope(tasks, input.goalWorkItemIds);
-}
 
 export function buildSprintOperationalMetrics(
   input: BuildSprintOperationalMetricsInput,
 ): SprintSnapshotOperationalMetrics {
   const workItems = resolveScopedWorkItems(input);
   const bugs = resolveScopedBugs(input);
-  const tasks = resolveScopedTasks(input);
   const parentTitlesById = buildParentTitleLookup(input.workItems);
 
   // Sin bugStates del proyecto caemos a los backlogStates (mismo proceso Scrum-like).
@@ -70,8 +63,8 @@ export function buildSprintOperationalMetrics(
       bugMapping,
     }),
     times: buildSprintTimesMetrics({
-      tasks,
-      bugs,
+      tasks: input.tasks ?? [],
+      bugs: input.bugs,
       sprintStartDate: input.sprintStartDate,
       sprintFinishDate: input.sprintFinishDate,
       nonWorkingDates: input.nonWorkingDates,

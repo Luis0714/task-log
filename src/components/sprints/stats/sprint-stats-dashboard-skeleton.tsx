@@ -126,7 +126,7 @@ export function SprintTimesSectionSkeleton() {
       <div className="flex flex-col gap-3">
         <Skeleton className="h-3 w-64" />
         <div className="overflow-hidden rounded-lg border border-border/60">
-          {Array.from({ length: 4 }).map((_, index) => (
+          {Array.from({ length: 8 }).map((_, index) => (
             <div
               key={index}
               className="border-border/60 grid gap-3 border-b px-3 py-3 last:border-b-0 md:grid-cols-7"
@@ -152,16 +152,19 @@ export function SprintStatsDashboardSkeleton({
   showScopeToggle = false,
   className,
 }: SprintStatsDashboardSkeletonProps) {
+  const showGoalSections = false;
   return (
     <div className={cn("flex flex-col gap-4", className)}>
       {showScopeToggle ? <SprintStatsScopeToggleSkeleton /> : null}
 
       <div className="flex flex-col gap-6">
-        <SprintGoalProgressSectionSkeleton />
-        <SprintBugQualitySectionSkeleton />
         <SprintTimesSectionSkeleton />
+        { showGoalSections && <>
         <DashboardDeliverySectionSkeleton />
         <DashboardWorkflowSectionSkeleton />
+        <SprintGoalProgressSectionSkeleton />
+        <SprintBugQualitySectionSkeleton />
+        </> }
       </div>
     </div>
   );

@@ -192,14 +192,13 @@ export function TimeLogFormSkeleton({
   return (
     <div className={cn("flex w-full min-w-0 flex-col gap-4", className)}>
       <ContextSkeleton />
-      {view === "individual" ? (
-        <IndividualFormSkeleton />
-      ) : view === "multiple" ? (
+      {view === "multiple" ? (
         <MultipleFormSkeleton />
       ) : (
-        // Sin vista conocida: mostramos el modo Múltiple por defecto porque
-        // es el layout más complejo y refleja mejor la jerarquía.
-        <MultipleFormSkeleton />
+        // Default: Individual. Coincide con `DEFAULT_TIME_LOG_VIEW` y con
+        // el modo al que vuelve la pantalla cuando el usuario no pasa
+        // `?modo=` por URL.
+        <IndividualFormSkeleton />
       )}
     </div>
   );

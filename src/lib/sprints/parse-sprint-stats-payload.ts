@@ -158,10 +158,13 @@ function parseSprintTimesPersonRow(value: unknown): SprintTimesPersonRow | null 
   const assignee = typeof value.assignee === "string" ? value.assignee : "";
   if (!assignee) return null;
 
+  const weeks = Array.isArray(value.weeks)
+    ? value.weeks.map(parseHoursBreakdown)
+    : [];
+
   return {
     assignee,
-    week1: parseHoursBreakdown(value.week1),
-    week2: parseHoursBreakdown(value.week2),
+    weeks,
     sprint: parseHoursBreakdown(value.sprint),
   };
 }

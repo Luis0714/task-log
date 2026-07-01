@@ -1,4 +1,4 @@
-import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import { totalHoursBreakdown, type HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import { SPRINT_GOAL_SHARE_FONT_FAMILY } from "@/lib/sprints/load-sprint-goal-share-fonts";
 import { sprintTimesShareImageColors } from "@/lib/sprints/sprint-times-share-image-colors";
 import {
@@ -6,6 +6,7 @@ import {
   SprintTimesShareBugHoursCell,
   SprintTimesShareDevHoursCell,
   SprintTimesShareSubColumnHeader,
+  SprintTimesShareWeekTotalCell,
 } from "@/lib/sprints/sprint-times-share-image-value-cell";
 import { SPRINT_TIMES_SHARE_LABELS } from "@/lib/sprints/sprint-times-share-labels";
 import {
@@ -73,6 +74,7 @@ function WeekGroupCells({
   weekKey: "week1" | "week2";
   emphasized?: boolean;
 }) {
+  const weekTotal = totalHoursBreakdown(breakdown);
   return (
     <div
       style={{
@@ -93,6 +95,18 @@ function WeekGroupCells({
         }}
       >
         <SprintTimesShareDevHoursCell value={breakdown.taskHours} />
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "12px 10px",
+          borderLeft: `1px solid ${sprintTimesShareImageTheme.border}`,
+        }}
+      >
+        <SprintTimesShareWeekTotalCell value={weekTotal} />
       </div>
       <div
         style={{
@@ -160,6 +174,9 @@ function renderSubHeaderCell(column: SprintTimesShareColumn) {
       <div style={{ display: "flex", flexDirection: "row", width: "100%" }}>
         <div style={{ display: "flex", flex: 1, justifyContent: "center" }}>
           <SprintTimesShareSubColumnHeader kind="dev" label={SPRINT_TIMES_SHARE_LABELS.development} />
+        </div>
+        <div style={{ display: "flex", flex: 1, justifyContent: "center" }}>
+          <SprintTimesShareSubColumnHeader kind="total" label={SPRINT_TIMES_SHARE_LABELS.total} />
         </div>
         <div style={{ display: "flex", flex: 1, justifyContent: "center" }}>
           <SprintTimesShareSubColumnHeader kind="bug" label={SPRINT_TIMES_SHARE_LABELS.bugs} />

@@ -10,9 +10,11 @@ import {
   SprintTimesDevSubColumnHeader,
   SprintTimesLegend,
   SprintTimesTotalCell,
+  SprintTimesTotalSubColumnHeader,
+  SprintTimesWeekTotalValue,
 } from "@/components/sprints/stats/sprint-times-hours-cell";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EMPTY_HOURS_BREAKDOWN } from "@/lib/dashboard/hours-breakdown";
+import { EMPTY_HOURS_BREAKDOWN, totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import type {
   SprintTimesMetrics,
@@ -32,26 +34,32 @@ export type SprintTimesSectionProps = {
   shareScope?: SprintTimesShareScope;
 };
 
-const TABLE_GRID =
-  "grid grid-cols-[minmax(8rem,1.1fr)_minmax(11rem,1.15fr)_minmax(11rem,1.15fr)_minmax(7rem,0.95fr)] gap-x-3";
+const WEEK_ODD_CLASS = "bg-primary/[0.07]";
+const WEEK_EVEN_CLASS = "bg-muted/50";
+const WEEK_ODD_EMPHASIZED = "bg-primary/[0.1]";
+const WEEK_EVEN_EMPHASIZED = "bg-muted/65";
 
-const WEEK1_GROUP_CLASS = "bg-primary/[0.07]";
-const WEEK2_GROUP_CLASS = "bg-muted/50";
+function weekGroupClass(weekIndex: number, emphasized = false): string {
+  const isOdd = weekIndex % 2 === 0;
+  if (emphasized) return isOdd ? WEEK_ODD_EMPHASIZED : WEEK_EVEN_EMPHASIZED;
+  return isOdd ? WEEK_ODD_CLASS : WEEK_EVEN_CLASS;
+}
 
-function weekGroupClass(variant: "week1" | "week2", emphasized = false) {
-  const base = variant === "week1" ? WEEK1_GROUP_CLASS : WEEK2_GROUP_CLASS;
-  return emphasized
-    ? cn(base, variant === "week1" ? "bg-primary/[0.1]" : "bg-muted/65")
-    : base;
+function buildTableGridStyle(weekCount: number): React.CSSProperties {
+  return {
+    display: "grid",
+    gridTemplateColumns: `minmax(8rem, 1.1fr) repeat(${weekCount}, minmax(14rem, 1.3fr)) minmax(7rem, 0.95fr)`,
+    gap: "0 0.75rem",
+  };
 }
 
 function WeekGroupBlock({
-  variant,
+  weekIndex,
   emphasized = false,
   className,
   children,
 }: {
-  variant: "week1" | "week2";
+  weekIndex: number;
   emphasized?: boolean;
   className?: string;
   children: ReactNode;
@@ -59,8 +67,8 @@ function WeekGroupBlock({
   return (
     <div
       className={cn(
-        "grid grid-cols-2 rounded-md",
-        weekGroupClass(variant, emphasized),
+        "grid grid-cols-3 rounded-md",
+        weekGroupClass(weekIndex, emphasized),
         className,
       )}
     >
@@ -91,22 +99,24 @@ function WeekGroupCell({
   );
 }
 
-function defaultWeekMeta(index: number): SprintTimesWeekColumn {
-  return {
-    label: index === 0 ? "Semana 1" : "Semana 2",
-    dateRangeLabel: "",
-    workingDaysCount: 0,
-  };
-}
-
-function sumBreakdowns(
+function sumWeekBreakdowns(
   rows: readonly SprintTimesPersonRow[],
-  key: "week1" | "week2" | "sprint",
+  weekIndex: number,
 ): HoursBreakdown {
   return rows.reduce(
+    (acc, row) => {
+      const w = row.weeks[weekIndex] ?? EMPTY_HOURS_BREAKDOWN;
+      return { taskHours: acc.taskHours + w.taskHours, bugHours: acc.bugHours + w.bugHours };
+    },
+    { ...EMPTY_HOURS_BREAKDOWN },
+  );
+}
+
+function sumSprintBreakdowns(rows: readonly SprintTimesPersonRow[]): HoursBreakdown {
+  return rows.reduce(
     (acc, row) => ({
-      taskHours: acc.taskHours + row[key].taskHours,
-      bugHours: acc.bugHours + row[key].bugHours,
+      taskHours: acc.taskHours + row.sprint.taskHours,
+      bugHours: acc.bugHours + row.sprint.bugHours,
     }),
     { ...EMPTY_HOURS_BREAKDOWN },
   );
@@ -143,40 +153,42 @@ function TimesTableSkeleton() {
 
 function TimesRow({
   assignee,
-  week1,
-  week2,
+  weeks,
   sprint,
   emphasized = false,
+  weekCount,
 }: {
   assignee: string;
-  week1: HoursBreakdown;
-  week2: HoursBreakdown;
+  weeks: HoursBreakdown[];
   sprint: HoursBreakdown;
   emphasized?: boolean;
+  weekCount: number;
 }) {
   return (
-    <li className={cn(TABLE_GRID, "items-center px-3 py-1", emphasized && "bg-muted/15")}>
+    <li
+      style={buildTableGridStyle(weekCount)}
+      className={cn("items-center px-3 py-1", emphasized && "bg-muted/15")}
+    >
       <p className="truncate py-2 text-sm font-medium" title={assignee}>
         {assignee}
       </p>
 
-      <WeekGroupBlock variant="week1" emphasized={emphasized}>
-        <WeekGroupCell>
-          <SprintTimesDevHoursValue value={week1.taskHours} className="w-full" />
-        </WeekGroupCell>
-        <WeekGroupCell withDivider>
-          <SprintTimesBugHoursValue value={week1.bugHours} className="w-full" />
-        </WeekGroupCell>
-      </WeekGroupBlock>
-
-      <WeekGroupBlock variant="week2" emphasized={emphasized}>
-        <WeekGroupCell>
-          <SprintTimesDevHoursValue value={week2.taskHours} className="w-full" />
-        </WeekGroupCell>
-        <WeekGroupCell withDivider>
-          <SprintTimesBugHoursValue value={week2.bugHours} className="w-full" />
-        </WeekGroupCell>
-      </WeekGroupBlock>
+      {Array.from({ length: weekCount }, (_, index) => {
+        const breakdown = weeks[index] ?? EMPTY_HOURS_BREAKDOWN;
+        return (
+          <WeekGroupBlock key={index} weekIndex={index} emphasized={emphasized}>
+            <WeekGroupCell>
+              <SprintTimesDevHoursValue value={breakdown.taskHours} className="w-full" />
+            </WeekGroupCell>
+            <WeekGroupCell withDivider>
+              <SprintTimesWeekTotalValue value={totalHoursBreakdown(breakdown)} />
+            </WeekGroupCell>
+            <WeekGroupCell withDivider>
+              <SprintTimesBugHoursValue value={breakdown.bugHours} className="w-full" />
+            </WeekGroupCell>
+          </WeekGroupBlock>
+        );
+      })}
 
       <div className="flex items-center justify-center py-2">
         <SprintTimesTotalCell breakdown={sprint} />
@@ -192,20 +204,18 @@ export function SprintTimesSection({
   className,
   shareScope,
 }: SprintTimesSectionProps) {
-  const week1 = times.weeks[0] ?? defaultWeekMeta(0);
-  const week2 = times.weeks[1] ?? defaultWeekMeta(1);
+  const weekCount = times.weeks.length;
 
-  const totals = useMemo(
-    () => ({
-      week1: sumBreakdowns(times.rows, "week1"),
-      week2: sumBreakdowns(times.rows, "week2"),
-      sprint: sumBreakdowns(times.rows, "sprint"),
-    }),
-    [times.rows],
+  const weekTotals = useMemo(
+    () => Array.from({ length: weekCount }, (_, i) => sumWeekBreakdowns(times.rows, i)),
+    [times.rows, weekCount],
   );
 
+  const sprintTotal = useMemo(() => sumSprintBreakdowns(times.rows), [times.rows]);
+
   const hasRows = times.rows.length > 0;
-  const hasWeeks = times.weeks.length > 0;
+  const hasWeeks = weekCount > 0;
+  const tableGridStyle = buildTableGridStyle(weekCount);
 
   return (
     <DashboardSection
@@ -238,37 +248,42 @@ export function SprintTimesSection({
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border/60">
             <div className="min-w-3xl">
-              <div className={cn(TABLE_GRID, "border-border/60 bg-muted/20 items-center px-3 py-2")}>
+              <div
+                style={tableGridStyle}
+                className="border-border/60 bg-muted/20 items-center px-3 py-2"
+              >
                 <span className="text-muted-foreground text-xs font-medium">Persona</span>
-                <div className={cn("rounded-md px-2 py-1.5 text-center", WEEK1_GROUP_CLASS)}>
-                  <WeekGroupHeader week={week1} />
-                </div>
-                <div className={cn("rounded-md px-2 py-1.5 text-center", WEEK2_GROUP_CLASS)}>
-                  <WeekGroupHeader week={week2} />
-                </div>
+                {times.weeks.map((week, index) => (
+                  <div
+                    key={index}
+                    className={cn("rounded-md px-2 py-1.5 text-center", weekGroupClass(index))}
+                  >
+                    <WeekGroupHeader week={week} />
+                  </div>
+                ))}
                 <div className="min-w-0 text-center">
                   <p className="text-xs font-medium">Tiempo sprint</p>
                 </div>
               </div>
 
-              <div className={cn(TABLE_GRID, "border-border/60 border-b px-3 pb-1")}>
+              <div
+                style={tableGridStyle}
+                className="border-border/60 border-b px-3 pb-1"
+              >
                 <span />
-                <WeekGroupBlock variant="week1">
-                  <WeekGroupCell className="py-1.5">
-                    <SprintTimesDevSubColumnHeader />
-                  </WeekGroupCell>
-                  <WeekGroupCell withDivider className="py-1.5">
-                    <SprintTimesBugSubColumnHeader />
-                  </WeekGroupCell>
-                </WeekGroupBlock>
-                <WeekGroupBlock variant="week2">
-                  <WeekGroupCell className="py-1.5">
-                    <SprintTimesDevSubColumnHeader />
-                  </WeekGroupCell>
-                  <WeekGroupCell withDivider className="py-1.5">
-                    <SprintTimesBugSubColumnHeader />
-                  </WeekGroupCell>
-                </WeekGroupBlock>
+                {times.weeks.map((_, index) => (
+                  <WeekGroupBlock key={index} weekIndex={index}>
+                    <WeekGroupCell className="py-1.5">
+                      <SprintTimesDevSubColumnHeader />
+                    </WeekGroupCell>
+                    <WeekGroupCell withDivider className="py-1.5">
+                      <SprintTimesTotalSubColumnHeader />
+                    </WeekGroupCell>
+                    <WeekGroupCell withDivider className="py-1.5">
+                      <SprintTimesBugSubColumnHeader />
+                    </WeekGroupCell>
+                  </WeekGroupBlock>
+                ))}
                 <span className="text-muted-foreground flex items-center justify-center py-1.5 text-center text-[10px] font-medium uppercase tracking-wide">
                   Total
                 </span>
@@ -279,17 +294,17 @@ export function SprintTimesSection({
                   <TimesRow
                     key={row.assignee}
                     assignee={row.assignee}
-                    week1={row.week1}
-                    week2={row.week2}
+                    weeks={row.weeks}
                     sprint={row.sprint}
+                    weekCount={weekCount}
                   />
                 ))}
 
                 <TimesRow
                   assignee="Total equipo"
-                  week1={totals.week1}
-                  week2={totals.week2}
-                  sprint={totals.sprint}
+                  weeks={weekTotals}
+                  sprint={sprintTotal}
+                  weekCount={weekCount}
                   emphasized
                 />
               </ul>
