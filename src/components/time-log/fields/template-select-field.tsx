@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 import { TbTemplate } from "react-icons/tb";
@@ -200,22 +200,42 @@ export function TemplateSelectField({
     if (template) apply(template);
   };
 
-  const handleClear = () => {
-    setSelectedId("");
-    clear();
-  };
-
   // Tras un save exitoso el formulario se resetea desde `useCreateTask`.
   // Como `lastSubmitted` recibe una referencia nueva en cada guardado,
-  // usamos el patrón "store information from previous renders" para
-  // detectar el cambio y limpiar también la plantilla seleccionada.
+  // separamos la respuesta en dos partes:
+  //   1. `setSelectedId("")` — estado local de ESTE componente. Se hace
+  //      durante el render con el patrón "store information from previous
+  //      renders": React aplica el bailout porque el setState es del
+  //      mismo componente.
+  //   2. `clear()` — side effect sobre el `Controller` (otro componente).
+  //      NO puede ejecutarse durante render (sería el error
+  //      "Cannot update a component while rendering a different one"),
+  //      así que va en un `useEffect`.
   const prevLastSubmittedRef = useRef(lastSubmitted);
   if (prevLastSubmittedRef.current !== lastSubmitted) {
     prevLastSubmittedRef.current = lastSubmitted;
     if (lastSubmitted) {
-      handleClear();
+      setSelectedId("");
     }
   }
+
+  const handleClearForm = useCallback(() => {
+    clear();
+  }, [clear]);
+
+  useEffect(() => {
+    if (lastSubmitted) {
+      handleClearForm();
+    }
+  }, [lastSubmitted, handleClearForm]);
+
+  // Conservamos un `handleClear` unificado para los botones internos
+  // ("Quitar plantilla" en `TemplatesList`), que sí pueden llamar
+  // ambas operaciones de forma sincrónica tras un click del usuario.
+  const handleClear = useCallback(() => {
+    setSelectedId("");
+    handleClearForm();
+  }, [handleClearForm]);
 
   const currentTitle = form.watch("taskTitle") ?? "";
   const currentDescription = form.watch("description") ?? "";

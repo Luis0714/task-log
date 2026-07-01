@@ -61,7 +61,7 @@ export function WorkItemAssigneeFilter({
         <PopoverContent className="w-(--anchor-width) p-2" align="start">
           <div className="space-y-0.5">
             <FilterPresetRow
-              label="Todos"
+              label="Todos los miembros"
               active={isAll}
               onSelect={() => commitAssignee(WORK_ITEM_ASSIGNEE_ALL)}
             />

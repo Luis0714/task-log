@@ -26,6 +26,8 @@ export type DataTableSortControlProps<TField extends string> = {
   disabled?: boolean;
   className?: string;
   fieldLabel?: string;
+  /** Clases adicionales para el SelectTrigger (p.ej. ancho). Por defecto "w-36". */
+  fieldClassName?: string;
   onChange: (value: DataTableSortSpec<TField>) => void;
 };
 
@@ -39,6 +41,7 @@ export function DataTableSortControl<TField extends string>({
   disabled = false,
   className,
   fieldLabel = "Ordenar por",
+  fieldClassName = "w-36",
   onChange,
 }: DataTableSortControlProps<TField>) {
   const id = useId();
@@ -67,7 +70,7 @@ export function DataTableSortControl<TField extends string>({
           onChange({ field: nextField as TField, direction: value.direction });
         }}
       >
-        <SelectTrigger id={fieldId} className="w-36">
+        <SelectTrigger id={fieldId} className={fieldClassName}>
           <SelectValue placeholder="Campo">
             {(fieldValue: TField | null) => {
               if (!fieldValue) return null;

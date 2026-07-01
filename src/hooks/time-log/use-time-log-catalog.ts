@@ -220,17 +220,17 @@ export function useTimeLogCatalog({
     [form, pathname, router, searchParams],
   );
 
-  const onProjectChange = runPending("project", () => {
+  const onProjectChange = runPending("project", (_value: string) => {
     resetTeamSelection(form);
     pushContextToUrl({ team: "", sprint: "" });
   });
 
-  const onTeamChange = runPending("team", () => {
+  const onTeamChange = runPending("team", (_value: string) => {
     resetSprintSelection(form);
     pushContextToUrl({ sprint: "" });
   });
 
-  const onSprintChange = runPending("sprint", () => {
+  const onSprintChange = runPending("sprint", (_value: string) => {
     resetPbiSelection(form);
     resetWorkItemFilters();
     pushContextToUrl({});
