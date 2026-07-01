@@ -14,6 +14,7 @@ import {
   SprintTimesWeekTotalValue,
 } from "@/components/sprints/stats/sprint-times-hours-cell";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TeamMemberAvatar } from "@/components/team-members/team-member-avatar";
 import { EMPTY_HOURS_BREAKDOWN, totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import type {
@@ -153,12 +154,14 @@ function TimesTableSkeleton() {
 
 function TimesRow({
   assignee,
+  imageUrl,
   weeks,
   sprint,
   emphasized = false,
   weekCount,
 }: {
   assignee: string;
+  imageUrl?: string;
   weeks: HoursBreakdown[];
   sprint: HoursBreakdown;
   emphasized?: boolean;
@@ -169,9 +172,17 @@ function TimesRow({
       style={buildTableGridStyle(weekCount)}
       className={cn("items-center px-3 py-1", emphasized && "bg-muted/15")}
     >
-      <p className="truncate py-2 text-sm font-medium" title={assignee}>
-        {assignee}
-      </p>
+      <div className="flex min-w-0 items-center gap-2 py-1.5">
+        {imageUrl ? (
+          <TeamMemberAvatar
+            member={{ displayName: assignee, imageUrl }}
+            size="sm"
+          />
+        ) : null}
+        <p className="truncate text-sm font-medium" title={assignee}>
+          {assignee}
+        </p>
+      </div>
 
       {Array.from({ length: weekCount }, (_, index) => {
         const breakdown = weeks[index] ?? EMPTY_HOURS_BREAKDOWN;
@@ -294,6 +305,7 @@ export function SprintTimesSection({
                   <TimesRow
                     key={row.assignee}
                     assignee={row.assignee}
+                    imageUrl={row.imageUrl}
                     weeks={row.weeks}
                     sprint={row.sprint}
                     weekCount={weekCount}

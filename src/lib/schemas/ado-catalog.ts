@@ -97,6 +97,7 @@ export const adoTeamMemberSchema = z.object({
   id: z.string(),
   displayName: z.string(),
   uniqueName: z.string().optional(),
+  imageUrl: z.url().optional(),
 });
 
 export const adoTeamMembersResponseSchema = z.object({

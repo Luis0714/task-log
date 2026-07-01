@@ -100,7 +100,16 @@ function buildPersonRow(
       ? sumHoursBreakdownForDayKeys(personTasks, personBugs, allSprintDayKeys, sprintEndKey)
       : EMPTY_HOURS_BREAKDOWN;
 
-  return { assignee, weeks, sprint };
+  // Las personas que NO están en el roster (sprint-assignee:* o
+  // SPRINT_BUG_UNASSIGNED_LABEL) no tendrán imageUrl.
+  const rosterMatch = roster.find((member) => member.displayName === assignee);
+
+  return {
+    assignee,
+    imageUrl: rosterMatch?.imageUrl,
+    weeks,
+    sprint,
+  };
 }
 
 function sortPersonRows(rows: SprintTimesPersonRow[]): SprintTimesPersonRow[] {

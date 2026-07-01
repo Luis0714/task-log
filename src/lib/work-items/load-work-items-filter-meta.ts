@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
-import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import { listBacklogItemStates } from "@/lib/azure-devops/work-item-type-states";
 import type { AdoTaskStateDto, AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 
@@ -26,7 +26,7 @@ export const loadWorkItemsFilterMeta = cache(async function loadWorkItemsFilterM
 
   try {
     const [members, states] = await Promise.all([
-      loadAssigneeFilterMembers(project, team, sprintPath, "workItems"),
+      loadTeamMembers({ project, team, sprintPath, source: "workItems" }),
       listBacklogItemStates(auth),
     ]);
     return { members, states };

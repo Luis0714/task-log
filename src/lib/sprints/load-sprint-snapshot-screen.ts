@@ -5,7 +5,7 @@ import { cache } from "react";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { getRepositories } from "@/lib/db/container";
 import type { SprintGoalScope } from "@/lib/db/ports/sprint-story-goal.repository.port";
-import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import { logApiError } from "@/lib/errors/log-api-error";
 import { enrichSnapshotStatsPayloadAssigneeRows } from "@/lib/sprints/enrich-snapshot-stats-payload";
 import type { SprintSnapshotData } from "@/lib/sprints/sprint-snapshot-types";
@@ -22,12 +22,12 @@ async function enrichSnapshotAssigneeRows(
 ): Promise<SprintSnapshotData> {
   if (!snapshot.statsPayload) return snapshot;
 
-  const assigneeRoster = await loadAssigneeFilterMembers(
-    scope.project,
-    scope.team,
-    scope.sprintPath,
-    "workItems",
-  );
+  const assigneeRoster = await loadTeamMembers({
+    project: scope.project,
+    team: scope.team,
+    sprintPath: scope.sprintPath,
+    source: "workItems",
+  });
 
   return {
     ...snapshot,

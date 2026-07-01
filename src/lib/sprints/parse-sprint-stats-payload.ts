@@ -50,8 +50,13 @@ function parseBugAssigneeRow(value: unknown): SprintBugAssigneeRow | null {
   if (!isRecord(value)) return null;
   const assignee = typeof value.assignee === "string" ? value.assignee : "";
   if (!assignee) return null;
+  const imageUrl =
+    typeof value.imageUrl === "string" && value.imageUrl.trim()
+      ? value.imageUrl
+      : undefined;
   return {
     assignee,
+    imageUrl,
     total: Number(value.total ?? 0),
     open: Number(value.open ?? 0),
     attended: Number(value.attended ?? 0),
@@ -162,8 +167,14 @@ function parseSprintTimesPersonRow(value: unknown): SprintTimesPersonRow | null 
     ? value.weeks.map(parseHoursBreakdown)
     : [];
 
+  const imageUrl =
+    typeof value.imageUrl === "string" && value.imageUrl.trim()
+      ? value.imageUrl
+      : undefined;
+
   return {
     assignee,
+    imageUrl,
     weeks,
     sprint: parseHoursBreakdown(value.sprint),
   };

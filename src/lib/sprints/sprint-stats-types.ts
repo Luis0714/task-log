@@ -35,6 +35,8 @@ export type SprintGoalMetrics = {
 
 export type SprintBugAssigneeRow = {
   assignee: string;
+  /** URL de la foto del miembro del roster cuando está disponible. */
+  imageUrl?: string;
   total: number;
   open: number;
   attended: number;
@@ -77,6 +79,8 @@ export type SprintTimesWeekColumn = {
 
 export type SprintTimesPersonRow = {
   assignee: string;
+  /** URL de la foto del miembro del roster cuando está disponible. */
+  imageUrl?: string;
   /** Una entrada por semana calendario del sprint (puede ser 2, 3 o más). */
   weeks: HoursBreakdown[];
   sprint: HoursBreakdown;

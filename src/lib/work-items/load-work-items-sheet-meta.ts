@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
-import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import { listBacklogItemStates, listBugStates } from "@/lib/azure-devops/work-item-type-states";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
@@ -36,12 +36,12 @@ export const loadWorkItemsSheetMeta = cache(async function loadWorkItemsSheetMet
   try {
     const profile = await resolveProcessProfile(auth);
     const [teamMembers, backlogStates, bugStates, responsableFields] = await Promise.all([
-      loadAssigneeFilterMembers(
-        catalog.project,
-        catalog.team,
-        catalog.sprintPath,
-        "workItems",
-      ),
+      loadTeamMembers({
+        project: catalog.project,
+        team: catalog.team,
+        sprintPath: catalog.sprintPath,
+        source: "workItems",
+      }),
       listBacklogItemStates(auth, profile.backlogItemType),
       listBugStates(auth, profile.bugWorkItemType),
       loadWorkItemsBacklogFields(catalog.project),

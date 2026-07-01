@@ -11,8 +11,8 @@ export type SprintBugAssigneeSource = {
   isAttended: boolean;
 };
 
-function emptyAssigneeRow(assignee: string): SprintBugAssigneeRow {
-  return { assignee, total: 0, open: 0, attended: 0 };
+function emptyAssigneeRow(assignee: string, imageUrl?: string): SprintBugAssigneeRow {
+  return { assignee, imageUrl, total: 0, open: 0, attended: 0 };
 }
 
 function resolveBugAssigneeLabel(
@@ -49,7 +49,8 @@ function countBugSourcesByAssignee(
 
   for (const source of sources) {
     const assignee = resolveBugAssigneeLabel(roster, source.assignedTo);
-    const current = counts.get(assignee) ?? emptyAssigneeRow(assignee);
+    const imageUrl = roster.find((member) => member.displayName === assignee)?.imageUrl;
+    const current = counts.get(assignee) ?? emptyAssigneeRow(assignee, imageUrl);
     current.total += 1;
 
     if (source.isAttended) {
@@ -90,7 +91,9 @@ function buildSprintBugAssigneeRowsFromSources(
   const counts = countBugSourcesByAssignee(sources, roster);
 
   const rows = roster.map(
-    (member) => counts.get(member.displayName) ?? emptyAssigneeRow(member.displayName),
+    (member) =>
+      counts.get(member.displayName) ??
+      emptyAssigneeRow(member.displayName, member.imageUrl),
   );
 
   const unassignedRow = counts.get(SPRINT_BUG_UNASSIGNED_LABEL);

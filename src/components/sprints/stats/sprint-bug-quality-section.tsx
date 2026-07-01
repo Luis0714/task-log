@@ -123,6 +123,7 @@ export function SprintBugQualitySection({
                         assignee={
                           row.assignee === SPRINT_BUG_UNASSIGNED_LABEL ? null : row.assignee
                         }
+                        imageUrl={row.imageUrl}
                       />
                     </span>
                     <span className="text-muted-foreground shrink-0 tabular-nums">

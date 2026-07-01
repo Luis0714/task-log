@@ -15,7 +15,7 @@ import { getRepositories } from "@/lib/db/container";
 import type { SprintGoalScope, SprintStoryGoalRecord } from "@/lib/db/ports/sprint-story-goal.repository.port";
 import { logApiError } from "@/lib/errors/log-api-error";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
-import { loadAssigneeFilterMembers } from "@/lib/filters/load-assignee-filter-members";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import { buildSprintOperationalMetrics } from "@/lib/sprints/build-sprint-operational-metrics";
 import { buildSprintGoalMetrics } from "@/lib/sprints/build-sprint-goal-metrics";
 import { resolveSprintStatsScope, SPRINT_STATS_GOAL_ONLY_DEFAULT } from "@/lib/sprints/filter-sprint-stats-scope";
@@ -69,7 +69,12 @@ export const loadSprintStatsScreen = cache(async function loadSprintStatsScreen(
       loadSprintBacklogStates(scope.project),
       loadProjectWorkItemTags(scope.project),
       loadSprintNonWorkingDates(scope.project, scope.team),
-      loadAssigneeFilterMembers(scope.project, scope.team, scope.sprintPath, "workItems"),
+      loadTeamMembers({
+        project: scope.project,
+        team: scope.team,
+        sprintPath: scope.sprintPath,
+        source: "workItems",
+      }),
     ]);
 
   const adoError = firstSprintDataError(
