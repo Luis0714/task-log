@@ -103,7 +103,6 @@ export type AdoTeamMember = {
   id: string;
   displayName: string;
   uniqueName?: string;
-  imageUrl?: string;
 };
 
 type TeamMembersResponse = {
@@ -112,7 +111,6 @@ type TeamMembersResponse = {
       id?: string;
       displayName?: string;
       uniqueName?: string;
-      imageUrl?: string;
     };
   }>;
 };
@@ -144,7 +142,6 @@ export async function listTeamMembers(
       id: entry.identity?.id?.trim() ?? "",
       displayName: entry.identity?.displayName?.trim() ?? "",
       uniqueName: entry.identity?.uniqueName?.trim(),
-      imageUrl: entry.identity?.imageUrl?.trim() || undefined,
     }))
     .filter((member) => member.id && member.displayName);
 

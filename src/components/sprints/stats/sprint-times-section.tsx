@@ -154,14 +154,12 @@ function TimesTableSkeleton() {
 
 function TimesRow({
   assignee,
-  imageUrl,
   weeks,
   sprint,
   emphasized = false,
   weekCount,
 }: {
   assignee: string;
-  imageUrl?: string;
   weeks: HoursBreakdown[];
   sprint: HoursBreakdown;
   emphasized?: boolean;
@@ -173,12 +171,7 @@ function TimesRow({
       className={cn("items-center px-3 py-1", emphasized && "bg-muted/15")}
     >
       <div className="flex min-w-0 items-center gap-2 py-1.5">
-        {imageUrl ? (
-          <TeamMemberAvatar
-            member={{ displayName: assignee, imageUrl }}
-            size="sm"
-          />
-        ) : null}
+        <TeamMemberAvatar name={assignee} size="sm" />
         <p className="truncate text-sm font-medium" title={assignee}>
           {assignee}
         </p>
@@ -305,7 +298,6 @@ export function SprintTimesSection({
                   <TimesRow
                     key={row.assignee}
                     assignee={row.assignee}
-                    imageUrl={row.imageUrl}
                     weeks={row.weeks}
                     sprint={row.sprint}
                     weekCount={weekCount}

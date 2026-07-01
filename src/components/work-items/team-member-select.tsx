@@ -50,7 +50,7 @@ export function TeamMemberSelect({
           >
             {selectedMember ? (
               <span className="flex items-center gap-2 min-w-0">
-                <TeamMemberAvatar member={selectedMember} size="sm" />
+                <TeamMemberAvatar name={selectedMember.displayName} size="sm" />
                 <span className="truncate">{selectedMember.displayName}</span>
               </span>
             ) : value.trim() ? (
@@ -63,10 +63,7 @@ export function TeamMemberSelect({
           !members.some((member) => member.displayName === value) ? (
             <SelectItem value={value}>
               <span className="flex items-center gap-2 min-w-0">
-                <TeamMemberAvatar
-                  member={{ displayName: value }}
-                  size="sm"
-                />
+                <TeamMemberAvatar name={value} size="sm" />
                 <span className="truncate">{value}</span>
               </span>
             </SelectItem>
@@ -74,7 +71,7 @@ export function TeamMemberSelect({
           {members.map((member) => (
             <SelectItem key={member.id} value={member.displayName}>
               <span className="flex items-center gap-2 min-w-0">
-                <TeamMemberAvatar member={member} size="sm" />
+                <TeamMemberAvatar name={member.displayName} size="sm" />
                 <span className="truncate">{member.displayName}</span>
               </span>
             </SelectItem>

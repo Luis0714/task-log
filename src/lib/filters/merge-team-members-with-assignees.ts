@@ -6,10 +6,15 @@ import type { AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-c
 
 const SPRINT_ASSIGNEE_ID_PREFIX = "sprint-assignee:";
 
-/** Añade asignados del sprint que no están en el roster del equipo. */
+export type SprintAssigneeSource = Pick<AdoWorkItemOptionDto, "assignedTo">;
+
+/**
+ * Añade al roster las personas que aparecen como asignados en el sprint
+ * pero no pertenecen al equipo oficial.
+ */
 export function mergeTeamMembersWithWorkItemAssignees(
   members: readonly AdoTeamMemberDto[],
-  items: readonly Pick<AdoWorkItemOptionDto, "assignedTo">[],
+  items: readonly SprintAssigneeSource[],
 ): AdoTeamMemberDto[] {
   const merged: AdoTeamMemberDto[] = [...members];
 

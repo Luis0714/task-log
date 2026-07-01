@@ -97,7 +97,7 @@ export function WorkItemAssigneeFilter({
                           toggleMember(member.displayName, next === true)
                         }
                       />
-                      <TeamMemberAvatar member={member} size="sm" />
+                      <TeamMemberAvatar name={member.displayName} size="sm" />
                       <span className="text-sm">{member.displayName}</span>
                     </label>
                   );

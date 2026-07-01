@@ -1,19 +1,14 @@
-import { UserRound } from "lucide-react";
-
 import { TeamMemberAvatar } from "@/components/team-members/team-member-avatar";
 import { getAssigneeTagClasses } from "@/lib/work-items/assignee-tag-colors";
 import { cn } from "@/lib/utils";
 
 export type WorkItemAssigneeTagProps = {
   name: string;
-  /** URL de la foto del miembro del roster cuando está disponible. */
-  imageUrl?: string;
   className?: string;
 };
 
 export function WorkItemAssigneeTag({
   name,
-  imageUrl,
   className,
 }: WorkItemAssigneeTagProps) {
   return (
@@ -25,15 +20,7 @@ export function WorkItemAssigneeTag({
       )}
       title={name}
     >
-      {imageUrl ? (
-        <TeamMemberAvatar
-          member={{ displayName: name, imageUrl }}
-          size="sm"
-          className="size-3"
-        />
-      ) : (
-        <UserRound className="size-3 shrink-0" aria-hidden />
-      )}
+      <TeamMemberAvatar name={name} size="sm" className="size-3" />
       <span className="truncate">{name}</span>
     </span>
   );
@@ -41,19 +28,16 @@ export function WorkItemAssigneeTag({
 
 export type WorkItemAssigneeLabelProps = {
   assignee: string | null | undefined;
-  /** URL de la foto del miembro del roster cuando está disponible. */
-  imageUrl?: string;
   className?: string;
 };
 
 export function WorkItemAssigneeLabel({
   assignee,
-  imageUrl,
   className,
 }: WorkItemAssigneeLabelProps) {
   const name = assignee?.trim();
   if (name) {
-    return <WorkItemAssigneeTag name={name} imageUrl={imageUrl} className={className} />;
+    return <WorkItemAssigneeTag name={name} className={className} />;
   }
 
   return (
@@ -63,7 +47,6 @@ export function WorkItemAssigneeLabel({
         className,
       )}
     >
-      <UserRound className="size-3 shrink-0" aria-hidden />
       <span>Sin asignar</span>
     </span>
   );

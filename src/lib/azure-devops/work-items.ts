@@ -416,10 +416,6 @@ function parseEffortField(fields: Record<string, string | number | undefined> | 
   );
 }
 
-function parseAssignedToField(value: unknown): string {
-  return parseIdentityDisplayName(value);
-}
-
 function parseRichTextField(value: string | number | undefined): string | undefined {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();
@@ -478,7 +474,7 @@ async function fetchWorkItemDetails(
         acceptanceCriteria: parseRichTextField(workItem.fields?.[ACCEPTANCE_CRITERIA_FIELD]),
         type: String(workItem.fields?.[WORK_ITEM_TYPE] ?? "Item"),
         state: String(workItem.fields?.[STATE] ?? ""),
-        assignedTo: parseAssignedToField(workItem.fields?.[ASSIGNED_TO]),
+        assignedTo: parseIdentityDisplayName(workItem.fields?.[ASSIGNED_TO]),
         priority: parseNumericField(workItem.fields?.[PRIORITY]),
         effort: parseEffortField(workItem.fields),
         parentId: parseNumericField(workItem.fields?.[PARENT]),
