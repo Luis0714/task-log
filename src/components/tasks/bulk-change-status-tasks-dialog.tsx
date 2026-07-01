@@ -118,7 +118,7 @@ export function BulkChangeStatusTasksDialog({
         <div className="flex flex-col gap-2">
           <Label htmlFor="bulk-task-state">Estado</Label>
           <Select
-            value={state || undefined}
+            value={state}
             onValueChange={(value) => setState(value ?? "")}
             disabled={saving || stateNames.length === 0}
           >
