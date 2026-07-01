@@ -47,6 +47,7 @@ export function PbiCompactRow({
                 <WorkItemAssigneeTag
                   name={item.assignedTo}
                   className="max-w-36 sm:max-w-44"
+                  hideAvatar
                 />
               ) : null}
               {item.state ? (
