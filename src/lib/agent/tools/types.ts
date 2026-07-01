@@ -6,11 +6,15 @@ import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 /**
  * Contexto que el runner pasa al handler. Tools que no necesitan ADO (la mayoría)
  * lo ignoran. Tools que sí (ej. search_pbi, list_work_items) lo usan para hablar
- * con Azure DevOps.
+ * con Azure DevOps. Tools que necesitan datos del propio usuario (ej.
+ * `get_my_templates`) usan `userId` + opcionalmente `userRole` para resolver
+ * visibilidad y scoping.
  */
 export type ToolExecutionContext = {
   auth?: AdoCallerAuth;
   sprintContext?: { sprintPath: string; team?: string };
+  userId?: string;
+  userRole?: string | null;
 };
 
 /**

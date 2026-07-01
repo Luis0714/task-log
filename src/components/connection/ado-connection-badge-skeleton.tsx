@@ -1,9 +1,10 @@
 "use client";
 
+import * as React from "react";
 import { Cloud } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSidebar } from "@/components/ui/sidebar";
+import { SidebarContext } from "@/components/ui/sidebar";
 import type { AdoConnectionDisplay } from "@/lib/auth/connection-display";
 import { cn } from "@/lib/utils";
 
@@ -16,8 +17,13 @@ export function AdoConnectionBadgeSkeleton({
   connection,
   className,
 }: AdoConnectionBadgeSkeletonProps) {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
+  // Reads the sidebar context directly so it stays resilient when this
+  // component is rendered as the fallback of a Server-Component Suspense
+  // boundary that crosses the SSR streaming boundary (where the
+  // `SidebarProvider` context is temporarily unavailable). Falls back to
+  // the expanded skeleton.
+  const context = React.useContext(SidebarContext);
+  const collapsed = context?.state === "collapsed";
   const { isConnected, authMethod } = connection;
 
   if (collapsed) {

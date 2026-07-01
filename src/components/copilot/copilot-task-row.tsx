@@ -45,7 +45,7 @@ export function CopilotTaskRow({
   };
 
   return (
-    <div className="border-border bg-card space-y-3 rounded-md border p-3">
+    <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <span
           id={`${task.title || "task"}-pbi-label`}

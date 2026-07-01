@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   runFeature,
+  type ProgressCallback,
   type RunLogWorkInput,
 } from "@/lib/agent/orchestrator/run-feature";
 import type { ToolExecutionContext } from "@/lib/agent/tools/types";
@@ -20,7 +21,9 @@ export async function interpretUserMessage(
     sprintContext?: SprintContext;
     executionContext?: ToolExecutionContext;
     history?: ConversationTurn[];
+    lastAssistantToolCalls?: ReadonlyArray<unknown>;
     userRole?: string;
+    onProgress?: ProgressCallback;
   },
 ): Promise<InterpretUserMessageResult> {
   const input: RunLogWorkInput = {
@@ -28,11 +31,13 @@ export async function interpretUserMessage(
     message,
     sprintContext: options.sprintContext,
     history: options.history,
+    lastAssistantToolCalls: options.lastAssistantToolCalls,
     userRole: options.userRole,
   };
   const result = await runFeature(input, {
     userId: options.userId,
     executionContext: options.executionContext,
+    ...(options.onProgress ? { onProgress: options.onProgress } : {}),
   });
   if (result.ok) return { ok: true, preview: result.data };
   return { ok: false, userMessage: result.userMessage };

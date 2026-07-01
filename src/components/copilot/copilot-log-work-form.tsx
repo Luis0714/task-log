@@ -73,16 +73,22 @@ export function CopilotLogWorkForm({
           Edita lo que quieras. Las horas se sumarán al Completed Work de cada work item.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {items.map((item, index) => (
-          <CopilotLogWorkRow
-            key={`${index}-${item.workItemId}`}
-            item={item}
-            onChange={(next) => updateItem(index, next)}
-            onRemove={() => removeItem(index)}
-            disabled={loading}
-          />
-        ))}
+      <CardContent className="space-y-2">
+        <div className="divide-border/60 divide-y">
+          {items.map((item, index) => (
+            <div
+              key={`${index}-${item.workItemId}`}
+              className="py-4 first:pt-0 last:pb-0"
+            >
+              <CopilotLogWorkRow
+                item={item}
+                onChange={(next) => updateItem(index, next)}
+                onRemove={() => removeItem(index)}
+                disabled={loading}
+              />
+            </div>
+          ))}
+        </div>
 
         <Button
           type="button"

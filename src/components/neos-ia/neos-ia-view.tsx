@@ -1,19 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { MessageSquarePlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { CopilotChatMessage } from "@/components/copilot/copilot-chat-message";
 import { CopilotInput } from "@/components/copilot/copilot-input";
 import { NeosIaWelcome } from "@/components/neos-ia/neos-ia-welcome";
-import { PageHeader } from "@/components/layout/page-header";
+import { PlanSelector } from "@/components/neos-ia/plan-selector";
+import { ProviderSelector } from "@/components/neos-ia/provider-selector";
+import { QuickActionPills } from "@/components/neos-ia/quick-action-pills";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   NeosIaDraftProvider,
-  useNeosIaDraft,
 } from "@/hooks/use-neos-ia-draft";
 import { useCopilot } from "@/hooks/use-copilot";
 import { useCopilotHistory } from "@/hooks/use-copilot-history";
+import { useProviderPreference } from "@/hooks/use-provider-preference";
 import type { SprintContext } from "@/lib/agent";
 import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
 import { cn } from "@/lib/utils";
@@ -22,21 +29,18 @@ export type NeosIaViewProps = {
   adoExecutionReady: boolean;
   authMethod: AzdoAuthMethod;
   sprintContext?: SprintContext;
-  userInitials?: string | null;
 };
 
 export function NeosIaView({
   adoExecutionReady,
   authMethod,
   sprintContext,
-  userInitials,
 }: Readonly<NeosIaViewProps>) {
   return (
     <NeosIaViewInner
       adoExecutionReady={adoExecutionReady}
       authMethod={authMethod}
       sprintContext={sprintContext}
-      userInitials={userInitials}
     />
   );
 }
@@ -45,29 +49,43 @@ function NeosIaViewInner({
   adoExecutionReady,
   authMethod,
   sprintContext,
-  userInitials,
 }: Readonly<NeosIaViewProps>) {
   const { appendEntry } = useCopilotHistory();
-  const copilot = useCopilot({ appendHistory: appendEntry, sprintContext });
-  const threadEndRef = useRef<HTMLDivElement>(null);
-  const threadScrollRef = useRef<HTMLDivElement>(null);
+  const { providerId, changeProvider } = useProviderPreference();
+  const copilot = useCopilot({
+    appendHistory: appendEntry,
+    sprintContext,
+    providerId,
+  });
+  const scrollRef = useRef<HTMLDivElement>(null);
   const hasMessages = copilot.messages.length > 0;
 
-  // Auto-scroll to the latest message, but only if the user is already near
-  // the bottom of the thread (don't yank them away from history they're
-  // reading). 240px is the typical "close enough" threshold.
+  // Always scroll to the bottom on any conversation change — new messages,
+  // streaming tokens, or the user typing a new draft. The user prefers to
+  // stay anchored to the latest content over preserving their scroll-up
+  // position. We split the two triggers so typing uses an instant snap
+  // (frequent updates would cancel a smooth animation on every keystroke)
+  // while messages/streaming keep the smooth animation.
   useEffect(() => {
-    const node = threadScrollRef.current;
-    if (!node) return;
-    const distanceFromBottom =
-      node.scrollHeight - node.scrollTop - node.clientHeight;
-    if (distanceFromBottom < 240) {
-      threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
-  }, [copilot.messages.length]);
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [copilot.messages]);
 
-  // Keep the draft context value in sync with the hook state so the welcome
-  // chips can pre-fill the footer's textarea through the shared provider.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
+  }, [copilot.message]);
+
+  // On "Nueva conversación", scroll back to the top.
+  useEffect(() => {
+    if (!hasMessages) {
+      const el = scrollRef.current;
+      if (el) el.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }, [hasMessages]);
+
   const setDraft = useCallback(
     (next: string) => copilot.setMessage(next),
     [copilot],
@@ -78,12 +96,12 @@ function NeosIaViewInner({
       <NeosIaSurface
         copilot={copilot}
         hasMessages={hasMessages}
-        threadEndRef={threadEndRef}
-        threadScrollRef={threadScrollRef}
+        scrollRef={scrollRef}
         sprintContext={sprintContext}
         adoExecutionReady={adoExecutionReady}
         authMethod={authMethod}
-        userInitials={userInitials}
+        providerId={providerId}
+        onProviderChange={changeProvider}
       />
     </NeosIaDraftProvider>
   );
@@ -92,141 +110,213 @@ function NeosIaViewInner({
 type NeosIaSurfaceProps = {
   copilot: ReturnType<typeof useCopilot>;
   hasMessages: boolean;
-  threadEndRef: React.RefObject<HTMLDivElement | null>;
-  threadScrollRef: React.RefObject<HTMLDivElement | null>;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
   sprintContext?: SprintContext;
   adoExecutionReady: boolean;
   authMethod: AzdoAuthMethod;
-  userInitials?: string | null;
+  providerId: ReturnType<typeof useProviderPreference>["providerId"];
+  onProviderChange: ReturnType<typeof useProviderPreference>["changeProvider"];
 };
+
+const CONTENT_MAX_W = "max-w-3xl";
 
 function NeosIaSurface({
   copilot,
   hasMessages,
-  threadEndRef,
-  threadScrollRef,
+  scrollRef,
   sprintContext,
   adoExecutionReady,
   authMethod,
-  userInitials,
+  providerId,
+  onProviderChange,
 }: Readonly<NeosIaSurfaceProps>) {
-  return (
-    <div className="flex h-full min-h-0 w-full flex-col">
-      {/* Header — shrink-0 so it never compresses. The "Nueva conversación"
-          button sits at the END of the description line (not stacked below
-          the title). On mobile the button label collapses to icon-only so the
-          description doesn't push the button out of the viewport. */}
-      <header className="flex shrink-0 flex-col gap-2 pb-3">
-        <PageHeader title="Neos IA" />
+  const copilotInputProps = {
+    value: copilot.message,
+    onChange: copilot.setMessage,
+    onSubmit: () => copilot.interpret(),
+    loading: copilot.loadingPreview,
+    placeholder: hasMessages
+      ? "Continúa o añade más detalles…"
+      : "¿Qué hiciste hoy?",
+  };
 
+  return (
+    /*
+     * Layout flex-column que vive dentro del `SidebarInset` del AppShell:
+     *  - Header y footer usan `sticky` (no `fixed`), así no se montan
+     *    encima del sidebar en desktop ni del header móvil del AppShell
+     *    (que ya contiene el `SidebarTrigger` para abrir el sidebar).
+     *  - El scroll ocurre en `<main>` (`flex-1 min-h-0`), dejando header
+     *    y footer anclados a los bordes del `SidebarInset`.
+     */
+    <div className="flex h-full min-h-0 w-full flex-col">
+      <header className="bg-background/95 sticky top-0 z-20 h-16 shrink-0 backdrop-blur-md supports-backdrop-filter:bg-background/80">
         <div
           className={cn(
-            "flex min-w-0 items-center gap-3",
-            hasMessages ? "justify-between" : "justify-start",
+            "mx-auto flex h-full w-full items-center justify-between gap-3 px-4",
+            CONTENT_MAX_W,
           )}
         >
-          <p
-            className={cn(
-              "text-muted-foreground min-w-0 flex-1 text-pretty text-sm sm:text-base",
-              hasMessages && "truncate",
-            )}
-          >
-            {hasMessages
-              ? "Conversación activa. Cuéntame cómo continúas."
-              : "Tu copiloto para reportar horas en lenguaje natural."}
-          </p>
-          {hasMessages ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={copilot.clearConversation}
-              className="shrink-0"
-            >
-              <MessageSquarePlus className="size-4" aria-hidden />
-              <span className="hidden sm:inline">Nueva conversación</span>
-              <span className="sr-only">Nueva conversación</span>
-            </Button>
-          ) : null}
+          <div className="flex items-center gap-2">
+            <PlanSelector />
+            <Tooltip>
+              <TooltipTrigger
+                render={(triggerProps) => (
+                  <Button
+                    {...triggerProps}
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={copilot.clearConversation}
+                    aria-label="Nueva conversación"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <MessageSquarePlus className="size-4" aria-hidden />
+                    <span className="hidden sm:inline">
+                      Nueva conversación
+                    </span>
+                  </Button>
+                )}
+              />
+              <TooltipContent>Nueva conversación</TooltipContent>
+            </Tooltip>
+          </div>
+          <ProviderSelector
+            value={providerId}
+            onChange={onProviderChange}
+            exhaustedProviders={copilot.exhaustedProviders}
+          />
         </div>
       </header>
 
-      {/* Central area — fills remaining height, scrolls internally. The
-          footer sits below this scroll region so it stays visible regardless
-          of content length. */}
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div
-          ref={threadScrollRef}
-          className="flex-1 overflow-y-auto"
-          aria-live="polite"
-          aria-relevant="additions"
-        >
-          {hasMessages ? (
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 pb-4 xl:max-w-4xl">
-              {copilot.messages.map((msg) => (
-                <CopilotChatMessage
-                  key={msg.id}
-                  msg={msg}
-                  sprintContext={sprintContext}
-                  adoExecutionReady={adoExecutionReady}
-                  authMethod={authMethod}
-                  loadingExecute={copilot.loadingExecute}
-                  userInitials={userInitials}
-                  onConfirmTasks={(tasks) => copilot.executeCreateTasks(tasks)}
-                  onConfirmLogWork={(items) => copilot.execute(items)}
-                  onPickPbi={(id) => copilot.submitPbiId(id)}
-                  onPickOption={(value) => copilot.submitOptionValue(value)}
-                  onCancel={copilot.dismissPreview}
-                />
-              ))}
-              <div ref={threadEndRef} />
-            </div>
-          ) : (
-            <NeosIaWelcomeSurface>
-              <NeosIaWelcomeInner />
-            </NeosIaWelcomeSurface>
-          )}
-        </div>
+      {hasMessages ? (
+        <MessagesLayout
+          scrollRef={scrollRef}
+          messages={copilot.messages}
+          sprintContext={sprintContext}
+          adoExecutionReady={adoExecutionReady}
+          authMethod={authMethod}
+          loadingExecute={copilot.loadingExecute}
+          onConfirmTasks={copilot.executeCreateTasks}
+          onConfirmLogWork={copilot.execute}
+          onPickPbi={copilot.submitPbiId}
+          onPickOption={copilot.submitOptionValue}
+          onCancel={copilot.dismissPreview}
+        />
+      ) : (
+        <EmptyStateLayout copilotInputProps={copilotInputProps} />
+      )}
 
-        {/* Footer — sits below the scroll region */}
+      {hasMessages ? (
         <footer
           role="contentinfo"
           aria-label="Entrada de mensaje de Neos IA"
-          className="bg-background shrink-0 border-t px-2 py-3 sm:px-0"
+          className="bg-background/95 sticky bottom-0 z-20 shrink-0 pb-4 pt-3 backdrop-blur-md supports-backdrop-filter:bg-background/80 sm:pb-6 sm:pt-4"
         >
-          <div className="mx-auto w-full max-w-3xl xl:max-w-4xl">
-            <CopilotInput
-              value={copilot.message}
-              onChange={copilot.setMessage}
-              onSubmit={() => copilot.interpret()}
-              loading={copilot.loadingPreview}
-              placeholder={
-                hasMessages
-                  ? "Responde o agrega más información..."
-                  : "Ej: Hoy trabajé 2h en la HU-102 y 1h revisando PRs"
-              }
-            />
+          <div className={cn("mx-auto w-full px-4", CONTENT_MAX_W)}>
+            <CopilotInput {...copilotInputProps} />
           </div>
         </footer>
-      </div>
+      ) : null}
     </div>
   );
 }
 
-function NeosIaWelcomeSurface({ children }: Readonly<{ children: ReactNode }>) {
+type MessagesLayoutProps = {
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  messages: ReturnType<typeof useCopilot>["messages"];
+  sprintContext?: SprintContext;
+  adoExecutionReady: boolean;
+  authMethod: AzdoAuthMethod;
+  loadingExecute: boolean;
+  onConfirmTasks: ReturnType<typeof useCopilot>["executeCreateTasks"];
+  onConfirmLogWork: ReturnType<typeof useCopilot>["execute"];
+  onPickPbi: ReturnType<typeof useCopilot>["submitPbiId"];
+  onPickOption: ReturnType<typeof useCopilot>["submitOptionValue"];
+  onCancel: ReturnType<typeof useCopilot>["dismissPreview"];
+};
+
+function MessagesLayout({
+  scrollRef,
+  messages,
+  sprintContext,
+  adoExecutionReady,
+  authMethod,
+  loadingExecute,
+  onConfirmTasks,
+  onConfirmLogWork,
+  onPickPbi,
+  onPickOption,
+  onCancel,
+}: Readonly<MessagesLayoutProps>) {
   return (
-    <div className="mx-auto w-full max-w-3xl xl:max-w-4xl">{children}</div>
+    <main
+      ref={scrollRef}
+      className="thin-scrollbar min-h-0 flex-1 overflow-y-auto"
+      aria-live="polite"
+      aria-relevant="additions"
+    >
+      <div
+        className={cn(
+          "mx-auto flex w-full flex-col px-4 pt-4 pb-32 sm:pt-6",
+          CONTENT_MAX_W,
+        )}
+      >
+        <div className="flex flex-col gap-6 sm:gap-8">
+          {messages.map((msg) => (
+            <CopilotChatMessage
+              key={msg.id}
+              msg={msg}
+              sprintContext={sprintContext}
+              adoExecutionReady={adoExecutionReady}
+              authMethod={authMethod}
+              loadingExecute={loadingExecute}
+              onConfirmTasks={onConfirmTasks}
+              onConfirmLogWork={onConfirmLogWork}
+              onPickPbi={onPickPbi}
+              onPickOption={onPickOption}
+              onCancel={onCancel}
+            />
+          ))}
+        </div>
+      </div>
+    </main>
   );
 }
 
-function NeosIaWelcomeInner() {
-  const { setValue, focusTextarea } = useNeosIaDraft();
+type EmptyStateLayoutProps = {
+  copilotInputProps: React.ComponentProps<typeof CopilotInput>;
+};
 
-  const onPickPrompt = (prompt: string) => {
-    setValue(prompt);
-    // Defer focus to the next tick so the textarea has the new value first.
-    requestAnimationFrame(() => focusTextarea());
-  };
+function EmptyStateLayout({ copilotInputProps }: Readonly<EmptyStateLayoutProps>) {
+  const { onChange } = copilotInputProps;
+  const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  return <NeosIaWelcome onPickPrompt={onPickPrompt} />;
+  const handlePickPrompt = useCallback(
+    (prompt: string) => {
+      onChange(prompt);
+      composerTextareaRef.current?.focus();
+    },
+    [onChange],
+  );
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-4 py-6">
+      <div
+        className={cn(
+          "flex w-full flex-col items-center gap-6",
+          CONTENT_MAX_W,
+        )}
+      >
+        <NeosIaWelcome />
+        <CopilotInput
+          {...copilotInputProps}
+          onRegisterTextarea={(node) => {
+            composerTextareaRef.current = node;
+          }}
+        />
+        <QuickActionPills onPick={handlePickPrompt} />
+      </div>
+    </div>
+  );
 }

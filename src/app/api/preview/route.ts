@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { interpretUserMessage, type SprintContext } from "@/lib/agent";
+import { requireAdminOr403 } from "@/lib/auth/require-admin";
 import type { ConversationTurn } from "@/lib/agent/provider/provider.types";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import { getTaskPilotSession } from "@/lib/auth/session";
@@ -11,26 +12,51 @@ type PreviewBody = {
   message?: string;
   sprintContext?: SprintContext;
   history?: ConversationTurn[];
+  lastAssistantToolCalls?: ReadonlyArray<unknown>;
 };
 
+type SseEvent =
+  | { type: "progress"; kind: string; label: string }
+  | { type: "result"; ok: true; preview: unknown }
+  | { type: "result"; ok: false; error: string };
+
+const SSE_HEADERS = {
+  "Content-Type": "text/event-stream",
+  "Cache-Control": "no-cache, no-transform",
+  Connection: "keep-alive",
+  "X-Accel-Buffering": "no",
+} as const;
+
+const JSON_HEADERS = { "Content-Type": "application/json" } as const;
+
+function sseChunk(encoder: TextEncoder, event: SseEvent): Uint8Array {
+  return encoder.encode(`data: ${JSON.stringify(event)}\n\n`);
+}
+
+function isJsonRequest(req: Request): boolean {
+  const accept = req.headers.get("accept") ?? "";
+  return accept.includes("application/json") && !accept.includes("text/event-stream");
+}
+
+function jsonError(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status, headers: JSON_HEADERS });
+}
+
 export async function POST(req: Request) {
+  const adminGate = await requireAdminOr403();
+  if (adminGate) return adminGate;
+
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json(
-      { error: USER_MESSAGES.invalidForm },
-      { status: 400 },
-    );
+    return jsonError(USER_MESSAGES.invalidForm, 400);
   }
 
-  const { message, sprintContext, history } = parseBody(body);
+  const { message, sprintContext, history, lastAssistantToolCalls } = parseBody(body);
 
   if (!message) {
-    return NextResponse.json(
-      { error: USER_MESSAGES.invalidForm },
-      { status: 400 },
-    );
+    return jsonError(USER_MESSAGES.invalidForm, 400);
   }
 
   const session = await getTaskPilotSession();
@@ -38,26 +64,62 @@ export async function POST(req: Request) {
 
   const auth = await resolveAdoCaller({ persistOAuthTokens: true });
   if (!auth && sprintContext) {
-    return NextResponse.json(
-      { error: USER_MESSAGES.notConnected },
-      { status: 401 },
-    );
+    return jsonError(USER_MESSAGES.notConnected, 401);
   }
 
-  const result = await interpretUserMessage(message, {
-    userId,
-    sprintContext,
-    userRole: session.userRole,
-    executionContext: { auth: auth ?? undefined },
-    history: history?.slice(-CONVERSATION_HISTORY_SERVER_CAP),
+  // Legacy JSON path: callers that explicitly opt in via Accept header.
+  // Keeps the route backward compatible with anything that doesn't read SSE.
+  if (isJsonRequest(req)) {
+    const result = await interpretUserMessage(message, {
+      userId,
+      sprintContext,
+      userRole: session.userRole,
+      executionContext: { auth: auth ?? undefined },
+      history: history?.slice(-CONVERSATION_HISTORY_SERVER_CAP),
+      lastAssistantToolCalls,
+    });
+    if (!result.ok) {
+      const status = result.userMessage === USER_MESSAGES.tooManyRequests ? 429 : 502;
+      return jsonError(result.userMessage, status);
+    }
+    return NextResponse.json({ preview: result.preview });
+  }
+
+  // Streaming SSE path: open the stream BEFORE invoking the agent so
+  // `onProgress` callbacks (which fire while the agent runs) can enqueue
+  // progress events to the same stream.
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const emit = (event: SseEvent) => {
+        controller.enqueue(sseChunk(encoder, event));
+      };
+      try {
+        const result = await interpretUserMessage(message, {
+          userId,
+          sprintContext,
+          userRole: session.userRole,
+          executionContext: { auth: auth ?? undefined },
+          history: history?.slice(-CONVERSATION_HISTORY_SERVER_CAP),
+          lastAssistantToolCalls,
+          onProgress: ({ kind, label }) => emit({ type: "progress", kind, label }),
+        });
+        if (!result.ok) {
+          emit({ type: "result", ok: false, error: result.userMessage });
+        } else {
+          emit({ type: "result", ok: true, preview: result.preview });
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Error inesperado.";
+        emit({ type: "result", ok: false, error: message });
+      } finally {
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      }
+    },
   });
 
-  if (!result.ok) {
-    const status = result.userMessage === USER_MESSAGES.tooManyRequests ? 429 : 502;
-    return NextResponse.json({ error: result.userMessage }, { status });
-  }
-
-  return NextResponse.json({ preview: result.preview });
+  return new Response(stream, { headers: SSE_HEADERS });
 }
 
 function parseBody(raw: unknown): PreviewBody {
@@ -66,7 +128,10 @@ function parseBody(raw: unknown): PreviewBody {
   const message = typeof obj.message === "string" ? obj.message : "";
   const sprintContext = parseSprintContext(obj.sprintContext);
   const history = parseHistory(obj.history);
-  return { message, sprintContext, history };
+  const lastAssistantToolCalls = Array.isArray(obj.lastAssistantToolCalls)
+    ? (obj.lastAssistantToolCalls as ReadonlyArray<unknown>)
+    : undefined;
+  return { message, sprintContext, history, lastAssistantToolCalls };
 }
 
 function parseHistory(raw: unknown): ConversationTurn[] | undefined {

@@ -21,7 +21,7 @@ export function CopilotLogWorkRow({
   disabled = false,
 }: Readonly<CopilotLogWorkRowProps>) {
   return (
-    <div className="border-border bg-card space-y-3 rounded-md border p-3">
+    <div className="space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1">
           <label className="text-muted-foreground mb-1 block text-xs font-medium">

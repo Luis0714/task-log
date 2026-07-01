@@ -1,5 +1,5 @@
-import { ShellContentSkeleton } from "@/components/skeletons/shell-content-skeleton";
+import { NeosIaPageSkeleton } from "@/components/skeletons/neos-ia-page-skeleton";
 
 export default function NeosIaLoading() {
-  return <ShellContentSkeleton />;
+  return <NeosIaPageSkeleton />;
 }

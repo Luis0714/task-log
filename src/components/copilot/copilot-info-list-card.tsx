@@ -1,6 +1,6 @@
 "use client";
 
-import { Bug, ExternalLink, ListChecks, Sparkles } from "lucide-react";
+import { Brain, Bug, ExternalLink, ListChecks, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { useCurrentProject } from "@/hooks/use-current-project";
@@ -36,12 +36,12 @@ export function CopilotInfoListCard({
   return (
     <section
       aria-labelledby={`${messageId}-title`}
-      className="bg-card text-card-foreground flex flex-col gap-3 rounded-lg border p-4 shadow-sm"
+      className="space-y-4"
     >
       <header className="flex items-baseline justify-between gap-2">
         <h3
           id={`${messageId}-title`}
-          className="text-sm font-semibold leading-snug"
+          className="text-base font-medium leading-snug"
         >
           {payload.title}
         </h3>
@@ -54,12 +54,16 @@ export function CopilotInfoListCard({
         </span>
       </header>
 
+      {payload.summary ? (
+        <SummaryBlock summary={payload.summary} />
+      ) : null}
+
       {total === 0 ? (
         <p className="text-muted-foreground text-sm leading-relaxed">
           {payload.emptyHint ?? "No encontré elementos que coincidan con tu consulta."}
         </p>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           {grouped.map((group) => {
             const meta = TYPE_META[group.key as InfoListItem["type"]];
             const Icon = meta?.Icon ?? ListChecks;
@@ -74,7 +78,7 @@ export function CopilotInfoListCard({
                     ({group.items.length})
                   </span>
                 </div>
-                <ul className="flex flex-col gap-1" role="list">
+                <ul className="flex flex-col gap-0.5" role="list">
                   {group.items.map((item) => (
                     <InfoListItemRow key={`${group.key}-${item.id}`} item={item} />
                   ))}
@@ -85,6 +89,30 @@ export function CopilotInfoListCard({
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Bloque de análisis razonado del agente (ReAct Observation → conclusión).
+ * Se muestra arriba de la lista cuando el LLM hace el ciclo completo
+ * de Thought → Action(observation) → Thought(análisis) → Action(terminal con
+ * `summary`). Visualmente se distingue con un icono "Brain" y un fondo
+ * sutil para diferenciarlo de los datos crudos de la lista.
+ */
+function SummaryBlock({ summary }: { summary: string }) {
+  return (
+    <div className="bg-muted/40 border-border/60 flex gap-2.5 rounded-md border px-3 py-2.5">
+      <Brain
+        className="text-muted-foreground mt-0.5 size-4 shrink-0"
+        aria-hidden
+      />
+      <p className="text-foreground/90 text-sm leading-relaxed">
+        <span className="text-muted-foreground mr-1 text-xs font-medium tracking-wide uppercase">
+          Análisis
+        </span>
+        {summary}
+      </p>
+    </div>
   );
 }
 
