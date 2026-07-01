@@ -143,7 +143,7 @@ export function resolveWorkItemAssigneeLabel(
 ): string {
   const filter = parseAssigneeFilter(assignee);
 
-  if (filter.kind === "all") return "Todos";
+  if (filter.kind === "all") return "Todos los miembros";
 
   const parts: string[] = [];
   if (filter.includeMe) parts.push("Asignados a mí");

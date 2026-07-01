@@ -6,9 +6,11 @@ import { BugDetailSheet } from "@/components/bugs/bug-detail-sheet";
 import { SprintLoggedHoursBadge } from "@/components/dashboard/metrics/sprint-logged-hours-badge";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { SprintItemList, type SprintItemListSelection } from "@/components/sprint-items/sprint-item-list";
+import { SprintItemsSortBar } from "@/components/sprint-items/sprint-items-sort-bar";
 import { TaskDetailSheet, type ParentHuOption } from "@/components/tasks/task-detail-sheet";
 import { BulkTasksActionsBar } from "@/components/tasks/bulk-tasks-actions-bar";
 import { useSprintItemsLists } from "@/hooks/sprint-items/use-sprint-items-lists";
+import { useSprintItemsSort } from "@/hooks/sprint-items/use-sprint-items-sort";
 import type { SprintItemsDataSnapshot } from "@/lib/sprint-items/load-sprint-items-data";
 import type { SprintItemsKind } from "@/lib/sprint-items/types";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
@@ -64,10 +66,12 @@ export function SprintItemsLists({
   onSaved,
 }: SprintItemsListsProps) {
   const { filteredItems } = useSprintItemsLists(snapshot, filters, dayKey);
+  const { sort, setSort, nameSearch, setNameSearch, processedItems } =
+    useSprintItemsSort(filteredItems);
   const copy = COPY[kind];
   const totalTaskHours = useMemo(
-    () => (kind === "tasks" ? sumTaskLoggedHours(filteredItems) : 0),
-    [filteredItems, kind],
+    () => (kind === "tasks" ? sumTaskLoggedHours(processedItems) : 0),
+    [kind, processedItems],
   );
 
   const [selectedItem, setSelectedItem] = useState<AdoWorkItemOptionDto | null>(null);
@@ -77,8 +81,8 @@ export function SprintItemsLists({
   );
 
   const parentHuOptions = useMemo(
-    () => buildParentHuOptions(filteredItems),
-    [filteredItems],
+    () => buildParentHuOptions(processedItems),
+    [processedItems],
   );
 
   const handleItemClick = useCallback((item: AdoWorkItemOptionDto) => {
@@ -109,9 +113,9 @@ export function SprintItemsLists({
         setSelectedIds(new Set());
         return;
       }
-      setSelectedIds(new Set(filteredItems.map((item) => item.id)));
+      setSelectedIds(new Set(processedItems.map((item) => item.id)));
     },
-    [filteredItems],
+    [processedItems],
   );
 
   const handleClearSelection = useCallback(() => {
@@ -138,6 +142,14 @@ export function SprintItemsLists({
       <DashboardSection
         title={copy.sectionTitle}
         description={copy.sectionDescription}
+        headerMiddle={
+          <SprintItemsSortBar
+            sort={sort}
+            onSortChange={setSort}
+            nameSearch={nameSearch}
+            onNameSearchChange={setNameSearch}
+          />
+        }
         action={
           kind === "tasks" ? <SprintLoggedHoursBadge hours={totalTaskHours} /> : undefined
         }
@@ -154,7 +166,7 @@ export function SprintItemsLists({
           />
         ) : null}
         <SprintItemList
-          items={filteredItems}
+          items={processedItems}
           emptyMessage={copy.emptyMessage}
           onItemClick={handleItemClick}
           selection={selection}

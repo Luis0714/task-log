@@ -39,12 +39,17 @@ function formatDateKeyInTimeZone(instant: Date, timeZone: string): string {
 
 /**
  * Normaliza un valor de fecha ADO a clave civil YYYY-MM-DD.
- * Los DateTime de ADO vienen en UTC; se convierten con AZDO_TIMEZONE para
- * coincidir con la fecha que muestra la UI de Azure DevOps.
+ *
+ * Por defecto, los valores almacenados como medianoche UTC (campos Date de PBI/sprint)
+ * se devuelven tal cual (sin conversión de zona) porque ADO los trata como fechas de
+ * calendario independientes de la timezone. Pasa `isDateTimeField: true` para los campos
+ * DateTime de tarea, donde la fuente de verdad es Azure y se debe aplicar siempre la
+ * conversión para mostrar la misma fecha que ve el usuario en la UI de Azure DevOps.
  */
 export function toWorkingDateKey(
   fieldValue: string | number | undefined | null,
   timeZone = resolveAdoTimeZone(),
+  { isDateTimeField = false }: { isDateTimeField?: boolean } = {},
 ): string | undefined {
   if (fieldValue === undefined || fieldValue === null) return undefined;
   const raw = String(fieldValue).trim();
@@ -64,7 +69,10 @@ export function toWorkingDateKey(
     instant.getUTCSeconds() === 0 &&
     instant.getUTCMilliseconds() === 0;
 
-  if (isUtcMidnight) return dateOnly;
+  // Campos Date-only (PBI, sprint): la medianoche UTC representa la fecha de calendario —
+  // devolver sin conversión de zona coincide con lo que muestra Azure DevOps.
+  // Campos DateTime (tarea): siempre convertir para coincidir con la UI de Azure.
+  if (isUtcMidnight && !isDateTimeField) return dateOnly;
 
   return formatDateKeyInTimeZone(instant, timeZone);
 }
@@ -86,7 +94,7 @@ export function buildWorkingDateTimeValue(
   }
 }
 
-/** Primera fecha válida entre los campos indicados (p. ej. desde resolveProcessProfile). */
+/** Primera fecha válida entre los campos de tarea indicados. Aplica conversión de timezone en todos los casos para coincidir con la UI de Azure DevOps. */
 export function resolveWorkingDateKeyFromFields(
   fields: Record<string, string | number | undefined> | undefined,
   dateFieldNames: readonly string[] = DEFAULT_READ_DATE_FIELDS,
@@ -95,7 +103,7 @@ export function resolveWorkingDateKeyFromFields(
   if (!fields) return undefined;
 
   for (const fieldName of dateFieldNames) {
-    const key = toWorkingDateKey(fields[fieldName], timeZone);
+    const key = toWorkingDateKey(fields[fieldName], timeZone, { isDateTimeField: true });
     if (key) return key;
   }
 
