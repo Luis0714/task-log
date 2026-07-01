@@ -42,15 +42,15 @@ export function TimeLogContextFields({ form, catalog }: TimeLogContextFieldsProp
       onSaveDefaults={catalog.onSaveDefaults}
       onProjectChange={(value) => {
         form?.setValue("project", value, { shouldValidate: true });
-        catalog.onProjectChange();
+        catalog.onProjectChange(value);
       }}
       onTeamChange={(value) => {
         form?.setValue("team", value, { shouldValidate: true });
-        catalog.onTeamChange();
+        catalog.onTeamChange(value);
       }}
       onSprintChange={(value) => {
         form?.setValue("sprintPath", value, { shouldValidate: true });
-        catalog.onSprintChange();
+        catalog.onSprintChange(value);
       }}
     />
   );

@@ -43,9 +43,9 @@ export type TimeLogCatalog = {
   placeholders: TimeLogCatalogPlaceholders;
   selectedSprintLabel: string | null;
   selectedPbi: AdoWorkItemOptionDto | null;
-  onProjectChange: () => void;
-  onTeamChange: () => void;
-  onSprintChange: () => void;
+  onProjectChange: (value: string) => void;
+  onTeamChange: (value: string) => void;
+  onSprintChange: (value: string) => void;
   onWorkItemSearchChange: (value: string) => void;
   onWorkItemAssigneeChange: (value: string) => void;
   onWorkItemStatesChange: (value: string[]) => void;

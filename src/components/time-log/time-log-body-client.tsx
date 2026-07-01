@@ -9,6 +9,7 @@ import { TimeLogBulkForm } from "@/components/time-log/time-log-bulk-form";
 import { TimeLogContextSection } from "@/components/time-log/time-log-context-section";
 import { TimeLogCopilotLink, TimeLogForm } from "@/components/time-log/time-log-form";
 import { Card, CardContent } from "@/components/ui/card";
+import { useTimeLogBulkCatalog } from "@/hooks/time-log/use-time-log-bulk-catalog";
 import {
   Dialog,
   DialogClose,
@@ -73,6 +74,13 @@ export function TimeLogBodyClient({
     pbisSnapshot,
     isTaskCreationMode,
     initialWorkItemFilters,
+  });
+
+  const bulkCatalog = useTimeLogBulkCatalog({
+    adoExecutionReady,
+    serverBaseline,
+    pbisSnapshot,
+    isTaskCreationMode,
   });
 
   const { view, setView, isNavigating } = useTimeLogViewUrl();
@@ -141,43 +149,37 @@ export function TimeLogBodyClient({
         className="max-w-md"
       />
 
-      <TimeLogContextSection
-        {...(displayedView === "individual" ? { form: form.form } : {})}
-        catalog={form.catalog}
-      />
-
       {isSwitchingView ? (
-        // Mostramos el skeleton de la vista a la que vamos a llegar mientras
-        // se completa la transición (router.push → re-render del server
-        // component). Sin esto, el usuario vería el formulario anterior
-        // hasta que el nuevo termina de cargar.
-        // Usamos `optimisticView` (no `view`) para que el skeleton refleje
-        // la pestaña que el usuario acaba de pulsar, no la que aún vive en
-        // la URL mientras dura la transición.
         <TimeLogFormSkeleton view={optimisticView} />
       ) : displayedView === "individual" ? (
-        <Form {...form.form}>
-          <Card className="min-w-0">
-            <CardContent className="min-w-0 space-y-4">
-              <TimeLogForm
-                form={form.form}
-                catalog={form.catalog}
-                loading={form.loadingExecute}
-                canSubmit={form.canSubmit}
-                onSubmit={form.submit}
-                lastSubmitted={form.lastSubmitted}
-              />
-              <TimeLogCopilotLink />
-            </CardContent>
-          </Card>
-        </Form>
+        <>
+          <TimeLogContextSection form={form.form} catalog={form.catalog} />
+          <Form {...form.form}>
+            <Card className="min-w-0">
+              <CardContent className="min-w-0 space-y-4">
+                <TimeLogForm
+                  form={form.form}
+                  catalog={form.catalog}
+                  loading={form.loadingExecute}
+                  canSubmit={form.canSubmit}
+                  onSubmit={form.submit}
+                  lastSubmitted={form.lastSubmitted}
+                />
+                <TimeLogCopilotLink />
+              </CardContent>
+            </Card>
+          </Form>
+        </>
       ) : (
-        <TimeLogBulkForm
-          catalog={form.catalog}
-          appendHistory={appendEntry}
-          isTaskCreationMode={isTaskCreationMode}
-          onHasDataChange={setBulkHasData}
-        />
+        <>
+          <TimeLogContextSection catalog={bulkCatalog} />
+          <TimeLogBulkForm
+            catalog={bulkCatalog}
+            appendHistory={appendEntry}
+            isTaskCreationMode={isTaskCreationMode}
+            onHasDataChange={setBulkHasData}
+          />
+        </>
       )}
 
       {form.error ? <CopilotErrorAlert message={form.error} /> : null}
