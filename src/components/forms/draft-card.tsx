@@ -64,7 +64,7 @@ export function DraftCard({
   const variantClass = {
     default: "border-border/60 bg-card",
     error: "border-destructive/40 bg-destructive/5",
-    success: "border-emerald-500/30 bg-emerald-50/40",
+    success: "border-emerald-500/30 bg-card",
   }[variant];
 
   return (

@@ -49,6 +49,8 @@ export type UseCreateTasksBatchResult = {
   } | null>;
   loading: boolean;
   error: string | null;
+  /** Progreso optimista mientras la petición batch está en vuelo. */
+  progress: { current: number; total: number } | null;
 };
 
 type ValidatedTask = {
@@ -216,6 +218,10 @@ export function useCreateTasksBatch({
 }: UseCreateTasksBatchOptions): UseCreateTasksBatchResult {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
 
   const submit = useCallback<UseCreateTasksBatchResult["submit"]>(
     async (groups, ctx) => {
@@ -256,13 +262,77 @@ export function useCreateTasksBatch({
       });
 
       setLoading(true);
+      const total = sliceToSend.length;
+      setProgress({ current: 1, total });
+      let tick = 1;
+      // Aproximamos ~2s por tarea; el intervalo no excede total-1 porque el
+      // último avance lo marca la respuesta real del servidor.
+      const tickMs = Math.max(1200, Math.min(2500, 12000 / total));
+      let progressInterval: ReturnType<typeof setInterval> | null = setInterval(
+        () => {
+          tick = Math.min(tick + 1, total);
+          setProgress({ current: tick, total });
+          if (tick >= total && progressInterval) {
+            clearInterval(progressInterval);
+          }
+        },
+        tickMs,
+      );
+
       try {
         const items = buildTaskItems(sliceToSend, ctx);
+
+        console.log(
+          "[Batch] Enviando %d tarea(s) — project=%s sprint=%s",
+          items.length,
+          ctx.project,
+          ctx.sprintPath,
+          {
+            pbiIds: [...new Set(sliceToSend.map((v) => v.group.pbiId))],
+            tasks: items.map((t) => ({
+              pbiId: t.pbiId,
+              title: t.title,
+              hours: t.hours,
+              activity: t.activity,
+              workingDate: t.workingDate,
+              state: t.state,
+              markAsDone: t.markAsDone,
+            })),
+          },
+        );
+
         const response = await createTasksBatchInAdo(items, ctx.project);
 
         const results: TaskSubmissionResult[] = response.results.map((entry) =>
           mapEntryToResult(entry, indexToTaskId),
         );
+
+        const failures = response.results.filter((r) => !r.ok);
+        if (failures.length > 0) {
+          console.error(
+            "[Batch] %d/%d tarea(s) fallaron:",
+            failures.length,
+            items.length,
+          );
+          for (const f of failures) {
+            const item = tasksByIndex.get(f.index);
+            const isSkipped = f.ok === false && "message" in f && (f.message as string)?.startsWith("No enviado");
+            console.error(
+              "  [Batch] idx=%d pbiId=%s title=%s %s",
+              f.index,
+              item?.group.pbiId ?? "?",
+              item?.task.taskTitle ?? "?",
+              isSkipped ? "(omitida)" : "→ ERROR",
+              {
+                message: "message" in f ? f.message : undefined,
+                hours: item?.task.hours,
+                activity: item?.task.activity,
+                workingDate: item?.task.workingDate,
+                state: item?.task.taskState,
+              },
+            );
+          }
+        }
 
         appendResultsToHistory(response, tasksByIndex, appendHistory);
         markUnprocessedTasks(sliceToSend, response.results, indexToTaskId, results);
@@ -278,13 +348,16 @@ export function useCreateTasksBatch({
         });
         return null;
       } finally {
+        if (progressInterval) clearInterval(progressInterval);
+        progressInterval = null;
+        setProgress(null);
         setLoading(false);
       }
     },
     [appendHistory, getDefaultCompletedTaskState, getDefaultTaskState],
   );
 
-  return { submit, loading, error };
+  return { submit, loading, error, progress };
 }
 
 function mapEntryToResult(

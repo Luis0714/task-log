@@ -12,7 +12,10 @@ import { listTaskStates } from "@/lib/azure-devops/work-item-type-states";
 import { fetchActivityValues } from "@/lib/azure-devops/activity-values";
 import { ADO_FIELD_DEFAULTS } from "@/lib/azure-devops/ado-field-defaults";
 import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
-import { buildAssigneeWiqlCondition } from "@/lib/filters/assignee-wiql";
+import {
+  buildAssigneeWiqlCondition,
+  buildFieldAssigneeWiqlCondition,
+} from "@/lib/filters/assignee-wiql";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import { resolveWorkingTimeFromFields } from "@/lib/date/ado-datetime";
@@ -367,6 +370,13 @@ export async function isAdoExecutionReady(): Promise<boolean> {
 export type WorkItemSprintFilters = {
   assignee?: string;
   workItemType?: string;
+  /**
+   * Campo WIQL alternativo para filtrar la asignación al nivel de PBI/HU.
+   * Si se omite, usa `System.AssignedTo`. Ejemplo: para QA, usar
+   * `Custom.ResponsableQA` de forma que solo aparezcan los PBIs donde el
+   * usuario sea el responsable QA.
+   */
+  pbiAssigneeField?: string;
 };
 
 type WiqlResponse = {
@@ -558,23 +568,25 @@ async function fetchCarryoverParents(
   existingIds: Set<number>,
   backlogType: string,
   taskWorkItemType: string,
+  pbiAssigneeField?: string,
 ): Promise<AdoWorkItemOption[]> {
   try {
     const project = escapeWiqlString(auth.project);
     const path = escapeWiqlString(iterationPath);
 
-    const conditions = [
+    // 1. Buscar tareas del sprint asignadas al usuario (siempre por System.AssignedTo).
+    const taskConditions = [
       `[System.TeamProject] = '${project}'`,
       `[System.IterationPath] UNDER '${path}'`,
       `[System.State] <> 'Removed'`,
       `[System.WorkItemType] = '${escapeWiqlString(taskWorkItemType)}'`,
     ];
 
-    const assigneeCondition = buildAssigneeWiqlCondition(assignee);
-    if (assigneeCondition) conditions.push(assigneeCondition);
+    const taskAssigneeCondition = buildAssigneeWiqlCondition(assignee);
+    if (taskAssigneeCondition) taskConditions.push(taskAssigneeCondition);
 
     const wiql = {
-      query: `SELECT [System.Id] FROM WorkItems WHERE ${conditions.join(" AND ")}`,
+      query: `SELECT [System.Id] FROM WorkItems WHERE ${taskConditions.join(" AND ")}`,
     };
 
     const url = `${adoProjectBase(auth)}/_apis/wit/wiql?api-version=7.1`;
@@ -590,6 +602,7 @@ async function fetchCarryoverParents(
     const taskIds = (data.workItems ?? []).map((item) => item.id);
     if (taskIds.length === 0) return [];
 
+    // 2. Encontrar los IDs de los PBIs padres de esas tareas.
     const chunkSize = 200;
     const parentIds = new Set<number>();
 
@@ -606,7 +619,35 @@ async function fetchCarryoverParents(
 
     if (parentIds.size === 0) return [];
 
-    const parents = await fetchWorkItemsByIds(auth, [...parentIds]);
+    // 3. Filtrar los PBIs padres por el mismo criterio de asignación del usuario.
+    //    Esto evita mostrar HUs de otros usuarios porque el usuario solo tiene
+    //    tareas bajo ellas (no porque le estén asignadas).
+    const pbiAssigneeCondition = pbiAssigneeField
+      ? buildFieldAssigneeWiqlCondition(pbiAssigneeField, assignee)
+      : buildAssigneeWiqlCondition(assignee);
+
+    let filteredParentIds: number[];
+
+    if (pbiAssigneeCondition) {
+      const idList = [...parentIds].join(", ");
+      const filterWiql = {
+        query: `SELECT [System.Id] FROM WorkItems WHERE [System.Id] IN (${idList}) AND (${pbiAssigneeCondition})`,
+      };
+      const filterRes = await adoFetch(auth, url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(filterWiql),
+      });
+      if (!filterRes.ok) return [];
+      const filterData = (await filterRes.json()) as WiqlResponse;
+      filteredParentIds = (filterData.workItems ?? []).map((item) => item.id);
+    } else {
+      filteredParentIds = [...parentIds];
+    }
+
+    if (filteredParentIds.length === 0) return [];
+
+    const parents = await fetchWorkItemsByIds(auth, filteredParentIds);
     return parents.filter((item) => item.type === backlogType);
   } catch {
     return [];
@@ -631,7 +672,14 @@ export async function listWorkItemsInSprint(
     `[System.WorkItemType] = '${escapeWiqlString(workItemType)}'`,
   ];
 
-  const assigneeCondition = buildAssigneeWiqlCondition(assignee);
+  // Para PBIs, el campo de asignación puede ser personalizado (ej. QA usa
+  // Custom.ResponsableQA). Para tareas/bugs se usa siempre System.AssignedTo.
+  const isPbiQuery = workItemType === processProfile.backlogItemType;
+  const pbiField = filters.pbiAssigneeField;
+  const assigneeCondition =
+    isPbiQuery && pbiField
+      ? buildFieldAssigneeWiqlCondition(pbiField, assignee)
+      : buildAssigneeWiqlCondition(assignee);
   if (assigneeCondition) {
     conditions.push(assigneeCondition);
   }
@@ -660,7 +708,7 @@ export async function listWorkItemsInSprint(
 
   // Only the default backlog type (PBI/HU) can be a carryover parent of Tasks.
   // Queries for Bugs or other types skip this pass.
-  if (workItemType !== processProfile.backlogItemType) return mainItems;
+  if (!isPbiQuery) return mainItems;
 
   const existingIds = new Set(mainItems.map((item) => item.id));
   const carryoverItems = await fetchCarryoverParents(
@@ -670,6 +718,7 @@ export async function listWorkItemsInSprint(
     existingIds,
     workItemType,
     processProfile.taskWorkItemType,
+    pbiField,
   );
 
   if (carryoverItems.length === 0) return mainItems;

@@ -44,37 +44,32 @@ export type TimeLogBulkTaskProps = Readonly<{
 }>;
 
 function ResultChip({ task }: { readonly task: BulkTask }) {
-  if (!task.result) {
-    return (
-      <span
-        className="text-muted-foreground inline-flex items-center gap-1 text-xs"
-        aria-live="polite"
-      >
-        <CircleDashed className="size-3.5" aria-hidden />
-        Pendiente
-      </span>
-    );
-  }
+  if (!task.result) return null;
   if (task.result.ok) {
     return (
       <span
-        className="text-emerald-700 inline-flex items-center gap-1 text-xs font-medium"
+        className="text-emerald-600"
         aria-live="polite"
+        aria-label="Tarea creada"
       >
         <CheckCircle2 className="size-3.5" aria-hidden />
-        {task.result.taskId ? `Tarea #${task.result.taskId}` : "Creada"}
       </span>
     );
   }
+  const isSkipped = task.result.message?.startsWith("No enviado");
   return (
     <span
-      className="text-destructive inline-flex max-w-72 items-start gap-1 text-xs font-medium"
+      className={cn(
+        isSkipped ? "text-muted-foreground" : "text-destructive",
+      )}
       aria-live="polite"
+      aria-label={isSkipped ? "Tarea omitida" : "Error al crear"}
     >
-      <XCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-      <span className="line-clamp-3">
-        {task.result.message ?? "No se pudo crear."}
-      </span>
+      {isSkipped ? (
+        <CircleDashed className="size-3.5" aria-hidden />
+      ) : (
+        <XCircle className="size-3.5" aria-hidden />
+      )}
     </span>
   );
 }

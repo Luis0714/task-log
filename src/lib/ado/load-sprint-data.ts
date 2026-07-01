@@ -19,6 +19,21 @@ import type {
 } from "@/lib/schemas/ado-catalog";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { logApiError } from "@/lib/errors/log-api-error";
+import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
+import { RESPONSABLE_ENV_KEYS } from "@/lib/azure-devops/backlog-item-fields-config";
+
+/**
+ * Resuelve el campo WIQL que identifica "asignado" a nivel de PBI para el
+ * usuario actual. Para el rol QA usa el campo configurado en `AZDO_PBI_FIELD_QA`;
+ * para cualquier otro rol usa el campo estándar `System.AssignedTo`.
+ */
+async function resolvePbiAssigneeField(): Promise<string | undefined> {
+  if (!isIronSessionConfigured()) return undefined;
+  const session = await getTaskPilotSession();
+  if (session.userRole?.trim().toLowerCase() !== "qa") return undefined;
+  const qaField = process.env[RESPONSABLE_ENV_KEYS.qa]?.trim();
+  return qaField || undefined;
+}
 
 export type SprintDataPart<T> = {
   data: T;
@@ -52,7 +67,11 @@ export const loadSprintWorkItems = cache(async function loadSprintWorkItems(
     if (!auth) {
       return { data: [], error: "Conecta Azure DevOps para cargar historias del sprint." };
     }
-    const data = await listWorkItemsInSprint(auth, sprintPath, { assignee });
+    const pbiAssigneeField = await resolvePbiAssigneeField();
+    const data = await listWorkItemsInSprint(auth, sprintPath, {
+      assignee,
+      pbiAssigneeField,
+    });
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };
