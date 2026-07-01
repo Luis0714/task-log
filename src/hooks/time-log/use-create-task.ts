@@ -31,19 +31,21 @@ function clearTaskFields(
   isTaskCreationMode: boolean,
   getDefaultWorkingDate: () => string,
 ) {
-  form.setValue("taskTitle", "");
-  form.setValue("hours", "");
-  form.setValue("description", "");
-  form.setValue("activity", TIME_LOG_TASK_STEP_DEFAULTS.activity);
-  form.setValue("workingDate", getDefaultWorkingDate());
-  form.setValue("workingTime", getDefaultWorkingTime());
+  const noValidate = { shouldValidate: false };
+  form.setValue("taskTitle", "", noValidate);
+  form.setValue("hours", "", noValidate);
+  form.setValue("description", "", noValidate);
+  form.setValue("activity", TIME_LOG_TASK_STEP_DEFAULTS.activity, noValidate);
+  form.setValue("workingDate", getDefaultWorkingDate(), noValidate);
+  form.setValue("workingTime", getDefaultWorkingTime(), noValidate);
   form.setValue(
     "taskState",
     isTaskCreationMode
       ? getDefaultTaskState()
       : getDefaultCompletedTaskState() || getDefaultTaskState(),
+    noValidate,
   );
-  form.setValue("autoMarkAsDone", TIME_LOG_TASK_STEP_DEFAULTS.autoMarkAsDone);
+  form.setValue("autoMarkAsDone", TIME_LOG_TASK_STEP_DEFAULTS.autoMarkAsDone, noValidate);
   resetTaskStepFields(form);
 }
 

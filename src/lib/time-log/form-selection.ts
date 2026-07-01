@@ -21,9 +21,10 @@ export function resetPbiSelection(form: UseFormReturn<TimeLogFormValues>) {
 }
 
 export function resetTaskStepFields(form: UseFormReturn<TimeLogFormValues>) {
-  form.setValue("taskTitle", "");
-  form.setValue("hours", "");
-  form.setValue("description", "");
+  const noValidate = { shouldValidate: false };
+  form.setValue("taskTitle", "", noValidate);
+  form.setValue("hours", "", noValidate);
+  form.setValue("description", "", noValidate);
   form.clearErrors([
     "taskTitle",
     "hours",
