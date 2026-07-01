@@ -35,7 +35,7 @@ export function PbiFeaturedCard({ item, className, onClick }: PbiFeaturedCardPro
           ) : null}
         </div>
         <div className="flex min-w-0 shrink items-center justify-end gap-1.5">
-          {item.assignedTo ? <WorkItemAssigneeTag name={item.assignedTo} /> : null}
+          {item.assignedTo ? <WorkItemAssigneeTag name={item.assignedTo} hideAvatar /> : null}
           {item.state ? <WorkItemStateBadge state={item.state} className="shrink" /> : null}
         </div>
       </div>

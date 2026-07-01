@@ -8,6 +8,8 @@ export type TeamMemberAvatarProps = Readonly<{
   name: string;
   size?: TeamMemberAvatarSize;
   className?: string;
+  /** Clases extra para el texto de las iniciales. Útil cuando el avatar se reduce por debajo de `size="sm"`. */
+  fallbackClassName?: string;
   /** Texto accesible (alt). Default: `name`. */
   alt?: string;
 }>;
@@ -32,6 +34,7 @@ export function TeamMemberAvatar({
   name,
   size = "default",
   className,
+  fallbackClassName,
   alt,
 }: TeamMemberAvatarProps) {
   const initials = initialsFrom(name);
@@ -44,7 +47,9 @@ export function TeamMemberAvatar({
       role="img"
       aria-label={altText}
     >
-      <AvatarFallback aria-hidden>{initials}</AvatarFallback>
+      <AvatarFallback aria-hidden className={fallbackClassName}>
+        {initials}
+      </AvatarFallback>
     </Avatar>
   );
 }

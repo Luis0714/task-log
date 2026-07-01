@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { FilterPresetRow } from "@/components/filters/filter-preset-row";
 import { filterFieldTriggerClassName } from "@/components/filters/filter-field-trigger-classes";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { TeamMemberAvatar } from "@/components/team-members/team-member-avatar";
 import { useWorkItemAssigneeFilterState } from "@/hooks/filters/use-work-item-assignee-filter-state";
 import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
@@ -97,7 +96,6 @@ export function WorkItemAssigneeFilter({
                           toggleMember(member.displayName, next === true)
                         }
                       />
-                      <TeamMemberAvatar name={member.displayName} size="sm" />
                       <span className="text-sm">{member.displayName}</span>
                     </label>
                   );
