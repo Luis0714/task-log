@@ -36,7 +36,7 @@ const ALL_NAVIGATION: NavGroupConfig[] = [
     title: "Principal",
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/neos-ia", label: "Neos IA", icon: Sparkles, visible: false },
+      { href: "/neos-ia", label: "Neos IA", icon: Sparkles, visible: true, roles: ["super_admin"] },
     ],
   },
   {
