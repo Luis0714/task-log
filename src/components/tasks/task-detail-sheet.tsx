@@ -25,7 +25,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextarea } from "@/components/ui/rich-textarea";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import { appToast } from "@/lib/toast";
 import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
@@ -105,10 +105,10 @@ export function TaskDetailSheet({
         state: draftState,
         workingDate: draftWorkingDate,
         workingTime: draftWorkingTime,
-        title: draftTitle.trim() !== task.title ? draftTitle.trim() : undefined,
-        description: draftDescription !== (task.description ?? "") ? draftDescription : undefined,
-        activity: draftActivity !== (task.activity ?? "") ? draftActivity : undefined,
-        completedWork: draftHours !== task.loggedHours ? draftHours : undefined,
+        title: draftTitle.trim() === task.title ? undefined : draftTitle.trim(),
+        description: draftDescription === (task.description ?? "") ? undefined : draftDescription,
+        activity: draftActivity === (task.activity ?? "") ? undefined : draftActivity,
+        completedWork: draftHours === task.loggedHours ? undefined : draftHours,
         newParentId: draftNewParentId,
       });
 
@@ -125,6 +125,39 @@ export function TaskDetailSheet({
     } finally {
       setSaving(false);
     }
+  }
+
+  function renderActivityField() {
+    if (activitiesLoading) return <Skeleton className="h-9 w-full" />;
+    if (activityValues.length > 0) {
+      return (
+        <Select
+          value={draftActivity || undefined}
+          onValueChange={(v) => setDraftActivity(v ?? "")}
+          disabled={saving}
+        >
+          <SelectTrigger id="task-activity" className="w-full">
+            <SelectValue placeholder="Selecciona" />
+          </SelectTrigger>
+          <SelectContent>
+            {activityValues.map((v) => (
+              <SelectItem key={v} value={v}>
+                {v}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+    return (
+      <Input
+        id="task-activity"
+        value={draftActivity}
+        onChange={(e) => setDraftActivity(e.target.value)}
+        disabled={saving}
+        placeholder="Actividad"
+      />
+    );
   }
 
   const currentParent = task?.parentId
@@ -164,49 +197,19 @@ export function TaskDetailSheet({
                 </section>
 
                 <section className="space-y-2">
-                  <Label htmlFor="task-description">Descripción</Label>
-                  <Textarea
-                    id="task-description"
+                  <Label>Descripción</Label>
+                  <RichTextarea
                     value={draftDescription}
-                    onChange={(e) => setDraftDescription(e.target.value)}
-                    disabled={saving}
+                    onChange={setDraftDescription}
                     placeholder="Descripción (opcional)"
-                    rows={3}
-                    className="resize-none"
+                    disabled={saving}
                   />
                 </section>
 
                 <div className="grid grid-cols-2 gap-4">
                   <section className="space-y-2">
                     <Label htmlFor="task-activity">Actividad</Label>
-                    {activitiesLoading ? (
-                      <Skeleton className="h-9 w-full" />
-                    ) : activityValues.length > 0 ? (
-                      <Select
-                        value={draftActivity || undefined}
-                        onValueChange={(v) => setDraftActivity(v ?? "")}
-                        disabled={saving}
-                      >
-                        <SelectTrigger id="task-activity" className="w-full">
-                          <SelectValue placeholder="Selecciona" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {activityValues.map((v) => (
-                            <SelectItem key={v} value={v}>
-                              {v}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        id="task-activity"
-                        value={draftActivity}
-                        onChange={(e) => setDraftActivity(e.target.value)}
-                        disabled={saving}
-                        placeholder="Actividad"
-                      />
-                    )}
+                    {renderActivityField()}
                   </section>
 
                   <section className="space-y-2">

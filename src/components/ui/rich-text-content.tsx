@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import { rewriteAdoImgSrcsForDisplay } from "@/lib/html/rewrite-ado-image-urls";
 import { sanitizeRichTextHtml } from "@/lib/html/sanitize-rich-text-html";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +12,10 @@ type RichTextContentProps = {
 };
 
 export function RichTextContent({ html, className }: RichTextContentProps) {
-  const safeHtml = useMemo(() => sanitizeRichTextHtml(html), [html]);
+  const safeHtml = useMemo(
+    () => rewriteAdoImgSrcsForDisplay(sanitizeRichTextHtml(html)),
+    [html],
+  );
 
   return (
     <div
