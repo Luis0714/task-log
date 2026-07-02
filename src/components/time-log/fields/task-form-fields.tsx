@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { DatePickerTime } from "@/components/ui/date-picker-time";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextarea } from "@/components/ui/rich-textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
@@ -148,12 +148,11 @@ export function TaskFormFields({
           <FormItem>
             <FormLabel required>Descripción</FormLabel>
             <FormControl>
-              <Textarea
+              <RichTextarea
                 placeholder="Describe lo realizado en esta tarea"
-                rows={3}
                 disabled={disabled}
-                className="resize-none"
-                {...field}
+                value={field.value}
+                onChange={field.onChange}
               />
             </FormControl>
             <FormMessage />

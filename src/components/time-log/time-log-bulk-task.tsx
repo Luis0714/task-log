@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextarea } from "@/components/ui/rich-textarea";
 import type {
   AdoTaskStateDto,
 } from "@/lib/schemas/ado-catalog";
@@ -265,15 +265,11 @@ export function TimeLogBulkTask({
         <Label htmlFor={`${idPrefix}-description`}>
           Descripción <span className="text-destructive">*</span>
         </Label>
-        <Textarea
-          id={`${idPrefix}-description`}
-          rows={3}
+        <RichTextarea
           placeholder="Describe brevemente lo realizado en esta tarea"
           value={task.description}
           disabled={disabled}
-          onChange={(event) => onChange({ description: event.target.value })}
-          className="resize-none"
-          aria-invalid={Boolean(task.errors.description)}
+          onChange={(html) => onChange({ description: html })}
         />
         {task.errors.description ? (
           <p className="text-destructive text-xs">{task.errors.description}</p>

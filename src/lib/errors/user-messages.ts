@@ -74,4 +74,5 @@ export const USER_MESSAGES = {
   goToSettingsHint: "Ve a Configuración → Proceso para ajustarlo.",
   fieldConfigRequired: (field: string) =>
     `El proyecto requiere el campo '${field}'. Ve a Configuración → Proceso para configurarlo.`,
+  attachmentUploadFailed: "No se pudo subir la imagen a Azure DevOps.",
 } as const;

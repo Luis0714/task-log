@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -11,6 +11,8 @@ import { ImageIcon } from "lucide-react";
 import { MdFormatListBulleted, MdFormatListNumbered, MdFormatUnderlined } from "react-icons/md";
 import { FiLink } from "react-icons/fi";
 import { ItalicIcon } from "@/components/icons/italic-icon";
+import { rewriteAdoImgSrcsForDisplay, rewriteProxyImgSrcsForStorage } from "@/lib/html/rewrite-ado-image-urls";
+import { appToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 type RichTextareaProps = {
@@ -63,12 +65,17 @@ export function RichTextarea({
   className,
 }: RichTextareaProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const onChangeRef = useRef(onChange);
+  const uploadImageRef = useRef<((file: File) => Promise<void>) | undefined>(undefined);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-      }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
       Link.configure({
         openOnClick: false,
@@ -77,13 +84,13 @@ export function RichTextarea({
       Image.configure({ inline: false }),
       Placeholder.configure({ placeholder: placeholder ?? "" }),
     ],
-    content: value,
+    content: rewriteAdoImgSrcsForDisplay(value),
     editable: !disabled,
-    onUpdate({ editor }) {
-      onChange?.(editor.getHTML());
+    onUpdate({ editor: e }) {
+      onChangeRef.current?.(rewriteProxyImgSrcsForStorage(e.getHTML()));
     },
     editorProps: {
-      handlePaste(view, event) {
+      handlePaste(_, event) {
         const items = Array.from(event.clipboardData?.items ?? []);
         const imageItem = items.find((i) => i.type.startsWith("image/"));
         if (!imageItem) return false;
@@ -92,42 +99,52 @@ export function RichTextarea({
         const file = imageItem.getAsFile();
         if (!file) return false;
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const src = e.target?.result as string;
-          if (src) view.dispatch(view.state.tr.replaceSelectionWith(
-            view.state.schema.nodes.image.create({ src })
-          ));
-        };
-        reader.readAsDataURL(file);
+        void uploadImageRef.current?.(file);
         return true;
       },
     },
   });
 
-  // Sync external value changes without losing cursor position
+  const uploadImage = useCallback(
+    async (file: File) => {
+      setUploadProgress(0);
+      setTimeout(() => setUploadProgress(80), 50);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/ado/attachments", { method: "POST", body: formData });
+      if (!res.ok) {
+        setUploadProgress(null);
+        appToast.error("No se pudo subir la imagen a Azure DevOps.");
+        return;
+      }
+
+      const { url } = (await res.json()) as { url: string };
+      setUploadProgress(100);
+      setTimeout(() => setUploadProgress(null), 400);
+      editor?.chain().focus().setImage({ src: url }).run();
+    },
+    [editor],
+  );
+
+  useEffect(() => {
+    uploadImageRef.current = uploadImage;
+  }, [uploadImage]);
+
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     const current = editor.getHTML();
-    if (current !== value) {
-      editor.commands.setContent(value, { emitUpdate: false });
+    const incoming = rewriteAdoImgSrcsForDisplay(value);
+    if (current !== incoming) {
+      editor.commands.setContent(incoming, { emitUpdate: false });
     }
   }, [value, editor]);
 
-  // Sync disabled state
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     editor.setEditable(!disabled);
   }, [disabled, editor]);
-
-  const handleImageUpload = useCallback((file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const src = e.target?.result as string;
-      if (src) editor?.chain().focus().setImage({ src }).run();
-    };
-    reader.readAsDataURL(file);
-  }, [editor]);
 
   const handleLinkToggle = useCallback(() => {
     if (!editor) return;
@@ -150,7 +167,6 @@ export function RichTextarea({
         className,
       )}
     >
-      {/* Editor area */}
       <EditorContent
         editor={editor}
         className={cn(
@@ -171,10 +187,14 @@ export function RichTextarea({
         )}
       />
 
-      {/* Toolbar */}
-      <div className="border-border flex flex-wrap items-center gap-0.5 border-t px-1.5 py-1">
+      <div className="bg-muted h-0.5 w-full overflow-hidden">
+        <div
+          className="bg-primary h-full transition-[width] duration-700 ease-out"
+          style={{ width: `${uploadProgress ?? 0}%` }}
+        />
+      </div>
 
-        {/* Inline formatting */}
+      <div className="border-border flex flex-wrap items-center gap-0.5 border-t px-1.5 py-1">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           active={editor.isActive("bold")}
@@ -197,12 +217,11 @@ export function RichTextarea({
           disabled={disabled}
           title="Subrayado"
         >
-          <MdFormatUnderlined width={10} height={12}/>
+          <MdFormatUnderlined width={10} height={12} />
         </ToolbarButton>
 
         <ToolbarSeparator />
 
-        {/* Lists */}
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           active={editor.isActive("bulletList")}
@@ -222,7 +241,6 @@ export function RichTextarea({
 
         <ToolbarSeparator />
 
-        {/* Link */}
         <ToolbarButton
           onClick={handleLinkToggle}
           active={editor.isActive("link")}
@@ -232,7 +250,6 @@ export function RichTextarea({
           <FiLink />
         </ToolbarButton>
 
-        {/* Image upload */}
         <ToolbarButton
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled}
@@ -247,7 +264,7 @@ export function RichTextarea({
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) handleImageUpload(file);
+            if (file) void uploadImage(file);
             e.target.value = "";
           }}
         />
