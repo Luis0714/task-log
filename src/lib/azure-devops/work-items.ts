@@ -394,6 +394,7 @@ const PARENT = "System.Parent";
 const SYSTEM_TAGS = "System.Tags";
 const DESCRIPTION_FIELD = "System.Description";
 const ACCEPTANCE_CRITERIA_FIELD = "Microsoft.VSTS.Common.AcceptanceCriteria";
+const REPRO_STEPS_FIELD = "Microsoft.VSTS.TCM.ReproSteps";
 const ACTIVITY_FIELD = ADO_FIELD_DEFAULTS.activityField;
 const REOPENED_WORKING_DATE_FIELD = "Custom.ReOpenedWorkingDate";
 const REOPENED_BOOLEAN_FIELD = "Custom.Reopenedboolean";
@@ -452,6 +453,7 @@ async function fetchWorkItemDetails(
     SYSTEM_TAGS,
     DESCRIPTION_FIELD,
     ACCEPTANCE_CRITERIA_FIELD,
+    REPRO_STEPS_FIELD,
     ACTIVITY_FIELD,
     ...processProfile.workItemDateFieldNames,
     ...backlogFetchFields,
@@ -472,6 +474,7 @@ async function fetchWorkItemDetails(
         title: typeof title === "string" ? title : `Elemento de trabajo ${workItem.id}`,
         description: parseRichTextField(workItem.fields?.[DESCRIPTION_FIELD]),
         acceptanceCriteria: parseRichTextField(workItem.fields?.[ACCEPTANCE_CRITERIA_FIELD]),
+        reproSteps: parseRichTextField(workItem.fields?.[REPRO_STEPS_FIELD]),
         type: String(workItem.fields?.[WORK_ITEM_TYPE] ?? "Item"),
         state: String(workItem.fields?.[STATE] ?? ""),
         assignedTo: parseIdentityDisplayName(workItem.fields?.[ASSIGNED_TO]),

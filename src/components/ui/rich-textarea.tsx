@@ -11,6 +11,7 @@ import { ImageIcon } from "lucide-react";
 import { MdFormatListBulleted, MdFormatListNumbered, MdFormatUnderlined } from "react-icons/md";
 import { FiLink } from "react-icons/fi";
 import { ItalicIcon } from "@/components/icons/italic-icon";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { rewriteAdoImgSrcsForDisplay, rewriteProxyImgSrcsForStorage } from "@/lib/html/rewrite-ado-image-urls";
 import { appToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -27,20 +28,35 @@ type ToolbarButtonProps = {
   onClick: () => void;
   active?: boolean;
   disabled?: boolean;
+  /** Nombre accesible (aria-label) y, por defecto, contenido del Tooltip. */
   title: string;
+  /** Override del contenido del Tooltip (p. ej. atajos de teclado). Si se
+   *  omite, se usa `title`. */
+  tooltip?: React.ReactNode;
   children: React.ReactNode;
 };
 
-function ToolbarButton({ onClick, active, disabled, title, children }: ToolbarButtonProps) {
-  return (
+function ToolbarButton({
+  onClick,
+  active,
+  disabled,
+  title,
+  tooltip,
+  children,
+}: ToolbarButtonProps) {
+  // Se reutiliza la marca nativa que arma IconActionButton: el `<button>`
+  // se pasa como `render` a `TooltipTrigger`, que internamente le inyecta el
+  // ref/eventos y maneja el ARIA, dejándonos un único punto de estilo.
+  const button = (
     <button
       type="button"
-      onMouseDown={(e) => {
-        e.preventDefault();
+      onMouseDown={(event) => {
+        // Evita que el editor pierda foco al hacer click en la toolbar.
+        event.preventDefault();
         onClick();
       }}
       disabled={disabled}
-      title={title}
+      aria-label={title}
       className={cn(
         "flex h-7 w-7 items-center justify-center rounded text-sm transition-colors",
         "hover:bg-accent hover:text-accent-foreground",
@@ -51,10 +67,50 @@ function ToolbarButton({ onClick, active, disabled, title, children }: ToolbarBu
       {children}
     </button>
   );
+
+  return (
+    <Tooltip>
+      <TooltipTrigger render={button} />
+      <TooltipContent side="top">{tooltip ?? title}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 function ToolbarSeparator() {
   return <div className="bg-border mx-0.5 h-5 w-px" />;
+}
+
+/** Máximo de imágenes que se pueden subir en una sola tanda. */
+const MAX_IMAGES_PER_UPLOAD = 5;
+
+/** Sube un único archivo al endpoint de adjuntos de ADO. Devuelve la URL final
+ *  o `null` si falla — no rompe el flujo de los demás archivos de la tanda. */
+async function uploadOneImage(file: File): Promise<string | null> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch("/api/ado/attachments", { method: "POST", body: formData });
+  if (!res.ok) return null;
+
+  const data = (await res.json()) as { url?: unknown };
+  return typeof data.url === "string" ? data.url : null;
+}
+
+/** Extrae los archivos de imagen de un `DataTransfer` (p.ej. paste o drop). */
+function extractImageFiles(source: DataTransfer | null | undefined): File[] {
+  if (!source) return [];
+  const files: File[] = [];
+  // 1) Archivos directos (drop o copy de archivos).
+  for (const file of Array.from(source.files ?? [])) {
+    if (file.type.startsWith("image/")) files.push(file);
+  }
+  // 2) Items como imágenes (pegar capturas desde el portapapeles).
+  for (const item of Array.from(source.items ?? [])) {
+    if (item.kind !== "file" || !item.type.startsWith("image/")) continue;
+    const file = item.getAsFile();
+    if (file) files.push(file);
+  }
+  return files;
 }
 
 export function RichTextarea({
@@ -66,7 +122,7 @@ export function RichTextarea({
 }: RichTextareaProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const onChangeRef = useRef(onChange);
-  const uploadImageRef = useRef<((file: File) => Promise<void>) | undefined>(undefined);
+  const uploadImagesRef = useRef<((files: File[]) => void) | undefined>(undefined);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   useEffect(() => {
@@ -81,7 +137,16 @@ export function RichTextarea({
         openOnClick: false,
         HTMLAttributes: { class: "text-primary underline cursor-pointer" },
       }),
-      Image.configure({ inline: false }),
+      Image.configure({
+        inline: false,
+        resize: {
+          enabled: true,
+          directions: ["bottom-right", "bottom-left", "top-right", "top-left"],
+          minWidth: 50,
+          minHeight: 50,
+          alwaysPreserveAspectRatio: true,
+        },
+      }),
       Placeholder.configure({ placeholder: placeholder ?? "" }),
     ],
     content: rewriteAdoImgSrcsForDisplay(value),
@@ -91,46 +156,91 @@ export function RichTextarea({
     },
     editorProps: {
       handlePaste(_, event) {
-        const items = Array.from(event.clipboardData?.items ?? []);
-        const imageItem = items.find((i) => i.type.startsWith("image/"));
-        if (!imageItem) return false;
+        const files = extractImageFiles(event.clipboardData);
+        if (files.length === 0) return false;
 
         event.preventDefault();
-        const file = imageItem.getAsFile();
-        if (!file) return false;
-
-        void uploadImageRef.current?.(file);
+        uploadImagesRef.current?.(files);
         return true;
       },
     },
   });
 
-  const uploadImage = useCallback(
-    async (file: File) => {
-      setUploadProgress(0);
-      setTimeout(() => setUploadProgress(80), 50);
+  /** Valida la tanda, sube todo en paralelo y, si todo OK, inserta cada
+   *  imagen devuelta por la API en orden.
+   *
+   *  Regla dura: si el usuario intenta subir más de `MAX_IMAGES_PER_UPLOAD`
+   *  archivos, NO se sube NADA — se le avisa con un warning y se aborta. */
+  const uploadImages = useCallback(
+    (rawFiles: File[]) => {
+      if (rawFiles.length === 0) return;
 
-      const formData = new FormData();
-      formData.append("file", file);
+      let existingImages = 0;
+      if (editor && !editor.isDestroyed) {
+        editor.state.doc.descendants((node) => {
+          if (node.type.name === "image") existingImages++;
+        });
+      }
 
-      const res = await fetch("/api/ado/attachments", { method: "POST", body: formData });
-      if (!res.ok) {
-        setUploadProgress(null);
-        appToast.error("No se pudo subir la imagen a Azure DevOps.");
+      const totalImages = existingImages + rawFiles.length;
+      if (totalImages > MAX_IMAGES_PER_UPLOAD) {
+        const remaining = MAX_IMAGES_PER_UPLOAD - existingImages;
+        if (remaining <= 0) {
+          appToast.warning(
+            `Ya tienes el máximo de ${MAX_IMAGES_PER_UPLOAD} imágenes insertadas.`,
+          );
+        } else {
+          appToast.warning(
+            `Solo puedes añadir ${remaining} imagen(es) más (tienes ${existingImages} de ${MAX_IMAGES_PER_UPLOAD}).`,
+          );
+        }
         return;
       }
 
-      const { url } = (await res.json()) as { url: string };
-      setUploadProgress(100);
-      setTimeout(() => setUploadProgress(null), 400);
-      editor?.chain().focus().setImage({ src: url }).run();
+      setUploadProgress(0);
+      // "Falsa" animación inicial para feedback inmediato; el 100% lo marcamos
+      // cuando TODAS las promesas resuelven.
+      const fakeProgressTimer = setTimeout(() => setUploadProgress(80), 50);
+
+      void Promise.all(rawFiles.map(uploadOneImage))
+        .then((urls) => {
+          const validUrls = urls.filter((url): url is string => Boolean(url));
+          if (validUrls.length === 0 && rawFiles.length > 0) {
+            appToast.error("No se pudo subir ninguna imagen a Azure DevOps.");
+            return;
+          }
+          if (validUrls.length < rawFiles.length) {
+            appToast.error(
+              `Solo ${validUrls.length} de ${rawFiles.length} imágenes se subieron correctamente.`,
+            );
+          }
+          if (!editor || editor.isDestroyed) return;
+
+          editor
+            .chain()
+            .focus()
+            .insertContent(
+              validUrls.map((src) => ({
+                type: "image",
+                attrs: {
+                  src: `/api/ado/attachments/proxy?url=${encodeURIComponent(src)}`,
+                },
+              })),
+            )
+            .run();
+        })
+        .finally(() => {
+          clearTimeout(fakeProgressTimer);
+          setUploadProgress(100);
+          setTimeout(() => setUploadProgress(null), 400);
+        });
     },
     [editor],
   );
 
   useEffect(() => {
-    uploadImageRef.current = uploadImage;
-  }, [uploadImage]);
+    uploadImagesRef.current = uploadImages;
+  }, [uploadImages]);
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
@@ -253,7 +363,7 @@ export function RichTextarea({
         <ToolbarButton
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled}
-          title="Insertar imagen"
+          title={`Insertar imagen(es) (máx. ${MAX_IMAGES_PER_UPLOAD})`}
         >
           <ImageIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -261,10 +371,11 @@ export function RichTextarea({
           ref={fileInputRef}
           type="file"
           accept="image/*"
+          multiple
           className="hidden"
           onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) void uploadImage(file);
+            const files = e.target.files ? Array.from(e.target.files) : [];
+            if (files.length > 0) uploadImages(files);
             e.target.value = "";
           }}
         />
