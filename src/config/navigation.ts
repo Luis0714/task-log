@@ -3,6 +3,7 @@ import {
   CalendarCheck2,
   CheckSquare,
   Clock,
+  FileSpreadsheet,
   LayoutDashboard,
   ListTodo,
   Settings,
@@ -56,9 +57,21 @@ const ALL_NAVIGATION: NavGroupConfig[] = [
         href: "/analysis/sprints",
         label: "Sprint",
         icon: CalendarCheck2,
+        visible: false,
         roles: ["super_admin", "product_manager", "scrum_master"],
       },
       { href: "/analysis/proyecto", label: "Proyecto", icon: LayoutDashboard, visible: false },
+    ],
+  },
+  {
+    title: "Reportes",
+    items: [
+      {
+        href: "/reports/time-log",
+        label: "Tiempos registrados",
+        icon: FileSpreadsheet,
+        roles: ["super_admin", "product_manager", "product_owner"],
+      },
     ],
   },
   {

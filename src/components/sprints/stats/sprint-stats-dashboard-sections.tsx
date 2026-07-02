@@ -6,7 +6,6 @@ import { SprintWorkflowSection } from "@/components/dashboard/sections/sprint-wo
 import { SprintBugQualitySection } from "@/components/sprints/stats/sprint-bug-quality-section";
 import { SprintGoalProgressSection } from "@/components/sprints/stats/sprint-goal-progress-section";
 import { SprintGoalRiskList } from "@/components/sprints/stats/sprint-goal-risk-list";
-import { SprintTimesSection } from "@/components/sprints/stats/sprint-times-section";
 import { SPRINT_STATS_GOAL_ONLY_DEFAULT } from "@/lib/sprints/filter-sprint-stats-scope";
 import type { SprintTimesShareScope } from "@/lib/sprints/sprint-times-share-scope";
 import { normalizeSprintStatsScreenData } from "@/lib/sprints/normalize-sprint-stats";
@@ -32,18 +31,12 @@ function workflowDescription(goalOnly: boolean): string {
     : "Distribución de historias por estado de backlog.";
 }
 
-function timesDescription(goalOnly: boolean): string {
-  return goalOnly
-    ? "Horas en tareas y bugs vinculados a las historias del objetivo."
-    : "Horas del equipo en desarrollo y corrección de bugs.";
-}
-
 export function SprintStatsDashboardSections({
   stats,
   project,
   goalDescription,
   goalOnly = SPRINT_STATS_GOAL_ONLY_DEFAULT,
-  timesShareScope,
+  timesShareScope: _timesShareScope,
   loading = false,
 }: SprintStatsDashboardSectionsProps & { loading?: boolean }) {
   const showGoalSections = false;
@@ -52,14 +45,7 @@ export function SprintStatsDashboardSections({
 
   return (
     <div className="flex flex-col gap-6">
-      <SprintTimesSection
-        times={normalizedStats.times}
-        description={timesDescription(goalOnly)}
-        loading={loading}
-        shareScope={timesShareScope}
-      />
-
-     {showGoalSections && <>  
+     {showGoalSections && <>
       <DashboardSection title="Entrega del sprint" description={deliveryDescription(goalOnly)}>
         <SprintDeliverySection metrics={normalizedStats.delivery} />
       </DashboardSection>

@@ -65,6 +65,12 @@ export const PAGE_SEO = {
       "Genera un resumen breve de tu trabajo en curso para compartir en la reunión diaria del sprint activo.",
     path: "/daily",
   },
+  reportsTimeLog: {
+    title: "Tiempos registrados",
+    description:
+      "Visualiza y exporta los tiempos registrados por el equipo por sprint. Genera reportes Excel profesionales listos para compartir.",
+    path: "/reports/time-log",
+  },
   settings: {
     title: "Configuración",
     description:
