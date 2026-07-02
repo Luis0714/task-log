@@ -38,6 +38,11 @@ export const adoWorkItemOptionSchema = z.object({
   description: z.string().optional(),
   /** Acceptance Criteria del work item en texto plano. */
   acceptanceCriteria: z.string().optional(),
+  /**
+   * Pasos de reproducción del Bug (Microsoft.VSTS.TCM.ReproSteps) en HTML.
+   * Suele contener capturas/adjuntos incrustados; se renderiza tal cual.
+   */
+  reproSteps: z.string().optional(),
   type: z.string(),
   state: z.string(),
   assignedTo: z.string().optional(),

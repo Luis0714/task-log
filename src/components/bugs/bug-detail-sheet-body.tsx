@@ -92,10 +92,20 @@ export function BugDetailSheetBody({
         <p className="text-muted-foreground line-clamp-2 text-sm font-semibold" title={bug.title}>
           {bug.title}
         </p>
-        {bug.acceptanceCriteria?.trim() ? (
-          <WorkItemDescriptionBlock html={bug.acceptanceCriteria} label="Acceptance Criteria" />
-        ) : null}
       </section>
+
+      {bug.reproSteps?.trim() ? (
+        <section className="space-y-1">
+          {/* Pasos de reproducción: bloque con "Ver más / Ver menos" e imágenes (RichTextContent renderiza <img> via dangerouslySetInnerHTML). */}
+          <WorkItemDescriptionBlock html={bug.reproSteps} label="Pasos de reproducción" />
+        </section>
+      ) : null}
+
+      {bug.acceptanceCriteria?.trim() ? (
+        <section className="space-y-1">
+          <WorkItemDescriptionBlock html={bug.acceptanceCriteria} label="Criterio de aceptación" />
+        </section>
+      ) : null}
 
       <WorkItemAdoQuickLinks
         project={project}
