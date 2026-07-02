@@ -137,7 +137,16 @@ export function RichTextarea({
         openOnClick: false,
         HTMLAttributes: { class: "text-primary underline cursor-pointer" },
       }),
-      Image.configure({ inline: false }),
+      Image.configure({
+        inline: false,
+        resize: {
+          enabled: true,
+          directions: ["bottom-right", "bottom-left", "top-right", "top-left"],
+          minWidth: 50,
+          minHeight: 50,
+          alwaysPreserveAspectRatio: true,
+        },
+      }),
       Placeholder.configure({ placeholder: placeholder ?? "" }),
     ],
     content: rewriteAdoImgSrcsForDisplay(value),
@@ -166,10 +175,25 @@ export function RichTextarea({
     (rawFiles: File[]) => {
       if (rawFiles.length === 0) return;
 
-      if (rawFiles.length > MAX_IMAGES_PER_UPLOAD) {
-        appToast.warning(
-          `Solo se pueden subir hasta ${MAX_IMAGES_PER_UPLOAD} imágenes a la vez.`,
-        );
+      let existingImages = 0;
+      if (editor && !editor.isDestroyed) {
+        editor.state.doc.descendants((node) => {
+          if (node.type.name === "image") existingImages++;
+        });
+      }
+
+      const totalImages = existingImages + rawFiles.length;
+      if (totalImages > MAX_IMAGES_PER_UPLOAD) {
+        const remaining = MAX_IMAGES_PER_UPLOAD - existingImages;
+        if (remaining <= 0) {
+          appToast.warning(
+            `Ya tienes el máximo de ${MAX_IMAGES_PER_UPLOAD} imágenes insertadas.`,
+          );
+        } else {
+          appToast.warning(
+            `Solo puedes añadir ${remaining} imagen(es) más (tienes ${existingImages} de ${MAX_IMAGES_PER_UPLOAD}).`,
+          );
+        }
         return;
       }
 
@@ -195,7 +219,14 @@ export function RichTextarea({
           editor
             .chain()
             .focus()
-            .insertContent(validUrls.map((src) => ({ type: "image", attrs: { src } })))
+            .insertContent(
+              validUrls.map((src) => ({
+                type: "image",
+                attrs: {
+                  src: `/api/ado/attachments/proxy?url=${encodeURIComponent(src)}`,
+                },
+              })),
+            )
             .run();
         })
         .finally(() => {

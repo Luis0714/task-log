@@ -396,3 +396,33 @@
     animation: none;
   }
 }
+
+/* ── Rich-text image resize handles (Tiptap ResizableNodeView) ─────────── */
+[data-resize-handle] {
+  display: none;
+  width: 10px;
+  height: 10px;
+  background: white;
+  border: 2px solid var(--primary);
+  border-radius: 2px;
+  z-index: 10;
+}
+
+[data-resize-container].ProseMirror-selectednode [data-resize-handle] {
+  display: block;
+}
+
+[data-resize-handle][data-resize-handle="top-left"],
+[data-resize-handle][data-resize-handle="bottom-right"] {
+  cursor: nwse-resize;
+}
+
+[data-resize-handle][data-resize-handle="top-right"],
+[data-resize-handle][data-resize-handle="bottom-left"] {
+  cursor: nesw-resize;
+}
+
+[data-resize-container].ProseMirror-selectednode img {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
