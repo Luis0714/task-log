@@ -117,32 +117,6 @@ export function SprintBugQualitySectionSkeleton() {
   );
 }
 
-export function SprintTimesSectionSkeleton() {
-  return (
-    <DashboardSection
-      title="Tiempos del sprint"
-      description="Horas registradas por persona, desglosadas por semana y tipo de trabajo."
-    >
-      <div className="flex flex-col gap-3">
-        <Skeleton className="h-3 w-64" />
-        <div className="overflow-hidden rounded-lg border border-border/60">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <div
-              key={index}
-              className="border-border/60 grid gap-3 border-b px-3 py-3 last:border-b-0 md:grid-cols-7"
-            >
-              <Skeleton className="h-4 w-28" />
-              {Array.from({ length: 6 }).map((__, cellIndex) => (
-                <Skeleton key={cellIndex} className="h-4 w-full" />
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-    </DashboardSection>
-  );
-}
-
 export type SprintStatsDashboardSkeletonProps = {
   showScopeToggle?: boolean;
   className?: string;
@@ -158,7 +132,6 @@ export function SprintStatsDashboardSkeleton({
       {showScopeToggle ? <SprintStatsScopeToggleSkeleton /> : null}
 
       <div className="flex flex-col gap-6">
-        <SprintTimesSectionSkeleton />
         { showGoalSections && <>
         <DashboardDeliverySectionSkeleton />
         <DashboardWorkflowSectionSkeleton />

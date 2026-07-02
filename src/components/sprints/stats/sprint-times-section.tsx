@@ -33,6 +33,7 @@ export type SprintTimesSectionProps = {
   loading?: boolean;
   className?: string;
   shareScope?: SprintTimesShareScope;
+  extraAction?: ReactNode;
 };
 
 const WEEK_ODD_CLASS = "bg-primary/[0.07]";
@@ -207,6 +208,7 @@ export function SprintTimesSection({
   loading = false,
   className,
   shareScope,
+  extraAction,
 }: SprintTimesSectionProps) {
   const weekCount = times.weeks.length;
 
@@ -227,12 +229,17 @@ export function SprintTimesSection({
       description={description}
       className={className}
       action={
-        shareScope && !loading ? (
-          <SprintTimesShareActions
-            {...shareScope}
-            times={times}
-            canShare={canShareSprintTimes(times)}
-          />
+        (shareScope && !loading) || extraAction ? (
+          <div className="flex items-center gap-2">
+            {extraAction}
+            {shareScope && !loading ? (
+              <SprintTimesShareActions
+                {...shareScope}
+                times={times}
+                canShare={canShareSprintTimes(times)}
+              />
+            ) : null}
+          </div>
         ) : null
       }
     >
