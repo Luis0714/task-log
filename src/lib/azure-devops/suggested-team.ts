@@ -8,33 +8,34 @@ export async function resolveSuggestedTeam(
 ): Promise<string | null> {
   if (teams.length === 0) return null;
 
+  const iterationsByTeam = await Promise.all(
+    teams.map(async (team) => {
+      try {
+        return await listTeamIterations(auth, team.name);
+      } catch {
+        return [];
+      }
+    }),
+  );
+
+  let withCurrentSprint: string | null = null;
+  let withFutureSprint: string | null = null;
   let fallbackWithSprints: string | null = null;
 
-  for (const team of teams) {
-    try {
-      const sprints = await listTeamIterations(auth, team.name);
-      if (sprints.length === 0) continue;
+  teams.forEach((team, index) => {
+    const sprints = iterationsByTeam[index];
+    if (sprints.length === 0) return;
 
-      if (!fallbackWithSprints) fallbackWithSprints = team.name;
-
-      if (sprints.some((sprint) => sprint.timeFrame === "current")) {
-        return team.name;
-      }
-    } catch {
-      continue;
+    if (!fallbackWithSprints) fallbackWithSprints = team.name;
+    if (!withCurrentSprint && sprints.some((sprint) => sprint.timeFrame === "current")) {
+      withCurrentSprint = team.name;
     }
-  }
-
-  for (const team of teams) {
-    try {
-      const sprints = await listTeamIterations(auth, team.name);
-      if (sprints.some((sprint) => sprint.timeFrame === "future")) {
-        return team.name;
-      }
-    } catch {
-      continue;
+    if (!withFutureSprint && sprints.some((sprint) => sprint.timeFrame === "future")) {
+      withFutureSprint = team.name;
     }
-  }
+  });
 
-  return fallbackWithSprints ?? teams[0]?.name ?? null;
+  return (
+    withCurrentSprint ?? withFutureSprint ?? fallbackWithSprints ?? teams[0]?.name ?? null
+  );
 }

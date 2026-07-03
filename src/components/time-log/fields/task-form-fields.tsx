@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { DatePickerTime } from "@/components/ui/date-picker-time";
 import { Input } from "@/components/ui/input";
-import { RichTextarea } from "@/components/ui/rich-textarea";
+import { RichTextarea } from "@/components/ui/rich-textarea-lazy";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";

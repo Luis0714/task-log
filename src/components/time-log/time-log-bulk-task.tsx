@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RichTextarea } from "@/components/ui/rich-textarea";
+import { RichTextarea } from "@/components/ui/rich-textarea-lazy";
 import type {
   AdoTaskStateDto,
 } from "@/lib/schemas/ado-catalog";

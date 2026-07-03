@@ -64,11 +64,13 @@ export const loadSprintWorkItems = cache(async function loadSprintWorkItems(
   assignee: string,
 ): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
   try {
-    const auth = await resolveScopedAuth(project);
+    const [auth, pbiAssigneeField] = await Promise.all([
+      resolveScopedAuth(project),
+      resolvePbiAssigneeField(),
+    ]);
     if (!auth) {
       return { data: [], error: "Conecta Azure DevOps para cargar historias del sprint." };
     }
-    const pbiAssigneeField = await resolvePbiAssigneeField();
     const data = await listWorkItemsInSprint(auth, sprintPath, {
       assignee,
       pbiAssigneeField,
@@ -181,23 +183,19 @@ export const loadSprintPeriodStories = cache(async function loadSprintPeriodStor
   finishDate: string | null,
   assignee: string,
 ): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
-  const sprintStories = await loadSprintWorkItems(project, sprintPath, assignee);
+  // Historias del sprint y tareas del periodo no dependen entre sí: en paralelo.
+  const [sprintStories, periodTasks] = await Promise.all([
+    loadSprintWorkItems(project, sprintPath, assignee),
+    loadSprintPeriodTasks(project, team, sprintPath, startDate, finishDate, assignee),
+  ]);
   if (sprintStories.error || !startDate || !finishDate) return sprintStories;
-
-  const periodTasks = await loadSprintPeriodTasks(
-    project,
-    team,
-    sprintPath,
-    startDate,
-    finishDate,
-    assignee,
-  );
   if (periodTasks.error) return sprintStories;
 
-  const auth = await resolveScopedAuth(project);
+  const [auth, pbiAssigneeField] = await Promise.all([
+    resolveScopedAuth(project),
+    resolvePbiAssigneeField(),
+  ]);
   if (!auth) return sprintStories;
-
-  const pbiAssigneeField = await resolvePbiAssigneeField();
   const backlogStories = await listParentStoriesForTasks(auth, periodTasks.data, {
     assignee,
     excludeIds: new Set(sprintStories.data.map((story) => story.id)),

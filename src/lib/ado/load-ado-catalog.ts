@@ -6,10 +6,14 @@ import { applyContextDefaultsToSession } from "@/lib/auth/apply-context-defaults
 import type { AdoCatalogSnapshot, AdoContextSearchParams } from "@/lib/ado/types";
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
-import { listOrganizationProjects, withAdoProject } from "@/lib/azure-devops/projects";
-import { listTeamSprints } from "@/lib/azure-devops/sprints";
-import { resolveSuggestedTeam } from "@/lib/azure-devops/suggested-team";
-import { listProjectTeams } from "@/lib/azure-devops/teams";
+import {
+  listOrganizationProjectsCached,
+  listProjectTeamsCached,
+  listTeamSprintsCached,
+  resolveAdoCatalogCacheScope,
+  resolveSuggestedTeamCached,
+} from "@/lib/ado/ado-catalog-cache";
+import { withAdoProject } from "@/lib/azure-devops/projects";
 import {
   pickProject,
   pickSprint,
@@ -84,18 +88,29 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
 
   const errors = { projects: null, teams: null, sprints: null } as AdoCatalogSnapshot["errors"];
 
-  const { defaultProject, defaultTeam: savedDefaultTeam } =
-    await resolveContextDefaults(caller.auth.project ?? "");
+  // Solo lee la sesión (sin red): identifica la caché por usuario/credencial.
+  const cacheScope = await resolveAdoCatalogCacheScope(caller.auth);
 
-  let projects = EMPTY_ADO_CATALOG.projects;
+  // Defaults (sesión/BD) y proyectos (ADO) no dependen entre sí: en paralelo.
+  const [{ defaultProject, defaultTeam: savedDefaultTeam }, projectsResult] =
+    await Promise.all([
+      resolveContextDefaults(caller.auth.project ?? ""),
+      listOrganizationProjectsCached(caller.auth, cacheScope).then(
+        (data) => ({ data, error: null as string | null }),
+        (cause: unknown) => ({
+          data: null,
+          error:
+            cause instanceof Error ? cause.message : "No se pudieron cargar los proyectos.",
+        }),
+      ),
+    ]);
 
-  try {
-    projects = await listOrganizationProjects(caller.auth);
-  } catch (cause) {
-    errors.projects =
-      cause instanceof Error ? cause.message : "No se pudieron cargar los proyectos.";
+  if (!projectsResult.data) {
+    errors.projects = projectsResult.error;
     return { ...EMPTY_ADO_CATALOG, errors };
   }
+
+  const projects = projectsResult.data;
 
   const project = pickProject(searchParams.project ?? "", projects, preferredProject ?? defaultProject);
   if (!project) {
@@ -110,14 +125,28 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
   let teams = EMPTY_ADO_CATALOG.teams;
   let suggestedTeam: string | null = null;
   let defaultTeam: string | null = savedDefaultTeam;
+  let team = "";
 
   try {
     const scopedAuth = withAdoProject(caller.auth, project);
-    teams = await listProjectTeams(scopedAuth);
-    suggestedTeam = await resolveSuggestedTeam(scopedAuth, teams);
+    teams = await listProjectTeamsCached(scopedAuth, cacheScope);
 
     defaultTeam =
       defaultTeam && teams.some((item) => item.name === defaultTeam) ? defaultTeam : null;
+
+    const requestedTeam = searchParams.team ?? "";
+    const explicitTeam =
+      requestedTeam && teams.some((item) => item.name === requestedTeam)
+        ? requestedTeam
+        : defaultTeam;
+
+    // La sugerencia sondea las iteraciones de cada equipo (una llamada ADO por
+    // equipo); solo se calcula cuando no hay equipo explícito ni default válido.
+    if (!explicitTeam) {
+      suggestedTeam = await resolveSuggestedTeamCached(scopedAuth, teams, cacheScope);
+    }
+
+    team = explicitTeam ?? pickTeam(requestedTeam, teams, defaultTeam, suggestedTeam);
   } catch (cause) {
     errors.teams = cause instanceof Error ? cause.message : "No se pudieron cargar los equipos.";
     return {
@@ -127,13 +156,6 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
       errors,
     };
   }
-
-  const team = pickTeam(
-    searchParams.team ?? "",
-    teams,
-    defaultTeam,
-    suggestedTeam,
-  );
 
   if (!team) {
     return {
@@ -153,7 +175,7 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
   let sprints = EMPTY_ADO_CATALOG.sprints;
 
   try {
-    sprints = await listTeamSprints(withAdoProject(caller.auth, project), team);
+    sprints = await listTeamSprintsCached(withAdoProject(caller.auth, project), team, cacheScope);
   } catch (cause) {
     errors.sprints = cause instanceof Error ? cause.message : "No se pudieron cargar los sprints.";
     return {
