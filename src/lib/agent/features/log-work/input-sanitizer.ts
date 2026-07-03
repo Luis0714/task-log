@@ -32,7 +32,7 @@ export function sanitizeUserInput(input: string): string {
   let s = input.trim();
 
   // 2) Strip control chars (except newline y tab que sí tienen sentido)
-  // eslint-disable-next-line no-control-regex
+   
   s = s.replace(/[\x00-\x08\x0B-\x1F\x7F]/g, "");
 
   // 3) Colapsar repeticiones largas

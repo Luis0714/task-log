@@ -26,9 +26,7 @@ import {
 } from "@/lib/dashboard/sprint-days";
 import type { AdoCatalogSnapshot, DashboardSprintBundle } from "@/lib/ado/types";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
-import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
-
-export { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
+import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
 
 export type BuildDashboardMetricsInput = {
   bundle: DashboardSprintBundle;

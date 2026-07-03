@@ -5,7 +5,7 @@ import { ReportsTimeLogContent } from "@/components/reports/time-log/reports-tim
 import { ReportsTimeLogExportDialog } from "@/components/reports/time-log/reports-time-log-export-dialog";
 import { useSprintStats } from "@/hooks/sprints/use-sprint-stats";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
-import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
+import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
 import { EMPTY_SPRINT_TIMES_METRICS } from "@/lib/sprints/build-sprint-times-metrics";
 import { PAGE_SEO } from "@/lib/seo/pages";
 

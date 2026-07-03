@@ -3,9 +3,9 @@ import "server-only";
 import {
   firstSprintDataError,
   loadSprintBacklogStates,
-  loadSprintBugs,
   loadSprintNonWorkingDates,
-  loadSprintTasks,
+  loadSprintPeriodBugs,
+  loadSprintPeriodTasks,
   loadSprintWorkItems,
 } from "@/lib/ado/load-sprint-data";
 import { isDatabaseConfigured } from "@/lib/db/client";
@@ -49,8 +49,22 @@ async function loadLiveSprintTimesMetrics(
   const [workItemsPart, bugsPart, tasksPart, backlogStatesPart, tagsPart, nonWorkingDatesPart, assigneeRoster] =
     await Promise.all([
       loadSprintWorkItems(scope.project, scope.sprintPath, WORK_ITEM_ASSIGNEE_ALL),
-      loadSprintBugs(scope.project, scope.sprintPath, WORK_ITEM_ASSIGNEE_ALL),
-      loadSprintTasks(scope.project, scope.sprintPath, WORK_ITEM_ASSIGNEE_ALL),
+      loadSprintPeriodBugs(
+        scope.project,
+        scope.team,
+        scope.sprintPath,
+        options.sprintStartDate ?? null,
+        options.sprintFinishDate ?? null,
+        WORK_ITEM_ASSIGNEE_ALL,
+      ),
+      loadSprintPeriodTasks(
+        scope.project,
+        scope.team,
+        scope.sprintPath,
+        options.sprintStartDate ?? null,
+        options.sprintFinishDate ?? null,
+        WORK_ITEM_ASSIGNEE_ALL,
+      ),
       loadSprintBacklogStates(scope.project),
       loadProjectWorkItemTags(scope.project),
       loadSprintNonWorkingDates(scope.project, scope.team),

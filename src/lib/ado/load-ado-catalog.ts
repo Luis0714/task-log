@@ -10,7 +10,12 @@ import { listOrganizationProjects, withAdoProject } from "@/lib/azure-devops/pro
 import { listTeamSprints } from "@/lib/azure-devops/sprints";
 import { resolveSuggestedTeam } from "@/lib/azure-devops/suggested-team";
 import { listProjectTeams } from "@/lib/azure-devops/teams";
-import { pickProject, pickSprint, pickTeam } from "@/lib/time-log/context-defaults";
+import {
+  pickProject,
+  pickSprint,
+  pickTeam,
+  type PickSprintOptions,
+} from "@/lib/time-log/context-defaults";
 
 export const EMPTY_ADO_CATALOG: AdoCatalogSnapshot = {
   projects: [],
@@ -67,9 +72,12 @@ async function resolveContextDefaults(
   };
 }
 
+export type LoadAdoCatalogOptions = PickSprintOptions;
+
 export const loadAdoCatalog = cache(async function loadAdoCatalog(
   preferredProject: string | null,
   searchParams: AdoContextSearchParams = {},
+  options: LoadAdoCatalogOptions = {},
 ): Promise<AdoCatalogSnapshot> {
   const caller = await requireAdoCaller();
   if (!caller.ok) return EMPTY_ADO_CATALOG;
@@ -162,7 +170,7 @@ export const loadAdoCatalog = cache(async function loadAdoCatalog(
     };
   }
 
-  const sprintPath = pickSprint(searchParams.sprint ?? "", sprints);
+  const sprintPath = pickSprint(searchParams.sprint ?? "", sprints, options);
 
   return {
     projects,

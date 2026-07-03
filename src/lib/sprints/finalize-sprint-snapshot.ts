@@ -3,9 +3,9 @@ import "server-only";
 import {
   firstSprintDataError,
   loadSprintBacklogStates,
-  loadSprintBugs,
   loadSprintNonWorkingDates,
-  loadSprintTasks,
+  loadSprintPeriodBugs,
+  loadSprintPeriodTasks,
   loadSprintWorkItems,
 } from "@/lib/ado/load-sprint-data";
 import { fetchWorkItemsByIds } from "@/lib/azure-devops/work-items";
@@ -66,8 +66,22 @@ export async function finalizeSprintSnapshot(
   const [workItemsPart, bugsPart, tasksPart, backlogStatesPart, tagsPart, nonWorkingDatesPart, assigneeRoster, goals, sprintGoal] =
     await Promise.all([
       loadSprintWorkItems(input.scope.project, input.scope.sprintPath, WORK_ITEM_ASSIGNEE_ALL),
-      loadSprintBugs(input.scope.project, input.scope.sprintPath, WORK_ITEM_ASSIGNEE_ALL),
-      loadSprintTasks(input.scope.project, input.scope.sprintPath, WORK_ITEM_ASSIGNEE_ALL),
+      loadSprintPeriodBugs(
+        input.scope.project,
+        input.scope.team,
+        input.scope.sprintPath,
+        input.sprintStartDate ?? null,
+        input.sprintFinishDate ?? null,
+        WORK_ITEM_ASSIGNEE_ALL,
+      ),
+      loadSprintPeriodTasks(
+        input.scope.project,
+        input.scope.team,
+        input.scope.sprintPath,
+        input.sprintStartDate ?? null,
+        input.sprintFinishDate ?? null,
+        WORK_ITEM_ASSIGNEE_ALL,
+      ),
       loadSprintBacklogStates(input.scope.project),
       loadProjectWorkItemTags(input.scope.project),
       loadSprintNonWorkingDates(input.scope.project, input.scope.team),

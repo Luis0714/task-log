@@ -1,8 +1,6 @@
 import type { AdoCatalogSnapshot, DashboardSprintBundle } from "@/lib/ado/types";
-import {
-  buildDashboardMetrics,
-  resolveCurrentSprint,
-} from "@/lib/dashboard/build-dashboard-metrics";
+import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
+import { buildDashboardMetrics } from "@/lib/dashboard/build-dashboard-metrics";
 import {
   formatSprintDayShortLabel,
   isSameLocalDay,

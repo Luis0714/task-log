@@ -1,8 +1,12 @@
-import { firstSprintDataError, loadSprintBacklogStates, loadSprintWorkItems } from "@/lib/ado/load-sprint-data";
+import {
+  firstSprintDataError,
+  loadSprintBacklogStates,
+  loadSprintPeriodStories,
+} from "@/lib/ado/load-sprint-data";
 import { catalogToSprintContext } from "@/lib/ado/sprint-data-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { buildSprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
-import { resolveCurrentSprint } from "@/lib/dashboard/build-dashboard-metrics";
+import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
 import {
   mapToDashboardWorkItems,
   selectInProgressItems,
@@ -26,7 +30,14 @@ export async function loadDailySectionData(
   }
 
   const [workItems, backlogStates] = await Promise.all([
-    loadSprintWorkItems(ctx.project, ctx.sprintPath, ctx.assignee),
+    loadSprintPeriodStories(
+      ctx.project,
+      ctx.team,
+      ctx.sprintPath,
+      ctx.sprintStartDate,
+      ctx.sprintFinishDate,
+      ctx.assignee,
+    ),
     loadSprintBacklogStates(ctx.project),
   ]);
   const error = firstSprintDataError(workItems, backlogStates);

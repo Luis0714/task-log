@@ -23,6 +23,7 @@ export async function TimeLogBodyServer({
   const { catalog } = serverBaseline;
   const pbisSnapshot = await loadTimeLogPbis(
     catalog.project,
+    catalog.team,
     catalog.sprintPath,
     urlAssignee,
   );

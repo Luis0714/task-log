@@ -12,6 +12,12 @@ import {
   listTasksInSprint,
   listWorkItemsInSprint,
 } from "@/lib/azure-devops/work-items";
+import {
+  listBugsInWorkingDateRange,
+  listParentStoriesForTasks,
+  listTasksInWorkingDateRange,
+  type WorkingDateRange,
+} from "@/lib/azure-devops/work-items-by-date";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import type {
   AdoTaskStateDto,
@@ -22,11 +28,6 @@ import { logApiError } from "@/lib/errors/log-api-error";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
 import { RESPONSABLE_ENV_KEYS } from "@/lib/azure-devops/backlog-item-fields-config";
 
-/**
- * Resuelve el campo WIQL que identifica "asignado" a nivel de PBI para el
- * usuario actual. Para el rol QA usa el campo configurado en `AZDO_PBI_FIELD_QA`;
- * para cualquier otro rol usa el campo estándar `System.AssignedTo`.
- */
 async function resolvePbiAssigneeField(): Promise<string | undefined> {
   if (!isIronSessionConfigured()) return undefined;
   const session = await getTaskPilotSession();
@@ -110,6 +111,105 @@ export const loadSprintTasks = cache(async function loadSprintTasks(
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };
   }
+});
+
+type ListInWorkingDateRange = typeof listTasksInWorkingDateRange;
+
+async function loadWorkItemsInPeriod(
+  project: string,
+  team: string,
+  range: WorkingDateRange,
+  assignee: string,
+  listInRange: ListInWorkingDateRange,
+  connectMessage: string,
+): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
+  try {
+    const auth = await resolveScopedAuth(project);
+    if (!auth) {
+      return { data: [], error: connectMessage };
+    }
+    const data = await listInRange(auth, range, { assignee, team });
+    return { data, error: null };
+  } catch (cause) {
+    return { data: [], error: formatSprintDataError(cause) };
+  }
+}
+
+export const loadSprintPeriodTasks = cache(async function loadSprintPeriodTasks(
+  project: string,
+  team: string,
+  _sprintPath: string,
+  startDate: string | null,
+  finishDate: string | null,
+  assignee: string,
+): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
+  if (!startDate || !finishDate) return { data: [], error: null };
+  return loadWorkItemsInPeriod(
+    project,
+    team,
+    { startDate, finishDate },
+    assignee,
+    listTasksInWorkingDateRange,
+    "Conecta Azure DevOps para cargar tareas del periodo.",
+  );
+});
+
+export const loadSprintPeriodBugs = cache(async function loadSprintPeriodBugs(
+  project: string,
+  team: string,
+  _sprintPath: string,
+  startDate: string | null,
+  finishDate: string | null,
+  assignee: string,
+): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
+  if (!startDate || !finishDate) return { data: [], error: null };
+  return loadWorkItemsInPeriod(
+    project,
+    team,
+    { startDate, finishDate },
+    assignee,
+    listBugsInWorkingDateRange,
+    "Conecta Azure DevOps para cargar Bugs del periodo.",
+  );
+});
+
+export const loadSprintPeriodStories = cache(async function loadSprintPeriodStories(
+  project: string,
+  team: string,
+  sprintPath: string,
+  startDate: string | null,
+  finishDate: string | null,
+  assignee: string,
+): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
+  const sprintStories = await loadSprintWorkItems(project, sprintPath, assignee);
+  if (sprintStories.error || !startDate || !finishDate) return sprintStories;
+
+  const periodTasks = await loadSprintPeriodTasks(
+    project,
+    team,
+    sprintPath,
+    startDate,
+    finishDate,
+    assignee,
+  );
+  if (periodTasks.error) return sprintStories;
+
+  const auth = await resolveScopedAuth(project);
+  if (!auth) return sprintStories;
+
+  const pbiAssigneeField = await resolvePbiAssigneeField();
+  const backlogStories = await listParentStoriesForTasks(auth, periodTasks.data, {
+    assignee,
+    excludeIds: new Set(sprintStories.data.map((story) => story.id)),
+    pbiAssigneeField,
+  });
+  if (backlogStories.length === 0) return sprintStories;
+
+  const marked = backlogStories.map((story) => ({ ...story, fromBacklog: true }));
+  const data = [...sprintStories.data, ...marked].sort((a, b) =>
+    a.title.localeCompare(b.title, "es"),
+  );
+  return { data, error: null };
 });
 
 export const loadSprintBacklogStates = cache(async function loadSprintBacklogStates(

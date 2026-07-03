@@ -1,4 +1,5 @@
 import type { AdoProjectDto, AdoSprintDto, AdoTeamDto } from "@/lib/schemas/ado-catalog";
+import { isBacklogScope } from "@/lib/time-log/backlog-scope";
 import {
   resolvePreferredProject,
   resolvePreferredSprint,
@@ -30,7 +31,17 @@ export function pickTeam(
   return resolvePreferredTeam(teams, defaultTeam, suggestedTeam) ?? "";
 }
 
-export function pickSprint(current: string, sprints: AdoSprintDto[]): string {
+export type PickSprintOptions = {
+  /** Acepta el scope "Backlog completo" (pantallas de time-log y creación de tareas). */
+  allowBacklogScope?: boolean;
+};
+
+export function pickSprint(
+  current: string,
+  sprints: AdoSprintDto[],
+  { allowBacklogScope = false }: PickSprintOptions = {},
+): string {
+  if (allowBacklogScope && isBacklogScope(current)) return current;
   if (current && sprints.some((sprint) => sprint.path === current)) return current;
   return resolvePreferredSprint(sprints) ?? "";
 }

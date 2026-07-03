@@ -6,7 +6,7 @@ import { useAdoContextUrl } from "@/hooks/use-ado-context-url";
 import { useSaveAdoContextDefaults } from "@/hooks/filters/use-save-ado-context-defaults";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { resolveCatalogError } from "@/lib/ado/resolve-catalog-error";
-import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
+import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
 
 export type UseAdoContextPageOptions = {
   catalog: AdoCatalogSnapshot;

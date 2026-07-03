@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useMemo, useRef, type ReactNode } from "react";
 
 export type NeosIaDraftContextValue = {
   value: string;
@@ -24,19 +24,14 @@ export function NeosIaDraftProvider({
   setValue,
   children,
 }: Readonly<NeosIaDraftProviderProps>) {
-  // textareaRef needs to survive re-renders. We use a lazy module-scope ref
-  // that the consumer sets via registerTextarea. The provider doesn't need to
-  // store it; we just expose the focusTextarea callback.
-  // Using module-scope keeps the provider's render stable.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const textareaRefHolder = useMemo(() => ({ current: null as HTMLTextAreaElement | null }), []);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const api = useMemo<NeosIaDraftContextValue>(
     () => ({
       value,
       setValue,
       focusTextarea: () => {
-        const node = textareaRefHolder.current;
+        const node = textareaRef.current;
         if (node) {
           node.focus();
           // Move caret to end of value so the user can keep typing.
@@ -45,10 +40,10 @@ export function NeosIaDraftProvider({
         }
       },
       registerTextarea: (node: HTMLTextAreaElement | null) => {
-        textareaRefHolder.current = node;
+        textareaRef.current = node;
       },
     }),
-    [value, setValue, textareaRefHolder],
+    [value, setValue],
   );
 
   return (

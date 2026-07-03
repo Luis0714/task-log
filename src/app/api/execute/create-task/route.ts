@@ -11,6 +11,7 @@ import { logApiError } from "@/lib/errors/log-api-error";
 import { mapTaskCreateError } from "@/lib/errors/map-task-create-error";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { executeCreateTaskRequestSchema } from "@/lib/schemas/agent";
+import { resolveExecutionSprintPath } from "@/lib/time-log/backlog-scope";
 import type { TaskActivity } from "@/lib/time-log/task-constants";
 
 export async function POST(req: Request) {
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
       workingDate: task.workingDate,
       workingTime: task.workingTime,
       state: task.state,
-      sprintPath: task.sprintPath,
+      sprintPath: resolveExecutionSprintPath(task.sprintPath),
       markAsDone: task.markAsDone,
     },
     authForExecute,

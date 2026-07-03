@@ -21,7 +21,9 @@ export async function TimeLogBodyStreamLoader({
   isTaskCreationMode,
   initialWorkItemFilters,
 }: TimeLogBodyStreamLoaderProps) {
-  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp);
+  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp, {
+    allowBacklogScope: true,
+  });
   if (!catalog.sprintPath) return null;
 
   const formMeta = await loadTimeLogFormMeta(catalog);

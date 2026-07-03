@@ -1,5 +1,6 @@
 import { ProgressBar } from "@/components/dashboard/metrics/progress-bar";
 import { WorkItemAssigneeTag } from "@/components/work-items/work-item-assignee-tag";
+import { WorkItemBacklogBadge } from "@/components/work-items/work-item-backlog-badge";
 import { WorkItemBugCountBadge } from "@/components/work-items/work-item-bug-count-badge";
 import { WorkItemEffortBadge } from "@/components/work-items/work-item-effort-badge";
 import { WorkItemHoursLabel } from "@/components/work-items/work-item-hours-label";
@@ -26,6 +27,7 @@ export function PbiFeaturedCard({ item, className, onClick }: PbiFeaturedCardPro
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <WorkItemId id={item.id} className="shrink-0" />
+          {item.fromBacklog ? <WorkItemBacklogBadge /> : null}
           {item.effort !== undefined ? <WorkItemEffortBadge effort={item.effort} /> : null}
           {item.bugCount !== undefined && item.bugCount > 0 ? (
             <WorkItemBugCountBadge count={item.bugCount} variant="total" />

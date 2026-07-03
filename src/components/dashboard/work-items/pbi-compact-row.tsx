@@ -1,4 +1,5 @@
 import { WorkItemAssigneeTag } from "@/components/work-items/work-item-assignee-tag";
+import { WorkItemBacklogBadge } from "@/components/work-items/work-item-backlog-badge";
 import { WorkItemHoursLabel } from "@/components/work-items/work-item-hours-label";
 import { WorkItemId } from "@/components/work-items/work-item-id";
 import { WorkItemBugCountBadge } from "@/components/work-items/work-item-bug-count-badge";
@@ -28,6 +29,7 @@ export function PbiCompactRow({
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2 overflow-hidden">
           <WorkItemId id={item.id} className="shrink-0" />
+          {item.fromBacklog ? <WorkItemBacklogBadge className="shrink-0" /> : null}
           {item.effort !== undefined ? (
             <WorkItemEffortBadge effort={item.effort} className="shrink-0" />
           ) : null}

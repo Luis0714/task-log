@@ -36,6 +36,7 @@ export function AdoContextSelectFields({
   sprintsLoading = false,
   sprintDayFilter,
   markRequiredFields = false,
+  includeBacklogOption = false,
   className,
 }: AdoContextSelectFieldsProps) {
   const teamPlaceholder = teamsLoading ? "Cargando equipos..." : placeholders.team;
@@ -87,7 +88,7 @@ export function AdoContextSelectFields({
         loading={sprintsLoading}
         error={sprintsError}
         displayValue={selectedSprintLabel}
-        options={sprintSelectOptions(sprints)}
+        options={sprintSelectOptions(sprints, { includeBacklogOption })}
         onValueChange={onSprintChange}
         triggerTitle={selectedSprintLabel ?? undefined}
         itemTextWrap

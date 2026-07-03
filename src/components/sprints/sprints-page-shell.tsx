@@ -10,7 +10,7 @@ import { useSprintSnapshot } from "@/hooks/sprints/use-sprint-snapshot";
 import { useSprintStats } from "@/hooks/sprints/use-sprint-stats";
 import { useSprintViewUrl } from "@/hooks/sprints/use-sprint-view-url";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
-import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
+import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
 import { PAGE_SEO } from "@/lib/seo/pages";
 
 export type SprintsPageShellProps = {
