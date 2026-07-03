@@ -1,126 +1,37 @@
 import { CheckCircle2, CircleDashed, ListChecks } from "lucide-react";
 
-import { PbiProgressRingChart } from "@/components/dashboard/charts/pbi-progress-ring-chart";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ProgressRingCard } from "@/components/dashboard/metrics/progress-ring/progress-ring-card";
+import { buildPbiProgressRingViewModel } from "@/lib/dashboard/progress-ring/build-view-models";
 import type { SprintPbiProgress } from "@/lib/dashboard/types";
-import { cn } from "@/lib/utils";
+
+const PBI_BREAKDOWN_ICONS = {
+  completed: CheckCircle2,
+  pending: CircleDashed,
+  inProgress: ListChecks,
+} as const;
 
 export type SprintPbiProgressCardProps = {
   progress: SprintPbiProgress;
   loading?: boolean;
-  compact?: boolean;
   highlight?: boolean;
   className?: string;
 };
 
-type BreakdownRowProps = {
-  icon: typeof CheckCircle2;
-  label: string;
-  count: number;
-  tone: "done" | "pending" | "other";
-};
-
-function BreakdownRow({ icon: Icon, label, count, tone }: BreakdownRowProps) {
-  const toneClass =
-    tone === "done"
-      ? "text-emerald-600 dark:text-emerald-400"
-      : tone === "pending"
-        ? "text-amber-600 dark:text-amber-400"
-        : "text-muted-foreground";
-
-  return (
-    <li className="flex items-center justify-between gap-2 text-xs">
-      <span className="text-muted-foreground flex items-center gap-1.5">
-        <Icon className={cn("size-3.5 shrink-0", toneClass)} aria-hidden />
-        {label}
-      </span>
-      <span className="font-heading font-semibold tabular-nums">{count}</span>
-    </li>
-  );
-}
-
 export function SprintPbiProgressCard({
   progress,
   loading = false,
-  compact = false,
-  highlight = false,
+  highlight,
   className,
 }: SprintPbiProgressCardProps) {
-  const hasItems = progress.totalCount > 0;
+  const model = buildPbiProgressRingViewModel(progress);
 
   return (
-    <Card
-      size="sm"
-      className={cn(
-        "border-border/60 dark:border-white/6 transition-colors",
-        highlight
-          ? "border-primary/30 bg-primary/[0.03] ring-1 ring-primary/15"
-          : "hover:border-primary/20 hover:bg-card/95",
-        className,
-      )}
-    >
-      <CardContent className="flex flex-col gap-2 pt-0">
-        <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
-          Progreso historias de usuario
-        </p>
-
-        {loading ? (
-          <div className="flex items-center gap-4">
-            <Skeleton className="size-24 shrink-0 rounded-full" />
-            <div className="flex-1 space-y-1.5">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-4/5" />
-            </div>
-          </div>
-        ) : !hasItems ? (
-          <p className="text-muted-foreground text-sm">
-            Sin historias de usuario asignadas en este sprint.
-          </p>
-        ) : (
-          <div className="flex items-center gap-4">
-            <div className="relative flex shrink-0 items-center justify-center">
-              <PbiProgressRingChart percent={progress.percent} compact={compact} />
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span
-                  className={cn(
-                    "font-heading font-semibold tracking-tight tabular-nums",
-                    compact ? "text-2xl" : "text-3xl",
-                  )}
-                >
-                  {progress.percent}%
-                </span>
-                <span className="text-muted-foreground text-[10px]">
-                  {progress.completedCount}/{progress.totalCount}
-                </span>
-              </div>
-            </div>
-
-            <ul className="min-w-0 flex-1 space-y-1">
-              <BreakdownRow
-                icon={CheckCircle2}
-                label="Desarrolladas"
-                count={progress.completedCount}
-                tone="done"
-              />
-              <BreakdownRow
-                icon={CircleDashed}
-                label="Pendientes"
-                count={progress.pendingCount}
-                tone="pending"
-              />
-              {progress.otherCount > 0 ? (
-                <BreakdownRow
-                  icon={ListChecks}
-                  label="Otros"
-                  count={progress.otherCount}
-                  tone="other"
-                />
-              ) : null}
-            </ul>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <ProgressRingCard
+      model={model}
+      iconsByItemId={PBI_BREAKDOWN_ICONS}
+      loading={loading}
+      highlight={highlight}
+      className={className}
+    />
   );
 }

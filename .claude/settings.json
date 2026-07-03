@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm db:generate)",
+      "Bash(powershell -NoProfile -Command \"Rename-Item -LiteralPath 'node_modules\\\\knip' -NewName 'node_modules\\\\.ignored\\\\knip' -ErrorAction Stop; 'rename ok'\")",
+      "Bash(powershell -NoProfile -Command \"Move-Item -LiteralPath 'node_modules\\\\knip' -Destination 'node_modules\\\\.ignored\\\\knip' -ErrorAction Stop; 'move ok'\")",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\\\tmp\\\\diag-lock.ps1\")",
+      "Bash(node -e ' *)",
+      "Bash(node scripts/apply-0018.cjs)",
+      "Bash(node scripts/apply-0018.mjs)",
+      "Bash(grep -c \"^\\\\`\\\\\\\\|\\\\\\\\\\\\\\\\\\\\`\\\\\\\\| \\\\`\" src/lib/agent/features/create-tasks/prompt.ts)"
+    ]
+  }
+}

@@ -85,10 +85,15 @@ export function DatePicker({
           selected={selectedDate}
           defaultMonth={selectedDate}
           disabled={disabledMatcher}
-          onSelect={(date) => {
-            if (!date) return;
-            onChange(toLocalDateKey(date));
+          onDayClick={(day, modifiers) => {
+            if (modifiers.disabled) return;
+            onChange(toLocalDateKey(day));
             setOpen(false);
+          }}
+          onSelect={(date) => {
+            if (!date) {
+              setOpen(false);
+            }
           }}
         />
       </PopoverContent>

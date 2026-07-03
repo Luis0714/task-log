@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 
-import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
+import { ADO_SIGN_IN_REQUIRED_MESSAGE } from "@/lib/auth/ado-auth-messages";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { createTaskUnderPbi } from "@/lib/azure-devops/work-items";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
-import { formatAdoErrorMessage } from "@/lib/errors/parse-ado-error";
+import {
+  apiErrorResponse,
+} from "@/lib/errors/api-error-response";
+import { logApiError } from "@/lib/errors/log-api-error";
+import { mapTaskCreateError } from "@/lib/errors/map-task-create-error";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { executeCreateTaskRequestSchema } from "@/lib/schemas/agent";
+import { resolveExecutionSprintPath } from "@/lib/time-log/backlog-scope";
 import type { TaskActivity } from "@/lib/time-log/task-constants";
 
 export async function POST(req: Request) {
@@ -13,26 +19,18 @@ export async function POST(req: Request) {
   try {
     raw = await req.json();
   } catch {
-    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+    return apiErrorResponse(USER_MESSAGES.invalidJsonBody, 400);
   }
 
   const parsed = executeCreateTaskRequestSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Payload inválido para crear la tarea." },
-      { status: 422 },
-    );
+    return apiErrorResponse(USER_MESSAGES.invalidPayload, 422);
   }
 
   const { task, project } = parsed.data;
-  const auth = await resolveAdoCaller();
+  const auth = await resolveAdoCaller({ persistOAuthTokens: true });
   if (!auth) {
-    const error = isPatAuthMethod()
-      ? "No hay conexión con Azure DevOps. Configura AZDO_ORGANIZATION, AZDO_PROJECT y AZDO_PAT en el servidor."
-      : isOAuthAuthMethod()
-        ? "No hay conexión con Azure DevOps. Conecta tu cuenta con OAuth."
-        : "No hay conexión con Azure DevOps.";
-    return NextResponse.json({ error }, { status: 401 });
+    return apiErrorResponse(ADO_SIGN_IN_REQUIRED_MESSAGE, 401);
   }
 
   const authForExecute = project ? withAdoProject(auth, project) : auth;
@@ -45,21 +43,19 @@ export async function POST(req: Request) {
       description: task.description,
       activity: task.activity as TaskActivity,
       workingDate: task.workingDate,
+      workingTime: task.workingTime,
       state: task.state,
-      sprintPath: task.sprintPath,
+      sprintPath: resolveExecutionSprintPath(task.sprintPath),
+      markAsDone: task.markAsDone,
     },
     authForExecute,
   );
 
   if (!result.ok) {
-    const detail = formatAdoErrorMessage(result.body);
-    return NextResponse.json(
-      {
-        error: "No se pudo crear la tarea en Azure DevOps.",
-        detail,
-        status: result.status,
-      },
-      { status: result.status >= 400 && result.status < 600 ? result.status : 502 },
+    logApiError("execute/create-task", { status: result.status, body: result.body });
+    return apiErrorResponse(
+      mapTaskCreateError(result.body),
+      result.status >= 400 && result.status < 600 ? result.status : 502,
     );
   }
 
@@ -69,5 +65,6 @@ export async function POST(req: Request) {
     pbiId: task.pbiId,
     hours: task.hours,
     completedWork: result.completedWork,
+    markedAsDone: result.markedAsDone,
   });
 }

@@ -34,6 +34,15 @@ export const adoSprintSchema = z.object({
 export const adoWorkItemOptionSchema = z.object({
   id: z.number().int().positive(),
   title: z.string(),
+  /** Description del work item en texto plano. */
+  description: z.string().optional(),
+  /** Acceptance Criteria del work item en texto plano. */
+  acceptanceCriteria: z.string().optional(),
+  /**
+   * Pasos de reproducción del Bug (Microsoft.VSTS.TCM.ReproSteps) en HTML.
+   * Suele contener capturas/adjuntos incrustados; se renderiza tal cual.
+   */
+  reproSteps: z.string().optional(),
   type: z.string(),
   state: z.string(),
   assignedTo: z.string().optional(),
@@ -46,6 +55,8 @@ export const adoWorkItemOptionSchema = z.object({
   estimatedHours: z.number().optional(),
   /** Fecha de trabajo (YYYY-MM-DD), desde el campo configurado en ADO. */
   workingDate: z.string().optional(),
+  /** Hora del campo de fecha de trabajo (HH:mm), en la zona del proyecto. */
+  workingTime: z.string().optional(),
   /** Start Date del PBI/HU (YYYY-MM-DD). */
   startDate: z.string().optional(),
   /** Target Date del PBI/HU (YYYY-MM-DD). */
@@ -53,6 +64,19 @@ export const adoWorkItemOptionSchema = z.object({
   responsableMaquetacion: z.string().optional(),
   responsableIntegrador: z.string().optional(),
   responsableQA: z.string().optional(),
+  /**
+   * Mapa `referenceName → displayName` con TODOS los Responsables configurados
+   * en el proyecto (genérico, sin asumir 3 roles fijos).
+   */
+  responsables: z.record(z.string(), z.string()).optional(),
+  /** Tags de Azure DevOps (`System.Tags`), parseados. */
+  tags: z.array(z.string()).optional(),
+  /** Título del work item padre (HU/PBI). */
+  parentTitle: z.string().optional(),
+  /** Historia fuera del sprint (backlog u otra iteración) con trabajo registrado en el periodo. */
+  fromBacklog: z.boolean().optional(),
+  /** Actividad de la tarea (Microsoft.VSTS.Common.Activity). */
+  activity: z.string().optional(),
 });
 
 export const adoSprintsResponseSchema = z.object({
@@ -66,6 +90,8 @@ export const adoWorkItemsResponseSchema = z.object({
 export const adoTaskStateSchema = z.object({
   name: z.string(),
   category: z.string(),
+  /** Color hexadecimal sin "#" que Azure devuelve en el catálogo de estados. */
+  color: z.string(),
 });
 
 export const adoTaskStatesResponseSchema = z.object({
@@ -89,9 +115,20 @@ export const adoBacklogStatesResponseSchema = z.object({
   workItemType: z.string(),
 });
 
+export const adoWorkItemTagSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  lastUpdated: z.string().optional(),
+});
+
+export const adoWorkItemTagsResponseSchema = z.object({
+  tags: z.array(adoWorkItemTagSchema),
+});
+
 export type AdoProjectDto = z.infer<typeof adoProjectSchema>;
 export type AdoTeamDto = z.infer<typeof adoTeamSchema>;
 export type AdoSprintDto = z.infer<typeof adoSprintSchema>;
 export type AdoWorkItemOptionDto = z.infer<typeof adoWorkItemOptionSchema>;
 export type AdoTaskStateDto = z.infer<typeof adoTaskStateSchema>;
 export type AdoTeamMemberDto = z.infer<typeof adoTeamMemberSchema>;
+export type AdoWorkItemTagDto = z.infer<typeof adoWorkItemTagSchema>;

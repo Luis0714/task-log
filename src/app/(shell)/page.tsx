@@ -1,9 +1,13 @@
 import { DashboardShellServer } from "@/components/dashboard/dashboard-shell-server";
+import { DashboardAuthTransition } from "@/components/dashboard/dashboard-auth-transition";
+import { DashboardDemoShell } from "@/components/dashboard/dashboard-demo-shell";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
+import { DashboardMockSections } from "@/components/dashboard/dashboard-mock-sections";
 import { DashboardSectionsStreamLoader } from "@/components/dashboard/dashboard-sections-stream-loader";
 import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
 import { DashboardShellSkeleton } from "@/components/skeletons/dashboard-shell-skeleton";
+import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
 import { mapAuthStateToConnectionDisplay } from "@/lib/auth/connection-display";
 import { mergeServerAuthState } from "@/lib/auth/merge-auth-state";
 import { resolvePageAuthWithProfile } from "@/lib/auth/resolve-page-auth";
@@ -24,37 +28,56 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     mergeServerAuthState(auth, profile),
   );
   const sprintDayKey = sp.sprintDay ?? "";
+  const showLiveData = canLoadLiveAdoContent(auth);
 
   const header: DashboardHeaderData = {
-    displayName: connection.userDisplayName ?? "Usuario",
-    initials: connection.userInitials ?? "U",
-    avatarUrl: connection.userAvatarUrl,
-    project: connection.project ?? "Sin proyecto",
+    displayName: showLiveData
+      ? (connection.userDisplayName ?? "Usuario")
+      : "Hola",
+    initials: showLiveData ? (connection.userInitials ?? "U") : "U",
+    avatarUrl: showLiveData ? connection.userAvatarUrl : null,
+    project: showLiveData
+      ? (connection.project ?? "Sin proyecto")
+      : "Vista previa — conecta para ver tu sprint",
     sprintName: "Sprint actual",
   };
 
   return (
-    <AdoContextPageLayout
-      gapClassName="gap-6"
-      shellFallback={<DashboardShellSkeleton />}
-      adoExecutionReady={auth.adoExecutionReady}
-      shell={
-        <DashboardShellServer
-          sp={sp}
-          defaultProject={defaultProject}
-          adoExecutionReady={auth.adoExecutionReady}
-          header={header}
-          initialSprintDayKey={sprintDayKey}
-        />
-      }
-      content={
-        <DashboardSectionsStreamLoader
-          sp={sp}
-          defaultProject={defaultProject}
-          adoExecutionReady={auth.adoExecutionReady}
-          sprintDayKey={sprintDayKey}
-        />
-      }
-    />
+    <DashboardAuthTransition showLiveData={showLiveData}>
+      <AdoContextPageLayout
+        gapClassName="gap-6"
+        shellFallback={<DashboardShellSkeleton />}
+        adoExecutionReady={showLiveData}
+        connectOptions={auth.connectOptions}
+        savedConnectionTarget={auth.savedConnectionTarget}
+        disconnectedFallback={<DashboardMockSections />}
+        shell={
+          showLiveData ? (
+            <DashboardShellServer
+              sp={sp}
+              defaultProject={defaultProject}
+              userSessionActive={auth.userSessionActive}
+              adoExecutionReady={showLiveData}
+              connectOptions={auth.connectOptions}
+              savedConnectionTarget={auth.savedConnectionTarget}
+              header={header}
+              initialSprintDayKey={sprintDayKey}
+            />
+          ) : (
+            <DashboardDemoShell connectOptions={auth.connectOptions} />
+          )
+        }
+        content={
+          showLiveData ? (
+            <DashboardSectionsStreamLoader
+              sp={sp}
+              defaultProject={defaultProject}
+              adoExecutionReady={showLiveData}
+              sprintDayKey={sprintDayKey}
+            />
+          ) : null
+        }
+      />
+    </DashboardAuthTransition>
   );
 }

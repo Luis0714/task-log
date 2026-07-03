@@ -1,4 +1,3 @@
-import { isPatAuthMethod } from "@/lib/auth/auth-method";
 import { adoAuthHeader } from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 
@@ -25,7 +24,7 @@ export function parseProfileApiPayload(data: ProfileApiPayload): AdoUserProfile 
 }
 
 function profileApiBase(auth: AdoCallerAuth): string {
-  return isPatAuthMethod()
+  return auth.mode === "pat"
     ? `https://vssps.dev.azure.com/${encodeURIComponent(auth.organization)}`
     : "https://app.vssps.visualstudio.com";
 }

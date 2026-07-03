@@ -7,9 +7,9 @@ import {
 } from "@/lib/dashboard/build-dashboard-section-metrics";
 import {
   firstSprintDataError,
-  loadSprintBugs,
   loadSprintNonWorkingDates,
-  loadSprintTasks,
+  loadSprintPeriodBugs,
+  loadSprintPeriodTasks,
 } from "@/lib/ado/load-sprint-data";
 import { catalogToSprintContext } from "@/lib/ado/sprint-data-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
@@ -27,9 +27,23 @@ export async function DashboardHoursSectionServer({
   if (!ctx) return null;
 
   const [tasks, bugs, nonWorkingDates] = await Promise.all([
-    loadSprintTasks(ctx),
-    loadSprintBugs(ctx),
-    loadSprintNonWorkingDates(ctx),
+    loadSprintPeriodTasks(
+      ctx.project,
+      ctx.team,
+      ctx.sprintPath,
+      ctx.sprintStartDate,
+      ctx.sprintFinishDate,
+      ctx.assignee,
+    ),
+    loadSprintPeriodBugs(
+      ctx.project,
+      ctx.team,
+      ctx.sprintPath,
+      ctx.sprintStartDate,
+      ctx.sprintFinishDate,
+      ctx.assignee,
+    ),
+    loadSprintNonWorkingDates(ctx.project, ctx.team),
   ]);
 
   const error = firstSprintDataError(tasks, bugs, nonWorkingDates);

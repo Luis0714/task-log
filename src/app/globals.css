@@ -40,6 +40,8 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --color-brand-mark: var(--brand-mark);
+  --color-bug-open: var(--bug-open);
+  --color-bug-attended: var(--bug-attended);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -56,6 +58,8 @@
   --brand-goldenrod: #e0ae3b;
   --brand-cobalt: #1741b1;
   --brand-onyx: #0c0c0e;
+  --bug-open: #e11d48;
+  --bug-attended: #059669;
 
   --background: #f1f1f3;
   --foreground: #101013;
@@ -68,7 +72,8 @@
   --secondary: #e5e7ff;
   --secondary-foreground: #123187;
   --muted: #e3e3e8;
-  --muted-foreground: #5e5e6e;
+  /* Más oscuro que antes (#5e5e6e) — mejor contraste en textos xs/sm sobre fondo claro. */
+  --muted-foreground: #45455a;
   --accent: #e3b74f;
   --accent-foreground: #17171c;
   --destructive: #b91c1c;
@@ -154,6 +159,8 @@
 
 .dark {
   --brand-mark: #a78bfa;
+  --bug-open: #fb7185;
+  --bug-attended: #34d399;
 
   --background: #101013;
   --foreground: #f1f1f3;
@@ -254,9 +261,168 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background font-sans text-foreground;
   }
   html {
     @apply font-sans;
   }
+  /* Chrome y otros navegadores ya no usan pointer en <button> por defecto. */
+  button:not(:disabled):not([disabled]),
+  [role="button"]:not(:disabled):not([aria-disabled="true"]),
+  [data-slot="button"]:not(:disabled):not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  [role="button"]:disabled {
+    cursor: not-allowed;
+  }
+}
+
+/* Utilidades de marca — aseguran el morado y el fondo de la pastilla del isotipo. */
+@layer utilities {
+  .bg-brand-mark {
+    background-color: var(--brand-mark);
+  }
+
+  /* Scrollbar casi invisible para superficies de chat. Track transparente,
+     thumb 6px en muted-foreground. Respeta prefers-reduced-motion (no scroll
+     behaviour aquí, pero la `scrollbar-width` no causa animación). */
+  .thin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted-foreground) transparent;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--muted-foreground);
+    border-radius: 9999px;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--foreground);
+  }
+
+  .fill-brand-mark {
+    fill: var(--brand-mark);
+  }
+
+  .fill-sidebar-foreground {
+    fill: var(--sidebar-foreground);
+  }
+
+  .fill-white {
+    fill: #ffffff;
+  }
+
+  .bg-bug-open {
+    background-color: var(--bug-open);
+  }
+
+  .bg-bug-attended {
+    background-color: var(--bug-attended);
+  }
+
+  .text-bug-open {
+    color: var(--bug-open);
+  }
+
+  .text-bug-attended {
+    color: var(--bug-attended);
+  }
+}
+
+@layer components {
+  .work-item-select-item {
+    @apply mb-[4px] last:mb-0 h-auto min-h-0 cursor-pointer items-start overflow-hidden rounded-md border border-border/50 bg-muted/30 py-1.5 pl-1.5 pr-8;
+  }
+
+  .dark .work-item-select-item {
+    @apply bg-muted/20;
+  }
+}
+
+/* Halo pulsante para el FeatureBadge variante "new".
+ * Onda de color rojo que crece y se desvanece, sugiriendo "novedad".
+ * Se desactiva automáticamente si el usuario prefiere reduced-motion. */
+@keyframes feature-badge-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(239 68 68 / 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgb(239 68 68 / 0);
+  }
+}
+
+@layer utilities {
+  .animate-feature-badge-glow {
+    animation: feature-badge-glow 1.8s ease-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-feature-badge-glow {
+      animation: none;
+    }
+  }
+
+  /* Entrada de mensajes en Neos IA — fade + slide sutil. Sin framer-motion. */
+  .animate-neosia-message-in {
+    animation: neosia-message-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+
+@keyframes neosia-message-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-neosia-message-in {
+    animation: none;
+  }
+}
+
+/* ── Rich-text image resize handles (Tiptap ResizableNodeView) ─────────── */
+[data-resize-handle] {
+  display: none;
+  width: 10px;
+  height: 10px;
+  background: white;
+  border: 2px solid var(--primary);
+  border-radius: 2px;
+  z-index: 10;
+}
+
+[data-resize-container].ProseMirror-selectednode [data-resize-handle] {
+  display: block;
+}
+
+[data-resize-handle][data-resize-handle="top-left"],
+[data-resize-handle][data-resize-handle="bottom-right"] {
+  cursor: nwse-resize;
+}
+
+[data-resize-handle][data-resize-handle="top-right"],
+[data-resize-handle][data-resize-handle="bottom-left"] {
+  cursor: nesw-resize;
+}
+
+[data-resize-container].ProseMirror-selectednode img {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
 }

@@ -18,13 +18,17 @@ export function NeosViewMarca({
 }: NeosViewMarcaProps) {
   return (
     <span
-      className={cn("inline-flex max-w-full min-w-0 items-center gap-2", className)}
+      className={cn(
+        "inline-flex max-w-full min-w-0 items-center gap-2 text-sidebar-foreground",
+        className,
+      )}
       role="img"
       aria-label={title}
     >
       <NeosViewIsotipoBadge className={isotipoBadgeClassName} />
       <NeosViewLogotipo
         className={cn("block h-5 w-auto max-w-full sm:h-5.5", logotipoClassName)}
+        viewClassName="fill-sidebar-foreground"
         title={undefined}
       />
     </span>

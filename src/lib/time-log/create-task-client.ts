@@ -1,17 +1,19 @@
-import { formatAdoErrorMessage } from "@/lib/errors/parse-ado-error";
 import type { CreateTaskPayload } from "@/lib/schemas/time-log";
 
 export type CreateTaskApiResponse = {
   success?: boolean;
   error?: string;
-  detail?: string;
   taskId?: number;
   completedWork?: number;
+  markedAsDone?: boolean;
 };
 
 export async function createTaskInAdo(
   payload: CreateTaskPayload,
-): Promise<{ ok: true; taskId: number } | { ok: false; message: string }> {
+): Promise<
+  | { ok: true; taskId: number; markedAsDone: boolean }
+  | { ok: false; message: string }
+> {
   const res = await fetch("/api/execute/create-task", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -25,7 +27,9 @@ export async function createTaskInAdo(
         description: payload.description,
         activity: payload.activity,
         workingDate: payload.workingDate,
+        workingTime: payload.workingTime,
         state: payload.state,
+        markAsDone: payload.markAsDone,
         sprintPath: payload.sprintPath,
         team: payload.team,
       },
@@ -36,12 +40,11 @@ export async function createTaskInAdo(
   const data = (await res.json()) as CreateTaskApiResponse;
 
   if (!res.ok) {
-    const raw = [data.error, data.detail].filter(Boolean).join(" — ") || "Error al ejecutar";
     return {
       ok: false,
-      message: formatAdoErrorMessage(raw),
+      message: data.error || "No se pudo crear la tarea.",
     };
   }
 
-  return { ok: true, taskId: data.taskId ?? 0 };
+  return { ok: true, taskId: data.taskId ?? 0, markedAsDone: data.markedAsDone ?? false };
 }

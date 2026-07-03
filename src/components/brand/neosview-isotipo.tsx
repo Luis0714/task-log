@@ -3,7 +3,6 @@ import {
   NEOSVIEW_ISOTIPO_VIEWBOX,
 } from "@/components/brand/brand-paths";
 import { NeosViewLogo, type NeosViewLogoProps } from "@/components/brand/neosview-logo";
-import { cn } from "@/lib/utils";
 
 export type NeosViewIsotipoProps = Omit<NeosViewLogoProps, "viewBox" | "children"> & {
   /** Color del símbolo; por defecto usa el morado de marca. */
@@ -23,7 +22,7 @@ export function NeosViewIsotipo({
     >
       <path
         d={NEOSVIEW_ISOTIPO_PATH}
-        className={cn("fill-(--brand-mark)", markClassName)}
+        className={markClassName ?? "fill-brand-mark"}
       />
     </NeosViewLogo>
   );

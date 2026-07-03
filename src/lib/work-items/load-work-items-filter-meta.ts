@@ -2,12 +2,9 @@ import "server-only";
 
 import { cache } from "react";
 
-import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
-import { withAdoProject } from "@/lib/azure-devops/projects";
-import {
-  listBacklogItemStates,
-  listTeamMembers,
-} from "@/lib/azure-devops/work-item-type-states";
+import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
+import { listBacklogItemStates } from "@/lib/azure-devops/work-item-type-states";
 import type { AdoTaskStateDto, AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 
 export type WorkItemsFilterMeta = {
@@ -20,17 +17,17 @@ const emptyMeta: WorkItemsFilterMeta = { members: [], states: [] };
 export const loadWorkItemsFilterMeta = cache(async function loadWorkItemsFilterMeta(
   project: string,
   team: string,
+  sprintPath?: string,
 ): Promise<WorkItemsFilterMeta> {
-  if (!project || !team) return emptyMeta;
+  if (!project.trim() || !team.trim()) return emptyMeta;
 
-  const caller = await requireAdoCaller();
-  if (!caller.ok) return emptyMeta;
+  const auth = await getScopedProjectAuth(project);
+  if (!auth) return emptyMeta;
 
   try {
-    const scopedAuth = withAdoProject(caller.auth, project);
     const [members, states] = await Promise.all([
-      listTeamMembers(scopedAuth, team),
-      listBacklogItemStates(scopedAuth),
+      loadTeamMembers({ project, team, sprintPath, source: "workItems" }),
+      listBacklogItemStates(auth),
     ]);
     return { members, states };
   } catch {

@@ -3,13 +3,15 @@ import "server-only";
 import { cache } from "react";
 
 import type { WorkItemsListsSnapshot } from "@/lib/ado/types";
-import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
+import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import {
   listBacklogItemStates,
-  listTeamMembers,
+  listBugStates,
 } from "@/lib/azure-devops/work-item-type-states";
-import { withAdoProject } from "@/lib/azure-devops/projects";
-import { listWorkItemsInSprint } from "@/lib/azure-devops/work-items";
+import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
+import { listBugItemsInSprint, listWorkItemsInSprint } from "@/lib/azure-devops/work-items";
+import { buildSprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 
 const emptyLists: WorkItemsListsSnapshot = {
@@ -33,25 +35,29 @@ export const loadWorkItemsLists = cache(async function loadWorkItemsLists(
   const { project, team, sprintPath, assignee } = input;
   if (!project || !team || !sprintPath) return emptyLists;
 
-  const caller = await requireAdoCaller();
-  if (!caller.ok) return emptyLists;
+  const auth = await getScopedProjectAuth(project);
+  if (!auth) return emptyLists;
 
   try {
-    const scopedAuth = withAdoProject(caller.auth, project);
-    const [sprintWorkItems, sprintBugs, backlogStates, teamMembers] = await Promise.all([
-      listWorkItemsInSprint(scopedAuth, sprintPath, { assignee }),
-      listWorkItemsInSprint(scopedAuth, sprintPath, {
-        assignee: WORK_ITEM_ASSIGNEE_ALL,
-        workItemType: "Bug",
-      }),
-      listBacklogItemStates(scopedAuth),
-      listTeamMembers(scopedAuth, team),
+    const processProfile = await resolveProcessProfile(auth);
+    const [sprintWorkItems, sprintBugs, backlogStates, bugStates, teamMembers] = await Promise.all([
+      listWorkItemsInSprint(auth, sprintPath, { assignee }),
+      listBugItemsInSprint(auth, sprintPath, { assignee: WORK_ITEM_ASSIGNEE_ALL }),
+      listBacklogItemStates(auth, processProfile.backlogItemType),
+      listBugStates(auth, processProfile.bugWorkItemType),
+      loadTeamMembers({ project, team, sprintPath, source: "workItems" }),
     ]);
+
+    const userStoryMapping = buildSprintStatusMapping(backlogStates);
+    const bugMapping = buildSprintStatusMapping(bugStates);
 
     return {
       sprintWorkItems,
       sprintBugs,
       backlogStates,
+      bugStates,
+      userStoryMapping,
+      bugMapping,
       teamMembers,
       error: null,
     };

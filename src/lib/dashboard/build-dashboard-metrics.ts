@@ -3,15 +3,13 @@ import { computeSprintHoursSeries } from "@/lib/dashboard/sprint-hours-series";
 import { computeSprintWeekMetrics } from "@/lib/dashboard/sprint-weeks";
 import {
   sumHoursBreakdownForDay,
-  sumHoursBreakdownThroughDay,
+  sumHoursBreakdownForDayKeys,
 } from "@/lib/dashboard/hours-breakdown";
-import {
-  BUG_STATUS_MAPPING,
-  USER_STORY_STATUS_MAPPING,
-} from "@/lib/dashboard/sprint-status-mapping";
+import { buildSprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import { computeSprintStatusOverview } from "@/lib/dashboard/sprint-status-overview";
 import {
   computeAssignedStoryPoints,
+  computeDevelopedStoryPoints,
   computeDashboardMetrics,
   computeSprintPbiProgress,
   mapToDashboardWorkItems,
@@ -28,9 +26,7 @@ import {
 } from "@/lib/dashboard/sprint-days";
 import type { AdoCatalogSnapshot, DashboardSprintBundle } from "@/lib/ado/types";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
-import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
-
-export { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
+import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
 
 export type BuildDashboardMetricsInput = {
   bundle: DashboardSprintBundle;
@@ -68,11 +64,15 @@ export function buildDashboardMetrics({
     workingDayOptions,
   );
 
-  const pbiProgress = computeSprintPbiProgress(assigned, workItemStates);
+  const userStoryMapping = buildSprintStatusMapping(bundle.backlogStates);
+  const bugMapping = buildSprintStatusMapping(bundle.bugStates ?? bundle.backlogStates);
+
+  const pbiProgress = computeSprintPbiProgress(assigned, userStoryMapping);
   const storyPointsAssigned = computeAssignedStoryPoints(assigned);
+  const storyPointsDeveloped = computeDevelopedStoryPoints(assigned, userStoryMapping);
   const sprintStatusOverview = computeSprintStatusOverview(assigned, assignedBugs, {
-    userStories: USER_STORY_STATUS_MAPPING,
-    bugs: BUG_STATUS_MAPPING,
+    userStories: userStoryMapping,
+    bugs: bugMapping,
   });
 
   const hoursDayKey = resolveEffectiveSprintDayKey(
@@ -87,9 +87,10 @@ export function buildDashboardMetrics({
     currentSprint?.finishDate,
     workingDayOptions,
   );
+  const allSprintDayKeys = sprintWorkingDays.map((d) => d.value);
   const hoursSprintCurrent =
-    sprintEndKey !== ""
-      ? sumHoursBreakdownThroughDay(bundle.tasks, bundle.bugs, sprintEndKey)
+    allSprintDayKeys.length > 0
+      ? sumHoursBreakdownForDayKeys(bundle.tasks, bundle.bugs, allSprintDayKeys, sprintEndKey)
       : { taskHours: 0, bugHours: 0 };
   const hoursByDay = computeSprintHoursSeries(
     sprintWorkingDays,
@@ -105,6 +106,7 @@ export function buildDashboardMetrics({
   const metrics = computeDashboardMetrics(hoursToday, {
     sprintHours: { hoursSprintCurrent, hoursSprintTarget },
     storyPointsAssigned,
+    storyPointsDeveloped,
     pbiStateGroups,
     pbiProgress,
     sprintStatusOverview,
@@ -113,7 +115,7 @@ export function buildDashboardMetrics({
     sprintWeeks,
   });
 
-  const inProgress = selectInProgressItems(assigned);
+  const inProgress = selectInProgressItems(assigned, userStoryMapping);
 
   return { metrics, sprintWorkingDays, assigned, inProgress };
 }

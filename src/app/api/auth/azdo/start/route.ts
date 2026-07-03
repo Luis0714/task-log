@@ -1,41 +1,36 @@
-import { NextResponse } from "next/server";
-
 import {
   buildAuthorizeUrl,
   generateOAuthState,
   generatePkcePair,
-  isEntraOAuthConfigured,
+  getAuthBaseUrl,
 } from "@/lib/auth/entra";
-import { isOAuthAuthMethod } from "@/lib/auth/auth-method";
-import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
+import { oauthRedirect } from "@/lib/auth/oauth-http";
+import { requirePersistenceForOAuth } from "@/lib/auth/require-user-persistence";
+import { getTaskPilotSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  if (!isOAuthAuthMethod()) {
-    return NextResponse.json(
-      { error: "OAuth deshabilitado. AZDO_AUTH_METHOD=pat está activo." },
-      { status: 403 },
-    );
+function redirectWithAuthError(detail: string) {
+  const base = getAuthBaseUrl();
+  return oauthRedirect(new URL(`/login?azdo_error=auth&detail=${detail}`, base));
+}
+
+export async function GET(request: Request) {
+  const gate = requirePersistenceForOAuth();
+  if (!gate.ok) {
+    const detail =
+      gate.status === 503 ? "persistence_unavailable" : "microsoft_unavailable";
+    return redirectWithAuthError(detail);
   }
 
-  if (!isEntraOAuthConfigured() || !isIronSessionConfigured()) {
-    return NextResponse.json(
-      {
-        error:
-          "OAuth no configurado. Revisa AUTH_BASE_URL, AZURE_AD_CLIENT_ID, AZURE_AD_CLIENT_SECRET e IRON_SESSION_PASSWORD.",
-      },
-      { status: 503 },
-    );
-  }
-
+  const selectedRole = new URL(request.url).searchParams.get("role") ?? undefined;
   const state = generateOAuthState();
   const { verifier, challenge } = generatePkcePair();
 
   const session = await getTaskPilotSession();
-  session.pendingOAuth = { state, codeVerifier: verifier };
+  session.pendingOAuth = { state, codeVerifier: verifier, selectedRole };
   await session.save();
 
   const url = buildAuthorizeUrl({ state, codeChallenge: challenge });
-  return NextResponse.redirect(url);
+  return oauthRedirect(url);
 }

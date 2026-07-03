@@ -1,63 +1,108 @@
-import { NextResponse } from "next/server";
-import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
+import { ADO_SIGN_IN_REQUIRED_MESSAGE } from "@/lib/auth/ado-auth-messages";
+import { requireAdminOr403 } from "@/lib/auth/require-admin";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import { logWorkOnWorkItem } from "@/lib/azure-devops/work-items";
-import { executeRequestSchema } from "@/lib/schemas/agent";
+import { apiErrorResponse } from "@/lib/errors/api-error-response";
+import { logApiError } from "@/lib/errors/log-api-error";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
+import { executeRequestSchema, type LogWorkItem } from "@/lib/schemas/agent";
 
-export async function POST(req: Request) {
+type ExecuteResultEntry =
+  | {
+      index: number;
+      ok: true;
+      workItemId: number;
+      hours: number;
+      newCompletedWork?: number;
+    }
+  | {
+      index: number;
+      ok: false;
+      workItemId: number;
+      status: number;
+      body?: string;
+    };
+
+type ExecuteResponse = {
+  results: ExecuteResultEntry[];
+  successCount: number;
+  failureCount: number;
+};
+
+export async function POST(req: Request): Promise<Response> {
+  const adminGate = await requireAdminOr403();
+  if (adminGate) return adminGate;
+
   let raw: unknown;
   try {
     raw = await req.json();
   } catch {
-    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+    return apiErrorResponse(USER_MESSAGES.invalidJsonBody, 400);
   }
 
   const parsed = executeRequestSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Payload inválido: solo se puede ejecutar una vista previa de tipo log_work." },
-      { status: 422 },
-    );
+    return apiErrorResponse(USER_MESSAGES.invalidPayload, 422);
   }
 
-  const { preview, project } = parsed.data;
-  const auth = await resolveAdoCaller();
+  const auth = await resolveAdoCaller({ persistOAuthTokens: true });
   if (!auth) {
-    const error = isPatAuthMethod()
-      ? "No hay conexión con Azure DevOps. Configura AZDO_ORGANIZATION, AZDO_PROJECT y AZDO_PAT en el servidor."
-      : isOAuthAuthMethod()
-        ? "No hay conexión con Azure DevOps. Conecta tu cuenta con OAuth."
-        : "No hay conexión con Azure DevOps.";
-    return NextResponse.json({ error }, { status: 401 });
+    return apiErrorResponse(ADO_SIGN_IN_REQUIRED_MESSAGE, 401);
   }
 
+  const project = parsed.data.project;
   const authForExecute = project ? withAdoProject(auth, project) : auth;
 
-  const result = await logWorkOnWorkItem(
-    {
-      workItemId: preview.workItemId,
-      hours: preview.hours,
-      comment: preview.comment,
-    },
-    authForExecute,
-  );
+  const items: LogWorkItem[] =
+    parsed.data.action === "log_work_batch"
+      ? parsed.data.previews
+      : [parsed.data.preview];
 
-  if (!result.ok) {
-    return NextResponse.json(
+  const results: ExecuteResultEntry[] = [];
+  let successCount = 0;
+  let failureCount = 0;
+  let stop = false;
+
+  for (let index = 0; index < items.length && !stop; index += 1) {
+    const item = items[index]!;
+    const result = await logWorkOnWorkItem(
       {
-        error: "No se pudo registrar en Azure DevOps.",
-        detail: result.body,
-        status: result.status,
+        workItemId: item.workItemId,
+        hours: item.hours,
+        comment: item.comment,
       },
-      { status: result.status >= 400 && result.status < 600 ? result.status : 502 },
+      authForExecute,
     );
+
+    if (!result.ok) {
+      logApiError("execute POST", { status: result.status, body: result.body });
+      results.push({
+        index,
+        ok: false,
+        workItemId: item.workItemId,
+        status: result.status,
+        body: result.body,
+      });
+      failureCount += 1;
+      stop = true;
+      continue;
+    }
+
+    results.push({
+      index,
+      ok: true,
+      workItemId: item.workItemId,
+      hours: item.hours,
+      newCompletedWork: result.newCompletedWork,
+    });
+    successCount += 1;
   }
 
-  return NextResponse.json({
-    success: true,
-    workItemId: preview.workItemId,
-    hours: preview.hours,
-    newCompletedWork: result.newCompletedWork,
-  });
+  const response: ExecuteResponse = {
+    results,
+    successCount,
+    failureCount,
+  };
+  return Response.json(response);
 }

@@ -1,7 +1,7 @@
 import { UserRound } from "lucide-react";
 
 import { TaskDateBadge } from "@/components/tasks/task-date-badge";
-import { WorkItemId } from "@/components/work-items/work-item-id";
+import { AdoWorkItemLink } from "@/components/work-items/ado-work-item-link";
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
 import { formatHours } from "@/lib/dashboard/format-hours";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 export type BugSummaryCardProps = {
   item: AdoWorkItemOptionDto;
+  project: string | null;
   className?: string;
 };
 
@@ -25,7 +26,7 @@ function BugLoggedHoursBadge({ hours }: { hours: number }) {
   );
 }
 
-export function BugSummaryCard({ item, className }: BugSummaryCardProps) {
+export function BugSummaryCard({ item, project, className }: BugSummaryCardProps) {
   return (
     <div
       className={cn(
@@ -36,7 +37,7 @@ export function BugSummaryCard({ item, className }: BugSummaryCardProps) {
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <WorkItemId id={item.id} />
+          <AdoWorkItemLink workItemId={item.id} project={project} label={`#${item.id}`} />
           {item.workingDate ? <TaskDateBadge dateKey={item.workingDate} /> : null}
           {item.loggedHours !== undefined ? (
             <BugLoggedHoursBadge hours={item.loggedHours} />
@@ -46,8 +47,13 @@ export function BugSummaryCard({ item, className }: BugSummaryCardProps) {
       </div>
 
       {item.parentId ? (
-        <p className="text-muted-foreground mt-3 text-xs">
-          Historia padre: <span className="text-foreground font-medium">#{item.parentId}</span>
+        <p className="text-muted-foreground mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+          <span>Historia padre:</span>
+          <AdoWorkItemLink
+            workItemId={item.parentId}
+            project={project}
+            label={`HU #${item.parentId}`}
+          />
         </p>
       ) : null}
 

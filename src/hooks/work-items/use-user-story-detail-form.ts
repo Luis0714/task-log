@@ -5,30 +5,32 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DashboardWorkItem } from "@/lib/dashboard/types";
 import type { BacklogResponsableFieldDto } from "@/lib/schemas/ado-backlog-fields";
 import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
+import { useBacklogItemStates } from "@/hooks/work-items/use-backlog-item-states";
 import { getTodayDateKey } from "@/lib/time-log/working-date-default";
 import { resolveResponsableDraftValue } from "@/lib/work-items/resolve-default-assignee";
+import { computeDraftCanSave } from "@/lib/forms/can-submit";
+import { isDateKeyValid } from "@/lib/validation/date-key";
 import {
   getPbiTransitionKind,
   requiresCommittedDates,
   requiresQaResponsables,
 } from "@/lib/work-items/pbi-state-transition";
-
-const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+import { areWorkItemTagsEqual } from "@/lib/work-items/ado-work-item-tags";
 
 export type UseUserStoryDetailFormOptions = {
   workItem: DashboardWorkItem | null;
   project: string | null;
   team: string | null;
-  currentUserDisplayName: string | null;
   members: readonly AdoTeamMemberDto[];
   responsableFields: readonly BacklogResponsableFieldDto[];
+  statesReady?: boolean;
   onSaved?: () => void;
   onClose?: () => void;
 };
 
 function readStoredSchedulingDate(value: string | undefined): string {
   const trimmed = value?.trim();
-  if (trimmed && DATE_KEY_PATTERN.test(trimmed)) return trimmed;
+  if (trimmed && isDateKeyValid(trimmed)) return trimmed;
   return "";
 }
 
@@ -37,27 +39,40 @@ function resolveSchedulingDraftDate(value: string | undefined): string {
   return readStoredSchedulingDate(value) || getTodayDateKey();
 }
 
+function readWorkItemTags(tags: readonly string[] | undefined): string[] {
+  return tags ? [...tags] : [];
+}
+
+/** Lee el valor de un Responsable desde el work item, sea cual sea su referenceName. */
+function readWorkItemResponsable(
+  workItem: DashboardWorkItem,
+  referenceName: string,
+): string | undefined {
+  return workItem.responsables?.[referenceName];
+}
+
 export function useUserStoryDetailForm({
   workItem,
   project,
   team,
-  currentUserDisplayName,
   members,
   responsableFields,
+  statesReady = true,
   onSaved,
   onClose,
 }: UseUserStoryDetailFormOptions) {
   const [draftState, setDraftState] = useState("");
   const [draftStartDate, setDraftStartDate] = useState("");
   const [draftTargetDate, setDraftTargetDate] = useState("");
-  const [draftMaquetacion, setDraftMaquetacion] = useState("");
-  const [draftIntegrador, setDraftIntegrador] = useState("");
-  const [draftQa, setDraftQa] = useState("");
+  const [draftResponsables, setDraftResponsables] = useState<Record<string, string>>({});
+  const [draftTags, setDraftTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  const { states: backlogStates } = useBacklogItemStates(project);
+
   const transitionKind = useMemo(
-    () => (draftState ? getPbiTransitionKind(draftState) : "other"),
-    [draftState],
+    () => (draftState ? getPbiTransitionKind(draftState, backlogStates) : "other"),
+    [draftState, backlogStates],
   );
 
   const hasResponsableFields = responsableFields.length > 0;
@@ -68,31 +83,16 @@ export function useUserStoryDetailForm({
     setDraftState(workItem.state);
     setDraftStartDate(resolveSchedulingDraftDate(workItem.startDate));
     setDraftTargetDate(resolveSchedulingDraftDate(workItem.targetDate));
-    setDraftMaquetacion(
-      resolveResponsableDraftValue(
-        workItem.responsableMaquetacion,
-        currentUserDisplayName,
-        members,
-        true,
-      ),
-    );
-    setDraftIntegrador(
-      resolveResponsableDraftValue(
-        workItem.responsableIntegrador,
-        currentUserDisplayName,
-        members,
-        true,
-      ),
-    );
-    setDraftQa(
-      resolveResponsableDraftValue(
-        workItem.responsableQA,
-        currentUserDisplayName,
-        members,
-        false,
-      ),
-    );
-  }, [workItem, currentUserDisplayName, members]);
+
+    const nextResponsables: Record<string, string> = {};
+    for (const field of responsableFields) {
+      const stored = readWorkItemResponsable(workItem, field.referenceName);
+      nextResponsables[field.referenceName] = resolveResponsableDraftValue(stored, members);
+    }
+    setDraftResponsables(nextResponsables);
+
+    setDraftTags(readWorkItemTags(workItem.tags));
+  }, [workItem, members, responsableFields]);
 
   useEffect(() => {
     syncDraftsFromWorkItem();
@@ -100,57 +100,61 @@ export function useUserStoryDetailForm({
 
   const initialSnapshot = useMemo(() => {
     if (!workItem) return null;
+    const initialResponsables: Record<string, string> = {};
+    for (const field of responsableFields) {
+      const stored = readWorkItemResponsable(workItem, field.referenceName);
+      initialResponsables[field.referenceName] = resolveResponsableDraftValue(stored, members);
+    }
     return {
       state: workItem.state,
       startDate: resolveSchedulingDraftDate(workItem.startDate),
       targetDate: resolveSchedulingDraftDate(workItem.targetDate),
-      maquetacion: resolveResponsableDraftValue(
-        workItem.responsableMaquetacion,
-        currentUserDisplayName,
-        members,
-        true,
-      ),
-      integrador: resolveResponsableDraftValue(
-        workItem.responsableIntegrador,
-        currentUserDisplayName,
-        members,
-        true,
-      ),
-      qa: resolveResponsableDraftValue(
-        workItem.responsableQA,
-        currentUserDisplayName,
-        members,
-        false,
-      ),
+      responsables: initialResponsables,
+      tags: readWorkItemTags(workItem.tags),
     };
-  }, [workItem, currentUserDisplayName, members]);
+  }, [workItem, members, responsableFields]);
 
   const isStateDirty = Boolean(workItem && draftState !== workItem.state);
+  const isTagsDirty =
+    Boolean(workItem) &&
+    !areWorkItemTagsEqual(draftTags, initialSnapshot?.tags ?? []);
   const isDatesDirty =
     Boolean(workItem) &&
     (draftStartDate !== initialSnapshot?.startDate ||
       draftTargetDate !== initialSnapshot?.targetDate);
   const isResponsablesDirty =
     Boolean(workItem) &&
-    (draftMaquetacion !== initialSnapshot?.maquetacion ||
-      draftIntegrador !== initialSnapshot?.integrador ||
-      draftQa !== initialSnapshot?.qa);
+    responsableFields.some(
+      (field) =>
+        draftResponsables[field.referenceName] !==
+        (initialSnapshot?.responsables[field.referenceName] ?? ""),
+    );
 
-  const isDirty = isStateDirty || isDatesDirty || isResponsablesDirty;
+  const isDirty = isStateDirty || isTagsDirty || isDatesDirty || isResponsablesDirty;
 
   const committedValid =
-    !requiresCommittedDates(draftState) ||
-    (DATE_KEY_PATTERN.test(draftStartDate) && DATE_KEY_PATTERN.test(draftTargetDate));
+    !requiresCommittedDates(draftState, backlogStates) ||
+    (isDateKeyValid(draftStartDate) && isDateKeyValid(draftTargetDate));
 
+  // Para QA, los Responsables con defaultToCurrentUser=true pueden quedarse vacíos
+  // (el servidor rellena con el usuario logueado). El resto deben tener valor.
   const qaValid =
-    !requiresQaResponsables(draftState) ||
-    (Boolean(draftMaquetacion.trim()) &&
-      Boolean(draftIntegrador.trim()) &&
-      Boolean(draftQa.trim()));
+    !requiresQaResponsables(draftState, backlogStates) ||
+    responsableFields.every((field) => {
+      if (field.defaultToCurrentUser) return true;
+      return Boolean(draftResponsables[field.referenceName]?.trim());
+    });
 
-  const canSave = Boolean(
-    workItem && project && isDirty && committedValid && qaValid && !saving,
-  );
+  const canSave = computeDraftCanSave({
+    isDirty,
+    isValid: committedValid && qaValid,
+    externalReady: Boolean(workItem && project) && statesReady,
+    isSubmitting: saving,
+  });
+
+  const setResponsableValue = useCallback((referenceName: string, value: string) => {
+    setDraftResponsables((prev) => ({ ...prev, [referenceName]: value }));
+  }, []);
 
   const save = useCallback(async (): Promise<
     { ok: true } | { ok: false; message: string }
@@ -161,22 +165,32 @@ export function useUserStoryDetailForm({
 
     setSaving(true);
     try {
-      const body: Record<string, string> = {
+      const body: Record<string, unknown> = {
         project,
         state: draftState,
         workItemKind: "backlog",
       };
       if (team?.trim()) body.team = team.trim();
 
-      if (isDatesDirty || requiresCommittedDates(draftState)) {
+      if (isDatesDirty || requiresCommittedDates(draftState, backlogStates)) {
         body.startDate = draftStartDate;
         body.targetDate = draftTargetDate;
       }
 
-      if (hasResponsableFields && (isResponsablesDirty || requiresQaResponsables(draftState))) {
-        body.responsableMaquetacion = draftMaquetacion.trim();
-        body.responsableIntegrador = draftIntegrador.trim();
-        body.responsableQA = draftQa.trim();
+      if (
+        hasResponsableFields &&
+        (isResponsablesDirty || requiresQaResponsables(draftState, backlogStates))
+      ) {
+        const trimmed: Record<string, string> = {};
+        for (const [ref, value] of Object.entries(draftResponsables)) {
+          const t = value.trim();
+          if (t) trimmed[ref] = t;
+        }
+        body.responsables = trimmed;
+      }
+
+      if (isTagsDirty) {
+        body.tags = draftTags;
       }
 
       const res = await fetch(`/api/ado/work-items/${workItem.id}`, {
@@ -184,11 +198,13 @@ export function useUserStoryDetailForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const payload = (await res.json()) as { error?: string; detail?: string };
+      const payload = (await res.json()) as { error?: string };
 
       if (!res.ok) {
-        const message = [payload.error, payload.detail].filter(Boolean).join(" — ");
-        return { ok: false as const, message: message || "No se pudo guardar el estado." };
+        return {
+          ok: false as const,
+          message: payload.error ?? "No se pudo guardar el estado.",
+        };
       }
 
       onSaved?.();
@@ -207,12 +223,13 @@ export function useUserStoryDetailForm({
     draftState,
     draftStartDate,
     draftTargetDate,
-    draftMaquetacion,
-    draftIntegrador,
-    draftQa,
+    draftResponsables,
     isDatesDirty,
     isResponsablesDirty,
+    isTagsDirty,
+    draftTags,
     hasResponsableFields,
+    backlogStates,
     onSaved,
     onClose,
   ]);
@@ -224,12 +241,10 @@ export function useUserStoryDetailForm({
     setDraftStartDate,
     draftTargetDate,
     setDraftTargetDate,
-    draftMaquetacion,
-    setDraftMaquetacion,
-    draftIntegrador,
-    setDraftIntegrador,
-    draftQa,
-    setDraftQa,
+    draftResponsables,
+    setResponsableValue,
+    draftTags,
+    setDraftTags,
     transitionKind,
     hasResponsableFields,
     saving,

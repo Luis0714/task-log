@@ -1,6 +1,6 @@
 import {
   DEFAULT_WORK_ITEM_FILTERS,
-  isWorkItemAssigneeMe,
+  isWorkItemAssigneeDefault,
   type WorkItemFilters,
 } from "@/lib/schemas/work-item-filters";
 
@@ -9,8 +9,8 @@ export function countActiveWorkItemFilters(
 ): number {
   let count = 0;
   if (filters.search.trim().length > 0) count++;
-  if (filters.state) count++;
-  if (!isWorkItemAssigneeMe(filters.assignee)) count++;
+  if (filters.states.length > 0) count++;
+  if (!isWorkItemAssigneeDefault(filters.assignee)) count++;
   return count;
 }
 
@@ -21,6 +21,7 @@ export type BuildAdoFiltersSummaryParams = {
   workItemFilters?: WorkItemFilters;
   filteredCount?: number;
   totalCount?: number;
+  extraParts?: string[];
 };
 
 export function buildAdoFiltersSummary({
@@ -30,6 +31,7 @@ export function buildAdoFiltersSummary({
   workItemFilters,
   filteredCount,
   totalCount,
+  extraParts = [],
 }: BuildAdoFiltersSummaryParams): string {
   const parts: string[] = [];
 
@@ -43,6 +45,8 @@ export function buildAdoFiltersSummary({
       parts.push(`${active} filtro${active === 1 ? "" : "s"} activo${active === 1 ? "" : "s"}`);
     }
   }
+
+  parts.push(...extraParts.filter((part) => part.trim().length > 0));
 
   if (
     totalCount !== undefined &&

@@ -22,7 +22,7 @@ export function NeosViewLogotipo({
     <NeosViewLogo viewBox={NEOSVIEW_LOGOTIPO_VIEWBOX} className={className} title={title}>
       <path
         d={NEOSVIEW_LOGOTIPO_NEOS_PATH}
-        className={cn("fill-(--brand-mark)", neosClassName)}
+        className={cn("fill-brand-mark", neosClassName)}
       />
       <path
         d={NEOSVIEW_LOGOTIPO_VIEW_PATH}

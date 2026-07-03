@@ -14,7 +14,9 @@ export async function TimeLogShellServer({
   defaultProject,
   adoExecutionReady,
 }: TimeLogShellServerProps) {
-  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp);
+  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp, {
+    allowBacklogScope: true,
+  });
 
   const shellBaseline: TimeLogServerBaseline = {
     catalog,
@@ -22,14 +24,11 @@ export async function TimeLogShellServer({
     backlogStates: [],
     taskStates: [],
     defaultOpenTaskState: null,
+    defaultCompletedTaskState: null,
     nonWorkingDates: [],
   };
 
   return (
-    <TimeLogPageShell
-      serverBaseline={shellBaseline}
-      adoExecutionReady={adoExecutionReady}
-      notReadyMessage="Conecta Azure DevOps para registrar tiempo en Azure DevOps."
-    />
+    <TimeLogPageShell serverBaseline={shellBaseline} />
   );
 }

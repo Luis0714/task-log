@@ -4,7 +4,7 @@ import { filterWorkItemsByClientCriteria } from "@/lib/azure-devops/work-items-f
 
 export const SPRINT_DAY_ALL = "__all__";
 
-export type SprintItemListFilters = Pick<WorkItemFilters, "search" | "state"> & {
+export type SprintItemListFilters = Pick<WorkItemFilters, "search" | "states"> & {
   dayKey: string;
 };
 
@@ -14,7 +14,7 @@ export function filterSprintItemsByCriteria(
 ): AdoWorkItemOptionDto[] {
   const byText = filterWorkItemsByClientCriteria(items, {
     search: filters.search,
-    state: filters.state,
+    states: filters.states,
   });
 
   if (!filters.dayKey || filters.dayKey === SPRINT_DAY_ALL) {

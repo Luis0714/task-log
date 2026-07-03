@@ -1,10 +1,7 @@
 import type { CSSProperties } from "react";
 import type { VariantProps } from "class-variance-authority";
 
-import { badgeVariants } from "@/components/ui/badge";
-import { getPbiStateColorPresentation } from "@/lib/work-items/pbi-state-colors";
-
-type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
+import type { badgeVariants } from "@/components/ui/badge";
 
 export type WorkItemPresentation = {
   variant: BadgeVariant;
@@ -12,12 +9,17 @@ export type WorkItemPresentation = {
   surfaceStyle?: Pick<CSSProperties, "borderColor" | "backgroundColor">;
 };
 
-export function getWorkItemStatePresentation(state: string): WorkItemPresentation {
-  const colors = getPbiStateColorPresentation(state);
+type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
 
+/**
+ * Devuelve siempre la variant outline; el color real del estado se aplica en
+ * runtime vía `usePbiStateColors` + `WorkItemStateBadge`. Aquí solo dejamos
+ * la variant neutral para mantener compatibilidad con consumidores que no
+ * tienen acceso al catálogo de Azure.
+ */
+export function getWorkItemStatePresentation(_state: string): WorkItemPresentation {
   return {
     variant: "outline",
-    surfaceStyle: colors.surfaceStyle,
   };
 }
 
@@ -61,7 +63,7 @@ export function formatWorkItemTypeShortLabel(type: string): string {
     return "Historia";
   }
   if (normalized.includes("bug")) {
-    return "Defecto";
+    return "Bug";
   }
   if (normalized.includes("task") || normalized.includes("tarea")) {
     return "Tarea";

@@ -2,17 +2,39 @@ import "server-only";
 
 import { cache } from "react";
 
-import type { SprintDataContext } from "@/lib/ado/sprint-data-context";
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
-import { listBacklogItemStates } from "@/lib/azure-devops/work-item-type-states";
+import { listBacklogItemStates, listBugStates } from "@/lib/azure-devops/work-item-type-states";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
-import { listTasksInSprint, listWorkItemsInSprint } from "@/lib/azure-devops/work-items";
+import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
+import {
+  listBugItemsInSprint,
+  listTasksInSprint,
+  listWorkItemsInSprint,
+} from "@/lib/azure-devops/work-items";
+import {
+  listBugsInWorkingDateRange,
+  listParentStoriesForTasks,
+  listTasksInWorkingDateRange,
+  type WorkingDateRange,
+} from "@/lib/azure-devops/work-items-by-date";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import type {
   AdoTaskStateDto,
   AdoWorkItemOptionDto,
 } from "@/lib/schemas/ado-catalog";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
+import { logApiError } from "@/lib/errors/log-api-error";
+import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
+import { RESPONSABLE_ENV_KEYS } from "@/lib/azure-devops/backlog-item-fields-config";
+
+async function resolvePbiAssigneeField(): Promise<string | undefined> {
+  if (!isIronSessionConfigured()) return undefined;
+  const session = await getTaskPilotSession();
+  if (session.userRole?.trim().toLowerCase() !== "qa") return undefined;
+  const qaField = process.env[RESPONSABLE_ENV_KEYS.qa]?.trim();
+  return qaField || undefined;
+}
 
 export type SprintDataPart<T> = {
   data: T;
@@ -20,8 +42,8 @@ export type SprintDataPart<T> = {
 };
 
 function formatSprintDataError(cause: unknown): string {
-  const detail = cause instanceof Error ? cause.message : "Error desconocido";
-  return `No se pudieron cargar los datos del sprint. — ${detail}`;
+  logApiError("loadSprintData", cause);
+  return USER_MESSAGES.sprintLoadFailed;
 }
 
 async function resolveScopedAuth(project: string): Promise<AdoCallerAuth | null> {
@@ -37,15 +59,19 @@ export function firstSprintDataError(
 }
 
 export const loadSprintWorkItems = cache(async function loadSprintWorkItems(
-  ctx: SprintDataContext,
+  project: string,
+  sprintPath: string,
+  assignee: string,
 ): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
   try {
-    const auth = await resolveScopedAuth(ctx.project);
+    const auth = await resolveScopedAuth(project);
     if (!auth) {
       return { data: [], error: "Conecta Azure DevOps para cargar historias del sprint." };
     }
-    const data = await listWorkItemsInSprint(auth, ctx.sprintPath, {
-      assignee: ctx.assignee,
+    const pbiAssigneeField = await resolvePbiAssigneeField();
+    const data = await listWorkItemsInSprint(auth, sprintPath, {
+      assignee,
+      pbiAssigneeField,
     });
     return { data, error: null };
   } catch (cause) {
@@ -54,17 +80,16 @@ export const loadSprintWorkItems = cache(async function loadSprintWorkItems(
 });
 
 export const loadSprintBugs = cache(async function loadSprintBugs(
-  ctx: SprintDataContext,
+  project: string,
+  sprintPath: string,
+  assignee: string,
 ): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
   try {
-    const auth = await resolveScopedAuth(ctx.project);
+    const auth = await resolveScopedAuth(project);
     if (!auth) {
-      return { data: [], error: "Conecta Azure DevOps para cargar defectos del sprint." };
+      return { data: [], error: "Conecta Azure DevOps para cargar Bugs del sprint." };
     }
-    const data = await listWorkItemsInSprint(auth, ctx.sprintPath, {
-      assignee: ctx.assignee,
-      workItemType: "Bug",
-    });
+    const data = await listBugItemsInSprint(auth, sprintPath, { assignee });
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };
@@ -72,18 +97,119 @@ export const loadSprintBugs = cache(async function loadSprintBugs(
 });
 
 export const loadSprintTasks = cache(async function loadSprintTasks(
-  ctx: SprintDataContext,
+  project: string,
+  sprintPath: string,
+  assignee: string,
 ): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
   try {
-    const auth = await resolveScopedAuth(ctx.project);
+    const auth = await resolveScopedAuth(project);
     if (!auth) {
       return { data: [], error: "Conecta Azure DevOps para cargar tareas del sprint." };
     }
-    const data = await listTasksInSprint(auth, ctx.sprintPath, { assignee: ctx.assignee });
+    const data = await listTasksInSprint(auth, sprintPath, { assignee });
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };
   }
+});
+
+type ListInWorkingDateRange = typeof listTasksInWorkingDateRange;
+
+async function loadWorkItemsInPeriod(
+  project: string,
+  team: string,
+  range: WorkingDateRange,
+  assignee: string,
+  listInRange: ListInWorkingDateRange,
+  connectMessage: string,
+): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
+  try {
+    const auth = await resolveScopedAuth(project);
+    if (!auth) {
+      return { data: [], error: connectMessage };
+    }
+    const data = await listInRange(auth, range, { assignee, team });
+    return { data, error: null };
+  } catch (cause) {
+    return { data: [], error: formatSprintDataError(cause) };
+  }
+}
+
+export const loadSprintPeriodTasks = cache(async function loadSprintPeriodTasks(
+  project: string,
+  team: string,
+  _sprintPath: string,
+  startDate: string | null,
+  finishDate: string | null,
+  assignee: string,
+): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
+  if (!startDate || !finishDate) return { data: [], error: null };
+  return loadWorkItemsInPeriod(
+    project,
+    team,
+    { startDate, finishDate },
+    assignee,
+    listTasksInWorkingDateRange,
+    "Conecta Azure DevOps para cargar tareas del periodo.",
+  );
+});
+
+export const loadSprintPeriodBugs = cache(async function loadSprintPeriodBugs(
+  project: string,
+  team: string,
+  _sprintPath: string,
+  startDate: string | null,
+  finishDate: string | null,
+  assignee: string,
+): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
+  if (!startDate || !finishDate) return { data: [], error: null };
+  return loadWorkItemsInPeriod(
+    project,
+    team,
+    { startDate, finishDate },
+    assignee,
+    listBugsInWorkingDateRange,
+    "Conecta Azure DevOps para cargar Bugs del periodo.",
+  );
+});
+
+export const loadSprintPeriodStories = cache(async function loadSprintPeriodStories(
+  project: string,
+  team: string,
+  sprintPath: string,
+  startDate: string | null,
+  finishDate: string | null,
+  assignee: string,
+): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
+  const sprintStories = await loadSprintWorkItems(project, sprintPath, assignee);
+  if (sprintStories.error || !startDate || !finishDate) return sprintStories;
+
+  const periodTasks = await loadSprintPeriodTasks(
+    project,
+    team,
+    sprintPath,
+    startDate,
+    finishDate,
+    assignee,
+  );
+  if (periodTasks.error) return sprintStories;
+
+  const auth = await resolveScopedAuth(project);
+  if (!auth) return sprintStories;
+
+  const pbiAssigneeField = await resolvePbiAssigneeField();
+  const backlogStories = await listParentStoriesForTasks(auth, periodTasks.data, {
+    assignee,
+    excludeIds: new Set(sprintStories.data.map((story) => story.id)),
+    pbiAssigneeField,
+  });
+  if (backlogStories.length === 0) return sprintStories;
+
+  const marked = backlogStories.map((story) => ({ ...story, fromBacklog: true }));
+  const data = [...sprintStories.data, ...marked].sort((a, b) =>
+    a.title.localeCompare(b.title, "es"),
+  );
+  return { data, error: null };
 });
 
 export const loadSprintBacklogStates = cache(async function loadSprintBacklogStates(
@@ -94,7 +220,24 @@ export const loadSprintBacklogStates = cache(async function loadSprintBacklogSta
     if (!auth) {
       return { data: [], error: "Conecta Azure DevOps para cargar estados del backlog." };
     }
-    const data = await listBacklogItemStates(auth);
+    const processProfile = await resolveProcessProfile(auth);
+    const data = await listBacklogItemStates(auth, processProfile.backlogItemType);
+    return { data, error: null };
+  } catch (cause) {
+    return { data: [], error: formatSprintDataError(cause) };
+  }
+});
+
+export const loadSprintBugStates = cache(async function loadSprintBugStates(
+  project: string,
+): Promise<SprintDataPart<AdoTaskStateDto[]>> {
+  try {
+    const auth = await resolveScopedAuth(project);
+    if (!auth) {
+      return { data: [], error: "Conecta Azure DevOps para cargar estados de bugs." };
+    }
+    const processProfile = await resolveProcessProfile(auth);
+    const data = await listBugStates(auth, processProfile.bugWorkItemType);
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };
@@ -102,10 +245,11 @@ export const loadSprintBacklogStates = cache(async function loadSprintBacklogSta
 });
 
 export const loadSprintNonWorkingDates = cache(async function loadSprintNonWorkingDates(
-  ctx: SprintDataContext,
+  project: string,
+  team: string,
 ): Promise<SprintDataPart<string[]>> {
   try {
-    const data = await loadNonWorkingDates(ctx.project, ctx.team);
+    const data = await loadNonWorkingDates(project, team);
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };

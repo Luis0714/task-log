@@ -1,0 +1,40 @@
+import { NextResponse } from "next/server";
+
+import { loginLocalUser } from "@/lib/auth/login-local-user";
+import { parseAuthPostBody } from "@/lib/auth/parse-auth-post-body";
+import { requireUserPersistence } from "@/lib/auth/require-user-persistence";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
+import { loginLocalBodySchema } from "@/lib/schemas/login-local";
+
+export const dynamic = "force-dynamic";
+
+export async function POST(req: Request) {
+  const gate = requireUserPersistence();
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.message }, { status: gate.status });
+  }
+
+  const parsed = await parseAuthPostBody(req, loginLocalBodySchema);
+  if (!parsed.ok) return parsed.response;
+
+  try {
+    const result = await loginLocalUser(parsed.data);
+    if (!result.ok) {
+      const status =
+        result.reason === "invalid_credentials" || result.reason === "user_not_found"
+          ? 401
+          : 400;
+      return NextResponse.json(
+        { error: result.message, reason: result.reason },
+        { status },
+      );
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json(
+      { error: USER_MESSAGES.genericRetry },
+      { status: 500 },
+    );
+  }
+}

@@ -1,10 +1,11 @@
 import { z } from "zod";
 
+import { WORKING_TIME_PATTERN } from "@/lib/date/ado-datetime";
 import {
-  DEFAULT_TASK_ACTIVITY,
   getDefaultWorkingDate,
-  TASK_ACTIVITY_OPTIONS,
+  getDefaultWorkingTime,
 } from "@/lib/time-log/task-constants";
+import type { CreateTaskBatchItem } from "@/lib/schemas/agent";
 
 const hoursField = z
   .string()
@@ -38,16 +39,28 @@ export const timeLogTaskStepSchema = z.object({
     .min(1, "Ingresa el título de la tarea.")
     .max(256, "Máximo 256 caracteres."),
   hours: hoursField,
-  description: z.string().trim().max(2000, "Máximo 2000 caracteres."),
-  activity: z.enum(TASK_ACTIVITY_OPTIONS, {
-    message: "Selecciona una actividad.",
-  }),
+  description: z
+    .string()
+    .trim()
+    .min(1, "Ingresa la descripción de lo realizado.")
+    .max(2000, "Máximo 2000 caracteres."),
+  activity: z
+    .string()
+    .trim()
+    .min(1, "Selecciona una actividad.")
+    .max(100),
   workingDate: z
     .string()
     .trim()
     .min(1, "Selecciona la fecha de trabajo.")
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida."),
+  workingTime: z
+    .string()
+    .trim()
+    .min(1, "Indica la hora de trabajo.")
+    .regex(WORKING_TIME_PATTERN, "Hora inválida (usa formato 24 h, p. ej. 09:30)."),
   taskState: z.string().trim().min(1, "Selecciona un estado."),
+  autoMarkAsDone: z.boolean(),
 });
 
 export const timeLogFormSchema = timeLogContextStepSchema.merge(timeLogTaskStepSchema);
@@ -61,9 +74,11 @@ export type CreateTaskPayload = {
   title: string;
   hours: number;
   description: string;
-  activity: (typeof TASK_ACTIVITY_OPTIONS)[number];
+  activity?: string;
   workingDate: string;
+  workingTime: string;
   state: string;
+  markAsDone: boolean;
   sprintPath: string;
   team: string;
   project: string;
@@ -81,22 +96,33 @@ export function createTimeLogFormDefaults(
     taskTitle: "",
     hours: "",
     description: "",
-    activity: DEFAULT_TASK_ACTIVITY,
+    activity: "",
     workingDate: getDefaultWorkingDate(),
+    workingTime: getDefaultWorkingTime(),
     taskState: "",
+    autoMarkAsDone: true,
   };
 }
 
 export const TIME_LOG_TASK_STEP_DEFAULTS: Pick<
   TimeLogFormValues,
-  "taskTitle" | "hours" | "description" | "activity" | "workingDate" | "taskState"
+  | "taskTitle"
+  | "hours"
+  | "description"
+  | "activity"
+  | "workingDate"
+  | "workingTime"
+  | "taskState"
+  | "autoMarkAsDone"
 > = {
   taskTitle: "",
   hours: "",
   description: "",
-  activity: DEFAULT_TASK_ACTIVITY,
+  activity: "",
   workingDate: getDefaultWorkingDate(),
+  workingTime: getDefaultWorkingTime(),
   taskState: "",
+  autoMarkAsDone: true,
 };
 
 export function mapTimeLogFormToPayload(
@@ -113,8 +139,83 @@ export function mapTimeLogFormToPayload(
     title: values.taskTitle.trim(),
     hours: Number.parseFloat(values.hours.replace(",", ".")),
     description: values.description.trim(),
-    activity: values.activity,
+    activity: values.activity.trim(),
     workingDate: values.workingDate,
+    workingTime: values.workingTime,
     state: values.taskState,
+    markAsDone: values.autoMarkAsDone,
+  };
+}
+
+/**
+ * Schema por tarea dentro de una Historia de Usuario. NO incluye `pbiId`
+ * porque ese dato vive en el `BulkGroup` padre; el mapper lo inyecta desde
+ * el contexto al construir el payload final.
+ */
+export const bulkTaskSchema = z.object({
+  taskTitle: z
+    .string()
+    .trim()
+    .min(1, "Ingresa el título de la tarea.")
+    .max(256, "Máximo 256 caracteres."),
+  hours: hoursField,
+  description: z
+    .string()
+    .trim()
+    .min(1, "Ingresa la descripción de lo realizado.")
+    .max(2000, "Máximo 2000 caracteres."),
+  activity: z
+    .string()
+    .trim()
+    .min(1, "Selecciona una actividad.")
+    .max(100),
+  workingDate: z
+    .string()
+    .trim()
+    .min(1, "Selecciona la fecha de trabajo.")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida."),
+  workingTime: z
+    .string()
+    .trim()
+    .min(1, "Indica la hora de trabajo.")
+    .regex(WORKING_TIME_PATTERN, "Hora inválida (usa formato 24 h, p. ej. 09:30)."),
+  taskState: z.string().trim().min(1, "Selecciona un estado."),
+  markAsDone: z.boolean(),
+});
+
+export type BulkTaskFormValues = z.infer<typeof bulkTaskSchema>;
+
+export type BulkTaskFieldErrors = Partial<
+  Record<keyof BulkTaskFormValues, string>
+>;
+
+/**
+ * Mapea una tarea validada al payload que espera `createTasksBatchInAdo`.
+ * El `pbiId` y `pbiTitle` se reciben desde el `BulkGroup` padre, no desde
+ * los valores de la tarea.
+ */
+export function mapBulkTaskToTaskItem(
+  values: BulkTaskFormValues,
+  ctx: {
+    pbiId: string;
+    pbiTitle: string;
+    project: string;
+    team: string;
+    sprintPath: string;
+  },
+): CreateTaskBatchItem {
+  return {
+    pbiId: Number.parseInt(ctx.pbiId, 10),
+    pbiTitle: ctx.pbiTitle,
+    title: values.taskTitle.trim(),
+    hours: Number.parseFloat(values.hours.replace(",", ".")),
+    description: values.description.trim(),
+    activity: values.activity.trim(),
+    workingDate: values.workingDate,
+    workingTime: values.workingTime,
+    state: values.taskState,
+    markAsDone: values.markAsDone,
+    sprintPath: ctx.sprintPath.trim(),
+    team: ctx.team.trim(),
   };
 }

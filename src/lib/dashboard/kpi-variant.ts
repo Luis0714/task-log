@@ -4,7 +4,23 @@ import {
   type ProgressStatus,
 } from "@/lib/dashboard/progress-status";
 
-export type KpiVariant = "default" | "success" | "warning" | "accent" | "destructive";
+export type KpiVariant =
+  | "default"
+  | "primary"
+  | "success"
+  | "warning"
+  | "accent"
+  | "destructive";
+
+export function resolveHoursKpiVariant(value: number, max: number): KpiVariant {
+  const status = resolveProgressStatus(value, max);
+  if (status === "over") return "destructive";
+  if (status === "complete") return "success";
+
+  const percent = clampProgressPercent(value, max);
+  if (percent < 50) return "warning";
+  return "primary";
+}
 
 export function kpiVariantFromProgress(
   value: number,

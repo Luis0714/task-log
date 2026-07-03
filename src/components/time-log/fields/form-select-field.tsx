@@ -1,7 +1,14 @@
 import type { ReactNode } from "react";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 
-import { Label } from "@/components/ui/label";
+import { FormInlineError } from "@/components/time-log/fields/form-inline-error";
+import type { FormSelectOption } from "@/components/time-log/fields/controlled-select-field";
+export { ControlledSelectField } from "@/components/time-log/fields/controlled-select-field";
+export { FormInlineError } from "@/components/time-log/fields/form-inline-error";
+export type {
+  ControlledSelectFieldProps,
+  FormSelectOption,
+} from "@/components/time-log/fields/controlled-select-field";
 import {
   FormControl,
   FormField,
@@ -18,71 +25,11 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-export function FormInlineError({ message }: { message?: string | null }) {
-  if (!message) return null;
-  return <p className="text-destructive text-xs">{message}</p>;
-}
-
-export type FormSelectOption = {
-  value: string;
-  label: ReactNode;
-  key?: string;
-};
-
-export type ControlledSelectFieldProps = {
-  label: string;
-  value: string;
-  placeholder: string;
-  options: FormSelectOption[];
-  disabled?: boolean;
-  error?: string | null;
-  triggerClassName?: string;
-  displayValue?: ReactNode;
-  onValueChange: (value: string) => void;
-};
-
-export function ControlledSelectField({
-  label,
-  value,
-  placeholder,
-  options,
-  disabled,
-  error,
-  triggerClassName,
-  displayValue,
-  onValueChange,
-}: ControlledSelectFieldProps) {
-  return (
-    <div className="min-w-0 w-full space-y-2">
-      <Label>{label}</Label>
-      <Select
-        value={value || null}
-        onValueChange={(next) => {
-          if (!next) return;
-          onValueChange(next);
-        }}
-        disabled={disabled}
-      >
-        <SelectTrigger className={cn("w-full", triggerClassName)}>
-          <SelectValue placeholder={placeholder}>{displayValue}</SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((option) => (
-            <SelectItem key={option.key ?? option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <FormInlineError message={error} />
-    </div>
-  );
-}
-
 type FormSelectFieldProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues>;
   name: FieldPath<TFieldValues>;
   label: string;
+  required?: boolean;
   placeholder: string;
   options: FormSelectOption[];
   disabled?: boolean;
@@ -96,6 +43,7 @@ export function FormSelectField<TFieldValues extends FieldValues>({
   control,
   name,
   label,
+  required = false,
   placeholder,
   options,
   disabled,
@@ -110,7 +58,7 @@ export function FormSelectField<TFieldValues extends FieldValues>({
       name={name}
       render={({ field }) => (
         <FormItem>
-          <FormLabel>{label}</FormLabel>
+          <FormLabel required={required}>{label}</FormLabel>
           <Select
             value={field.value || null}
             onValueChange={(value) => {

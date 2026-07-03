@@ -1,25 +1,31 @@
 "use client";
 
-import { useMemo, useState, useEffect, type ReactNode } from "react";
+import { useMemo, useState, useEffect, useTransition, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
-import { DashboardHeader } from "@/components/dashboard/layout/dashboard-header";
+import { ConnectSignInTrigger } from "@/components/auth/connect-sign-in-trigger";
+import { DashboardHeaderRow } from "@/components/dashboard/layout/dashboard-header-row";
 import { AdoFiltersSection } from "@/components/filters/ado-filters-section";
 import { SprintDaySelect } from "@/components/filters/sprint-day-select";
-import { useAdoContextUrl } from "@/hooks/use-ado-context-url";
+import { useAdoContextPage } from "@/hooks/filters/use-ado-context-page";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { buildAdoContextQuery } from "@/lib/ado/parse-context-search-params";
 import {
   listSprintWorkingDays,
   resolveEffectiveSprintDayKey,
 } from "@/lib/dashboard/sprint-days";
+import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
+import type { SavedConnectionTarget } from "@/lib/auth/server-state";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
 
 export type DashboardPageShellProps = {
   header: DashboardHeaderData;
   catalog: AdoCatalogSnapshot;
   adoExecutionReady: boolean;
+  userSessionActive: boolean;
+  connectOptions: ConnectAuthOptions;
+  savedConnectionTarget: SavedConnectionTarget | null;
   initialSprintDayKey: string;
   nonWorkingDates: readonly string[];
   children?: ReactNode;
@@ -29,19 +35,23 @@ export function DashboardPageShell({
   header,
   catalog,
   adoExecutionReady,
+  userSessionActive,
+  connectOptions,
+  savedConnectionTarget,
   initialSprintDayKey,
   nonWorkingDates,
   children = null,
 }: DashboardPageShellProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [, startTransition] = useTransition();
   const [sprintDayKey, setSprintDayKey] = useState(initialSprintDayKey);
 
   useEffect(() => {
     setSprintDayKey(initialSprintDayKey);
   }, [initialSprintDayKey]);
 
-  const context = useAdoContextUrl({
+  const { context, catalogError } = useAdoContextPage({
     catalog,
     adoExecutionReady,
     sprintDay: sprintDayKey,
@@ -76,15 +86,24 @@ export function DashboardPageShell({
     const resolved = resolveEffectiveSprintDayKey(sprintDayKey, sprintWorkingDays);
     if (resolved === sprintDayKey) return;
 
+    const newUrl = `${pathname}${buildAdoContextQuery({
+      project: catalog.project,
+      team: catalog.team,
+      sprint: catalog.sprintPath,
+      sprintDay: resolved,
+    })}`;
+
     setSprintDayKey(resolved);
-    router.replace(
-      `${pathname}${buildAdoContextQuery({
-        project: catalog.project,
-        team: catalog.team,
-        sprint: catalog.sprintPath,
-        sprintDay: resolved,
-      })}`,
-    );
+
+    if (!sprintDayKey) {
+      // sprintDayKey vacío: el servidor ya resolvió el día correcto internamente, sync URL sin re-render.
+      window.history.replaceState(null, "", newUrl);
+    } else {
+      // Día inválido para el sprint activo (p.ej., sprint cambió) — navegar para corregir.
+      startTransition(() => {
+        router.replace(newUrl);
+      });
+    }
   }, [
     catalog.project,
     catalog.sprintPath,
@@ -95,39 +114,44 @@ export function DashboardPageShell({
     sprintWorkingDays,
   ]);
 
-  const catalogError =
-    catalog.errors.projects ??
-    catalog.errors.teams ??
-    catalog.errors.sprints ??
-    null;
-
   const onSprintDayChange = (value: string) => {
     setSprintDayKey(value);
-    router.push(
-      `${pathname}${buildAdoContextQuery({
-        project: catalog.project,
-        team: catalog.team,
-        sprint: catalog.sprintPath,
-        sprintDay: value,
-      })}`,
-    );
+    startTransition(() => {
+      router.push(
+        `${pathname}${buildAdoContextQuery({
+          project: catalog.project,
+          team: catalog.team,
+          sprint: catalog.sprintPath,
+          sprintDay: value,
+        })}`,
+      );
+    });
   };
 
   return (
     <div className="flex w-full flex-col gap-6 pb-6">
-      <DashboardHeader data={resolvedHeader} />
+      <DashboardHeaderRow
+        data={resolvedHeader}
+        actions={
+          !userSessionActive ? (
+            <ConnectSignInTrigger
+              connectOptions={connectOptions}
+              savedConnectionTarget={savedConnectionTarget}
+            />
+          ) : null
+        }
+      />
 
-      {!adoExecutionReady ? (
-        <CopilotErrorAlert message="Conecta Azure DevOps para ver tu panel con datos reales." />
+      {userSessionActive && catalogError ? (
+        <CopilotErrorAlert message={catalogError} />
       ) : null}
-
-      {catalogError ? <CopilotErrorAlert message={catalogError} /> : null}
 
       {adoExecutionReady ? (
         <AdoFiltersSection
-          className="max-w-3xl"
+          className="w-full"
           context={{
             ...context,
+            markRequiredFields: true,
             sprintDayFilter:
               sprintWorkingDays.length > 0 ? (
                 <SprintDaySelect
@@ -140,7 +164,7 @@ export function DashboardPageShell({
               ) : null,
           }}
           defaultOpen={false}
-          collapsibleTitle="Contexto"
+          collapsibleTitle="Contexto y filtros"
         />
       ) : null}
 

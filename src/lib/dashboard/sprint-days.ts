@@ -144,3 +144,18 @@ function formatSprintDayDateLabel(day: SprintWorkingDay): string {
 export function formatSprintDayChartLabel(day: SprintWorkingDay): string {
   return formatSprintDayDateLabel(day);
 }
+
+export type SprintDateBounds = {
+  min: string | undefined;
+  max: string | undefined;
+};
+
+export function getSprintDateBounds(
+  workingDays: readonly SprintWorkingDay[],
+): SprintDateBounds {
+  if (workingDays.length === 0) return { min: undefined, max: undefined };
+  return {
+    min: workingDays[0]?.value,
+    max: workingDays[workingDays.length - 1]?.value,
+  };
+}

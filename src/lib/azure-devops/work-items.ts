@@ -1,6 +1,5 @@
 import "server-only";
 
-import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
 import {
   adoFetch,
   adoOrgBase,
@@ -8,34 +7,45 @@ import {
   adoAuthHeader,
   escapeWiqlString,
 } from "@/lib/azure-devops/client";
-import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
-import { isPatConfigured } from "@/lib/azure-devops/resolve-auth";
-import { listTaskStates, resolveTaskWorkItemTypeName } from "@/lib/azure-devops/work-item-type-states";
+import { resolveAdoCaller, type AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
+import { listTaskStates } from "@/lib/azure-devops/work-item-type-states";
+import { fetchActivityValues } from "@/lib/azure-devops/activity-values";
+import { ADO_FIELD_DEFAULTS } from "@/lib/azure-devops/ado-field-defaults";
 import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
-import { isIronSessionConfigured } from "@/lib/auth/session";
-import { getTaskPilotSession } from "@/lib/auth/session";
 import {
-  isWorkItemAssigneeAll,
-  isWorkItemAssigneeMe,
-  WORK_ITEM_ASSIGNEE_ALL,
-} from "@/lib/schemas/work-item-filters";
-import type { TaskActivity } from "@/lib/time-log/task-constants";
+  buildAssigneeWiqlCondition,
+  buildFieldAssigneeWiqlCondition,
+} from "@/lib/filters/assignee-wiql";
+import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
+import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import {
-  getWorkItemDateFieldNames,
-  getWorkingDateFieldNamesForUpdate,
-  resolveWorkingDateFieldName,
+  buildWiqlIdsQuery,
+  filterWorkItemIdsByCondition,
+  runWiqlIdsQuery,
+} from "@/lib/azure-devops/wiql";
+import { resolveWorkingTimeFromFields } from "@/lib/date/ado-datetime";
+import {
+  buildWorkingDateTimeValue,
   resolveWorkingDateKeyFromFields,
-  toWorkingDateKey,
 } from "@/lib/azure-devops/working-date-field";
+import {
+  fetchWorkItemsBatchWithFieldFallback,
+  filterFieldsToProject,
+} from "@/lib/azure-devops/wit-project-fields";
 import {
   getBacklogItemFetchFieldNames,
   resolveBacklogResponsableFields,
 } from "@/lib/azure-devops/backlog-item-fields";
 import { parseIdentityDisplayName } from "@/lib/azure-devops/identity-field";
 import { mapBacklogItemFields } from "@/lib/azure-devops/map-backlog-item-fields";
+import { parseAdoWorkItemTags } from "@/lib/work-items/ado-work-item-tags";
 import type { WorkItemFieldPatchOp } from "@/lib/azure-devops/work-item-patch";
-import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
-import { pickDefaultOpenTaskState } from "@/lib/time-log/task-state-utils";
+import { toWorkingDateKey } from "@/lib/azure-devops/working-date-field";
+import {
+  pickDefaultCompletedTaskState,
+  pickDefaultOpenTaskState,
+} from "@/lib/time-log/task-state-utils";
+import { parseRequiredEmptyFieldsFromAdoError } from "@/lib/azure-devops/ado-rule-errors";
 
 export type { AdoWorkItemOption } from "@/lib/azure-devops/work-items-filters";
 import type { AdoWorkItemOption } from "@/lib/azure-devops/work-items-filters";
@@ -44,9 +54,6 @@ function authHeader(auth: AdoCallerAuth): string {
   return adoAuthHeader(auth);
 }
 
-const COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
-const ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
-const ACTIVITY = "Microsoft.VSTS.Common.Activity";
 const AREA_PATH = "System.AreaPath";
 const ITERATION_PATH = "System.IterationPath";
 
@@ -56,11 +63,17 @@ export type CreateTaskParams = {
   title: string;
   hours: number;
   description?: string;
-  activity: TaskActivity;
+  activity?: string;
   workingDate: string;
+  workingTime: string;
   state: string;
   sprintPath: string;
+  markAsDone?: boolean;
 };
+
+export type CreateTaskUnderPbiResult =
+  | { ok: true; taskId: number; completedWork: number; markedAsDone: boolean }
+  | { ok: false; status: number; body: string };
 
 type JsonPatchOp =
   | { op: "add"; path: string; value: string | number }
@@ -70,28 +83,6 @@ type JsonPatchOp =
       value: { rel: string; url: string };
     }
   | { op: "replace"; path: string; value: string | number };
-
-async function patchWorkItemFields(
-  auth: AdoCallerAuth,
-  taskId: number,
-  ops: Array<{ op: "replace" | "add"; path: string; value: string | number }>,
-): Promise<{ ok: true } | { ok: false; status: number; body: string }> {
-  const url = `${adoProjectBase(auth)}/_apis/wit/workitems/${taskId}?api-version=7.1`;
-  const res = await adoFetch(auth, url, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json-patch+json",
-    },
-    body: JSON.stringify(ops),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    return { ok: false, status: res.status, body: body.slice(0, 500) };
-  }
-
-  return { ok: true };
-}
 
 async function fetchPbiContext(
   auth: AdoCallerAuth,
@@ -133,18 +124,16 @@ async function resolveAssignedToValue(auth: AdoCallerAuth): Promise<string | nul
 export async function createTaskUnderPbi(
   params: CreateTaskParams,
   auth: AdoCallerAuth,
-): Promise<
-  | { ok: true; taskId: number; completedWork: number }
-  | { ok: false; status: number; body: string }
-> {
+): Promise<CreateTaskUnderPbiResult> {
   const pbiContext = await fetchPbiContext(auth, params.pbiId);
   if (!pbiContext.ok) return pbiContext;
 
+  const processProfile = await resolveProcessProfile(auth);
   const assignedTo = await resolveAssignedToValue(auth);
   const pbiUrl = `${adoOrgBase(auth)}/_apis/wit/workitems/${params.pbiId}`;
   const iterationPath = params.sprintPath.trim() || pbiContext.iterationPath;
 
-  const taskStates = await listTaskStates(auth);
+  const taskStates = await listTaskStates(auth, processProfile.taskWorkItemType);
   if (taskStates.length === 0) {
     return {
       ok: false,
@@ -153,7 +142,18 @@ export async function createTaskUnderPbi(
     };
   }
 
-  const createStateName = pickDefaultOpenTaskState(taskStates);
+  if (params.activity) {
+    const allowedActivities = await fetchActivityValues(auth);
+    if (allowedActivities.length > 0 && !allowedActivities.includes(params.activity)) {
+      return {
+        ok: false,
+        status: 422,
+        body: `La actividad "${params.activity}" no está permitida. Valores válidos: ${allowedActivities.join(", ")}.`,
+      };
+    }
+  }
+
+  const createStateName = pickDefaultOpenTaskState(taskStates, processProfile.taskTodoState || null);
   const createState =
     taskStates.find((state) => state.name === createStateName) ??
     taskStates.find((state) => state.category === "Proposed") ??
@@ -164,10 +164,24 @@ export async function createTaskUnderPbi(
     { op: "add", path: "/fields/System.State", value: createState.name },
     { op: "add", path: `/fields/${AREA_PATH}`, value: pbiContext.areaPath },
     { op: "add", path: `/fields/${ITERATION_PATH}`, value: iterationPath },
-    { op: "add", path: `/fields/${COMPLETED_WORK}`, value: params.hours },
-    { op: "add", path: `/fields/${ORIGINAL_ESTIMATE}`, value: params.hours },
-    { op: "add", path: `/fields/${ACTIVITY}`, value: params.activity },
-    { op: "add", path: `/fields/${resolveWorkingDateFieldName()}`, value: params.workingDate },
+  ];
+
+  if (processProfile.completedWorkField) {
+    ops.push({ op: "add", path: `/fields/${processProfile.completedWorkField}`, value: params.hours });
+  }
+  if (processProfile.originalEstimateField) {
+    ops.push({ op: "add", path: `/fields/${processProfile.originalEstimateField}`, value: params.hours });
+  }
+  ops.push(
+    {
+      op: "add",
+      path: `/fields/${processProfile.workingDateField}`,
+      value: buildWorkingDateTimeValue(
+        params.workingDate,
+        params.workingTime,
+        processProfile.timezone,
+      ),
+    },
     {
       op: "add",
       path: "/relations/-",
@@ -176,7 +190,15 @@ export async function createTaskUnderPbi(
         url: pbiUrl,
       },
     },
-  ];
+  );
+
+  if (processProfile.remainingWorkField) {
+    ops.push({ op: "add", path: `/fields/${processProfile.remainingWorkField}`, value: 0 });
+  }
+
+  if (params.activity) {
+    ops.push({ op: "add", path: `/fields/${ADO_FIELD_DEFAULTS.activityField}`, value: params.activity });
+  }
 
   const description = params.description?.trim();
   if (description) {
@@ -187,18 +209,38 @@ export async function createTaskUnderPbi(
     ops.push({ op: "add", path: "/fields/System.AssignedTo", value: assignedTo });
   }
 
-  const url = `${adoProjectBase(auth)}/_apis/wit/workitems/$Task?api-version=7.1`;
-  const res = await adoFetch(auth, url, {
+  const url = `${adoProjectBase(auth)}/_apis/wit/workitems/$${encodeURIComponent(processProfile.taskWorkItemType)}?api-version=7.1`;
+  const workingDatePath = `/fields/${processProfile.workingDateField}`;
+
+  let res = await adoFetch(auth, url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json-patch+json",
-    },
+    headers: { "Content-Type": "application/json-patch+json" },
     body: JSON.stringify(ops),
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    return { ok: false, status: res.status, body: body.slice(0, 500) };
+    const errorBody = await res.text();
+
+    // Some ADO process configurations restrict date fields in the initial task state
+    // ("To Do"). Retry without the Working Date field — the Done transition sets it.
+    if (
+      res.status === 400 &&
+      errorBody.includes("TF401320") &&
+      ops.some((op) => "path" in op && op.path === workingDatePath)
+    ) {
+      const retryOps = ops.filter((op) => !("path" in op && op.path === workingDatePath));
+      res = await adoFetch(auth, url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json-patch+json" },
+        body: JSON.stringify(retryOps),
+      });
+      if (!res.ok) {
+        const retryErr = await res.text();
+        return { ok: false, status: res.status, body: retryErr.slice(0, 500) };
+      }
+    } else {
+      return { ok: false, status: res.status, body: errorBody.slice(0, 500) };
+    }
   }
 
   const created = (await res.json()) as { id?: number };
@@ -206,13 +248,48 @@ export async function createTaskUnderPbi(
     return { ok: false, status: 502, body: "Azure DevOps no devolvió el ID de la tarea creada." };
   }
 
-  return { ok: true, taskId: created.id, completedWork: params.hours };
+  if (!params.markAsDone) {
+    return { ok: true, taskId: created.id, completedWork: params.hours, markedAsDone: false };
+  }
+
+  const doneState = pickDefaultCompletedTaskState(taskStates, processProfile.taskDoneState || null);
+  const markDoneResult = await updateWorkItemState(
+    {
+      workItemId: created.id,
+      state: doneState,
+      workingDate: params.workingDate,
+      workingTime: params.workingTime,
+      completedWork: params.hours,
+    },
+    auth,
+  );
+
+  if (!markDoneResult.ok) {
+    return {
+      ok: false,
+      status: markDoneResult.status,
+      body: `La tarea #${created.id} se creó, pero no se pudo marcar como Done: ${markDoneResult.body}`,
+    };
+  }
+
+  return { ok: true, taskId: created.id, completedWork: params.hours, markedAsDone: true };
 }
 
 export async function logWorkOnWorkItem(
   params: { workItemId: number; hours: number; comment: string },
   auth: AdoCallerAuth,
 ): Promise<{ ok: true; newCompletedWork: number } | { ok: false; status: number; body: string }> {
+  const processProfile = await resolveProcessProfile(auth);
+  const { completedWorkField } = processProfile;
+
+  if (!completedWorkField) {
+    return {
+      ok: false,
+      status: 422,
+      body: "Este proyecto no tiene configurado el campo de trabajo completado (Completed Work).",
+    };
+  }
+
   const base = `https://dev.azure.com/${encodeURIComponent(auth.organization)}/${encodeURIComponent(auth.project)}/_apis/wit/workitems`;
   const api = "api-version=7.1";
   const headers: Record<string, string> = {
@@ -220,7 +297,7 @@ export async function logWorkOnWorkItem(
     "Content-Type": "application/json",
   };
 
-  const getUrl = `${base}/${params.workItemId}?${api}&$fields=${encodeURIComponent(COMPLETED_WORK)}`;
+  const getUrl = `${base}/${params.workItemId}?${api}&$fields=${encodeURIComponent(completedWorkField)}`;
   const getRes = await fetch(getUrl, { headers, cache: "no-store" });
   if (getRes.status === 401 || getRes.status === 403) {
     const body = await getRes.text();
@@ -239,7 +316,7 @@ export async function logWorkOnWorkItem(
   }
 
   const wi = (await getRes.json()) as { fields?: Record<string, number | string | undefined> };
-  const currentRaw = wi.fields?.[COMPLETED_WORK];
+  const currentRaw = wi.fields?.[completedWorkField];
   const current =
     typeof currentRaw === "number"
       ? currentRaw
@@ -250,12 +327,12 @@ export async function logWorkOnWorkItem(
   const newCompletedWork = Math.round((previous + params.hours) * 100) / 100;
 
   const hadField =
-    wi.fields?.[COMPLETED_WORK] !== undefined && wi.fields?.[COMPLETED_WORK] !== null;
+    wi.fields?.[completedWorkField] !== undefined && wi.fields?.[completedWorkField] !== null;
   const patchOp = hadField ? "replace" : "add";
 
   const patchUrl = `${base}/${params.workItemId}?${api}`;
   const patchBody = JSON.stringify([
-    { op: patchOp, path: `/fields/${COMPLETED_WORK}`, value: newCompletedWork },
+    { op: patchOp, path: `/fields/${completedWorkField}`, value: newCompletedWork },
   ]);
 
   const patchRes = await fetch(patchUrl, {
@@ -290,32 +367,21 @@ export async function logWorkOnWorkItem(
   return { ok: true, newCompletedWork };
 }
 
-/** True si el método de auth activo está listo para ejecutar en Azure DevOps. */
+/** True si hay credenciales de usuario en sesión listas para llamar a Azure DevOps. */
 export async function isAdoExecutionReady(): Promise<boolean> {
-  if (isPatAuthMethod()) return isPatConfigured();
-
-  if (!isOAuthAuthMethod() || !isIronSessionConfigured()) return false;
-
-  const session = await getTaskPilotSession();
-  return Boolean(
-    session.azdoRefreshToken && session.defaultOrg?.trim() && session.defaultProject?.trim(),
-  );
+  return (await resolveAdoCaller()) !== null;
 }
 
 export type WorkItemSprintFilters = {
   assignee?: string;
   workItemType?: string;
-};
-
-type WiqlResponse = {
-  workItems?: Array<{ id: number }>;
-};
-
-type WorkItemsBatchResponse = {
-  value?: Array<{
-    id: number;
-    fields?: Record<string, string | number | undefined>;
-  }>;
+  /**
+   * Campo WIQL alternativo para filtrar la asignación al nivel de PBI/HU.
+   * Si se omite, usa `System.AssignedTo`. Ejemplo: para QA, usar
+   * `Custom.ResponsableQA` de forma que solo aparezcan los PBIs donde el
+   * usuario sea el responsable QA.
+   */
+  pbiAssigneeField?: string;
 };
 
 const TITLE = "System.Title";
@@ -326,8 +392,17 @@ const PRIORITY = "Microsoft.VSTS.Common.Priority";
 const EFFORT = "Microsoft.VSTS.Scheduling.Effort";
 const STORY_POINTS = "Microsoft.VSTS.Scheduling.StoryPoints";
 const PARENT = "System.Parent";
-const WI_COMPLETED_WORK = "Microsoft.VSTS.Scheduling.CompletedWork";
-const WI_ORIGINAL_ESTIMATE = "Microsoft.VSTS.Scheduling.OriginalEstimate";
+const SYSTEM_TAGS = "System.Tags";
+const DESCRIPTION_FIELD = "System.Description";
+const ACCEPTANCE_CRITERIA_FIELD = "Microsoft.VSTS.Common.AcceptanceCriteria";
+const REPRO_STEPS_FIELD = "Microsoft.VSTS.TCM.ReproSteps";
+const ACTIVITY_FIELD = ADO_FIELD_DEFAULTS.activityField;
+const REOPENED_WORKING_DATE_FIELD = "Custom.ReOpenedWorkingDate";
+const REOPENED_BOOLEAN_FIELD = "Custom.Reopenedboolean";
+
+function isReopenedStateName(state: string): boolean {
+  return state.trim().toLowerCase() === "reopened";
+}
 function parseNumericField(value: string | number | undefined): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
@@ -343,17 +418,10 @@ function parseEffortField(fields: Record<string, string | number | undefined> | 
   );
 }
 
-function parseAssignedToField(value: unknown): string {
-  return parseIdentityDisplayName(value);
-}
-
-function adoListErrorMessage(res: Response, body: string, fallback: string): string {
-  const snippet = body.trim().slice(0, 240);
-  return snippet ? `HTTP ${res.status}: ${snippet}` : `HTTP ${res.status}: ${fallback}`;
-}
-
-function resolveBacklogItemType(): string {
-  return process.env.AZDO_BACKLOG_ITEM_TYPE?.trim() || "Product Backlog Item";
+function parseRichTextField(value: string | number | undefined): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed || undefined;
 }
 
 async function fetchWorkItemDetails(
@@ -362,8 +430,13 @@ async function fetchWorkItemDetails(
 ): Promise<AdoWorkItemOption[]> {
   if (ids.length === 0) return [];
 
-  const responsableFields = await resolveBacklogResponsableFields(auth);
-  const fields = [
+  const [responsableFields, processProfile, backlogFetchFields] = await Promise.all([
+    resolveBacklogResponsableFields(auth),
+    resolveProcessProfile(auth),
+    getBacklogItemFetchFieldNames(auth),
+  ]);
+
+  const requestedFields = [
     TITLE,
     WORK_ITEM_TYPE,
     STATE,
@@ -372,39 +445,62 @@ async function fetchWorkItemDetails(
     EFFORT,
     STORY_POINTS,
     PARENT,
-    WI_COMPLETED_WORK,
-    WI_ORIGINAL_ESTIMATE,
-    ...getWorkItemDateFieldNames(),
-    ...(await getBacklogItemFetchFieldNames(auth)),
-  ].join(",");
+    SYSTEM_TAGS,
+    DESCRIPTION_FIELD,
+    ACCEPTANCE_CRITERIA_FIELD,
+    REPRO_STEPS_FIELD,
+    ACTIVITY_FIELD,
+    ...processProfile.workItemDateFieldNames,
+    ...backlogFetchFields,
+    ...(processProfile.completedWorkField ? [processProfile.completedWorkField] : []),
+    ...(processProfile.originalEstimateField ? [processProfile.originalEstimateField] : []),
+  ];
+
   const chunkSize = 200;
   const items: AdoWorkItemOption[] = [];
 
   for (let index = 0; index < ids.length; index += chunkSize) {
     const chunk = ids.slice(index, index + chunkSize);
-    const url = `${adoProjectBase(auth)}/_apis/wit/workitems?ids=${chunk.join(",")}&fields=${encodeURIComponent(fields)}&api-version=7.1`;
-    const res = await adoFetch(auth, url);
-
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(adoListErrorMessage(res, body, "No se pudieron cargar los elementos de trabajo."));
-    }
-
-    const data = (await res.json()) as WorkItemsBatchResponse;
+    const data = await fetchWorkItemsBatchWithFieldFallback(auth, chunk, requestedFields);
     for (const workItem of data.value ?? []) {
       const title = workItem.fields?.[TITLE];
       items.push({
         id: workItem.id,
         title: typeof title === "string" ? title : `Elemento de trabajo ${workItem.id}`,
+        description: parseRichTextField(workItem.fields?.[DESCRIPTION_FIELD]),
+        acceptanceCriteria: parseRichTextField(workItem.fields?.[ACCEPTANCE_CRITERIA_FIELD]),
+        reproSteps: parseRichTextField(workItem.fields?.[REPRO_STEPS_FIELD]),
         type: String(workItem.fields?.[WORK_ITEM_TYPE] ?? "Item"),
         state: String(workItem.fields?.[STATE] ?? ""),
-        assignedTo: parseAssignedToField(workItem.fields?.[ASSIGNED_TO]),
+        assignedTo: parseIdentityDisplayName(workItem.fields?.[ASSIGNED_TO]),
         priority: parseNumericField(workItem.fields?.[PRIORITY]),
         effort: parseEffortField(workItem.fields),
         parentId: parseNumericField(workItem.fields?.[PARENT]),
-        loggedHours: parseNumericField(workItem.fields?.[WI_COMPLETED_WORK]),
-        estimatedHours: parseNumericField(workItem.fields?.[WI_ORIGINAL_ESTIMATE]),
-        workingDate: resolveWorkingDateKeyFromFields(workItem.fields),
+        loggedHours: processProfile.completedWorkField
+          ? parseNumericField(workItem.fields?.[processProfile.completedWorkField])
+          : undefined,
+        estimatedHours: processProfile.originalEstimateField
+          ? parseNumericField(workItem.fields?.[processProfile.originalEstimateField])
+          : undefined,
+        workingDate: resolveWorkingDateKeyFromFields(
+          workItem.fields,
+          processProfile.workItemDateFieldNames,
+          processProfile.timezone,
+        ),
+        workingTime: resolveWorkingTimeFromFields(
+          workItem.fields,
+          processProfile.workingDateField,
+          processProfile.timezone,
+        ),
+        tags: parseAdoWorkItemTags(
+          typeof workItem.fields?.[SYSTEM_TAGS] === "string"
+            ? workItem.fields[SYSTEM_TAGS]
+            : undefined,
+        ),
+        activity:
+          typeof workItem.fields?.[ACTIVITY_FIELD] === "string"
+            ? (workItem.fields[ACTIVITY_FIELD] as string) || undefined
+            : undefined,
         ...mapBacklogItemFields(workItem.fields, responsableFields),
       });
     }
@@ -413,13 +509,137 @@ async function fetchWorkItemDetails(
   return items.sort((a, b) => a.title.localeCompare(b.title, "es"));
 }
 
+export async function fetchWorkItemsByIds(
+  auth: AdoCallerAuth,
+  ids: readonly number[],
+): Promise<AdoWorkItemOption[]> {
+  return fetchWorkItemDetails(auth, [...ids]);
+}
+
+export async function enrichItemsWithParentTitles(
+  auth: AdoCallerAuth,
+  items: AdoWorkItemOption[],
+): Promise<AdoWorkItemOption[]> {
+  const parentIds = [...new Set(items.map((i) => i.parentId).filter((id): id is number => id !== undefined))];
+  if (parentIds.length === 0) return items;
+
+  try {
+    const chunkSize = 200;
+    const titleMap = new Map<number, string>();
+
+    for (let i = 0; i < parentIds.length; i += chunkSize) {
+      const chunk = parentIds.slice(i, i + chunkSize);
+      const data = await fetchWorkItemsBatchWithFieldFallback(auth, chunk, [TITLE]);
+      for (const wi of data.value ?? []) {
+        const t = wi.fields?.[TITLE];
+        if (typeof t === "string" && t.trim()) {
+          titleMap.set(wi.id, t.trim());
+        }
+      }
+    }
+
+    return items.map((item) =>
+      item.parentId !== undefined && titleMap.has(item.parentId)
+        ? { ...item, parentTitle: titleMap.get(item.parentId) }
+        : item,
+    );
+  } catch {
+    return items;
+  }
+}
+
+/**
+ * Azure's sprint backlog shows a PBI even when its own IterationPath is a different sprint,
+ * as long as one of its child Tasks lives in the queried sprint ("carryover parent").
+ * This function replicates that rule (b): find Tasks in the sprint, read their parents,
+ * fetch those parents, and return the ones not already in the main result.
+ * Any failure degrades to an empty list so it can never break the main query.
+ */
+async function fetchCarryoverParents(
+  auth: AdoCallerAuth,
+  iterationPath: string,
+  assignee: string,
+  existingIds: Set<number>,
+  backlogType: string,
+  taskWorkItemType: string,
+  pbiAssigneeField?: string,
+): Promise<AdoWorkItemOption[]> {
+  try {
+    const project = escapeWiqlString(auth.project);
+    const path = escapeWiqlString(iterationPath);
+
+    // 1. Buscar tareas del sprint asignadas al usuario (siempre por System.AssignedTo).
+    const taskConditions = [
+      `[System.TeamProject] = '${project}'`,
+      `[System.IterationPath] UNDER '${path}'`,
+      `[System.State] <> 'Removed'`,
+      `[System.WorkItemType] = '${escapeWiqlString(taskWorkItemType)}'`,
+    ];
+
+    const taskAssigneeCondition = buildAssigneeWiqlCondition(assignee);
+    if (taskAssigneeCondition) taskConditions.push(taskAssigneeCondition);
+
+    const taskIds = await runWiqlIdsQuery(
+      auth,
+      buildWiqlIdsQuery(taskConditions),
+      "No se pudieron consultar las tareas del sprint.",
+    );
+    if (taskIds.length === 0) return [];
+
+    // 2. Encontrar los IDs de los PBIs padres de esas tareas.
+    const chunkSize = 200;
+    const parentIds = new Set<number>();
+
+    for (let i = 0; i < taskIds.length; i += chunkSize) {
+      const chunk = taskIds.slice(i, i + chunkSize);
+      const parentData = await fetchWorkItemsBatchWithFieldFallback(auth, chunk, [PARENT]);
+      for (const item of parentData.value ?? []) {
+        const raw = item.fields?.[PARENT];
+        if (typeof raw === "number" && Number.isFinite(raw) && !existingIds.has(raw)) {
+          parentIds.add(raw);
+        }
+      }
+    }
+
+    if (parentIds.size === 0) return [];
+
+    // 3. Filtrar los PBIs padres por el mismo criterio de asignación del usuario.
+    //    Esto evita mostrar HUs de otros usuarios porque el usuario solo tiene
+    //    tareas bajo ellas (no porque le estén asignadas).
+    const pbiAssigneeCondition = pbiAssigneeField
+      ? buildFieldAssigneeWiqlCondition(pbiAssigneeField, assignee)
+      : buildAssigneeWiqlCondition(assignee);
+
+    let filteredParentIds: number[];
+
+    if (pbiAssigneeCondition) {
+      filteredParentIds = await filterWorkItemIdsByCondition(
+        auth,
+        [...parentIds],
+        pbiAssigneeCondition,
+        "No se pudieron filtrar las historias por responsable.",
+      );
+    } else {
+      filteredParentIds = [...parentIds];
+    }
+
+    if (filteredParentIds.length === 0) return [];
+
+    const parents = await fetchWorkItemsByIds(auth, filteredParentIds);
+    return parents.filter((item) => item.type === backlogType);
+  } catch {
+    return [];
+  }
+}
+
 export async function listWorkItemsInSprint(
   auth: AdoCallerAuth,
   iterationPath: string,
   filters: WorkItemSprintFilters = {},
 ): Promise<AdoWorkItemOption[]> {
+  const processProfile = await resolveProcessProfile(auth);
   const assignee = filters.assignee?.trim() || WORK_ITEM_ASSIGNEE_ALL;
-  const workItemType = filters.workItemType?.trim() || resolveBacklogItemType();
+  const workItemType = filters.workItemType?.trim() || processProfile.backlogItemType;
   const project = escapeWiqlString(auth.project);
   const path = escapeWiqlString(iterationPath);
 
@@ -430,33 +650,43 @@ export async function listWorkItemsInSprint(
     `[System.WorkItemType] = '${escapeWiqlString(workItemType)}'`,
   ];
 
-  if (isWorkItemAssigneeMe(assignee)) {
-    conditions.push("[System.AssignedTo] = @Me");
-  } else if (!isWorkItemAssigneeAll(assignee)) {
-    conditions.push(`[System.AssignedTo] = '${escapeWiqlString(assignee)}'`);
+  // Para PBIs, el campo de asignación puede ser personalizado (ej. QA usa
+  // Custom.ResponsableQA). Para tareas/bugs se usa siempre System.AssignedTo.
+  const isPbiQuery = workItemType === processProfile.backlogItemType;
+  const pbiField = filters.pbiAssigneeField;
+  const assigneeCondition =
+    isPbiQuery && pbiField
+      ? buildFieldAssigneeWiqlCondition(pbiField, assignee)
+      : buildAssigneeWiqlCondition(assignee);
+  if (assigneeCondition) {
+    conditions.push(assigneeCondition);
   }
 
-  const wiql = {
-    query: `SELECT [System.Id] FROM WorkItems WHERE ${conditions.join(" AND ")} ORDER BY [System.ChangedDate] DESC`,
-  };
+  const ids = await runWiqlIdsQuery(
+    auth,
+    buildWiqlIdsQuery(conditions, "[System.ChangedDate] DESC"),
+    "No se pudieron consultar los elementos de trabajo del sprint.",
+  );
+  const mainItems = await fetchWorkItemDetails(auth, ids);
 
-  const url = `${adoProjectBase(auth)}/_apis/wit/wiql?api-version=7.1`;
-  const res = await adoFetch(auth, url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(wiql),
-  });
+  // Only the default backlog type (PBI/HU) can be a carryover parent of Tasks.
+  // Queries for Bugs or other types skip this pass.
+  if (!isPbiQuery) return mainItems;
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(
-      adoListErrorMessage(res, body, "No se pudieron consultar los elementos de trabajo del sprint."),
-    );
-  }
+  const existingIds = new Set(mainItems.map((item) => item.id));
+  const carryoverItems = await fetchCarryoverParents(
+    auth,
+    iterationPath,
+    assignee,
+    existingIds,
+    workItemType,
+    processProfile.taskWorkItemType,
+    pbiField,
+  );
 
-  const data = (await res.json()) as WiqlResponse;
-  const ids = (data.workItems ?? []).map((item) => item.id);
-  return fetchWorkItemDetails(auth, ids);
+  if (carryoverItems.length === 0) return mainItems;
+
+  return [...mainItems, ...carryoverItems].sort((a, b) => a.title.localeCompare(b.title, "es"));
 }
 
 export async function listTasksInSprint(
@@ -464,9 +694,22 @@ export async function listTasksInSprint(
   iterationPath: string,
   filters: Omit<WorkItemSprintFilters, "workItemType"> = {},
 ): Promise<AdoWorkItemOption[]> {
+  const processProfile = await resolveProcessProfile(auth);
   return listWorkItemsInSprint(auth, iterationPath, {
     ...filters,
-    workItemType: resolveTaskWorkItemTypeName(),
+    workItemType: processProfile.taskWorkItemType,
+  });
+}
+
+export async function listBugItemsInSprint(
+  auth: AdoCallerAuth,
+  iterationPath: string,
+  filters: Omit<WorkItemSprintFilters, "workItemType"> = {},
+): Promise<AdoWorkItemOption[]> {
+  const processProfile = await resolveProcessProfile(auth);
+  return listWorkItemsInSprint(auth, iterationPath, {
+    ...filters,
+    workItemType: processProfile.bugWorkItemType,
   });
 }
 
@@ -476,38 +719,50 @@ export type UpdateWorkItemStateResult =
   | { ok: true; state: string }
   | { ok: false; status: number; body: string };
 
+function looksLikeDateField(referenceName: string): boolean {
+  const lower = referenceName.toLowerCase();
+  // Cubre los nombres comunes en proyectos Scrum-like: Working Date, Fecha de
+  // trabajo, FechaTrabajo, WorkingDate, FechaTrabajo, FechaInicio, StartDate, etc.
+  return (
+    lower.includes("date") ||
+    lower.includes("fecha") ||
+    lower.includes("working")
+  );
+}
+
 function buildWorkingDatePatchOps(
   fields: Record<string, string | number | undefined> | undefined,
-  dateValue: string,
+  dateKey: string,
+  timeStr: string,
+  timeZone: string,
+  workingDateFieldNames: readonly string[],
 ): WorkItemFieldPatchOp[] {
-  const ops: WorkItemFieldPatchOp[] = [];
-
-  for (const fieldName of getWorkingDateFieldNamesForUpdate()) {
+  const value = buildWorkingDateTimeValue(dateKey, timeStr, timeZone);
+  return workingDateFieldNames.map((fieldName) => {
     const hadValue =
       fields?.[fieldName] !== undefined && fields?.[fieldName] !== null && fields?.[fieldName] !== "";
-    ops.push({
+    return {
       op: hadValue ? "replace" : "add",
       path: `/fields/${fieldName}`,
-      value: dateValue,
-    });
-  }
-
-  return ops;
+      value,
+    };
+  });
 }
 
 function buildCompletedWorkPatchOps(
   fields: Record<string, string | number | undefined> | undefined,
   hours: number,
+  completedWorkField: string,
 ): WorkItemFieldPatchOp[] {
   const hadValue =
-    fields?.[COMPLETED_WORK] !== undefined &&
-    fields?.[COMPLETED_WORK] !== null &&
-    fields?.[COMPLETED_WORK] !== "";
+    fields?.[completedWorkField] !== undefined &&
+    fields?.[completedWorkField] !== null &&
+    fields?.[completedWorkField] !== "";
 
   return [
     {
       op: hadValue ? "replace" : "add",
-      path: `/fields/${COMPLETED_WORK}`,
+      path: `/fields/${completedWorkField}`,
       value: Math.round(hours * 100) / 100,
     },
   ];
@@ -518,7 +773,12 @@ export async function updateWorkItemState(
     workItemId: number;
     state: string;
     workingDate?: string;
+    workingTime?: string;
     completedWork?: number;
+    title?: string;
+    description?: string;
+    activity?: string;
+    reopenedDate?: string;
   },
   auth: AdoCallerAuth,
 ): Promise<UpdateWorkItemStateResult> {
@@ -526,6 +786,9 @@ export async function updateWorkItemState(
   if (!state) {
     return { ok: false, status: 400, body: "El estado no puede estar vacío." };
   }
+
+  const processProfile = await resolveProcessProfile(auth);
+  const workingDateFieldNamesForUpdate = [processProfile.workingDateField];
 
   const base = `${adoProjectBase(auth)}/_apis/wit/workitems`;
   const api = "api-version=7.1";
@@ -536,12 +799,12 @@ export async function updateWorkItemState(
 
   const dateFields = [
     SYSTEM_STATE,
-    COMPLETED_WORK,
-    ...getWorkingDateFieldNamesForUpdate(),
-    ...getWorkItemDateFieldNames(),
+    ...workingDateFieldNamesForUpdate,
+    ...processProfile.workItemDateFieldNames,
+    ...(processProfile.completedWorkField ? [processProfile.completedWorkField] : []),
   ];
-  const getFields = [...new Set(dateFields)].join(",");
-  const getUrl = `${base}/${params.workItemId}?${api}&$fields=${encodeURIComponent(getFields)}`;
+  const getFields = await filterFieldsToProject(auth, [...new Set(dateFields)]);
+  const getUrl = `${base}/${params.workItemId}?${api}&$fields=${encodeURIComponent(getFields.join(","))}`;
   const getRes = await adoFetch(auth, getUrl);
 
   if (!getRes.ok) {
@@ -557,15 +820,43 @@ export async function updateWorkItemState(
     fields?: Record<string, string | number | undefined>;
   };
 
-  const dateValue =
-    toWorkingDateKey(params.workingDate) ??
-    resolveWorkingDateKeyFromFields(wi.fields) ??
-    getDefaultWorkingDate();
+  const patchOps: WorkItemFieldPatchOp[] = [];
 
-  const patchOps: WorkItemFieldPatchOp[] = [...buildWorkingDatePatchOps(wi.fields, dateValue)];
+  if (params.workingDate) {
+    patchOps.push(
+      ...buildWorkingDatePatchOps(
+        wi.fields,
+        params.workingDate,
+        params.workingTime ?? "12:00",
+        processProfile.timezone,
+        workingDateFieldNamesForUpdate,
+      ),
+    );
+  }
 
-  if (params.completedWork !== undefined && Number.isFinite(params.completedWork)) {
-    patchOps.push(...buildCompletedWorkPatchOps(wi.fields, params.completedWork));
+  if (params.completedWork !== undefined && Number.isFinite(params.completedWork) && processProfile.completedWorkField) {
+    patchOps.push(...buildCompletedWorkPatchOps(wi.fields, params.completedWork, processProfile.completedWorkField));
+  }
+
+  if (params.title) {
+    patchOps.push({ op: "replace", path: `/fields/${TITLE}`, value: params.title.trim() });
+  }
+
+  if (params.description !== undefined) {
+    patchOps.push({ op: "replace", path: `/fields/${DESCRIPTION_FIELD}`, value: params.description });
+  }
+
+  if (params.activity) {
+    patchOps.push({ op: "replace", path: `/fields/${ACTIVITY_FIELD}`, value: params.activity.trim() });
+  }
+
+  if (isReopenedStateName(state)) {
+    const reopenedDate = params.reopenedDate ? toWorkingDateKey(params.reopenedDate) : null;
+    if (reopenedDate) {
+      patchOps.push({ op: "replace", path: `/fields/${REOPENED_WORKING_DATE_FIELD}`, value: reopenedDate });
+    }
+    // Custom.Reopenedboolean es integer-typed (default "0" en el proceso).
+    patchOps.push({ op: "replace", path: `/fields/${REOPENED_BOOLEAN_FIELD}`, value: 1 });
   }
 
   patchOps.push({ op: "replace", path: `/fields/${SYSTEM_STATE}`, value: state });
@@ -579,6 +870,113 @@ export async function updateWorkItemState(
 
   if (!patchRes.ok) {
     const body = await patchRes.text();
+
+    // Some ADO projects enforce field rules on state transitions (e.g. moving
+    // a Bug to a "attended" state requires a custom Working Date field that
+    // isn't in the process profile). When ADO reports a required+invalidEmpty
+    // date-like field that we didn't include, retry with that field set to the
+    // working date so the transition succeeds.
+    //
+    // Cubrimos tres formatos de error:
+    //   1. TF401320 (rule validation) → parseamos `RuleValidationErrors`.
+    //   2. Cuerpo con "Working Date"/"Fecha de trabajo" + "is required"/"required"
+    //      → inferimos que ADO pide un campo de fecha custom.
+    //   3. Cuerpo con "TF400813"/"TF50027" (resource field conflict) → reintentamos
+    //      con todos los campos de fecha-like.
+    const isRuleError = patchRes.status === 400 && body.includes("TF401320");
+    const mentionsRequiredDate =
+      patchRes.status === 400 &&
+      params.workingDate &&
+      /(working date|fecha\s+de\s+trabajo|workingdate)/i.test(body) &&
+      /required|is required|requerid/i.test(body);
+    const isResourceConflict =
+      patchRes.status === 400 &&
+      (body.includes("TF400813") || body.includes("TF50027"));
+    // Some ADO processes mark the custom Working Date field as read-only on
+    // certain work item types (e.g. Bug) so PATCH is rejected with
+    // TF401320 "ReadOnly, InvalidNotOldValue". Drop the Working Date op and
+    // let the state transition / workflow set it instead.
+    const isReadOnlyWorkingDate =
+      patchRes.status === 400 &&
+      body.includes("TF401320") &&
+      /(working date|fecha\s+de\s+trabajo|workingdate)/i.test(body) &&
+      /readonly|invalidnotoldvalue/i.test(body);
+
+    if (params.workingDate && (isRuleError || mentionsRequiredDate || isResourceConflict || isReadOnlyWorkingDate)) {
+      const requiredFields = parseRequiredEmptyFieldsFromAdoError(body);
+      const patchedPaths = new Set(patchOps.map((op) => op.path));
+
+      // Si la respuesta no es TF401320 pero el cuerpo menciona un campo de fecha
+      // requerido, no tenemos el reference name; pedimos al usuario configurar
+      // el campo en Configuración → Proceso.
+      const missingDateFields = requiredFields.filter(
+        (f) => !patchedPaths.has(`/fields/${f}`) && looksLikeDateField(f),
+      );
+
+      // Fallback: si el cuerpo menciona un campo de fecha por su etiqueta pero no
+      // viene en `RuleValidationErrors` (algunas versiones de ADO solo incluyen
+      // el nombre legible), la app no puede inferir el Reference Name. Lo dejamos
+      // pasar al cliente con un mensaje accionable.
+      if (missingDateFields.length > 0) {
+        const retryOps: WorkItemFieldPatchOp[] = [
+          ...patchOps,
+          ...missingDateFields.map((f): WorkItemFieldPatchOp => ({
+            op: "add",
+            path: `/fields/${f}`,
+            value: params.workingDate as string,
+          })),
+        ];
+
+        const retryRes = await adoFetch(auth, patchUrl, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify(retryOps),
+        });
+
+        if (!retryRes.ok) {
+          const retryBody = await retryRes.text();
+          return {
+            ok: false,
+            status: retryRes.status,
+            body: retryBody.slice(0, 500) || "No se pudo actualizar el estado del work item.",
+          };
+        }
+
+        return { ok: true, state };
+      }
+
+      // Si ADO marca el Working Date como read-only en este work item type,
+      // reintentamos sin esa op; el workflow / la transición de estado se
+      // encarga del campo.
+      if (isReadOnlyWorkingDate) {
+        const workingDatePaths = new Set(
+          workingDateFieldNamesForUpdate.map((f) => `/fields/${f}`),
+        );
+        const retryOps = patchOps.filter((op) => !workingDatePaths.has(op.path));
+
+        if (retryOps.length < patchOps.length) {
+          const retryRes = await adoFetch(auth, patchUrl, {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify(retryOps),
+          });
+
+          if (!retryRes.ok) {
+            const retryBody = await retryRes.text();
+            return {
+              ok: false,
+              status: retryRes.status,
+              body:
+                retryBody.slice(0, 500) ||
+                "No se pudo actualizar el estado del work item.",
+            };
+          }
+
+          return { ok: true, state };
+        }
+      }
+    }
+
     return {
       ok: false,
       status: patchRes.status,
@@ -587,4 +985,86 @@ export async function updateWorkItemState(
   }
 
   return { ok: true, state };
+}
+
+export type DeleteWorkItemResult =
+  | { ok: true }
+  | { ok: false; status: number; body: string };
+
+export async function deleteWorkItem(
+  workItemId: number,
+  auth: AdoCallerAuth,
+): Promise<DeleteWorkItemResult> {
+  const url = `${adoProjectBase(auth)}/_apis/wit/workitems/${workItemId}?api-version=7.1`;
+  const res = await adoFetch(auth, url, { method: "DELETE" });
+
+  if (!res.ok) {
+    const body = await res.text();
+    return { ok: false, status: res.status, body: body.slice(0, 500) };
+  }
+
+  return { ok: true };
+}
+
+export type ChangeWorkItemParentResult =
+  | { ok: true }
+  | { ok: false; status: number; body: string };
+
+export async function changeWorkItemParent(
+  workItemId: number,
+  newParentId: number,
+  auth: AdoCallerAuth,
+): Promise<ChangeWorkItemParentResult> {
+  const api = "api-version=7.1";
+  const base = `${adoProjectBase(auth)}/_apis/wit/workitems`;
+
+  // Read current relations to find the index of the existing parent link
+  const getUrl = `${base}/${workItemId}?${api}&$expand=relations`;
+  const getRes = await adoFetch(auth, getUrl);
+  if (!getRes.ok) {
+    const body = await getRes.text();
+    return { ok: false, status: getRes.status, body: body.slice(0, 500) };
+  }
+
+  const wi = (await getRes.json()) as {
+    relations?: Array<{ rel: string; url: string }>;
+  };
+
+  const relations = wi.relations ?? [];
+  const parentRelIndex = relations.findIndex(
+    (r) => r.rel === "System.LinkTypes.Hierarchy-Reverse",
+  );
+
+  const newParentUrl = `${adoOrgBase(auth)}/_apis/wit/workitems/${newParentId}`;
+  const headers: Record<string, string> = {
+    Authorization: authHeader(auth),
+    "Content-Type": "application/json-patch+json",
+  };
+  const patchUrl = `${base}/${workItemId}?${api}`;
+
+  // If there's an existing parent, remove it and add new; otherwise just add.
+  const ops: Array<{ op: string; path: string; value?: unknown }> = [];
+
+  if (parentRelIndex >= 0) {
+    ops.push({ op: "remove", path: `/relations/${parentRelIndex}` });
+  }
+
+  ops.push({
+    op: "add",
+    path: "/relations/-",
+    value: { rel: "System.LinkTypes.Hierarchy-Reverse", url: newParentUrl },
+  });
+
+  const patchRes = await adoFetch(auth, patchUrl, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(ops),
+  });
+
+  if (!patchRes.ok) {
+    const body = await patchRes.text();
+    return { ok: false, status: patchRes.status, body: body.slice(0, 500) };
+  }
+
+  return { ok: true };
 }

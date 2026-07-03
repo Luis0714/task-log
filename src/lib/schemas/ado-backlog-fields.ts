@@ -1,12 +1,13 @@
 import { z } from "zod";
 
 export const backlogResponsableFieldSchema = z.object({
-  key: z.enum(["maquetacion", "integrador", "qa"]),
+  /** Identificador estable. Para campos genéricos, el `referenceName` mismo. */
+  key: z.string(),
   referenceName: z.string(),
   label: z.string(),
   defaultToCurrentUser: z.boolean(),
-  source: z.enum(["env", "discovered"]),
-  envKey: z.string(),
+  source: z.enum(["env", "discovered", "manual"]),
+  envKey: z.string().nullable().optional(),
 });
 
 export const adoBacklogFieldsResponseSchema = z.object({

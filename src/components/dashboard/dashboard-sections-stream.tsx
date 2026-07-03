@@ -1,11 +1,9 @@
 import { Suspense } from "react";
 
-import { DashboardDailySectionServer } from "@/components/dashboard/sections/server/dashboard-daily-section-server";
 import { DashboardDeliverySectionServer } from "@/components/dashboard/sections/server/dashboard-delivery-section-server";
 import { DashboardHoursSectionServer } from "@/components/dashboard/sections/server/dashboard-hours-section-server";
 import { DashboardWorkflowSectionServer } from "@/components/dashboard/sections/server/dashboard-workflow-section-server";
 import {
-  DashboardDailySectionSkeleton,
   DashboardDeliverySectionSkeleton,
   DashboardHoursSectionSkeleton,
   DashboardWorkflowSectionSkeleton,
@@ -13,19 +11,19 @@ import {
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 
 export type DashboardSectionsStreamProps = {
-  catalog: AdoCatalogSnapshot;
-  sprintDayKey: string;
+  readonly catalog: AdoCatalogSnapshot;
+  readonly sprintDayKey: string;
 };
 
 export function DashboardSectionsStream({
   catalog,
   sprintDayKey,
 }: DashboardSectionsStreamProps) {
+  // sprintDayKey excluido: las secciones lo resuelven internamente; solo project/team/sprint deben resetear el skeleton.
   const sectionKey = [
     catalog.project,
     catalog.team,
     catalog.sprintPath,
-    sprintDayKey,
   ].join("|");
 
   return (
@@ -40,10 +38,6 @@ export function DashboardSectionsStream({
 
       <Suspense key={`workflow|${sectionKey}`} fallback={<DashboardWorkflowSectionSkeleton />}>
         <DashboardWorkflowSectionServer catalog={catalog} sprintDayKey={sprintDayKey} />
-      </Suspense>
-
-      <Suspense key={`daily|${sectionKey}`} fallback={<DashboardDailySectionSkeleton />}>
-        <DashboardDailySectionServer catalog={catalog} />
       </Suspense>
     </div>
   );

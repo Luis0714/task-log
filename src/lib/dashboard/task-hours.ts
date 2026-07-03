@@ -10,6 +10,19 @@ function roundHours(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
+/** Suma Completed Work de las tareas visibles (p. ej. tras filtros del listado). */
+export function sumTaskLoggedHours(
+  tasks: readonly Pick<SprintTaskHoursSource, "loggedHours">[],
+): number {
+  const total = tasks.reduce((sum, task) => {
+    if (typeof task.loggedHours !== "number" || !Number.isFinite(task.loggedHours)) {
+      return sum;
+    }
+    return sum + task.loggedHours;
+  }, 0);
+  return roundHours(total);
+}
+
 function isLoggedDoneTask(task: SprintTaskHoursSource): boolean {
   return isDoneTaskStateName(task.state) && typeof task.loggedHours === "number";
 }

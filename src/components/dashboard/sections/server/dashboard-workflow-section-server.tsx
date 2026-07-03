@@ -4,11 +4,11 @@ import { SprintWorkflowSection } from "@/components/dashboard/sections/sprint-wo
 import {
   firstSprintDataError,
   loadSprintBacklogStates,
-  loadSprintWorkItems,
+  loadSprintPeriodStories,
 } from "@/lib/ado/load-sprint-data";
 import { catalogToSprintContext } from "@/lib/ado/sprint-data-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
-import { buildDashboardWorkflowMetrics } from "@/lib/dashboard/build-dashboard-workflow-metrics";
+import { buildSprintWorkflowSectionMetrics } from "@/lib/sprints/build-sprint-workflow-section-metrics";
 
 export type DashboardWorkflowSectionServerProps = {
   catalog: AdoCatalogSnapshot;
@@ -22,14 +22,21 @@ export async function DashboardWorkflowSectionServer({
   if (!ctx) return null;
 
   const [workItems, backlogStates] = await Promise.all([
-    loadSprintWorkItems(ctx),
+    loadSprintPeriodStories(
+      ctx.project,
+      ctx.team,
+      ctx.sprintPath,
+      ctx.sprintStartDate,
+      ctx.sprintFinishDate,
+      ctx.assignee,
+    ),
     loadSprintBacklogStates(ctx.project),
   ]);
 
   const error = firstSprintDataError(workItems, backlogStates);
   if (error) return <CopilotErrorAlert message={error} />;
 
-  const metrics = buildDashboardWorkflowMetrics(workItems.data, backlogStates.data);
+  const metrics = buildSprintWorkflowSectionMetrics(workItems.data, backlogStates.data);
 
   return (
     <DashboardSection title="Trabajo por estado">

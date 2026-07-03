@@ -6,23 +6,16 @@ import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 
 export type UserStoryResponsableFieldsProps = {
   fields: readonly BacklogResponsableFieldDto[];
-  values: {
-    maquetacion: string;
-    integrador: string;
-    qa: string;
-  };
+  /** Mapa `referenceName → displayName` con los valores actuales del form. */
+  values: Readonly<Record<string, string>>;
   members: readonly AdoTeamMemberDto[];
   membersLoading?: boolean;
   disabled?: boolean;
+  /** Indica que estamos en transición a QA (los campos requeridos se marcan). */
   required?: boolean;
-  onChange: (key: keyof UserStoryResponsableFieldsProps["values"], value: string) => void;
+  /** Recibe el `referenceName` y el nuevo valor. */
+  onChange: (referenceName: string, value: string) => void;
 };
-
-const VALUE_KEYS = {
-  maquetacion: "maquetacion",
-  integrador: "integrador",
-  qa: "qa",
-} as const;
 
 export function UserStoryResponsableFields({
   fields,
@@ -39,21 +32,24 @@ export function UserStoryResponsableFields({
     <section className="space-y-4">
       <p className="text-muted-foreground text-xs">
         {required
-          ? "Obligatorios al pasar a QA. También puedes editarlos en cualquier estado."
+          ? "Obligatorios al pasar a QA. Si los dejas vacíos y tienen «Asignarme por defecto», se usará tu usuario."
           : "Puedes ver y editar los responsables asignados en Azure DevOps."}
       </p>
       {fields.map((field) => {
-        const valueKey = VALUE_KEYS[field.key];
+        // En QA: el campo es required solo si NO tiene defaultToCurrentUser (porque
+        // los que sí lo tienen los rellena el servidor con el usuario logueado).
+        const isRequired = required && !field.defaultToCurrentUser;
         return (
           <TeamMemberSelect
-            key={field.key}
-            id={`user-story-responsable-${field.key}`}
+            key={field.referenceName}
+            id={`user-story-responsable-${field.referenceName}`}
             label={field.label}
-            value={values[valueKey]}
+            required={isRequired}
+            value={values[field.referenceName] ?? ""}
             members={members}
             membersLoading={membersLoading}
             disabled={disabled}
-            onChange={(value) => onChange(valueKey, value)}
+            onChange={(value) => onChange(field.referenceName, value)}
           />
         );
       })}

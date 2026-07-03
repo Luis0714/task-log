@@ -55,6 +55,8 @@ export type DashboardMetrics = {
   hoursRemaining: number;
   /** Suma de story points / effort de historias asignadas en el sprint. */
   storyPointsAssigned: number;
+  /** Story points de HUs ya desarrolladas en el sprint. */
+  storyPointsDeveloped: number;
   sprintWorkingDaysCount: number;
   hoursByDay: SprintDayHoursPoint[];
   sprintWeeks: SprintWeekMetrics[];
@@ -65,8 +67,11 @@ export type DashboardMetrics = {
 
 export type DashboardDeliveryMetrics = Pick<
   DashboardMetrics,
-  "sprintStatusOverview" | "storyPointsAssigned" | "pbiProgress"
->;
+  "sprintStatusOverview" | "storyPointsAssigned" | "storyPointsDeveloped" | "pbiProgress"
+> & {
+  huStateGroups: readonly DashboardPbiStateGroup[];
+  bugStateGroups: readonly DashboardPbiStateGroup[];
+};
 
 export type DashboardWorkflowMetrics = Pick<
   DashboardMetrics,

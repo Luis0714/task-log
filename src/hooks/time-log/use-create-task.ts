@@ -7,61 +7,82 @@ import type { CopilotHistoryEntry } from "@/hooks/use-copilot-history";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import { createTaskInAdo } from "@/lib/time-log/create-task-client";
 import { resetTaskStepFields } from "@/lib/time-log/form-selection";
-import type { TimeLogStep } from "@/lib/time-log/catalog-types";
 import {
   TIME_LOG_TASK_STEP_DEFAULTS,
   mapTimeLogFormToPayload,
-  type CreateTaskPayload,
   type TimeLogFormValues,
 } from "@/lib/schemas/time-log";
+import { getDefaultWorkingTime } from "@/lib/time-log/task-constants";
 import { appToast } from "@/lib/toast";
 
 type UseCreateTaskOptions = {
   form: UseFormReturn<TimeLogFormValues>;
   appendHistory: (entry: CopilotHistoryEntry) => void;
-  setStep: (step: TimeLogStep) => void;
+  isTaskCreationMode: boolean;
   getDefaultTaskState: () => string;
+  getDefaultCompletedTaskState: () => string;
   getDefaultWorkingDate: () => string;
 };
 
 function clearTaskFields(
   form: UseFormReturn<TimeLogFormValues>,
   getDefaultTaskState: () => string,
+  getDefaultCompletedTaskState: () => string,
+  isTaskCreationMode: boolean,
   getDefaultWorkingDate: () => string,
 ) {
-  form.setValue("taskTitle", "");
-  form.setValue("hours", "");
-  form.setValue("description", "");
-  form.setValue("activity", TIME_LOG_TASK_STEP_DEFAULTS.activity);
-  form.setValue("workingDate", getDefaultWorkingDate());
-  form.setValue("taskState", getDefaultTaskState());
+  const noValidate = { shouldValidate: false };
+  form.setValue("taskTitle", "", noValidate);
+  form.setValue("hours", "", noValidate);
+  form.setValue("description", "", noValidate);
+  form.setValue("activity", TIME_LOG_TASK_STEP_DEFAULTS.activity, noValidate);
+  form.setValue("workingDate", getDefaultWorkingDate(), noValidate);
+  form.setValue("workingTime", getDefaultWorkingTime(), noValidate);
+  form.setValue(
+    "taskState",
+    isTaskCreationMode
+      ? getDefaultTaskState()
+      : getDefaultCompletedTaskState() || getDefaultTaskState(),
+    noValidate,
+  );
+  form.setValue("autoMarkAsDone", TIME_LOG_TASK_STEP_DEFAULTS.autoMarkAsDone, noValidate);
   resetTaskStepFields(form);
 }
 
 export function useCreateTask({
   form,
   appendHistory,
-  setStep,
+  isTaskCreationMode,
   getDefaultTaskState,
+  getDefaultCompletedTaskState,
   getDefaultWorkingDate,
 }: UseCreateTaskOptions) {
-  const [preview, setPreview] = useState<CreateTaskPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [lastSubmitted, setLastSubmitted] = useState<{
+    taskTitle: string;
+    description: string;
+    activity?: string;
+    hours?: string;
+  } | null>(null);
 
-  const preparePreview = useCallback(
-    (values: TimeLogFormValues, selectedPbi: AdoWorkItemOptionDto | null) => {
-      setError(null);
-      const pbiTitle = selectedPbi?.title ?? `Historia #${values.pbiId}`;
-      setPreview(mapTimeLogFormToPayload(values, pbiTitle));
-    },
-    [],
-  );
-
-  const execute = useCallback(
-    async (payload: CreateTaskPayload) => {
+  const submit = useCallback(
+    async (values: TimeLogFormValues, selectedPbi: AdoWorkItemOptionDto | null) => {
       setError(null);
       setLoading(true);
+
+      // Defensa en profundidad: en modo time-log forzamos la creación como
+      // Done, aunque el form haya sido manipulado manualmente.
+      const payloadValues: TimeLogFormValues = isTaskCreationMode
+        ? values
+        : {
+            ...values,
+            autoMarkAsDone: true,
+            taskState: getDefaultCompletedTaskState() || values.taskState,
+          };
+
+      const pbiTitle = selectedPbi?.title ?? `Historia #${payloadValues.pbiId}`;
+      const payload = mapTimeLogFormToPayload(payloadValues, pbiTitle);
 
       try {
         const result = await createTaskInAdo(payload);
@@ -74,22 +95,36 @@ export function useCreateTask({
           appendHistory({
             id: crypto.randomUUID(),
             at: new Date().toISOString(),
+            workingDate: payload.workingDate,
             summary: `Tarea en historia #${payload.pbiId} +${payload.hours}h (falló)`,
             ok: false,
           });
           return;
         }
 
-        setPreview(null);
-        clearTaskFields(form, getDefaultTaskState, getDefaultWorkingDate);
-        setStep(2);
+        setLastSubmitted({
+          taskTitle: payloadValues.taskTitle.trim(),
+          description: payloadValues.description.trim(),
+          activity: payloadValues.activity?.trim() || undefined,
+          hours: payloadValues.hours?.trim() || undefined,
+        });
+
+        clearTaskFields(
+          form,
+          getDefaultTaskState,
+          getDefaultCompletedTaskState,
+          isTaskCreationMode,
+          getDefaultWorkingDate,
+        );
+        const doneNote = result.markedAsDone ? " · marcada como Done" : "";
         appToast.success(`Tarea creada: #${result.taskId}`, {
-          description: `${payload.title} · ${payload.hours}h · Historia #${payload.pbiId}`,
+          description: `${payload.title} · ${payload.hours}h · Historia #${payload.pbiId}${doneNote}`,
         });
         appendHistory({
           id: crypto.randomUUID(),
           at: new Date().toISOString(),
-          summary: `Tarea #${result.taskId} +${payload.hours}h · Historia #${payload.pbiId}`,
+          workingDate: payload.workingDate,
+          summary: `Tarea #${result.taskId} +${payload.hours}h · Historia #${payload.pbiId}${doneNote}`,
           ok: true,
         });
       } catch {
@@ -100,12 +135,21 @@ export function useCreateTask({
         setLoading(false);
       }
     },
-    [appendHistory, form, getDefaultTaskState, getDefaultWorkingDate, setStep],
+    [
+      appendHistory,
+      form,
+      getDefaultCompletedTaskState,
+      getDefaultTaskState,
+      getDefaultWorkingDate,
+      isTaskCreationMode,
+    ],
   );
 
-  const dismissPreview = useCallback(() => {
-    setPreview(null);
-  }, []);
-
-  return { preview, error, loading, preparePreview, execute, dismissPreview };
+  return {
+    error,
+    loading,
+    submit,
+    lastSubmitted,
+    clearLastSubmitted: () => setLastSubmitted(null),
+  };
 }

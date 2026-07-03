@@ -5,18 +5,21 @@ import { UserStoryCommittedFields } from "@/components/work-items/user-story-com
 export type UserStorySchedulingFieldsProps = {
   startDate: string;
   targetDate: string;
+  required?: boolean;
   disabled?: boolean;
   onStartDateChange: (value: string) => void;
   onTargetDateChange: (value: string) => void;
 };
 
 export function UserStorySchedulingFields(props: UserStorySchedulingFieldsProps) {
+  const { required = false } = props;
+
   return (
     <section className="space-y-2">
       <h3 className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
         Fechas
       </h3>
-      <UserStoryCommittedFields {...props} />
+      <UserStoryCommittedFields {...props} required={required} />
     </section>
   );
 }

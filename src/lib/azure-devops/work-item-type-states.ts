@@ -1,11 +1,22 @@
 import { adoFetch, adoOrgBase, adoProjectBase } from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { listProjectTeams } from "@/lib/azure-devops/teams";
+import { createTtlCache } from "@/lib/cache/ttl-cache";
 
 export type AdoWorkItemTypeState = {
   name: string;
+  /** Categoría de Azure DevOps: "Proposed" | "InProgress" | "Resolved" | "Completed" | "Removed". */
   category: string;
+  /** Color hexadecimal sin prefijo "#" (formato exacto que devuelve la API de Azure). */
+  color: string;
 };
+
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const statesCache = createTtlCache<AdoWorkItemTypeState[]>(ONE_HOUR_MS);
+
+function statesCacheKey(auth: AdoCallerAuth, workItemType: string): string {
+  return `${auth.organization}::${auth.project}::${workItemType}`;
+}
 
 export async function listWorkItemTypeStates(
   auth: AdoCallerAuth,
@@ -16,7 +27,11 @@ export async function listWorkItemTypeStates(
     throw new Error("Falta el tipo de work item.");
   }
 
-  const url = `${adoProjectBase(auth)}/_apis/wit/workitemtypes/${encodeURIComponent(typeName)}?api-version=7.1`;
+  const key = statesCacheKey(auth, typeName);
+  const cached = statesCache.get(key);
+  if (cached) return cached;
+
+  const url = `${adoProjectBase(auth)}/_apis/wit/workitemtypes/${encodeURIComponent(typeName)}/states?api-version=7.1`;
   const res = await adoFetch(auth, url);
 
   if (!res.ok) {
@@ -25,15 +40,19 @@ export async function listWorkItemTypeStates(
   }
 
   const data = (await res.json()) as {
-    states?: Array<{ name?: string; category?: string }>;
+    value?: Array<{ name?: string; category?: string; color?: string }>;
   };
 
-  return (data.states ?? [])
+  const states = (data.value ?? [])
     .map((state) => ({
       name: state.name?.trim() ?? "",
       category: state.category?.trim() ?? "",
+      color: state.color?.trim() || "b2b2b2",
     }))
     .filter((state) => state.name.length > 0);
+
+  statesCache.set(key, states);
+  return states;
 }
 
 export function resolveTaskWorkItemTypeName(): string {
@@ -44,20 +63,32 @@ export function resolveBacklogWorkItemTypeName(): string {
   return process.env.AZDO_BACKLOG_ITEM_TYPE?.trim() || "Product Backlog Item";
 }
 
-export async function listTaskStates(auth: AdoCallerAuth): Promise<AdoWorkItemTypeState[]> {
-  return listWorkItemTypeStates(auth, resolveTaskWorkItemTypeName());
-}
-
-export async function listBacklogItemStates(auth: AdoCallerAuth): Promise<AdoWorkItemTypeState[]> {
-  return listWorkItemTypeStates(auth, resolveBacklogWorkItemTypeName());
-}
-
 export function resolveBugWorkItemTypeName(): string {
   return process.env.AZDO_BUG_WORK_ITEM_TYPE?.trim() || "Bug";
 }
 
-export async function listBugStates(auth: AdoCallerAuth): Promise<AdoWorkItemTypeState[]> {
-  return listWorkItemTypeStates(auth, resolveBugWorkItemTypeName());
+/** Lista los estados de tareas. Usar `workItemType` del processProfile cuando esté disponible. */
+export async function listTaskStates(
+  auth: AdoCallerAuth,
+  workItemType?: string,
+): Promise<AdoWorkItemTypeState[]> {
+  return listWorkItemTypeStates(auth, workItemType ?? resolveTaskWorkItemTypeName());
+}
+
+/** Lista los estados de backlog items. Usar `workItemType` del processProfile cuando esté disponible. */
+export async function listBacklogItemStates(
+  auth: AdoCallerAuth,
+  workItemType?: string,
+): Promise<AdoWorkItemTypeState[]> {
+  return listWorkItemTypeStates(auth, workItemType ?? resolveBacklogWorkItemTypeName());
+}
+
+/** Lista los estados de bugs. Usar `workItemType` del processProfile cuando esté disponible. */
+export async function listBugStates(
+  auth: AdoCallerAuth,
+  workItemType?: string,
+): Promise<AdoWorkItemTypeState[]> {
+  return listWorkItemTypeStates(auth, workItemType ?? resolveBugWorkItemTypeName());
 }
 
 export async function findTaskState(

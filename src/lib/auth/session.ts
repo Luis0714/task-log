@@ -1,13 +1,33 @@
 import { getIronSession, type SessionOptions } from "iron-session";
 import { cookies } from "next/headers";
 
+import type { SessionAuthMethod } from "@/lib/auth/session-auth-method";
+
 export type TaskPilotSessionData = {
-  pendingOAuth?: { state: string; codeVerifier: string };
+  taskPilotUserId?: string;
+  pendingOAuth?: { state: string; codeVerifier: string; selectedRole?: string };
+  sessionAuthMethod?: SessionAuthMethod;
+  azdoPat?: string;
   azdoRefreshToken?: string;
   adoProfile?: { displayName: string; publicAlias?: string; id: string };
   defaultOrg?: string;
   defaultProject?: string;
+  defaultTeam?: string;
+  userRole?: string;
 };
+
+export function clearSessionCredentials(session: TaskPilotSessionData): void {
+  session.taskPilotUserId = undefined;
+  session.pendingOAuth = undefined;
+  session.sessionAuthMethod = undefined;
+  session.azdoPat = undefined;
+  session.azdoRefreshToken = undefined;
+  session.adoProfile = undefined;
+  session.defaultOrg = undefined;
+  session.defaultProject = undefined;
+  session.defaultTeam = undefined;
+  session.userRole = undefined;
+}
 
 function sessionPassword(): string {
   const p = process.env.IRON_SESSION_PASSWORD ?? "";
@@ -36,6 +56,12 @@ export function getSessionOptions(): SessionOptions {
 export async function getTaskPilotSession() {
   const cookieStore = await cookies();
   return getIronSession<TaskPilotSessionData>(cookieStore, getSessionOptions());
+}
+
+export async function destroyTaskPilotSession(): Promise<void> {
+  const session = await getTaskPilotSession();
+  clearSessionCredentials(session);
+  session.destroy();
 }
 
 export function isIronSessionConfigured(): boolean {

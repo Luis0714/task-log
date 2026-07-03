@@ -1,10 +1,10 @@
 import { JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
-
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { buildSoftwareApplicationJsonLd } from "@/lib/seo/json-ld";
 import { buildRootMetadata } from "@/lib/seo/metadata";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const satoshi = localFont({
@@ -60,7 +60,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${satoshi.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-background text-foreground">
+      <body className="min-h-full bg-background font-sans text-foreground">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -71,6 +71,7 @@ export default function RootLayout({
           {children}
           <Toaster richColors closeButton position="top-right" />
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );

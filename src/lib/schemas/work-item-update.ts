@@ -1,9 +1,17 @@
 import { z } from "zod";
 
+import { WORKING_TIME_PATTERN } from "@/lib/date/ado-datetime";
+
 const dateKeySchema = z
   .string()
   .trim()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe tener formato YYYY-MM-DD.");
+
+export const userStoryWorkflowTagSchema = z.enum([
+  "none",
+  "en-desarrollo",
+  "desarrollada",
+]);
 
 export const updateWorkItemBodySchema = z.object({
   project: z.string().trim().min(1).max(200),
@@ -14,15 +22,37 @@ export const updateWorkItemBodySchema = z.object({
   team: z.string().trim().min(1).max(200).optional(),
   /** Fecha de trabajo (tasks/bugs); si falta, el servidor infiere o usa hoy. */
   workingDate: dateKeySchema.optional(),
+  /** Hora de trabajo (HH:mm), en la zona del proyecto. */
+  workingTime: z
+    .string()
+    .trim()
+    .regex(WORKING_TIME_PATTERN, "La hora debe tener formato HH:mm (24 h).")
+    .optional(),
   /** Horas en Completed Work (bugs y tasks). */
   completedWork: z.coerce.number().min(0).max(9999).optional(),
   /** PBI/HU → Committed */
   startDate: dateKeySchema.optional(),
   targetDate: dateKeySchema.optional(),
-  /** PBI/HU → QA */
-  responsableMaquetacion: z.string().trim().min(1).max(200).optional(),
-  responsableIntegrador: z.string().trim().min(1).max(200).optional(),
-  responsableQA: z.string().trim().min(1).max(200).optional(),
+  /**
+   * PBI/HU → QA: mapa `referenceName → displayName` para todos los
+   * Responsables configurados en el proyecto. Si falta un valor y el campo
+   * tiene `defaultToCurrentUser=true`, el servidor usa el usuario logueado.
+   */
+  responsables: z.record(z.string(), z.string().trim().min(1).max(200)).optional(),
+  /** Tag de flujo de la HU (EN DESARROLLO / DESARROLLADA). */
+  workflowTag: userStoryWorkflowTagSchema.optional(),
+  /** Tags completos de la HU (`System.Tags`). */
+  tags: z.array(z.string().trim().min(1).max(200)).optional(),
+  /** Título del work item (System.Title). */
+  title: z.string().trim().min(1).max(255).optional(),
+  /** Descripción del work item (System.Description). */
+  description: z.string().optional(),
+  /** Actividad de la tarea (Microsoft.VSTS.Common.Activity). */
+  activity: z.string().trim().max(100).optional(),
+  /** ID del nuevo work item padre para re-asignación. */
+  newParentId: z.number().int().positive().optional(),
+  /** Fecha de reapertura (Custom.ReOpenedWorkingDate). Requerida al pasar a "Reopened". */
+  reopenedDate: dateKeySchema.optional(),
 });
 
 export function isBacklogWorkItemUpdate(body: UpdateWorkItemBody): boolean {

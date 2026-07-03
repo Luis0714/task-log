@@ -5,7 +5,10 @@ export type NeosViewIsotipoBadgeProps = {
   className?: string;
 };
 
-/** Isotipo sobre fondo de marca — mismo aspecto en sidebar y header móvil. */
+/**
+ * Isotipo sobre fondo de marca (morado + símbolo blanco).
+ * Mismo aspecto en sidebar, header móvil y favicon.
+ */
 export function NeosViewIsotipoBadge({ className }: NeosViewIsotipoBadgeProps) {
   return (
     <span

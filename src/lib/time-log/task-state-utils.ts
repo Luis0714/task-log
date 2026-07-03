@@ -23,7 +23,11 @@ export function isCompletedTaskState(states: AdoTaskStateDto[], stateName: strin
   return isDoneTaskStateName(stateName);
 }
 
-export function pickDefaultOpenTaskState(states: AdoTaskStateDto[]): string {
+export function pickDefaultOpenTaskState(
+  states: AdoTaskStateDto[],
+  overrideName?: string | null,
+): string {
+  if (overrideName && states.some((state) => state.name === overrideName)) return overrideName;
   const env = readEnvOverride("AZDO_TASK_TODO_STATE");
   if (env && states.some((state) => state.name === env)) return env;
 
@@ -42,7 +46,11 @@ export function pickDefaultOpenTaskState(states: AdoTaskStateDto[]): string {
   return states[0]?.name ?? "";
 }
 
-export function pickDefaultCompletedTaskState(states: AdoTaskStateDto[]): string {
+export function pickDefaultCompletedTaskState(
+  states: AdoTaskStateDto[],
+  overrideName?: string | null,
+): string {
+  if (overrideName && states.some((state) => state.name === overrideName)) return overrideName;
   const env = readEnvOverride("AZDO_TASK_DONE_STATE");
   if (env && states.some((state) => state.name === env)) return env;
 

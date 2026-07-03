@@ -1,4 +1,8 @@
+import { CardBlockSkeleton } from "@/components/skeletons/card-block-skeleton";
+import { DeliveryChartSkeleton } from "@/components/skeletons/delivery-chart-skeleton";
+import { HoursChartSkeleton } from "@/components/skeletons/hours-chart-skeleton";
 import { PbiListSkeleton } from "@/components/skeletons/pbi-list-skeleton";
+import { WorkflowChartSkeleton } from "@/components/skeletons/workflow-chart-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -8,49 +12,6 @@ export type SectionBlockSkeletonProps = {
   /** Si false, solo pinta el contenido (útil dentro de DashboardSection con título real). */
   showHeader?: boolean;
 };
-
-function DeliveryChartSkeleton({ className }: { className?: string }) {
-  return (
-    <div className={cn("grid gap-3 lg:grid-cols-12", className)}>
-      <div className="grid grid-cols-3 gap-2 sm:max-w-md lg:col-span-4 lg:max-w-none lg:grid-cols-1 lg:gap-1.5">
-        <Skeleton className="h-16 rounded-xl lg:h-20" />
-        <Skeleton className="h-16 rounded-xl lg:h-20" />
-        <Skeleton className="h-16 rounded-xl lg:h-20" />
-      </div>
-      <Skeleton className="h-52 rounded-xl lg:col-span-8" />
-    </div>
-  );
-}
-
-function WorkflowChartSkeleton({ className }: { className?: string }) {
-  return (
-    <div className={cn("grid gap-3 lg:grid-cols-12", className)}>
-      <Skeleton className="h-40 rounded-xl lg:col-span-4" />
-      <Skeleton className="h-40 rounded-xl lg:col-span-8" />
-    </div>
-  );
-}
-
-function HoursChartSkeleton({ className }: { className?: string }) {
-  return (
-    <div className={cn("flex flex-col gap-3", className)}>
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-12">
-        <Skeleton className="h-24 rounded-xl lg:col-span-4" />
-        <Skeleton className="h-24 rounded-xl lg:col-span-4" />
-        <Skeleton className="h-24 rounded-xl col-span-2 lg:col-span-4" />
-      </div>
-      <Skeleton className="h-32 w-full rounded-xl" />
-      <div className="grid gap-3 lg:grid-cols-2">
-        <Skeleton className="h-44 rounded-xl" />
-        <Skeleton className="h-44 rounded-xl" />
-      </div>
-    </div>
-  );
-}
-
-function CardBlockSkeleton({ className }: { className?: string }) {
-  return <Skeleton className={cn("h-36 w-full rounded-xl", className)} />;
-}
 
 export function SectionBlockSkeleton({
   content = "list-compact",

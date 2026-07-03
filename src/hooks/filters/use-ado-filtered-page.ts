@@ -1,21 +1,23 @@
 "use client";
 
 import { useMemo } from "react";
-import { usePathname, useRouter } from "next/navigation";
 
-import { useAdoContextUrl } from "@/hooks/use-ado-context-url";
+import { useAdoContextPage } from "@/hooks/filters/use-ado-context-page";
+import { useSavePageDefaults } from "@/hooks/filters/use-save-page-defaults";
+import { usePushWorkItemAssigneeUrl } from "@/hooks/filters/use-push-work-item-assignee-url";
 import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-panel";
 import { useWorkItemsFiltersContext } from "@/components/work-items/work-items-filters-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
-import { buildAdoContextQuery } from "@/lib/ado/parse-context-search-params";
-import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
 import type { AdoFilterMeta } from "@/lib/filters/ado-filter-meta";
+import type { UserFilterScope } from "@/lib/filters/user-filter-scopes";
 
 export type UseAdoFilteredPageOptions = {
   catalog: AdoCatalogSnapshot;
   filterMeta: AdoFilterMeta;
   adoExecutionReady: boolean;
   workItemsCount?: number;
+  /** Scope usado al guardar los defaults (per-scope) de este feature. */
+  scope: UserFilterScope;
 };
 
 export function useAdoFilteredPage({
@@ -23,20 +25,25 @@ export function useAdoFilteredPage({
   filterMeta,
   adoExecutionReady,
   workItemsCount = 0,
+  scope,
 }: UseAdoFilteredPageOptions) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { filters, setSearch, setAssignee, setState, resetFilters } =
+  const { pushAssignee } = usePushWorkItemAssigneeUrl();
+  const { filters, setSearch, setAssignee, setStates, resetFilters, startAssigneeNavigation } =
     useWorkItemsFiltersContext();
 
-  const context = useAdoContextUrl({
+  const { context, currentSprint, catalogError } = useAdoContextPage({
     catalog,
     adoExecutionReady,
     assignee: filters.assignee,
     workItemsCount,
   });
 
-  const currentSprint = useMemo(() => resolveCurrentSprint(catalog), [catalog]);
+  const { save: savePageDefaults } = useSavePageDefaults({
+    project: catalog.project,
+    team: catalog.team,
+    scope,
+    filters,
+  });
 
   const workItemStates = useMemo(
     () => filterMeta.states.map((state) => state.name),
@@ -48,16 +55,15 @@ export function useAdoFilteredPage({
     setSearch,
     setAssignee: (value) => {
       setAssignee(value);
-      router.push(
-        `${pathname}${buildAdoContextQuery({
+      startAssigneeNavigation(() => {
+        pushAssignee(value, {
           project: catalog.project,
           team: catalog.team,
           sprint: catalog.sprintPath,
-          assignee: value,
-        })}`,
-      );
+        });
+      });
     },
-    setState,
+    setStates,
     resetFilters,
     sprintPath: catalog.sprintPath,
     items: [],
@@ -67,13 +73,8 @@ export function useAdoFilteredPage({
     membersError: null,
     totalCount: 0,
     filteredCount: 0,
+    onSaveAsDefaults: savePageDefaults,
   });
-
-  const catalogError =
-    catalog.errors.projects ??
-    catalog.errors.teams ??
-    catalog.errors.sprints ??
-    null;
 
   return { context, currentSprint, filtersPanel, catalogError };
 }

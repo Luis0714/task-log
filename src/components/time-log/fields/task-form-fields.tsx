@@ -1,10 +1,11 @@
 "use client";
 
+import { CheckCircle2 } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 
 import { FormSelectField } from "@/components/time-log/fields/form-select-field";
-import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
-import { FormInlineError } from "@/components/time-log/fields/form-select-field";
+import { TaskAutoMarkAsDoneField } from "@/components/time-log/fields/task-auto-mark-as-done-field";
+import { TaskStateSelectField } from "@/components/time-log/fields/task-state-select-field";
 import {
   FormControl,
   FormField,
@@ -12,19 +13,26 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DatePickerTime } from "@/components/ui/date-picker-time";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextarea } from "@/components/ui/rich-textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { AdoTaskStateDto } from "@/lib/schemas/ado-catalog";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
-import { TASK_ACTIVITY_LABELS, TASK_ACTIVITY_OPTIONS } from "@/lib/time-log/task-constants";
-
 type TaskFormFieldsProps = {
   form: UseFormReturn<TimeLogFormValues>;
   taskStates: AdoTaskStateDto[];
   taskStatesLoading?: boolean;
   taskStatesError?: string | null;
+  defaultCompletedTaskState?: string | null;
   disabled?: boolean;
+  activities: readonly string[];
+  /**
+   * `true` cuando el usuario viene del flujo "Nueva tarea" (?create=1) y
+   * debe poder configurar el estado inicial. En modo time-log puro
+   * ocultamos los campos relacionados con el estado y mostramos un aviso.
+   */
+  isTaskCreationMode: boolean;
 };
 
 export function TaskFormFields({
@@ -32,15 +40,11 @@ export function TaskFormFields({
   taskStates,
   taskStatesLoading = false,
   taskStatesError = null,
+  defaultCompletedTaskState = null,
   disabled = false,
+  activities,
+  isTaskCreationMode,
 }: TaskFormFieldsProps) {
-  const taskState = form.watch("taskState");
-  const stateOptions = taskStates.map((state) => ({
-    value: state.name,
-    label: <WorkItemStateLabel state={state.name} />,
-  }));
-  const statesReady = !taskStatesLoading && taskStates.length > 0;
-
   return (
     <>
       <FormField
@@ -48,7 +52,7 @@ export function TaskFormFields({
         name="taskTitle"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Título de la tarea</FormLabel>
+            <FormLabel required>Título de la tarea</FormLabel>
             <FormControl>
               <Input
                 placeholder="Ej. Reunión equipo, desarrollo endpoint..."
@@ -67,7 +71,7 @@ export function TaskFormFields({
           name="hours"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Horas (trabajo completado)</FormLabel>
+              <FormLabel required>Horas (trabajo completado)</FormLabel>
               <FormControl>
                 <Input inputMode="decimal" placeholder="1.5" disabled={disabled} {...field} />
               </FormControl>
@@ -76,79 +80,103 @@ export function TaskFormFields({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="workingDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Fecha de trabajo</FormLabel>
-              <FormControl>
-                <DatePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={disabled}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
         <FormSelectField
           control={form.control}
           name="activity"
           label="Actividad"
+          required
           placeholder="Selecciona actividad"
           disabled={disabled}
-          options={TASK_ACTIVITY_OPTIONS.map((activity) => ({
+          options={activities.map((activity) => ({
             value: activity,
-            label: TASK_ACTIVITY_LABELS[activity],
+            label: activity,
           }))}
         />
-
-        <div className="space-y-1">
-          <FormSelectField
-            control={form.control}
-            name="taskState"
-            label="Estado"
-            placeholder={
-              taskStatesLoading
-                ? "Cargando estados..."
-                : statesReady
-                  ? "Estado de la tarea"
-                  : "Estados no disponibles"
-            }
-            disabled={disabled || taskStatesLoading || !statesReady}
-            options={stateOptions}
-            displayValue={
-              taskState ? <WorkItemStateLabel state={taskState} /> : undefined
-            }
-          />
-          <FormInlineError message={taskStatesError} />
-        </div>
       </div>
+
+      <FormField
+        control={form.control}
+        name="workingDate"
+        render={({ field: dateField }) => (
+          <FormField
+            control={form.control}
+            name="workingTime"
+            render={({ field: timeField }) => (
+              <FormItem>
+                <FormLabel required>Fecha y hora de trabajo</FormLabel>
+                <FormControl>
+                  <DatePickerTime
+                    dateValue={dateField.value}
+                    timeValue={timeField.value}
+                    onDateChange={dateField.onChange}
+                    onTimeChange={timeField.onChange}
+                    disabled={disabled}
+                  />
+                </FormControl>
+                {form.formState.errors.workingDate?.message ? (
+                  <p className="text-destructive text-sm font-medium">
+                    {form.formState.errors.workingDate.message}
+                  </p>
+                ) : null}
+                {form.formState.errors.workingTime?.message ? (
+                  <p className="text-destructive text-sm font-medium">
+                    {form.formState.errors.workingTime.message}
+                  </p>
+                ) : null}
+              </FormItem>
+            )}
+          />
+        )}
+      />
+
+      {isTaskCreationMode ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TaskStateSelectField
+            form={form}
+            taskStates={taskStates}
+            taskStatesLoading={taskStatesLoading}
+            taskStatesError={taskStatesError}
+            disabled={disabled}
+          />
+        </div>
+      ) : null}
 
       <FormField
         control={form.control}
         name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Descripción</FormLabel>
+            <FormLabel required>Descripción</FormLabel>
             <FormControl>
-              <Textarea
-                placeholder="Detalle opcional de lo realizado"
-                rows={3}
+              <RichTextarea
+                placeholder="Describe lo realizado en esta tarea"
                 disabled={disabled}
-                className="resize-none"
-                {...field}
+                value={field.value}
+                onChange={field.onChange}
               />
             </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
+
+      {isTaskCreationMode ? (
+        <TaskAutoMarkAsDoneField
+          form={form}
+          defaultCompletedTaskState={defaultCompletedTaskState}
+          disabled={disabled}
+        />
+      ) : (
+        <Alert>
+          <CheckCircle2 aria-hidden />
+          <AlertTitle>La tarea se creará automáticamente como Done</AlertTitle>
+          <AlertDescription>
+            {defaultCompletedTaskState
+              ? `Al registrar tiempo, la nueva tarea quedará en «${defaultCompletedTaskState}» y contará de inmediato en las horas del día. No es necesario seleccionar estado.`
+              : "Al registrar tiempo, la nueva tarea quedará en Done y contará de inmediato en las horas del día. No es necesario seleccionar estado."}
+          </AlertDescription>
+        </Alert>
+      )}
     </>
   );
 }

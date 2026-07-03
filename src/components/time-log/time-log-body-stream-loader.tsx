@@ -2,24 +2,28 @@ import { TimeLogBodyServer } from "@/components/time-log/time-log-body-server";
 import { resolvePageCatalog } from "@/lib/ado/resolve-page-catalog";
 import { loadTimeLogFormMeta } from "@/lib/time-log/load-time-log-form-meta";
 import type { AdoContextSearchParams } from "@/lib/ado/types";
-import type { AzdoAuthMethod } from "@/lib/auth/auth-method";
+import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 
 export type TimeLogBodyStreamLoaderProps = {
   sp: AdoContextSearchParams;
   defaultProject: string | null;
   adoExecutionReady: boolean;
-  authMethod: AzdoAuthMethod;
   urlAssignee: string;
+  isTaskCreationMode: boolean;
+  initialWorkItemFilters?: Partial<WorkItemFilters>;
 };
 
 export async function TimeLogBodyStreamLoader({
   sp,
   defaultProject,
   adoExecutionReady,
-  authMethod,
   urlAssignee,
+  isTaskCreationMode,
+  initialWorkItemFilters,
 }: TimeLogBodyStreamLoaderProps) {
-  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp);
+  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp, {
+    allowBacklogScope: true,
+  });
   if (!catalog.sprintPath) return null;
 
   const formMeta = await loadTimeLogFormMeta(catalog);
@@ -28,10 +32,11 @@ export async function TimeLogBodyStreamLoader({
   return (
     <TimeLogBodyServer
       adoExecutionReady={adoExecutionReady}
-      authMethod={authMethod}
       defaultProject={defaultProject}
       serverBaseline={serverBaseline}
       urlAssignee={urlAssignee}
+      isTaskCreationMode={isTaskCreationMode}
+      initialWorkItemFilters={initialWorkItemFilters}
     />
   );
 }

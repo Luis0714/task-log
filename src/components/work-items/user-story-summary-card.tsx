@@ -1,17 +1,19 @@
 import { UserRound } from "lucide-react";
 
+import { WorkItemBugCountBadge } from "@/components/work-items/work-item-bug-count-badge";
 import { WorkItemEffortBadge } from "@/components/work-items/work-item-effort-badge";
-import { WorkItemId } from "@/components/work-items/work-item-id";
+import { AdoWorkItemLink } from "@/components/work-items/ado-work-item-link";
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
-import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import type { DashboardWorkItem } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils";
 
 export type UserStorySummaryCardProps = {
-  item: AdoWorkItemOptionDto;
+  item: DashboardWorkItem;
+  project: string | null;
   className?: string;
 };
 
-export function UserStorySummaryCard({ item, className }: UserStorySummaryCardProps) {
+export function UserStorySummaryCard({ item, project, className }: UserStorySummaryCardProps) {
   return (
     <div
       className={cn(
@@ -22,8 +24,14 @@ export function UserStorySummaryCard({ item, className }: UserStorySummaryCardPr
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <WorkItemId id={item.id} />
+          <AdoWorkItemLink workItemId={item.id} project={project} label={`#${item.id}`} />
           {item.effort !== undefined ? <WorkItemEffortBadge effort={item.effort} /> : null}
+          {item.bugCount !== undefined && item.bugCount > 0 ? (
+            <WorkItemBugCountBadge count={item.bugCount} variant="total" />
+          ) : null}
+          {item.attendedBugCount !== undefined && item.attendedBugCount > 0 ? (
+            <WorkItemBugCountBadge count={item.attendedBugCount} variant="attended" />
+          ) : null}
         </div>
         {item.state ? <WorkItemStateBadge state={item.state} className="max-w-[50%] shrink-0" /> : null}
       </div>

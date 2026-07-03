@@ -1,42 +1,29 @@
-import { Clock, UserRound } from "lucide-react";
+import { UserRound } from "lucide-react";
 
 import { TaskDateBadge } from "@/components/tasks/task-date-badge";
+import { TaskLoggedHoursHighlight } from "@/components/tasks/task-logged-hours-highlight";
+import { buildTaskSummaryViewModel } from "@/components/tasks/task-summary-card.viewmodel";
 import { WorkItemEffortBadge } from "@/components/work-items/work-item-effort-badge";
-import { WorkItemId } from "@/components/work-items/work-item-id";
+import { AdoWorkItemLink } from "@/components/work-items/ado-work-item-link";
 import { StatusBadge } from "@/components/tasks/status-badge";
-import { formatHours } from "@/lib/dashboard/format-hours";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import { cn } from "@/lib/utils";
 
 export type TaskSummaryCardProps = {
   item: AdoWorkItemOptionDto;
+  project: string | null;
+  showLoggedHoursHighlight?: boolean;
   className?: string;
 };
 
-function TaskLoggedHoursHighlight({ hours }: { hours: number }) {
-  if (!Number.isFinite(hours) || hours < 0) return null;
+export function TaskSummaryCard({
+  item,
+  project,
+  showLoggedHoursHighlight = true,
+  className,
+}: TaskSummaryCardProps) {
+  const viewModel = buildTaskSummaryViewModel(item, showLoggedHoursHighlight);
 
-  return (
-    <div
-      className="mt-3 flex items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/12 px-3 py-2.5 shadow-sm ring-1 ring-amber-500/25 dark:bg-amber-500/15"
-      title={`Horas registradas: ${formatHours(hours)}`}
-    >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/35 bg-amber-500/20 text-amber-800 dark:text-amber-300">
-        <Clock className="size-4" aria-hidden />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-muted-foreground text-[10px] leading-none font-semibold tracking-widest uppercase">
-          Horas registradas
-        </p>
-        <p className="font-heading mt-1 text-xl font-semibold leading-none tracking-tight text-amber-900 tabular-nums dark:text-amber-200">
-          {formatHours(hours)}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-export function TaskSummaryCard({ item, className }: TaskSummaryCardProps) {
   return (
     <div
       className={cn(
@@ -47,14 +34,16 @@ export function TaskSummaryCard({ item, className }: TaskSummaryCardProps) {
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <WorkItemId id={item.id} />
-          {item.workingDate ? <TaskDateBadge dateKey={item.workingDate} /> : null}
-          {item.effort !== undefined ? <WorkItemEffortBadge effort={item.effort} /> : null}
+          <AdoWorkItemLink workItemId={item.id} project={project} label={`#${item.id}`} />
+          {viewModel.hasWorkingDate ? <TaskDateBadge dateKey={item.workingDate!} /> : null}
+          {viewModel.hasEffort ? <WorkItemEffortBadge effort={item.effort!} /> : null}
         </div>
-        {item.state ? <StatusBadge state={item.state} className="max-w-[50%] shrink-0" /> : null}
+        {viewModel.hasState ? (
+          <StatusBadge state={item.state!} className="max-w-[50%] shrink-0" />
+        ) : null}
       </div>
 
-      {item.assignedTo ? (
+      {viewModel.hasAssignee ? (
         <div className="mt-3 flex min-w-0 items-center gap-2.5">
           <span className="bg-primary/15 text-primary flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/25">
             <UserRound className="size-4" aria-hidden />
@@ -73,8 +62,8 @@ export function TaskSummaryCard({ item, className }: TaskSummaryCardProps) {
         </div>
       ) : null}
 
-      {item.loggedHours !== undefined ? (
-        <TaskLoggedHoursHighlight hours={item.loggedHours} />
+      {viewModel.shouldShowLoggedHoursHighlight ? (
+        <TaskLoggedHoursHighlight hours={item.loggedHours!} className="mt-3" />
       ) : null}
     </div>
   );

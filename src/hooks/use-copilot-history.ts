@@ -2,47 +2,64 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-const HISTORY_KEY = "taskpilot_history_v1";
-const MAX_ENTRIES = 30;
+import { useHistoryScopeKey } from "@/components/history/history-scope-provider";
+import type { CopilotHistoryEntry } from "@/lib/history/copilot-history-entry";
+import {
+  MAX_HISTORY_ENTRIES,
+  readScopedHistory,
+  writeScopedHistory,
+} from "@/lib/history/history-storage";
 
-export type CopilotHistoryEntry = {
-  id: string;
-  at: string;
-  summary: string;
-  ok: boolean;
-};
-
-function readHistory(): CopilotHistoryEntry[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    if (!raw) return [];
-    const data = JSON.parse(raw) as CopilotHistoryEntry[];
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeHistory(entries: CopilotHistoryEntry[]) {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_ENTRIES)));
-}
+export type { CopilotHistoryEntry } from "@/lib/history/copilot-history-entry";
+export {
+  filterHistoryEntries,
+  isHistoryEntryWithinRange,
+} from "@/lib/history/copilot-history-entry";
 
 export function useCopilotHistory() {
+  const scopeKey = useHistoryScopeKey();
   const [history, setHistory] = useState<CopilotHistoryEntry[]>([]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- estado en localStorage
-    setHistory(readHistory());
-  }, []);
+    if (!scopeKey) {
+      setHistory([]);
+      return;
+    }
 
-  const appendEntry = useCallback((entry: CopilotHistoryEntry) => {
-    setHistory((prev) => {
-      const next = [entry, ...prev].slice(0, MAX_ENTRIES);
-      writeHistory(next);
-      return next;
-    });
-  }, []);
+    const syncHistory = () => {
+      setHistory(readScopedHistory(scopeKey));
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncHistory();
+      }
+    };
+
+    syncHistory();
+    window.addEventListener("storage", syncHistory);
+    window.addEventListener("focus", syncHistory);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("storage", syncHistory);
+      window.removeEventListener("focus", syncHistory);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [scopeKey]);
+
+  const appendEntry = useCallback(
+    (entry: CopilotHistoryEntry) => {
+      if (!scopeKey) return;
+
+      setHistory((prev) => {
+        const next = [entry, ...prev].slice(0, MAX_HISTORY_ENTRIES);
+        writeScopedHistory(scopeKey, next);
+        return next;
+      });
+    },
+    [scopeKey],
+  );
 
   return { history, appendEntry };
 }

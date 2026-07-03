@@ -2,14 +2,14 @@ import "server-only";
 
 import { cache } from "react";
 
+import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import type { SprintItemsKind } from "@/lib/sprint-items/types";
-import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
-import { withAdoProject } from "@/lib/azure-devops/projects";
 import {
   listBugStates,
   listTaskStates,
-  listTeamMembers,
 } from "@/lib/azure-devops/work-item-type-states";
+import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import type { AdoTaskStateDto, AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 
 export type SprintItemsFilterMeta = {
@@ -23,17 +23,22 @@ export const loadSprintItemsFilterMeta = cache(async function loadSprintItemsFil
   kind: SprintItemsKind,
   project: string,
   team: string,
+  sprintPath?: string,
 ): Promise<SprintItemsFilterMeta> {
-  if (!project || !team) return emptyMeta;
+  if (!project.trim() || !team.trim()) return emptyMeta;
 
-  const caller = await requireAdoCaller();
-  if (!caller.ok) return emptyMeta;
+  const auth = await getScopedProjectAuth(project);
+  if (!auth) return emptyMeta;
+
+  const sprintSource = kind === "tasks" ? "tasks" : "bugs";
 
   try {
-    const scopedAuth = withAdoProject(caller.auth, project);
+    const profile = await resolveProcessProfile(auth);
     const [members, states] = await Promise.all([
-      listTeamMembers(scopedAuth, team),
-      kind === "tasks" ? listTaskStates(scopedAuth) : listBugStates(scopedAuth),
+      loadTeamMembers({ project, team, sprintPath, source: sprintSource }),
+      kind === "tasks"
+        ? listTaskStates(auth, profile.taskWorkItemType)
+        : listBugStates(auth, profile.bugWorkItemType),
     ]);
     return { members, states };
   } catch {

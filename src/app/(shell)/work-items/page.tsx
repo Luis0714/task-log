@@ -11,11 +11,13 @@ import {
   WorkItemsUpcomingSectionSkeleton,
 } from "@/components/skeletons/work-items-section-skeletons";
 import { WorkItemsShellSkeleton } from "@/components/skeletons/work-items-shell-skeleton";
-import { emptyServerProfileFields } from "@/lib/auth/profile-display";
+import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
 import { resolvePageAuthWithProfile } from "@/lib/auth/resolve-page-auth";
+import { resolveFilterDefaults } from "@/services/user/resolve-filter-defaults";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
-import { DEFAULT_WORK_ITEM_FILTERS } from "@/lib/schemas/work-item-filters";
+import { DEFAULT_WORK_ITEM_FILTERS, type WorkItemFilters } from "@/lib/schemas/work-item-filters";
+import { USER_FILTER_SCOPES } from "@/lib/filters/user-filter-scopes";
 
 export const metadata = buildPageMetadata(PAGE_SEO.workItems);
 
@@ -26,21 +28,30 @@ type PageProps = {
 };
 
 export default async function WorkItemsPage({ searchParams }: PageProps) {
-  const { searchParams: sp, auth, defaultProject, profile } =
+  const { searchParams: sp, auth, defaultProject } =
     await resolvePageAuthWithProfile(searchParams);
-  const profileFields = auth.adoExecutionReady ? profile : emptyServerProfileFields;
+  const showLiveData = canLoadLiveAdoContent(auth);
   const urlAssignee = sp.assignee ?? DEFAULT_WORK_ITEM_FILTERS.assignee;
 
+  const { filters: savedFilters } = await resolveFilterDefaults(USER_FILTER_SCOPES.userHistories);
+
+  const initialFilters: Partial<WorkItemFilters> = {
+    ...savedFilters,
+    assignee: urlAssignee,
+  };
+
   return (
-    <WorkItemsFiltersProvider initialAssignee={urlAssignee}>
+    <WorkItemsFiltersProvider initialFilters={initialFilters}>
       <AdoContextPageLayout
         shellFallback={<WorkItemsShellSkeleton />}
-        adoExecutionReady={auth.adoExecutionReady}
+        adoExecutionReady={showLiveData}
+        connectOptions={auth.connectOptions}
+        savedConnectionTarget={auth.savedConnectionTarget}
         shell={
           <WorkItemsShellServer
             sp={sp}
             defaultProject={defaultProject}
-            adoExecutionReady={auth.adoExecutionReady}
+            adoExecutionReady={showLiveData}
           />
         }
         content={
@@ -57,9 +68,8 @@ export default async function WorkItemsPage({ searchParams }: PageProps) {
             <WorkItemsStreamLoader
               sp={sp}
               defaultProject={defaultProject}
-              adoExecutionReady={auth.adoExecutionReady}
+              adoExecutionReady={showLiveData}
               assignee={urlAssignee}
-              currentUserDisplayName={profileFields.profileDisplayName}
             />
           </Suspense>
         }

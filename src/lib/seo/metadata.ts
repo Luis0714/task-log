@@ -5,7 +5,9 @@ import { PAGE_SEO } from "@/lib/seo/pages";
 import {
   APPLE_TOUCH_ICON_PATH,
   DEFAULT_ICON_PATH,
+  DEFAULT_OG_IMAGE_HEIGHT,
   DEFAULT_OG_IMAGE_PATH,
+  DEFAULT_OG_IMAGE_WIDTH,
   isIndexingAllowed,
   resolveSiteUrl,
   SITE_DESCRIPTION,
@@ -48,6 +50,8 @@ function buildOpenGraph(
     images: [
       {
         url: DEFAULT_OG_IMAGE_PATH,
+        width: DEFAULT_OG_IMAGE_WIDTH,
+        height: DEFAULT_OG_IMAGE_HEIGHT,
         alt: `${SITE_NAME} — ${SITE_TAGLINE}`,
       },
     ],
@@ -87,8 +91,18 @@ export function buildRootMetadata(): Metadata {
     openGraph: buildOpenGraph(SITE_NAME, SITE_DESCRIPTION, "/"),
     twitter: buildTwitter(SITE_NAME, SITE_DESCRIPTION),
     icons: {
-      icon: [{ url: DEFAULT_ICON_PATH, type: "image/svg+xml" }],
-      apple: [{ url: APPLE_TOUCH_ICON_PATH, sizes: "180x180" }],
+      // Explicit entries for every browser slot so no `favicon.ico` or
+      // default fallback can sneak in. The SVG `icon.svg` wins wherever
+      // SVG is supported; the OG/Apple paths are 180×180 PNG for legacy.
+      icon: [
+        { url: DEFAULT_ICON_PATH, type: "image/svg+xml", sizes: "any" },
+      ],
+      shortcut: [
+        { url: DEFAULT_ICON_PATH, type: "image/svg+xml" },
+      ],
+      apple: [
+        { url: APPLE_TOUCH_ICON_PATH, sizes: "180x180", type: "image/png" },
+      ],
     },
     appleWebApp: {
       capable: true,

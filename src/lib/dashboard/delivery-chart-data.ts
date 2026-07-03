@@ -21,11 +21,27 @@ function toRow(key: string, label: string, counts: WorkItemStatusCounts): Delive
 export function buildDeliveryChartRows(overview: SprintStatusOverview): DeliveryChartRow[] {
   return [
     toRow("userStories", "Historias", overview.userStories),
-    toRow("bugs", "Defectos", overview.bugs),
+    toRow("bugs", "Bugs", overview.bugs),
   ];
 }
 
 export function completionPercent(counts: WorkItemStatusCounts): number {
   if (counts.assigned <= 0) return 0;
   return Math.round((counts.completed / counts.assigned) * 100);
+}
+
+export function storyPointsCompletionPercent(
+  developed: number,
+  assigned: number,
+): number {
+  if (assigned <= 0) return 0;
+  return Math.round((developed / assigned) * 100);
+}
+
+export function formatMetricRatio(
+  current: number,
+  total: number,
+  formatValue: (value: number) => string = (value) => String(value),
+): string {
+  return `${formatValue(current)} / ${formatValue(total)}`;
 }

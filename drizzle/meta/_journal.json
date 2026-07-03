@@ -1,0 +1,125 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1780104141656,
+      "tag": "0000_luxuriant_toxin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1780212804073,
+      "tag": "0001_organic_cobalt_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780213338913,
+      "tag": "0002_modern_shiva",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1780215649298,
+      "tag": "0003_material_lifeguard",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1780254016271,
+      "tag": "0004_careless_sugar_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1780300000000,
+      "tag": "0005_sprint_story_goals_sprint_goal_fk",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780300000001,
+      "tag": "0006_sprint_snapshots",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780300000002,
+      "tag": "0007_sprint_snapshot_stats_payload",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781740800000,
+      "tag": "0008_llm_interactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1781740800001,
+      "tag": "0009_roles_and_user_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1781740800002,
+      "tag": "0010_user_filter_preferences",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1781740800003,
+      "tag": "0011_project_configurations",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1750608000000,
+      "tag": "0012_remaining_work_field",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1750700000000,
+      "tag": "0013_time_log_templates",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1782187043581,
+      "tag": "0014_yellow_spitfire",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1782279766267,
+      "tag": "0015_stormy_zeigeist",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1782380000000,
+      "tag": "0018_responsable_fields",
+      "breakpoints": true
+    }
+  ]
+}

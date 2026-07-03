@@ -1,5 +1,6 @@
 import { Bug, Clock, ListChecks } from "lucide-react";
 
+import { BUG_BAR_OPEN_CLASS } from "@/lib/brand/bug-colors";
 import { formatHours } from "@/lib/dashboard/format-hours";
 import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
@@ -34,7 +35,7 @@ export function HoursBreakdownStrip({
         {total > 0 ? (
           <div className="flex h-full w-full">
             <div className="bg-chart-1 h-full" style={{ width: `${taskPercent}%` }} />
-            <div className="bg-chart-4 h-full" style={{ width: `${bugPercent}%` }} />
+            <div className={cn(BUG_BAR_OPEN_CLASS, "h-full")} style={{ width: `${bugPercent}%` }} />
           </div>
         ) : null}
       </div>
@@ -44,7 +45,11 @@ export function HoursBreakdownStrip({
           <span className="tabular-nums">{formatHours(breakdown.taskHours)}</span>
         </span>
         <span className="inline-flex items-center gap-1">
-          <Bug className="text-chart-4 size-3 shrink-0" aria-hidden />
+          <Bug
+            className="text-bug-open size-3 shrink-0"
+            style={{ color: "var(--bug-open)" }}
+            aria-hidden
+          />
           <span className="tabular-nums">{formatHours(breakdown.bugHours)}</span>
         </span>
         {showPending ? (

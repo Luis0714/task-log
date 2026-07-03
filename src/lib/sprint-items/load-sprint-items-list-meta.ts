@@ -2,13 +2,13 @@ import "server-only";
 
 import { cache } from "react";
 
-import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
-import { withAdoProject } from "@/lib/azure-devops/projects";
+import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import {
   listBugStates,
   listTaskStates,
-  listTeamMembers,
 } from "@/lib/azure-devops/work-item-type-states";
+import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import type { AdoTaskStateDto, AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 import type { SprintItemsKind } from "@/lib/sprint-items/types";
 
@@ -17,28 +17,31 @@ export type SprintItemsListMeta = {
   teamMembers: AdoTeamMemberDto[];
 };
 
+const emptyMeta: SprintItemsListMeta = { itemStates: [], teamMembers: [] };
+
 export const loadSprintItemsListMeta = cache(async function loadSprintItemsListMeta(
   kind: SprintItemsKind,
   project: string,
   team: string,
+  sprintPath?: string,
 ): Promise<SprintItemsListMeta> {
-  if (!project || !team) {
-    return { itemStates: [], teamMembers: [] };
-  }
+  if (!project.trim() || !team.trim()) return emptyMeta;
 
-  const caller = await requireAdoCaller();
-  if (!caller.ok) {
-    return { itemStates: [], teamMembers: [] };
-  }
+  const auth = await getScopedProjectAuth(project);
+  if (!auth) return emptyMeta;
+
+  const sprintSource = kind === "tasks" ? "tasks" : "bugs";
 
   try {
-    const scopedAuth = withAdoProject(caller.auth, project);
+    const profile = await resolveProcessProfile(auth);
     const [itemStates, teamMembers] = await Promise.all([
-      kind === "tasks" ? listTaskStates(scopedAuth) : listBugStates(scopedAuth),
-      listTeamMembers(scopedAuth, team),
+      kind === "tasks"
+        ? listTaskStates(auth, profile.taskWorkItemType)
+        : listBugStates(auth, profile.bugWorkItemType),
+      loadTeamMembers({ project, team, sprintPath, source: sprintSource }),
     ]);
     return { itemStates, teamMembers };
   } catch {
-    return { itemStates: [], teamMembers: [] };
+    return emptyMeta;
   }
 });

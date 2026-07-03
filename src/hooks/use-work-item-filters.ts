@@ -21,19 +21,24 @@ export function useWorkItemFilters(initial?: Partial<WorkItemFilters>) {
     setFilters((current) => ({ ...current, assignee }));
   }, []);
 
-  const setState = useCallback((state: string) => {
-    setFilters((current) => ({ ...current, state }));
+  const setStates = useCallback((states: string[]) => {
+    setFilters((current) => ({ ...current, states }));
   }, []);
 
   const resetFilters = useCallback(() => {
     setFilters(DEFAULT_WORK_ITEM_FILTERS);
   }, []);
 
+  const replaceFilters = useCallback((next: WorkItemFilters) => {
+    setFilters(next);
+  }, []);
+
   return {
     filters,
     setSearch,
     setAssignee,
-    setState,
+    setStates,
     resetFilters,
+    replaceFilters,
   };
 }

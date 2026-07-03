@@ -1,7 +1,6 @@
 import type { SprintBugHoursSource } from "@/lib/dashboard/bug-hours";
 import {
   sumHoursBreakdownForDay,
-  sumHoursBreakdownThroughDay,
   totalHoursBreakdown,
 } from "@/lib/dashboard/hours-breakdown";
 import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
@@ -50,11 +49,10 @@ export function computeSprintHoursSeries(
 ): SprintDayHoursPoint[] {
   if (workingDays.length === 0) return [];
 
+  let runningTotal = 0;
   return workingDays.map((day, index) => {
     const breakdown = sumHoursBreakdownForDay(tasks, bugs, day.value);
-    const cumulative = totalHoursBreakdown(
-      sumHoursBreakdownThroughDay(tasks, bugs, day.value),
-    );
+    runningTotal += totalHoursBreakdown(breakdown);
 
     return {
       dayKey: day.value,
@@ -62,7 +60,7 @@ export function computeSprintHoursSeries(
       taskHours: breakdown.taskHours,
       bugHours: breakdown.bugHours,
       totalHours: totalHoursBreakdown(breakdown),
-      cumulativeHours: cumulative,
+      cumulativeHours: Math.round(runningTotal * 10) / 10,
       idealCumulativeHours: (index + 1) * HOURS_PER_SPRINT_WORKING_DAY,
     };
   });

@@ -1,6 +1,27 @@
-const CUSTOM_WORKING_DATE_FIELD = "Custom.WorkingDate";
+import { toAdoDateTimeValue } from "@/lib/date/ado-datetime";
+
+export const DEFAULT_WORKING_DATE_FIELD = "Microsoft.VSTS.Scheduling.StartDate";
+
+export const FALLBACK_DATE_FIELDS = [
+  DEFAULT_WORKING_DATE_FIELD,
+  "Microsoft.VSTS.Scheduling.FinishDate",
+  "Microsoft.VSTS.Scheduling.TargetDate",
+  "System.CreatedDate",
+] as const;
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const DEFAULT_READ_DATE_FIELDS: readonly string[] = [
+  ...new Set([
+    DEFAULT_WORKING_DATE_FIELD,
+    ...FALLBACK_DATE_FIELDS.filter((field) => field !== DEFAULT_WORKING_DATE_FIELD),
+  ]),
+];
+
+export function buildWorkItemDateFieldNames(primary: string): readonly string[] {
+  const ordered = [primary, ...FALLBACK_DATE_FIELDS.filter((field) => field !== primary)];
+  return [...new Set(ordered)];
+}
 
 /** Zona horaria del proyecto ADO (debe coincidir con la org en Azure DevOps). */
 export function resolveAdoTimeZone(): string {
@@ -16,41 +37,19 @@ function formatDateKeyInTimeZone(instant: Date, timeZone: string): string {
   }).format(instant);
 }
 
-/** Campo de fecha de trabajo en Tasks (configurable vía env en servidor). */
-export function resolveWorkingDateFieldName(): string {
-  return (
-    process.env.AZDO_WORKING_DATE_FIELD?.trim() || "Microsoft.VSTS.Scheduling.StartDate"
-  );
-}
-
-/** Campos de fecha a rellenar al actualizar estado (reglas Required en Custom.WorkingDate, etc.). */
-export function getWorkingDateFieldNamesForUpdate(): readonly string[] {
-  const primary = resolveWorkingDateFieldName();
-  return [...new Set([primary, CUSTOM_WORKING_DATE_FIELD])];
-}
-
-const FALLBACK_DATE_FIELDS = [
-  "Microsoft.VSTS.Scheduling.StartDate",
-  "Microsoft.VSTS.Scheduling.FinishDate",
-  "Microsoft.VSTS.Scheduling.TargetDate",
-  "System.CreatedDate",
-] as const;
-
-/** Campos a pedir a ADO para resolver workingDate (primario + respaldos). */
-export function getWorkItemDateFieldNames(): readonly string[] {
-  const primary = resolveWorkingDateFieldName();
-  const ordered = [primary, ...FALLBACK_DATE_FIELDS.filter((field) => field !== primary)];
-  return [...new Set(ordered)];
-}
-
 /**
  * Normaliza un valor de fecha ADO a clave civil YYYY-MM-DD.
- * Los DateTime de ADO vienen en UTC; se convierten con AZDO_TIMEZONE para
- * coincidir con la fecha que muestra la UI de Azure DevOps.
+ *
+ * Por defecto, los valores almacenados como medianoche UTC (campos Date de PBI/sprint)
+ * se devuelven tal cual (sin conversión de zona) porque ADO los trata como fechas de
+ * calendario independientes de la timezone. Pasa `isDateTimeField: true` para los campos
+ * DateTime de tarea, donde la fuente de verdad es Azure y se debe aplicar siempre la
+ * conversión para mostrar la misma fecha que ve el usuario en la UI de Azure DevOps.
  */
 export function toWorkingDateKey(
   fieldValue: string | number | undefined | null,
   timeZone = resolveAdoTimeZone(),
+  { isDateTimeField = false }: { isDateTimeField?: boolean } = {},
 ): string | undefined {
   if (fieldValue === undefined || fieldValue === null) return undefined;
   const raw = String(fieldValue).trim();
@@ -70,19 +69,41 @@ export function toWorkingDateKey(
     instant.getUTCSeconds() === 0 &&
     instant.getUTCMilliseconds() === 0;
 
-  if (isUtcMidnight) return dateOnly;
+  // Campos Date-only (PBI, sprint): la medianoche UTC representa la fecha de calendario —
+  // devolver sin conversión de zona coincide con lo que muestra Azure DevOps.
+  // Campos DateTime (tarea): siempre convertir para coincidir con la UI de Azure.
+  if (isUtcMidnight && !isDateTimeField) return dateOnly;
 
   return formatDateKeyInTimeZone(instant, timeZone);
 }
 
-/** Primera fecha válida entre el campo configurado y respaldos típicos de Task. */
+/**
+ * Convierte fecha civil + hora local (IANA) a ISO UTC para campos DateTime de Azure DevOps.
+ * Delega en toAdoDateTimeValue para que toda la lógica de conversión viva en un único lugar.
+ * Ej: ("2026-06-30", "11:25", "America/Bogota") → "2026-06-30T16:25:00.000Z"
+ */
+export function buildWorkingDateTimeValue(
+  dateKey: string,
+  timeStr: string,
+  timeZone: string,
+): string {
+  try {
+    return toAdoDateTimeValue(dateKey, timeStr, timeZone);
+  } catch {
+    return `${dateKey}T${timeStr}:00Z`;
+  }
+}
+
+/** Primera fecha válida entre los campos de tarea indicados. Aplica conversión de timezone en todos los casos para coincidir con la UI de Azure DevOps. */
 export function resolveWorkingDateKeyFromFields(
   fields: Record<string, string | number | undefined> | undefined,
+  dateFieldNames: readonly string[] = DEFAULT_READ_DATE_FIELDS,
+  timeZone = resolveAdoTimeZone(),
 ): string | undefined {
   if (!fields) return undefined;
 
-  for (const fieldName of getWorkItemDateFieldNames()) {
-    const key = toWorkingDateKey(fields[fieldName]);
+  for (const fieldName of dateFieldNames) {
+    const key = toWorkingDateKey(fields[fieldName], timeZone, { isDateTimeField: true });
     if (key) return key;
   }
 

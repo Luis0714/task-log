@@ -34,6 +34,7 @@ export type TimeLogCatalog = {
   taskStatesLoading: boolean;
   taskStatesError: string | null;
   defaultOpenTaskState: string | null;
+  defaultCompletedTaskState: string | null;
   catalogDisabled: boolean;
   projectSelectDisabled: boolean;
   teamSelectDisabled: boolean;
@@ -42,12 +43,21 @@ export type TimeLogCatalog = {
   placeholders: TimeLogCatalogPlaceholders;
   selectedSprintLabel: string | null;
   selectedPbi: AdoWorkItemOptionDto | null;
-  onProjectChange: () => void;
-  onTeamChange: () => void;
-  onSprintChange: () => void;
+  onProjectChange: (value: string) => void;
+  onTeamChange: (value: string) => void;
+  onSprintChange: (value: string) => void;
   onWorkItemSearchChange: (value: string) => void;
   onWorkItemAssigneeChange: (value: string) => void;
-  onWorkItemStateChange: (value: string) => void;
+  onWorkItemStatesChange: (value: string[]) => void;
+  onWorkItemSaveAsDefaults: () => Promise<void>;
+  defaultProject: string | null;
+  defaultTeam: string | null;
+  saveDefaultsPending: boolean;
+  onSaveDefaults: () => Promise<void>;
+  /**
+   * `true` cuando el usuario llegó desde "Nueva tarea" (?create=1) y debe
+   * poder elegir el estado inicial. `false` en modo time-log puro, donde la
+   * tarea siempre termina en Done automáticamente.
+   */
+  isTaskCreationMode: boolean;
 };
-
-export type TimeLogStep = 1 | 2;

@@ -2,13 +2,9 @@
 
 import { useEffect, useMemo } from "react";
 
+import { pruneAssigneeMemberSelection } from "@/lib/filters/prune-assignee-filter";
 import type { AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
-import {
-  WORK_ITEM_ASSIGNEE_ME,
-  isWorkItemAssigneeAll,
-  isWorkItemAssigneeMe,
-  type WorkItemFilters,
-} from "@/lib/schemas/work-item-filters";
+import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 import { collectWorkItemStates } from "@/lib/azure-devops/work-items-filters";
 
 export type WorkItemFiltersPanelBinding = {
@@ -21,14 +17,15 @@ export type WorkItemFiltersPanelBinding = {
   totalCount: number;
   onSearchChange: (value: string) => void;
   onAssigneeChange: (value: string) => void;
-  onStateChange: (value: string) => void;
+  onStatesChange: (value: string[]) => void;
+  onSaveAsDefaults?: () => Promise<void> | void;
 };
 
 export type UseWorkItemFiltersPanelOptions = {
   filters: WorkItemFilters;
   setSearch: (value: string) => void;
   setAssignee: (value: string) => void;
-  setState: (value: string) => void;
+  setStates: (value: string[]) => void;
   resetFilters: () => void;
   sprintPath: string;
   items: AdoWorkItemOptionDto[];
@@ -38,13 +35,14 @@ export type UseWorkItemFiltersPanelOptions = {
   membersError: string | null;
   totalCount: number;
   filteredCount: number;
+  onSaveAsDefaults?: () => Promise<void> | void;
 };
 
 export function useWorkItemFiltersPanel({
   filters,
   setSearch,
   setAssignee,
-  setState,
+  setStates,
   resetFilters,
   sprintPath,
   items,
@@ -54,6 +52,7 @@ export function useWorkItemFiltersPanel({
   membersError,
   totalCount,
   filteredCount,
+  onSaveAsDefaults,
 }: UseWorkItemFiltersPanelOptions): WorkItemFiltersPanelBinding {
   const states = useMemo(() => {
     if (stateNames && stateNames.length > 0) return stateNames;
@@ -65,17 +64,17 @@ export function useWorkItemFiltersPanel({
   }, [resetFilters, sprintPath]);
 
   useEffect(() => {
-    if (filters.state && !states.includes(filters.state)) {
-      setState("");
+    const valid = filters.states.filter((state) => states.includes(state));
+    if (valid.length !== filters.states.length) {
+      setStates(valid);
     }
-  }, [filters.state, setState, states]);
+  }, [filters.states, setStates, states]);
 
   useEffect(() => {
-    const assignee = filters.assignee;
-    if (isWorkItemAssigneeMe(assignee) || isWorkItemAssigneeAll(assignee)) return;
     if (membersLoading) return;
-    if (!members.some((member) => member.displayName === assignee)) {
-      setAssignee(WORK_ITEM_ASSIGNEE_ME);
+    const nextAssignee = pruneAssigneeMemberSelection(filters.assignee, members);
+    if (nextAssignee !== filters.assignee) {
+      setAssignee(nextAssignee);
     }
   }, [filters.assignee, members, membersLoading, setAssignee]);
 
@@ -89,6 +88,7 @@ export function useWorkItemFiltersPanel({
     filteredCount,
     onSearchChange: setSearch,
     onAssigneeChange: setAssignee,
-    onStateChange: setState,
+    onStatesChange: setStates,
+    onSaveAsDefaults,
   };
 }

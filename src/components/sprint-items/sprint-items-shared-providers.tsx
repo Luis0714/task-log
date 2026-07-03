@@ -5,22 +5,23 @@ import { useState, type ReactNode } from "react";
 import { SprintItemsDayProvider } from "@/components/sprint-items/sprint-items-day-context";
 import { WorkItemsFiltersProvider } from "@/components/work-items/work-items-filters-context";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
+import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 import { SPRINT_DAY_ALL } from "@/lib/sprint-items/filter-by-criteria";
 
-export type SprintItemsSharedProvidersProps = {
-  initialAssignee?: string;
+export type SprintItemsSharedProvidersProps = Readonly<{
+  initialFilters?: Partial<WorkItemFilters>;
   children: ReactNode;
-};
+}>;
 
 export function SprintItemsSharedProviders({
-  initialAssignee,
+  initialFilters,
   children,
 }: SprintItemsSharedProvidersProps) {
   const [dayKey, setDayKey] = useState(SPRINT_DAY_ALL);
   const [sprintWorkingDays, setSprintWorkingDays] = useState<SprintWorkingDay[]>([]);
 
   return (
-    <WorkItemsFiltersProvider initialAssignee={initialAssignee}>
+    <WorkItemsFiltersProvider initialFilters={initialFilters}>
       <SprintItemsDayProvider
         dayKey={dayKey}
         setDayKey={setDayKey}

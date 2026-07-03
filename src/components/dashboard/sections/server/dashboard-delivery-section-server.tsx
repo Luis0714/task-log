@@ -1,11 +1,13 @@
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
+import { SprintHuCountBadge } from "@/components/dashboard/metrics/sprint-hu-count-badge";
 import { SprintDeliverySection } from "@/components/dashboard/sections/sprint-delivery-section";
 import {
   firstSprintDataError,
   loadSprintBacklogStates,
+  loadSprintBugStates,
   loadSprintBugs,
-  loadSprintWorkItems,
+  loadSprintPeriodStories,
 } from "@/lib/ado/load-sprint-data";
 import { catalogToSprintContext } from "@/lib/ado/sprint-data-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
@@ -22,19 +24,36 @@ export async function DashboardDeliverySectionServer({
   const ctx = catalogToSprintContext(catalog);
   if (!ctx) return null;
 
-  const [workItems, bugs, backlogStates] = await Promise.all([
-    loadSprintWorkItems(ctx),
-    loadSprintBugs(ctx),
+  const [workItems, bugs, backlogStates, bugStates] = await Promise.all([
+    loadSprintPeriodStories(
+      ctx.project,
+      ctx.team,
+      ctx.sprintPath,
+      ctx.sprintStartDate,
+      ctx.sprintFinishDate,
+      ctx.assignee,
+    ),
+    loadSprintBugs(ctx.project, ctx.sprintPath, ctx.assignee),
     loadSprintBacklogStates(ctx.project),
+    loadSprintBugStates(ctx.project),
   ]);
 
-  const error = firstSprintDataError(workItems, bugs, backlogStates);
+  const error = firstSprintDataError(workItems, bugs, backlogStates, bugStates);
   if (error) return <CopilotErrorAlert message={error} />;
 
-  const metrics = buildDashboardDeliveryMetrics(workItems.data, bugs.data);
+  const metrics = buildDashboardDeliveryMetrics({
+    workItems: workItems.data,
+    bugs: bugs.data,
+    backlogStates: backlogStates.data,
+    bugStates: bugStates.data,
+  });
+  const huCount = metrics.sprintStatusOverview.userStories.assigned;
 
   return (
-    <DashboardSection title="Entrega del sprint">
+    <DashboardSection
+      title="Entrega del sprint"
+      action={<SprintHuCountBadge count={huCount} />}
+    >
       <SprintDeliverySection metrics={metrics} />
     </DashboardSection>
   );

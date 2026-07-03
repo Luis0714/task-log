@@ -7,7 +7,7 @@ import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const auth = await resolveAdoCaller();
+  const auth = await resolveAdoCaller({ persistOAuthTokens: true });
   if (!auth) {
     return new NextResponse(null, { status: 401 });
   }

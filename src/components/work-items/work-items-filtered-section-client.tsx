@@ -1,13 +1,26 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ComponentType } from "react";
 
 import { WorkItemsSectionList } from "@/components/work-items/work-items-section-list";
 import { useWorkItemsFiltersContext } from "@/components/work-items/work-items-filters-context";
+import {
+  WorkItemsAllSectionSkeleton,
+  WorkItemsDevelopedSectionSkeleton,
+  WorkItemsInProgressSectionSkeleton,
+  WorkItemsUpcomingSectionSkeleton,
+} from "@/components/skeletons/work-items-section-skeletons";
 import { buildWorkItemsSectionLists } from "@/lib/work-items/build-work-items-section-lists";
 import type { WorkItemsBaseSnapshot } from "@/lib/work-items/load-work-items-base";
 
 export type WorkItemsSectionKey = "filteredItems" | "inProgress" | "upcoming" | "developed";
+
+const SECTION_SKELETONS: Record<WorkItemsSectionKey, ComponentType> = {
+  filteredItems: WorkItemsAllSectionSkeleton,
+  inProgress: WorkItemsInProgressSectionSkeleton,
+  upcoming: WorkItemsUpcomingSectionSkeleton,
+  developed: WorkItemsDevelopedSectionSkeleton,
+};
 
 const SECTION_COPY: Record<
   WorkItemsSectionKey,
@@ -28,19 +41,22 @@ const SECTION_COPY: Record<
   },
   inProgress: {
     title: "Historias en progreso",
-    description: "Historias de usuario en estado Comprometido.",
+    description:
+      "Historias asignadas al sprint actual, comprometidas y con el desarrollo en curso.",
     variant: "featured",
-    emptyMessage: "No hay historias en Comprometido con los filtros actuales.",
+    emptyMessage: "No hay historias en progreso con los filtros actuales.",
   },
   upcoming: {
-    title: "Próximas historias de usuario",
-    description: "Qué deberías hacer después, ordenadas por prioridad.",
+    title: "Historias pendientes",
+    description:
+      "Historias asignadas al sprint actual, comprometidas pero con el desarrollo aún sin iniciar.",
     variant: "compact",
-    emptyMessage: "No hay historias en Nuevo o Aprobado con los filtros actuales.",
+    emptyMessage: "No hay historias pendientes con los filtros actuales.",
   },
   developed: {
     title: "Historias desarrolladas",
-    description: "En QA, Revisión PO, Stage o Hecho.",
+    description:
+      "Historias asignadas al sprint actual con el desarrollo completado o en validación.",
     variant: "compact",
     emptyMessage: "No hay historias desarrolladas con los filtros actuales.",
   },
@@ -55,12 +71,22 @@ export function WorkItemsFilteredSectionClient({
   base,
   section,
 }: WorkItemsFilteredSectionClientProps) {
-  const { filters } = useWorkItemsFiltersContext();
+  const { filters, isAssigneeNavigating } = useWorkItemsFiltersContext();
+
   const lists = useMemo(
-    () => buildWorkItemsSectionLists(base, filters),
+    () =>
+      buildWorkItemsSectionLists(base, filters, {
+        userStoryMapping: base.userStoryMapping,
+        bugMapping: base.bugMapping,
+      }),
     [base, filters],
   );
   const copy = SECTION_COPY[section];
+
+  if (isAssigneeNavigating) {
+    const SkeletonComp = SECTION_SKELETONS[section];
+    return <SkeletonComp />;
+  }
 
   return (
     <WorkItemsSectionList

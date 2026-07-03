@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
-import { TaskSummaryCard } from "@/components/tasks/task-summary-card";
+import { TaskLoggedHoursHighlight } from "@/components/tasks/task-logged-hours-highlight";
+import { WorkItemAdoQuickLinks } from "@/components/work-items/work-item-ado-quick-links";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
+import { DeleteWorkItemDialog } from "@/components/work-items/delete-work-item-dialog";
 import { Button } from "@/components/ui/button";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DatePickerTime } from "@/components/ui/date-picker-time";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -17,19 +20,24 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RichTextarea } from "@/components/ui/rich-textarea";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import { appToast } from "@/lib/toast";
 import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
-import { getDefaultWorkingDate } from "@/lib/time-log/task-constants";
+import { useTaskDetailDraftController } from "@/components/tasks/use-task-detail-draft-controller";
+import { useActivityValues } from "@/hooks/use-activity-values";
+import { patchTaskWorkItem } from "@/components/tasks/task-work-item.service";
 import { cn } from "@/lib/utils";
 
-const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+export type ParentHuOption = {
+  id: number;
+  title: string;
+};
 
 export type TaskDetailSheetProps = {
   open: boolean;
@@ -39,6 +47,7 @@ export type TaskDetailSheetProps = {
   statesLoading?: boolean;
   project: string | null;
   sprintWorkingDays?: readonly SprintWorkingDay[];
+  parentHuOptions?: readonly ParentHuOption[];
   onSaved?: () => void;
 };
 
@@ -50,56 +59,61 @@ export function TaskDetailSheet({
   statesLoading = false,
   project,
   sprintWorkingDays = [],
+  parentHuOptions = [],
   onSaved,
 }: TaskDetailSheetProps) {
-  const [draftState, setDraftState] = useState("");
-  const [draftWorkingDate, setDraftWorkingDate] = useState("");
   const [saving, setSaving] = useState(false);
+  const {
+    draftState,
+    setDraftState,
+    draftWorkingDate,
+    setDraftWorkingDate,
+    draftWorkingTime,
+    setDraftWorkingTime,
+    draftTitle,
+    setDraftTitle,
+    draftDescription,
+    setDraftDescription,
+    draftActivity,
+    setDraftActivity,
+    draftHours,
+    setDraftHours,
+    draftNewParentId,
+    setDraftNewParentId,
+    stateOptions,
+    statesReady,
+    sprintDateBounds,
+    canSave,
+  } = useTaskDetailDraftController({
+    task,
+    taskStates,
+    statesLoading,
+    project,
+    sprintWorkingDays,
+    saving,
+  });
 
-  const stateOptions = useMemo(() => taskStates.map((state) => state.name), [taskStates]);
-  const statesReady = !statesLoading && stateOptions.length > 0;
-
-  const sprintDateBounds = useMemo(() => {
-    if (sprintWorkingDays.length === 0) return { min: undefined, max: undefined };
-    return {
-      min: sprintWorkingDays[0]?.value,
-      max: sprintWorkingDays[sprintWorkingDays.length - 1]?.value,
-    };
-  }, [sprintWorkingDays]);
-
-  useEffect(() => {
-    if (task) {
-      setDraftState(task.state);
-      setDraftWorkingDate(task.workingDate?.trim() || getDefaultWorkingDate());
-    }
-  }, [task?.id, task?.state, task?.workingDate]);
-
-  const initialWorkingDate = task?.workingDate?.trim() ?? "";
-  const isStateDirty = Boolean(task && draftState !== task.state);
-  const isDateDirty = Boolean(task && draftWorkingDate !== initialWorkingDate);
-  const isDirty = isStateDirty || isDateDirty;
-  const hasValidDate = DATE_KEY_PATTERN.test(draftWorkingDate);
-  const canSave = isDirty && hasValidDate && statesReady && Boolean(project) && !saving;
+  const { values: activityValues, loading: activitiesLoading } = useActivityValues();
 
   async function handleSave() {
     if (!task || !project || !canSave) return;
 
     setSaving(true);
     try {
-      const res = await fetch(`/api/ado/work-items/${task.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          project,
-          state: draftState,
-          workingDate: draftWorkingDate,
-        }),
+      const response = await patchTaskWorkItem(task.id, {
+        project,
+        state: draftState,
+        workingDate: draftWorkingDate,
+        workingTime: draftWorkingTime,
+        title: draftTitle.trim() === task.title ? undefined : draftTitle.trim(),
+        description: draftDescription === (task.description ?? "") ? undefined : draftDescription,
+        activity: draftActivity === (task.activity ?? "") ? undefined : draftActivity,
+        completedWork: draftHours === task.loggedHours ? undefined : draftHours,
+        newParentId: draftNewParentId,
       });
-      const payload = (await res.json()) as { error?: string; detail?: string };
 
-      if (!res.ok) {
-        const message = [payload.error, payload.detail].filter(Boolean).join(" — ");
-        appToast.error(message || "No se pudo guardar el estado.");
+      if (!response.ok) {
+        appToast.error(response.errorMessage || "No se pudo guardar la tarea.");
         return;
       }
 
@@ -107,44 +121,129 @@ export function TaskDetailSheet({
       onSaved?.();
       onOpenChange(false);
     } catch {
-      appToast.error("No se pudo guardar el estado.");
+      appToast.error("No se pudo guardar la tarea.");
     } finally {
       setSaving(false);
     }
   }
 
+  function renderActivityField() {
+    if (activitiesLoading) return <Skeleton className="h-9 w-full" />;
+    if (activityValues.length > 0) {
+      return (
+        <Select
+          value={draftActivity || undefined}
+          onValueChange={(v) => setDraftActivity(v ?? "")}
+          disabled={saving}
+        >
+          <SelectTrigger id="task-activity" className="w-full">
+            <SelectValue placeholder="Selecciona" />
+          </SelectTrigger>
+          <SelectContent>
+            {activityValues.map((v) => (
+              <SelectItem key={v} value={v}>
+                {v}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+    return (
+      <Input
+        id="task-activity"
+        value={draftActivity}
+        onChange={(e) => setDraftActivity(e.target.value)}
+        disabled={saving}
+        placeholder="Actividad"
+      />
+    );
+  }
+
+  const currentParent = task?.parentId
+    ? (parentHuOptions.find((o) => o.id === task.parentId) ?? { id: task.parentId, title: task.parentTitle ?? `HU #${task.parentId}` })
+    : null;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col sm:max-w-md">
+      <SheetContent side="right" className="flex w-full flex-col sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>Tarea</SheetTitle>
-          <SheetDescription
-            className={cn(task && "line-clamp-2 text-pretty text-foreground/80")}
-            title={task?.title}
-          >
-            {task?.title ?? "Selecciona una tarea para ver el detalle."}
-          </SheetDescription>
+          <SheetTitle>Editar tarea</SheetTitle>
         </SheetHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4">
-          <div className="flex flex-col gap-6 pb-4">
+          <div className="flex flex-col gap-5 pb-4">
             {task ? (
               <>
-                <TaskSummaryCard item={task} />
+                <WorkItemAdoQuickLinks
+                  project={project}
+                  links={[
+                    { workItemId: task.id, label: `Tarea #${task.id}` },
+                    ...(task.parentId
+                      ? [{ workItemId: task.parentId, label: `HU #${task.parentId}` }]
+                      : []),
+                  ]}
+                />
 
                 <section className="space-y-2">
-                  <Label htmlFor="task-working-date">Fecha de trabajo</Label>
-                  <DatePicker
-                    id="task-working-date"
-                    value={draftWorkingDate}
+                  <Label htmlFor="task-title">Título</Label>
+                  <Input
+                    id="task-title"
+                    value={draftTitle}
+                    onChange={(e) => setDraftTitle(e.target.value)}
+                    disabled={saving}
+                    placeholder="Título de la tarea"
+                  />
+                </section>
+
+                <section className="space-y-2">
+                  <Label>Descripción</Label>
+                  <RichTextarea
+                    value={draftDescription}
+                    onChange={setDraftDescription}
+                    placeholder="Descripción (opcional)"
+                    disabled={saving}
+                  />
+                </section>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <section className="space-y-2">
+                    <Label htmlFor="task-activity">Actividad</Label>
+                    {renderActivityField()}
+                  </section>
+
+                  <section className="space-y-2">
+                    <Label htmlFor="task-hours">Horas registradas</Label>
+                    <Input
+                      id="task-hours"
+                      type="number"
+                      min={0}
+                      max={9999}
+                      step={0.5}
+                      value={draftHours ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value === "" ? undefined : Number(e.target.value);
+                        setDraftHours(val !== undefined && Number.isFinite(val) ? val : undefined);
+                      }}
+                      disabled={saving}
+                      placeholder="0"
+                    />
+                  </section>
+                </div>
+
+                <section className="space-y-2">
+                  <Label htmlFor="task-working-date">Fecha y hora de trabajo</Label>
+                  <DatePickerTime
+                    dateId="task-working-date"
+                    timeId="task-working-time"
+                    dateValue={draftWorkingDate}
+                    timeValue={draftWorkingTime}
                     min={sprintDateBounds.min}
                     max={sprintDateBounds.max}
                     disabled={saving}
-                    onChange={setDraftWorkingDate}
+                    onDateChange={setDraftWorkingDate}
+                    onTimeChange={setDraftWorkingTime}
                   />
-                  <p className="text-muted-foreground text-xs">
-                    Fecha de trabajo en Azure DevOps. Obligatoria al cambiar el estado.
-                  </p>
                 </section>
 
                 <section className="space-y-2">
@@ -176,6 +275,49 @@ export function TaskDetailSheet({
                     </Select>
                   )}
                 </section>
+
+                {parentHuOptions.length > 0 || currentParent ? (
+                  <section className="space-y-2">
+                    <Label htmlFor="task-parent-hu">HU padre</Label>
+                    {(() => {
+                      const allHuOptions = [
+                        ...(currentParent && !parentHuOptions.some((o) => o.id === currentParent.id)
+                          ? [currentParent]
+                          : []),
+                        ...parentHuOptions,
+                      ];
+                      const selectedId = draftNewParentId ?? task.parentId;
+                      const selectedHu = allHuOptions.find((o) => o.id === selectedId);
+                      return (
+                        <Select
+                          value={selectedId !== undefined ? String(selectedId) : ""}
+                          onValueChange={(v) => {
+                            const id = Number(v);
+                            setDraftNewParentId(id !== task.parentId ? id : undefined);
+                          }}
+                          disabled={saving}
+                        >
+                          <SelectTrigger id="task-parent-hu" className="w-full">
+                            <SelectValue placeholder="Selecciona HU padre">
+                              {selectedHu ? selectedHu.title : null}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {allHuOptions.map((hu) => (
+                              <SelectItem key={hu.id} value={String(hu.id)}>
+                                #{hu.id} {hu.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      );
+                    })()}
+                  </section>
+                ) : null}
+
+                {task.loggedHours !== undefined ? (
+                  <TaskLoggedHoursHighlight hours={task.loggedHours} />
+                ) : null}
               </>
             ) : (
               <p className="text-muted-foreground text-sm">
@@ -185,10 +327,23 @@ export function TaskDetailSheet({
           </div>
         </div>
 
-        <SheetFooter className={cn("border-t pt-4")}>
+        <SheetFooter className={cn("border-t flex-row gap-2")}>
+          {task && project ? (
+            <DeleteWorkItemDialog
+              workItemId={task.id}
+              project={project}
+              itemLabel="tarea"
+              disabled={saving}
+              className="flex-1"
+              onDeleted={() => {
+                onSaved?.();
+                onOpenChange(false);
+              }}
+            />
+          ) : null}
           <Button
             type="button"
-            className="w-full"
+            className="flex-1"
             disabled={!canSave}
             onClick={() => void handleSave()}
           >

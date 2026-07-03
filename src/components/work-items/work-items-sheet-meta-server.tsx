@@ -8,14 +8,12 @@ import type { ReactNode } from "react";
 export type WorkItemsSheetMetaServerProps = {
   catalog: AdoCatalogSnapshot;
   assignee: string;
-  currentUserDisplayName?: string | null;
   children: ReactNode;
 };
 
 export async function WorkItemsSheetMetaServer({
   catalog,
   assignee,
-  currentUserDisplayName = null,
   children,
 }: WorkItemsSheetMetaServerProps) {
   const [meta, base] = await Promise.all([
@@ -27,10 +25,10 @@ export async function WorkItemsSheetMetaServer({
     <WorkItemsSelectionHost
       sprintBugs={base.sprintBugs}
       backlogStates={meta.backlogStates}
+      bugStates={meta.bugStates}
       responsableFields={meta.responsableFields}
       project={catalog.project || null}
       team={catalog.team || null}
-      currentUserDisplayName={currentUserDisplayName}
       members={meta.teamMembers}
     >
       {children}

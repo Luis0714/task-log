@@ -1,5 +1,9 @@
 import { Bug } from "lucide-react";
 
+import {
+  BUG_ICON_ATTENDED_CLASS,
+  BUG_ICON_OPEN_CLASS,
+} from "@/lib/brand/bug-colors";
 import { cn } from "@/lib/utils";
 
 export type WorkItemBugCountBadgeVariant = "total" | "attended";
@@ -11,12 +15,18 @@ export type WorkItemBugCountBadgeProps = {
 };
 
 const VARIANT_STYLES: Record<WorkItemBugCountBadgeVariant, string> = {
-  total: "border-rose-500/25 bg-rose-500/10 text-rose-800 dark:text-rose-300",
-  attended: "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
+  total: cn(
+    "border-rose-500/25 bg-rose-500/10 text-rose-800 dark:text-rose-300",
+    BUG_ICON_OPEN_CLASS,
+  ),
+  attended: cn(
+    "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
+    BUG_ICON_ATTENDED_CLASS,
+  ),
 };
 
 function formatTitle(count: number, variant: WorkItemBugCountBadgeVariant): string {
-  const label = count === 1 ? "defecto" : "defectos";
+  const label = count === 1 ? "Bug" : "Bugs";
   if (variant === "attended") {
     return `${count} ${label} atendido${count === 1 ? "" : "s"}`;
   }

@@ -1,72 +1,105 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect } from "react";
+import { Loader2, Save } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 
-import { TimeLogContextStep } from "@/components/time-log/time-log-context-step";
-import { TimeLogStepIndicator } from "@/components/time-log/time-log-step-indicator";
-import { TimeLogTaskStep } from "@/components/time-log/time-log-task-step";
-import { Form } from "@/components/ui/form";
+import { TaskFormFields } from "@/components/time-log/fields/task-form-fields";
+import { PbiSelectField } from "@/components/time-log/fields/pbi-select-field";
+import { TemplateSelectField } from "@/components/time-log/fields/template-select-field";
+import { SaveAsTemplateDialog } from "@/components/time-log/save-as-template-dialog";
+import { Button } from "@/components/ui/button";
 import type { TimeLogCatalog } from "@/lib/time-log/catalog-types";
-import type { TimeLogStep } from "@/hooks/use-time-log-form";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
+import { useActivityValues } from "@/hooks/use-activity-values";
 
 export type TimeLogFormProps = {
   form: UseFormReturn<TimeLogFormValues>;
   catalog: TimeLogCatalog;
-  step: TimeLogStep;
-  adoExecutionReady: boolean;
   loading?: boolean;
-  onContinue: () => void;
-  onBack: () => void;
+  canSubmit?: boolean;
   onSubmit: () => void;
+  lastSubmitted?: {
+    taskTitle: string;
+    description: string;
+    activity?: string;
+    hours?: string;
+  } | null;
 };
 
 export function TimeLogForm({
   form,
   catalog,
-  step,
-  adoExecutionReady,
   loading = false,
-  onContinue,
-  onBack,
+  canSubmit = true,
   onSubmit,
-}: TimeLogFormProps) {
+  lastSubmitted = null,
+}: Readonly<TimeLogFormProps>) {
+  const { values: activities } = useActivityValues();
+  const canSaveTemplate =
+    lastSubmitted !== null &&
+    lastSubmitted.taskTitle.trim().length > 0 &&
+    lastSubmitted.description.trim().length > 0;
+
+  // Pre-rellenamos la actividad con la primera disponible para que el
+  // formulario Individual arranque en un estado válido y se mantenga
+  // válido tras cada guardado (donde `useCreateTask` resetea la actividad
+  // a ""). No pisamos una selección consciente del usuario ni el
+  // resultado de aplicar una plantilla: si el valor actual está dentro
+  // de la lista de actividades permitidas, lo dejamos tal cual.
+  const currentActivity = form.watch("activity");
+  useEffect(() => {
+    if (activities.length === 0) return;
+    if (currentActivity && activities.includes(currentActivity)) return;
+    form.setValue("activity", activities[0], { shouldValidate: true });
+  }, [activities, currentActivity, form]);
+
   return (
-    <Form {...form}>
-      <form
-        className="flex min-w-0 flex-col gap-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (step === 2) onSubmit();
-        }}
+    <form
+      className="flex min-w-0 flex-col gap-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit();
+      }}
+    >
+      <TemplateSelectField form={form} activities={activities} lastSubmitted={lastSubmitted} />
+
+      <PbiSelectField form={form} catalog={catalog} />
+
+      <TaskFormFields
+        form={form}
+        taskStates={catalog.taskStates}
+        taskStatesLoading={catalog.taskStatesLoading}
+        taskStatesError={catalog.taskStatesError}
+        defaultCompletedTaskState={catalog.defaultCompletedTaskState}
+        activities={activities}
+        disabled={loading}
+        isTaskCreationMode={catalog.isTaskCreationMode}
+      />
+
+      <Button
+        type="submit"
+        disabled={loading || !canSubmit}
+        className="min-h-10 w-full"
       >
-        <TimeLogStepIndicator step={step} />
-
-        {step === 1 ? (
-          <TimeLogContextStep form={form} catalog={catalog} onContinue={onContinue} />
+        {loading ? (
+          <Loader2 className="size-4 animate-spin" aria-hidden />
         ) : (
-          <TimeLogTaskStep
-            form={form}
-            catalog={catalog}
-            adoExecutionReady={adoExecutionReady}
-            loading={loading}
-            onBack={onBack}
-            onSubmit={onSubmit}
-          />
+          <Save className="size-4" aria-hidden />
         )}
-      </form>
-    </Form>
+        Crear tarea
+      </Button>
+      {canSaveTemplate ? (
+        <SaveAsTemplateDialog
+          defaultTitle={lastSubmitted!.taskTitle}
+          defaultDescription={lastSubmitted!.description}
+          defaultActivity={lastSubmitted?.activity}
+          defaultHours={lastSubmitted?.hours}
+          activities={activities}
+          disabled={loading}
+        />
+      ) : null}
+    </form>
   );
 }
-
-export function TimeLogCopilotLink() {
-  return (
-    <p className="text-muted-foreground text-pretty text-sm">
-      ¿Prefieres lenguaje natural?{" "}
-      <Link href="/copilot" className="text-primary font-medium hover:underline">
-        Usa el Copiloto IA
-      </Link>
-    </p>
-  );
-}
+export { TimeLogCopilotLink } from "@/components/time-log/time-log-copilot-link";

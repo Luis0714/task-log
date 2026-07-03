@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 export type UserStoryCommittedFieldsProps = {
   startDate: string;
   targetDate: string;
+  required?: boolean;
   disabled?: boolean;
   onStartDateChange: (value: string) => void;
   onTargetDateChange: (value: string) => void;
@@ -14,6 +15,7 @@ export type UserStoryCommittedFieldsProps = {
 export function UserStoryCommittedFields({
   startDate,
   targetDate,
+  required = false,
   disabled = false,
   onStartDateChange,
   onTargetDateChange,
@@ -24,7 +26,9 @@ export function UserStoryCommittedFields({
         Fecha de inicio y fecha objetivo (requeridas al pasar a Comprometido).
       </p>
       <div className="space-y-2">
-        <Label htmlFor="user-story-start-date">Fecha de inicio</Label>
+        <Label htmlFor="user-story-start-date" required={required}>
+          Fecha de inicio
+        </Label>
         <DatePicker
           id="user-story-start-date"
           value={startDate}
@@ -33,7 +37,9 @@ export function UserStoryCommittedFields({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="user-story-target-date">Fecha objetivo</Label>
+        <Label htmlFor="user-story-target-date" required={required}>
+          Fecha objetivo
+        </Label>
         <DatePicker
           id="user-story-target-date"
           value={targetDate}

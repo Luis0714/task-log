@@ -12,13 +12,15 @@ import type {
   TimeLogServerBaseline,
 } from "@/lib/time-log/load-time-log-baseline";
 import { resolveWorkingDateForSprint } from "@/hooks/time-log/use-sprint-working-date";
-import { useTimeLogWizard } from "@/hooks/time-log/use-time-log-wizard";
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
+import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
+import { appToast } from "@/lib/toast";
 import {
   createTimeLogFormDefaults,
   timeLogFormSchema,
   type TimeLogFormValues,
 } from "@/lib/schemas/time-log";
+import { computeCanSubmit } from "@/lib/forms/can-submit";
 
 type UseTimeLogFormOptions = {
   appendHistory: (entry: CopilotHistoryEntry) => void;
@@ -26,6 +28,8 @@ type UseTimeLogFormOptions = {
   adoExecutionReady: boolean;
   serverBaseline: TimeLogServerBaseline;
   pbisSnapshot: TimeLogPbisSnapshot;
+  isTaskCreationMode: boolean;
+  initialWorkItemFilters?: Partial<WorkItemFilters>;
 };
 
 export function useTimeLogForm({
@@ -34,6 +38,8 @@ export function useTimeLogForm({
   adoExecutionReady,
   serverBaseline,
   pbisSnapshot,
+  isTaskCreationMode,
+  initialWorkItemFilters,
 }: UseTimeLogFormOptions) {
   const form = useForm<TimeLogFormValues>({
     resolver: zodResolver(timeLogFormSchema),
@@ -59,17 +65,21 @@ export function useTimeLogForm({
     }
   }, [catalogProject, catalogSprintPath, catalogTeam, form]);
 
-  const wizard = useTimeLogWizard(form);
   const defaultTaskStateRef = useRef("");
+  const defaultCompletedTaskStateRef = useRef<string | null>(null);
   const sprintsRef = useRef<AdoSprintDto[]>([]);
 
   const createTask = useCreateTask({
     form,
     appendHistory,
-    setStep: wizard.setStep,
+    isTaskCreationMode,
     getDefaultTaskState: useCallback(
       () => defaultTaskStateRef.current || form.getValues("taskState"),
       [form],
+    ),
+    getDefaultCompletedTaskState: useCallback(
+      () => defaultCompletedTaskStateRef.current ?? "",
+      [],
     ),
     getDefaultWorkingDate: useCallback(
       () => resolveWorkingDateForSprint(sprintsRef.current, form.getValues("sprintPath")),
@@ -83,6 +93,8 @@ export function useTimeLogForm({
     submitting: createTask.loading,
     serverBaseline,
     pbisSnapshot,
+    isTaskCreationMode,
+    initialWorkItemFilters,
   });
 
   sprintsRef.current = catalog.sprints;
@@ -91,35 +103,37 @@ export function useTimeLogForm({
     if (catalog.defaultOpenTaskState) {
       defaultTaskStateRef.current = catalog.defaultOpenTaskState;
     }
-  }, [catalog.defaultOpenTaskState]);
+    if (catalog.defaultCompletedTaskState) {
+      defaultCompletedTaskStateRef.current = catalog.defaultCompletedTaskState;
+    }
+  }, [catalog.defaultOpenTaskState, catalog.defaultCompletedTaskState]);
 
-  const prepareSubmit = form.handleSubmit((values) => {
-    createTask.preparePreview(values, catalog.selectedPbi);
+  const submit = form.handleSubmit((values) => {
+    if (!adoExecutionReady) {
+      appToast.error("Sin acceso a Azure DevOps.", {
+        description: "Conecta tu cuenta o configura el PAT en el servidor.",
+      });
+      return;
+    }
+    void createTask.submit(values, catalog.selectedPbi);
   });
 
-  const goToStep2 = () => {
-    createTask.dismissPreview();
-    wizard.goToStep2();
-  };
+  const { isValid, isSubmitting } = form.formState;
 
-  const goToStep1 = () => {
-    createTask.dismissPreview();
-    wizard.goToStep1();
-  };
+  const canSubmit = computeCanSubmit({
+    isValid,
+    isSubmitting,
+    externalReady: adoExecutionReady,
+  });
 
   return {
     form,
     catalog,
-    step: wizard.step,
-    preview: createTask.preview,
     error: createTask.error,
     loadingExecute: createTask.loading,
-    goToStep1,
-    goToStep2,
-    prepareSubmit,
-    execute: createTask.execute,
-    dismissPreview: createTask.dismissPreview,
+    canSubmit,
+    submit,
+    lastSubmitted: createTask.lastSubmitted,
+    clearLastSubmitted: createTask.clearLastSubmitted,
   };
 }
-
-export type { TimeLogStep } from "@/lib/time-log/catalog-types";

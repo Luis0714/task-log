@@ -6,6 +6,7 @@ import { Copy, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { computeCanSubmit } from "@/lib/forms/can-submit";
 import { appToast } from "@/lib/toast/app-toast";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,10 @@ export function DailySummaryCard({
   const [regenerated, setRegenerated] = useState<string | null>(null);
   const [copying, setCopying] = useState(false);
   const text = regenerated ?? summary;
+  const canCopy = computeCanSubmit({
+    isValid: text.trim().length > 0,
+    isSubmitting: loading || copying,
+  });
 
   const handleCopy = useCallback(async () => {
     if (!text.trim()) return;
@@ -67,7 +72,7 @@ export function DailySummaryCard({
           type="button"
           variant="outline"
           size="sm"
-          disabled={loading || copying || !text.trim()}
+          disabled={!canCopy}
           onClick={() => void handleCopy()}
         >
           {copying ? (

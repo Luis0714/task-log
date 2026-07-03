@@ -1,0 +1,1 @@
+ALTER TABLE "sprint_story_goals" ADD COLUMN "included_in_goal" boolean DEFAULT true NOT NULL;

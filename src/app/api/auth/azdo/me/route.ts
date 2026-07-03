@@ -2,39 +2,57 @@ import { NextResponse } from "next/server";
 
 import { refreshAccessToken } from "@/lib/auth/entra";
 import { isOAuthAuthMethod } from "@/lib/auth/auth-method";
+import { syncOAuthRefreshToDatabase } from "@/lib/auth/sync-oauth-refresh-to-db";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
+import { getRepositories, isUserPersistenceReady } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   if (!isOAuthAuthMethod()) {
-    return NextResponse.json(
-      { connected: false, reason: "oauth_disabled" },
-      { status: 403 },
-    );
+    return NextResponse.json({ connected: false, reason: "oauth_disabled" });
   }
 
-  if (!isIronSessionConfigured()) {
-    return NextResponse.json({ connected: false, reason: "no_session_store" });
+  if (!isIronSessionConfigured() || !isUserPersistenceReady()) {
+    return NextResponse.json({
+      connected: false,
+      reason: "service_unavailable",
+      message: USER_MESSAGES.persistenceUnavailable,
+    });
   }
 
   const session = await getTaskPilotSession();
-  if (!session.azdoRefreshToken) {
+  const userId = session.taskPilotUserId?.trim();
+  if (!userId || session.sessionAuthMethod !== "oauth") {
+    return NextResponse.json({ connected: false });
+  }
+
+  let connection;
+  try {
+    connection = await getRepositories().adoConnection.loadByUserId(userId);
+  } catch {
+    return NextResponse.json({
+      connected: false,
+      message: USER_MESSAGES.loadFailed,
+    });
+  }
+
+  if (!connection || connection.authMethod !== "oauth") {
     return NextResponse.json({ connected: false });
   }
 
   try {
-    const tokens = await refreshAccessToken(session.azdoRefreshToken);
+    const tokens = await refreshAccessToken(connection.refreshToken);
     if (tokens.refresh_token) {
-      session.azdoRefreshToken = tokens.refresh_token;
-      await session.save();
+      await syncOAuthRefreshToDatabase(session, tokens.refresh_token);
     }
 
     return NextResponse.json({
       connected: true,
       profile: session.adoProfile ?? null,
-      defaultOrg: session.defaultOrg ?? null,
-      defaultProject: session.defaultProject ?? null,
+      defaultOrg: connection.organization,
+      defaultProject: connection.project,
     });
   } catch {
     return NextResponse.json(
@@ -42,7 +60,7 @@ export async function GET() {
         connected: false,
         reason: "token_invalid",
         message:
-          "La sesión con Azure DevOps expiró o fue revocada. Vuelve a conectar.",
+          "Tu sesión con Microsoft expiró. Vuelve a iniciar sesión con tu cuenta.",
       },
       { status: 401 },
     );

@@ -2,25 +2,18 @@
 
 import { Search } from "lucide-react";
 
+import { MultiCheckboxFilter } from "@/components/filters/multi-checkbox-filter";
+import { SaveAsDefaultButton } from "@/components/filters/save-as-default-button";
+import { allWorkItemStatesPreset } from "@/components/filters/work-item-filter-presets";
+import { WorkItemAssigneeFilter } from "@/components/filters/work-item-assignee-filter";
 import { WorkItemStateLabel } from "@/components/work-items/work-item-state-label";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
-import {
-  WORK_ITEM_ASSIGNEE_ALL,
-  WORK_ITEM_ASSIGNEE_ME,
-  resolveWorkItemAssigneeLabel,
-} from "@/lib/schemas/work-item-filters";
+import { resolveWorkItemStatesLabel } from "@/lib/schemas/work-item-filters";
 
-export type WorkItemFiltersPanelProps = {
+export type WorkItemFiltersPanelProps = Readonly<{
   filters: WorkItemFilters;
   states: string[];
   members: AdoTeamMemberDto[];
@@ -30,10 +23,17 @@ export type WorkItemFiltersPanelProps = {
   totalCount: number;
   disabled?: boolean;
   title?: string;
+  /** Oculta el campo "Buscar por nombre o ID". Usado en /time-log. */
+  hideSearch?: boolean;
   onSearchChange: (value: string) => void;
   onAssigneeChange: (value: string) => void;
-  onStateChange: (value: string) => void;
-};
+  onStatesChange: (value: string[]) => void;
+  /**
+   * Persiste los filtros actuales como predeterminados del usuario en la DB.
+   * Si no se provee, no se renderiza el botón de guardar.
+   */
+  onSaveAsDefaults?: () => Promise<void> | void;
+}>;
 
 export function WorkItemFiltersPanel({
   filters,
@@ -45,12 +45,19 @@ export function WorkItemFiltersPanel({
   totalCount,
   disabled = false,
   title = "Filtros de elementos de trabajo",
+  hideSearch = false,
   onSearchChange,
   onAssigneeChange,
-  onStateChange,
+  onStatesChange,
+  onSaveAsDefaults,
 }: WorkItemFiltersPanelProps) {
   const showCount = totalCount > 0 && !disabled;
-  const assigneeLabel = resolveWorkItemAssigneeLabel(filters.assignee, members);
+  const statesLabel = resolveWorkItemStatesLabel(filters.states, states.length);
+
+  const stateOptions = states.map((state) => ({
+    value: state,
+    label: <WorkItemStateLabel state={state} />,
+  }));
 
   return (
     <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
@@ -64,84 +71,59 @@ export function WorkItemFiltersPanel({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="work-item-search">Buscar por nombre o ID</Label>
-          <div className="relative">
-            <Search
-              className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
-              aria-hidden
-            />
-            <Input
-              id="work-item-search"
-              value={filters.search}
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Ej. HU67 crear componente, login"
-              disabled={disabled}
-              className="pl-8"
-            />
+        {hideSearch ? null : (
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="work-item-search">Buscar por nombre o ID</Label>
+            <div className="relative">
+              <Search
+                className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
+                aria-hidden
+              />
+              <Input
+                id="work-item-search"
+                value={filters.search}
+                onChange={(event) => onSearchChange(event.target.value)}
+                placeholder="Ej. HU67 crear componente, login"
+                disabled={disabled}
+                className="pl-8"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="space-y-1.5">
-          <Label htmlFor="work-item-assigned">Asignación</Label>
-          <Select
-            value={filters.assignee || WORK_ITEM_ASSIGNEE_ALL}
-            onValueChange={(value) => {
-              if (!value) return;
-              onAssigneeChange(value);
-            }}
-            disabled={disabled || membersLoading}
-          >
-            <SelectTrigger id="work-item-assigned" className="w-full">
-              <SelectValue>
-                {membersLoading ? "Cargando miembros..." : assigneeLabel}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={WORK_ITEM_ASSIGNEE_ME}>Asignados a mí</SelectItem>
-              <SelectItem value={WORK_ITEM_ASSIGNEE_ALL}>Todos</SelectItem>
-              {members.map((member) => (
-                <SelectItem key={member.id} value={member.displayName}>
-                  {member.displayName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {membersError ? (
-            <p className="text-destructive text-xs">{membersError}</p>
-          ) : null}
-        </div>
+        <WorkItemAssigneeFilter
+          id="work-item-assigned"
+          assignee={filters.assignee}
+          members={members}
+          membersLoading={membersLoading}
+          membersError={membersError}
+          disabled={disabled}
+          onAssigneeChange={onAssigneeChange}
+        />
 
-        <div className="space-y-1.5">
-          <Label htmlFor="work-item-state">Estado</Label>
-          <Select
-            value={filters.state || "__all__"}
-            onValueChange={(value) => {
-              if (!value) return;
-              onStateChange(value === "__all__" ? "" : value);
-            }}
-            disabled={disabled || states.length === 0}
-          >
-            <SelectTrigger id="work-item-state" className="w-full">
-              <SelectValue placeholder="Todos los estados">
-                {filters.state ? (
-                  <WorkItemStateLabel state={filters.state} />
-                ) : (
-                  "Todos los estados"
-                )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Todos los estados</SelectItem>
-              {states.map((state) => (
-                <SelectItem key={state} value={state}>
-                  <WorkItemStateLabel state={state} />
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <MultiCheckboxFilter
+          id="work-item-state"
+          label="Estado"
+          options={stateOptions}
+          selected={filters.states}
+          onSelectedChange={onStatesChange}
+          triggerLabel={statesLabel}
+          presets={[allWorkItemStatesPreset(filters.states, () => onStatesChange([]))]}
+          disabled={disabled || states.length === 0}
+        />
       </div>
+
+      {onSaveAsDefaults ? (
+        <div className="flex justify-end">
+          <SaveAsDefaultButton
+            disabled={disabled}
+            onSave={() => {
+              if (!onSaveAsDefaults) return;
+              return Promise.resolve(onSaveAsDefaults());
+            }}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,9 +26,12 @@ export function AdoFiltersCollapsible({
   children,
   className,
 }: AdoFiltersCollapsibleProps) {
+  const [open, setOpen] = useState(defaultOpen);
+
   return (
     <Collapsible
-      defaultOpen={defaultOpen}
+      open={open}
+      onOpenChange={setOpen}
       className={cn(
         "group/ado-filters overflow-hidden rounded-xl border bg-card",
         className,

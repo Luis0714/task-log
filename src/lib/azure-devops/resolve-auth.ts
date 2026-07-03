@@ -1,69 +1,86 @@
-import { isOAuthAuthMethod, isPatAuthMethod } from "@/lib/auth/auth-method";
+import "server-only";
+
 import { refreshAccessToken } from "@/lib/auth/entra";
-import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
+import { syncOAuthRefreshToDatabase } from "@/lib/auth/sync-oauth-refresh-to-db";
+import {
+  clearSessionCredentials,
+  getTaskPilotSession,
+  isIronSessionConfigured,
+} from "@/lib/auth/session";
+import { getRepositories, isUserPersistenceReady } from "@/lib/db";
 
 export type AdoCallerAuth =
   | { mode: "oauth"; accessToken: string; organization: string; project: string }
   | { mode: "pat"; organization: string; project: string; pat: string };
 
-export function getPatTargetFromEnv(): { organization: string; project: string } | null {
-  const organization = process.env.AZDO_ORGANIZATION ?? process.env.AZDO_ORG;
-  const project = process.env.AZDO_PROJECT;
-  if (!organization?.trim() || !project?.trim()) return null;
-  return {
-    organization: organization.trim(),
-    project: project.trim(),
-  };
-}
+export type ResolveAdoCallerOptions = {
+  /** Solo en Route Handlers / Server Actions (Next.js no permite escribir cookies en RSC). */
+  persistOAuthTokens?: boolean;
+};
 
-function patFromEnv(): AdoCallerAuth | null {
-  const target = getPatTargetFromEnv();
-  const pat = process.env.AZDO_PAT;
-  if (!target || !pat?.trim()) return null;
-  return {
-    mode: "pat",
-    organization: target.organization,
-    project: target.project,
-    pat: pat.trim(),
-  };
-}
-
-async function oauthFromSession(): Promise<AdoCallerAuth | null> {
-  if (!isIronSessionConfigured()) return null;
-
-  const session = await getTaskPilotSession();
-  if (
-    !session.azdoRefreshToken ||
-    !session.defaultOrg?.trim() ||
-    !session.defaultProject?.trim()
-  ) {
+/** Credenciales ADO desde la base de datos (cuenta TaskPilot en sesión). */
+export async function resolveAdoCaller(
+  options: ResolveAdoCallerOptions = {},
+): Promise<AdoCallerAuth | null> {
+  if (!isIronSessionConfigured() || !isUserPersistenceReady()) {
     return null;
   }
 
+  const session = await getTaskPilotSession();
+  const userId = session.taskPilotUserId?.trim();
+  if (!userId) return null;
+
+  let connection;
   try {
-    const tokens = await refreshAccessToken(session.azdoRefreshToken);
-    if (tokens.refresh_token) {
-      session.azdoRefreshToken = tokens.refresh_token;
-      await session.save();
+    connection = await getRepositories().adoConnection.loadByUserId(userId);
+  } catch {
+    return null;
+  }
+
+  if (!connection) return null;
+
+  const organization = connection.organization.trim();
+  const project = connection.project.trim();
+  if (!organization || !project) return null;
+
+  if (connection.authMethod === "pat") {
+    return {
+      mode: "pat",
+      organization,
+      project,
+      pat: connection.pat,
+    };
+  }
+
+  try {
+    const tokens = await refreshAccessToken(connection.refreshToken);
+    if (tokens.refresh_token && options.persistOAuthTokens) {
+      await syncOAuthRefreshToDatabase(session, tokens.refresh_token);
     }
     return {
       mode: "oauth",
       accessToken: tokens.access_token,
-      organization: session.defaultOrg.trim(),
-      project: session.defaultProject.trim(),
+      organization,
+      project,
     };
   } catch {
     return null;
   }
 }
 
-export async function resolveAdoCaller(): Promise<AdoCallerAuth | null> {
-  if (isPatAuthMethod()) return patFromEnv();
-  if (isOAuthAuthMethod()) return oauthFromSession();
-  return null;
+export async function isSessionPatReady(): Promise<boolean> {
+  const caller = await resolveAdoCaller();
+  return caller?.mode === "pat";
 }
 
-export function isPatConfigured(): boolean {
-  if (!isPatAuthMethod()) return false;
-  return patFromEnv() !== null;
+export async function isSessionOAuthReady(): Promise<boolean> {
+  const caller = await resolveAdoCaller();
+  return caller?.mode === "oauth";
+}
+
+export async function clearUserSessionAuth(): Promise<void> {
+  if (!isIronSessionConfigured()) return;
+  const session = await getTaskPilotSession();
+  clearSessionCredentials(session);
+  await session.save();
 }
