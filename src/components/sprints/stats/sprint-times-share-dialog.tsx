@@ -5,12 +5,15 @@ import { ShareExportDialog } from "@/components/sprints/share-export-dialog";
 import { ShareExportPreview } from "@/components/sprints/share-export-preview";
 import type { UseSprintTimesShareResult } from "@/hooks/sprints/use-sprint-times-share";
 
+const EMPTY_PREVIEW_MESSAGE =
+  "Elige el resumen que quieres compartir para generar la imagen.";
+
 export type SprintTimesShareDialogProps = {
   canShare: boolean;
   share: UseSprintTimesShareResult;
 };
 
-export function SprintTimesShareDialog({ canShare, share }: SprintTimesShareDialogProps) {
+export function SprintTimesShareDialog({ canShare, share }: Readonly<SprintTimesShareDialogProps>) {
   const hasPreview = Boolean(share.previewUrl) && !share.loading && !share.error;
 
   return (
@@ -23,6 +26,7 @@ export function SprintTimesShareDialog({ canShare, share }: SprintTimesShareDial
       selector={
         <SprintTimesShareVariantControl
           variant={share.variant}
+          times={share.times}
           disabled={share.loading}
           isVariantEnabled={share.isVariantEnabled}
           onVariantChange={share.setVariant}
@@ -38,12 +42,12 @@ export function SprintTimesShareDialog({ canShare, share }: SprintTimesShareDial
           previewUrl={share.previewUrl}
           imageAlt="Vista previa de tiempos del sprint"
           pdfTitle="Vista previa de tiempos del sprint"
+          emptyState={EMPTY_PREVIEW_MESSAGE}
         />
       }
       downloadLabel="Descargar imagen"
       showCopyImage
       canCopyImage={share.canCopyImage}
-      canShareNative={share.canShareNative}
       hasPreview={hasPreview}
       onDownload={share.download}
       onShare={share.share}

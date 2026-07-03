@@ -6,6 +6,7 @@ import { drizzleUserRepository } from "@/lib/db/adapters/drizzle/drizzle-user.re
 import { apiErrorFromCause, apiErrorResponse } from "@/lib/errors/api-error-response";
 import { buildMemberInfoMap } from "@/lib/reports/excel/member-info";
 import { buildSprintTimesExcel } from "@/lib/reports/excel/sprint-times-excel";
+import { filterSprintTimesByVisibility } from "@/lib/sprints/filter-sprint-times-by-visibility";
 import { loadSprintStatsScreen } from "@/lib/sprints/load-sprint-stats-screen";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,17 @@ const querySchema = z.object({
   sprintStartDate: z.string().optional(),
   sprintFinishDate: z.string().optional(),
   weekIndex: z.coerce.number().int().min(0).optional(),
+  hiddenAssignees: z
+    .string()
+    .optional()
+    .transform((value) =>
+      value
+        ? value
+            .split(",")
+            .map((entry) => entry.trim())
+            .filter((entry) => entry.length > 0)
+        : [],
+    ),
 });
 
 export async function GET(req: Request) {
@@ -31,6 +43,7 @@ export async function GET(req: Request) {
     sprintStartDate: url.searchParams.get("sprintStartDate") ?? undefined,
     sprintFinishDate: url.searchParams.get("sprintFinishDate") ?? undefined,
     weekIndex: url.searchParams.get("weekIndex") ?? undefined,
+    hiddenAssignees: url.searchParams.get("hiddenAssignees") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -45,8 +58,16 @@ export async function GET(req: Request) {
     return apiErrorResponse(ADO_SIGN_IN_REQUIRED_MESSAGE, 401);
   }
 
-  const { project, team, sprintPath, sprintName, sprintStartDate, sprintFinishDate, weekIndex } =
-    parsed.data;
+  const {
+    project,
+    team,
+    sprintPath,
+    sprintName,
+    sprintStartDate,
+    sprintFinishDate,
+    weekIndex,
+    hiddenAssignees,
+  } = parsed.data;
 
   try {
     const [snapshot, neosUsers] = await Promise.all([
@@ -74,11 +95,16 @@ export async function GET(req: Request) {
       return apiErrorResponse("No hay datos disponibles para este sprint.", 404);
     }
 
+    const visibleTimes = filterSprintTimesByVisibility(
+      snapshot.stats.times,
+      new Set(hiddenAssignees ?? []),
+    );
+
     const buffer = await buildSprintTimesExcel({
       sprintName,
       project,
       team,
-      times: snapshot.stats.times,
+      times: visibleTimes,
       memberRoles,
       weekIndex,
       generatedAt: new Date(),

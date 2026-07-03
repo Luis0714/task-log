@@ -3,7 +3,7 @@ import "server-only";
 import type { SprintContext } from "@/lib/agent/features/create-tasks";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { loadSprintNonWorkingDates } from "@/lib/ado/load-sprint-data";
-import { resolveCurrentSprint } from "@/lib/dashboard/build-dashboard-metrics";
+import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
 import { firstSprintDataError } from "@/lib/ado/load-sprint-data";
 
 export type ResolvedSprintContext =

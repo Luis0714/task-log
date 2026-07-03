@@ -16,7 +16,7 @@ type SharePayloadParseResult<TParsed> =
 
 export async function loadSprintSharePayloadFromRequest<TParsed, TPayload>(
   req: Request,
-  parse: (request: Request) => SharePayloadParseResult<TParsed>,
+  parse: (request: Request) => SharePayloadParseResult<TParsed> | Promise<SharePayloadParseResult<TParsed>>,
   load: (
     organization: string,
     data: TParsed,
@@ -25,7 +25,7 @@ export async function loadSprintSharePayloadFromRequest<TParsed, TPayload>(
   | { ok: true; payload: TPayload }
   | { ok: false; response: Response }
 > {
-  const parsed = parse(req);
+  const parsed = await parse(req);
 
   if (!parsed.ok) {
     return {

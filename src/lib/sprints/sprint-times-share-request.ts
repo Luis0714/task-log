@@ -1,14 +1,13 @@
 import { loadSprintTimesSharePayloadForRequest } from "@/lib/sprints/load-sprint-times-share-payload-for-request";
-import {
-  loadSprintSharePayloadFromRequest,
-  sharePayloadErrorResponse,
-} from "@/lib/sprints/sprint-share-request";
+import { loadSprintSharePayloadFromRequest } from "@/lib/sprints/sprint-share-request";
 import { sprintTimesShareQuerySchema } from "@/lib/schemas/sprint-times-share";
+import type { SprintTimesMetrics } from "@/lib/sprints/sprint-stats-types";
 
-export { sharePayloadErrorResponse as shareTimesPayloadErrorResponse };
+type BodyPayload = { times: SprintTimesMetrics };
 
-export function parseSprintTimesShareQuery(req: Request) {
+export async function parseSprintTimesShareQuery(req: Request) {
   const url = new URL(req.url);
+  const body = req.method === "POST" ? await readJsonBody(req) : null;
   const parsed = sprintTimesShareQuerySchema.safeParse({
     project: url.searchParams.get("project") ?? "",
     team: url.searchParams.get("team") ?? "",
@@ -27,7 +26,19 @@ export function parseSprintTimesShareQuery(req: Request) {
     };
   }
 
-  return { ok: true as const, data: parsed.data };
+  return {
+    ok: true as const,
+    data: { ...parsed.data, times: body?.times ?? null },
+  };
+}
+
+async function readJsonBody(req: Request): Promise<BodyPayload | null> {
+  try {
+    const payload = (await req.clone().json()) as BodyPayload;
+    return payload?.times ? payload : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function loadSprintTimesSharePayloadFromRequest(req: Request) {

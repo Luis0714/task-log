@@ -11,6 +11,8 @@ import {
   listTaskStates,
 } from "@/lib/azure-devops/work-item-type-states";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
+import { isBacklogScope } from "@/lib/time-log/backlog-scope";
+import { pickSprint } from "@/lib/time-log/context-defaults";
 import {
   pickDefaultCompletedTaskState,
   resolveTaskStateSelection,
@@ -44,11 +46,15 @@ export const loadTimeLogFormMeta = cache(async function loadTimeLogFormMeta(
   if (!auth) return emptyMeta;
 
   const profile = await resolveProcessProfile(auth);
+  // En scope backlog no hay sprint del cual leer miembros; usa el preferente.
+  const membersSprintPath = isBacklogScope(catalog.sprintPath)
+    ? pickSprint("", catalog.sprints)
+    : catalog.sprintPath;
   const [teamMembers, backlogStates, taskStates, nonWorkingDates] = await Promise.all([
     loadTeamMembers({
       project: catalog.project,
       team: catalog.team,
-      sprintPath: catalog.sprintPath,
+      sprintPath: membersSprintPath,
       source: "workItems",
     }),
     listBacklogItemStates(auth, profile.backlogItemType),

@@ -50,7 +50,6 @@ export function SprintGoalShareDialog({ canShare, share }: SprintGoalShareDialog
       downloadLabel={isImage ? "Descargar imagen" : "Descargar PDF"}
       showCopyImage={isImage}
       canCopyImage={share.canCopyImage}
-      canShareNative={share.canShareNative}
       hasPreview={hasPreview}
       onDownload={share.download}
       onShare={share.share}

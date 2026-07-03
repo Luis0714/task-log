@@ -19,6 +19,7 @@ import {
   buildCatalogPlaceholders,
 } from "@/lib/time-log/catalog-placeholders";
 import type { TimeLogCatalog } from "@/lib/time-log/catalog-types";
+import { BACKLOG_SPRINT_LABEL, isBacklogScope } from "@/lib/time-log/backlog-scope";
 import { filterWorkItemsByClientCriteria } from "@/lib/time-log/filter-work-items";
 import { formatSprintOptionLabel } from "@/lib/time-log/format-options";
 import {
@@ -237,7 +238,11 @@ export function useTimeLogCatalog({
   });
 
   const selectedSprint = sprints.find((sprint) => sprint.path === sprintPath);
-  const selectedSprintLabel = selectedSprint ? formatSprintOptionLabel(selectedSprint) : null;
+  const selectedSprintLabel = isBacklogScope(sprintPath)
+    ? BACKLOG_SPRINT_LABEL
+    : selectedSprint
+      ? formatSprintOptionLabel(selectedSprint)
+      : null;
   const selectedPbi = pbis.find((item) => String(item.id) === pbiId) ?? null;
 
   const disabledState = buildCatalogDisabledState({

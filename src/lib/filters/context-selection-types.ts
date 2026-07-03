@@ -32,5 +32,7 @@ export type AdoContextSelectFieldsProps = {
   sprintDayFilter?: React.ReactNode;
   /** Muestra asterisco rojo en las etiquetas de proyecto, equipo y sprint. */
   markRequiredFields?: boolean;
+  /** Agrega la opción "Backlog completo" al select de sprint. */
+  includeBacklogOption?: boolean;
   className?: string;
 };

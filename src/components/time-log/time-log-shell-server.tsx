@@ -14,7 +14,9 @@ export async function TimeLogShellServer({
   defaultProject,
   adoExecutionReady,
 }: TimeLogShellServerProps) {
-  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp);
+  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp, {
+    allowBacklogScope: true,
+  });
 
   const shellBaseline: TimeLogServerBaseline = {
     catalog,

@@ -1,11 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Share2 } from "lucide-react";
+import { Copy, Download, Share2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -13,6 +14,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export type ShareExportDialogProps = {
@@ -27,7 +33,6 @@ export type ShareExportDialogProps = {
   downloadLabel: string;
   showCopyImage: boolean;
   canCopyImage: boolean;
-  canShareNative: boolean;
   hasPreview: boolean;
   onDownload: () => void;
   onShare: () => void;
@@ -46,7 +51,6 @@ export function ShareExportDialog({
   downloadLabel,
   showCopyImage,
   canCopyImage,
-  canShareNative,
   hasPreview,
   onDownload,
   onShare,
@@ -85,24 +89,63 @@ export function ShareExportDialog({
         </div>
 
         <DialogFooter showCloseButton={false} className="shrink-0 gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogClose
+            render={<Button type="button" variant="outline" />}
+          >
             Cerrar
-          </Button>
+          </DialogClose>
           {showCopyImage && canCopyImage ? (
-            <Button
-              variant="outline"
-              onClick={() => onCopyImage?.()}
-              disabled={!hasPreview}
-            >
-              Copiar imagen
-            </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => onCopyImage?.()}
+                    disabled={!hasPreview}
+                    aria-label="Copiar imagen"
+                  >
+                    <Copy className="size-4" aria-hidden />
+                  </Button>
+                }
+              />
+              <TooltipContent>Copiar imagen</TooltipContent>
+            </Tooltip>
           ) : null}
-          <Button variant="outline" onClick={() => void onDownload()} disabled={!hasPreview}>
-            {downloadLabel}
-          </Button>
-          <Button onClick={() => void onShare()} disabled={!hasPreview}>
-            {canShareNative ? "Compartir" : "Descargar y compartir"}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => void onDownload()}
+                  disabled={!hasPreview}
+                  aria-label={downloadLabel}
+                >
+                  <Download className="size-4" aria-hidden />
+                </Button>
+              }
+            />
+            <TooltipContent>{downloadLabel}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  size="icon"
+                  onClick={() => void onShare()}
+                  disabled={!hasPreview}
+                  aria-label="Compartir"
+                >
+                  <Share2 className="size-4" aria-hidden />
+                </Button>
+              }
+            />
+            <TooltipContent>Compartir</TooltipContent>
+          </Tooltip>
         </DialogFooter>
       </DialogContent>
     </Dialog>

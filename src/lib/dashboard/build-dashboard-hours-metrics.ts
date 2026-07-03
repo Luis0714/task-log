@@ -7,7 +7,7 @@ import {
   sumHoursBreakdownForDay,
   sumHoursBreakdownForDayKeys,
 } from "@/lib/dashboard/hours-breakdown";
-import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
+import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
 import {
   formatSprintDayShortLabel,
   isSameLocalDay,

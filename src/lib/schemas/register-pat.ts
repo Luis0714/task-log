@@ -1,4 +1,4 @@
-import { z } from "zod";
+import type { z } from "zod";
 
 import { connectPatBodySchema } from "@/lib/schemas/connect-pat";
 import { taskPilotEmailSchema } from "@/lib/schemas/taskpilot-email";

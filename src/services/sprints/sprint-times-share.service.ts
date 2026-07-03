@@ -4,10 +4,12 @@ import {
   type SprintShareScope,
 } from "@/lib/sprints/sprint-share-scope";
 import { fetchShareBlob } from "@/lib/sprints/share-fetch";
+import type { SprintTimesMetrics } from "@/lib/sprints/sprint-stats-types";
 
 export type SprintTimesShareQuery = SprintShareScope & {
   goalOnly: boolean;
   variant: SprintTimesShareVariant;
+  times: SprintTimesMetrics;
 };
 
 function buildSprintTimesShareSearchParams(query: SprintTimesShareQuery): URLSearchParams {
@@ -29,6 +31,8 @@ export async function fetchSprintTimesShareImageBlob(
 
   return fetchShareBlob({
     url: buildSprintTimesShareImageUrl(query),
+    method: "POST",
+    body: JSON.stringify({ times: query.times }),
     signal,
     fallbackMessage,
     expectedMimeType: "image/png",

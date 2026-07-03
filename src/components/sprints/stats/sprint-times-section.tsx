@@ -3,6 +3,7 @@
 import { useMemo, type ReactNode } from "react";
 
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
+import { AssigneeVisibilityCombobox } from "@/components/sprints/stats/assignee-visibility-combobox";
 import {
   SprintTimesBugHoursValue,
   SprintTimesBugSubColumnHeader,
@@ -26,6 +27,7 @@ import { SprintTimesShareActions } from "@/components/sprints/stats/sprint-times
 import type { SprintTimesShareScope } from "@/lib/sprints/sprint-times-share-scope";
 import { canShareSprintTimes } from "@/lib/sprints/sprint-times-share-eligibility";
 import { cn } from "@/lib/utils";
+import { useAssigneeVisibilityStore } from "@/store/assignee-visibility-store";
 
 export type SprintTimesSectionProps = {
   times: SprintTimesMetrics;
@@ -34,6 +36,7 @@ export type SprintTimesSectionProps = {
   className?: string;
   shareScope?: SprintTimesShareScope;
   extraAction?: ReactNode;
+  allAssignees?: readonly string[];
 };
 
 const WEEK_ODD_CLASS = "bg-primary/[0.07]";
@@ -209,6 +212,7 @@ export function SprintTimesSection({
   className,
   shareScope,
   extraAction,
+  allAssignees,
 }: SprintTimesSectionProps) {
   const weekCount = times.weeks.length;
 
@@ -223,16 +227,27 @@ export function SprintTimesSection({
   const hasWeeks = weekCount > 0;
   const tableGridStyle = buildTableGridStyle(weekCount);
 
+  const hiddenAssignees = useAssigneeVisibilityStore((s) => s.hidden);
+  const toggleAssignee = useAssigneeVisibilityStore((s) => s.toggle);
+  const showAssigneeFilter = Boolean(allAssignees?.length);
+
   return (
     <DashboardSection
       title="Tiempos del sprint"
       description={description}
       className={className}
       action={
-        (shareScope && !loading) || extraAction ? (
-          <div className="flex items-center gap-2">
+        showAssigneeFilter || shareScope || extraAction ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {showAssigneeFilter ? (
+              <AssigneeVisibilityCombobox
+                assignees={allAssignees!}
+                hiddenAssignees={hiddenAssignees}
+                onToggle={toggleAssignee}
+              />
+            ) : null}
             {extraAction}
-            {shareScope && !loading ? (
+            {shareScope ? (
               <SprintTimesShareActions
                 {...shareScope}
                 times={times}

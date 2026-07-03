@@ -20,6 +20,7 @@ export function TimeLogContextFields({ form, catalog }: TimeLogContextFieldsProp
   return (
     <AdoContextSelectFields
       markRequiredFields
+      includeBacklogOption
       project={catalog.project}
       team={catalog.team}
       sprintPath={catalog.sprintPath}

@@ -1,11 +1,12 @@
 "use client";
 
+import type {
+  useComboboxAnchor} from "@/components/ui/combobox";
 import {
   ComboboxChip,
   ComboboxChips,
   ComboboxChipsInput,
   ComboboxValue,
-  useComboboxAnchor,
 } from "@/components/ui/combobox";
 import { coerceTagComboboxSelectedItems } from "@/lib/tags/tag-combobox-option";
 

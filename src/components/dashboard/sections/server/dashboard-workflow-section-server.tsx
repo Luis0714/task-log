@@ -4,7 +4,7 @@ import { SprintWorkflowSection } from "@/components/dashboard/sections/sprint-wo
 import {
   firstSprintDataError,
   loadSprintBacklogStates,
-  loadSprintWorkItems,
+  loadSprintPeriodStories,
 } from "@/lib/ado/load-sprint-data";
 import { catalogToSprintContext } from "@/lib/ado/sprint-data-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
@@ -22,7 +22,14 @@ export async function DashboardWorkflowSectionServer({
   if (!ctx) return null;
 
   const [workItems, backlogStates] = await Promise.all([
-    loadSprintWorkItems(ctx.project, ctx.sprintPath, ctx.assignee),
+    loadSprintPeriodStories(
+      ctx.project,
+      ctx.team,
+      ctx.sprintPath,
+      ctx.sprintStartDate,
+      ctx.sprintFinishDate,
+      ctx.assignee,
+    ),
     loadSprintBacklogStates(ctx.project),
   ]);
 

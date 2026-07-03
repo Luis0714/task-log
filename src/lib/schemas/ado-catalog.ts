@@ -73,6 +73,8 @@ export const adoWorkItemOptionSchema = z.object({
   tags: z.array(z.string()).optional(),
   /** Título del work item padre (HU/PBI). */
   parentTitle: z.string().optional(),
+  /** Historia fuera del sprint (backlog u otra iteración) con trabajo registrado en el periodo. */
+  fromBacklog: z.boolean().optional(),
   /** Actividad de la tarea (Microsoft.VSTS.Common.Activity). */
   activity: z.string().optional(),
 });

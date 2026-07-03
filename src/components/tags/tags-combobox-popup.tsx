@@ -1,5 +1,7 @@
 "use client";
 
+import type {
+  useComboboxAnchor} from "@/components/ui/combobox";
 import {
   ComboboxCollection,
   ComboboxContent,
@@ -7,7 +9,6 @@ import {
   ComboboxInput,
   ComboboxItem,
   ComboboxList,
-  useComboboxAnchor,
 } from "@/components/ui/combobox";
 import type { TagComboboxOption } from "@/lib/tags/tag-combobox-option";
 

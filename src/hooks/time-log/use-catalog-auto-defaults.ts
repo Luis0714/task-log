@@ -80,7 +80,9 @@ export function useCatalogAutoDefaults({
   useEffect(() => {
     if (!team || sprintsLoading) return;
 
-    const next = pickSprint(form.getValues("sprintPath"), sprints);
+    const next = pickSprint(form.getValues("sprintPath"), sprints, {
+      allowBacklogScope: true,
+    });
     if (next === form.getValues("sprintPath")) return;
 
     if (!next) {

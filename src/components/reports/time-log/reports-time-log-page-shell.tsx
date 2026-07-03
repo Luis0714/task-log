@@ -1,13 +1,17 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { AdoContextPageShell } from "@/components/filters/ado-context-page-shell";
 import { ReportsTimeLogContent } from "@/components/reports/time-log/reports-time-log-content";
 import { ReportsTimeLogExportDialog } from "@/components/reports/time-log/reports-time-log-export-dialog";
 import { useSprintStats } from "@/hooks/sprints/use-sprint-stats";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
-import { resolveCurrentSprint } from "@/lib/dashboard/resolve-current-sprint";
+import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
 import { EMPTY_SPRINT_TIMES_METRICS } from "@/lib/sprints/build-sprint-times-metrics";
+import { filterSprintTimesByVisibility } from "@/lib/sprints/filter-sprint-times-by-visibility";
 import { PAGE_SEO } from "@/lib/seo/pages";
+import { useAssigneeVisibilityStore } from "@/store/assignee-visibility-store";
 
 export type ReportsTimeLogPageShellProps = {
   catalog: AdoCatalogSnapshot;
@@ -17,7 +21,7 @@ export type ReportsTimeLogPageShellProps = {
 export function ReportsTimeLogPageShell({
   catalog,
   adoExecutionReady,
-}: ReportsTimeLogPageShellProps) {
+}: Readonly<ReportsTimeLogPageShellProps>) {
   const currentSprint = resolveCurrentSprint(catalog);
 
   const statsState = useSprintStats({
@@ -30,6 +34,15 @@ export function ReportsTimeLogPageShell({
   });
 
   const times = statsState.stats?.times ?? EMPTY_SPRINT_TIMES_METRICS;
+  const hidden = useAssigneeVisibilityStore((s) => s.hidden);
+  const allAssignees = useMemo(
+    () => times.rows.map((row) => row.assignee),
+    [times.rows],
+  );
+  const visibleTimes = useMemo(
+    () => filterSprintTimesByVisibility(times, hidden),
+    [times, hidden],
+  );
 
   const shareScope = currentSprint
     ? {
@@ -48,7 +61,8 @@ export function ReportsTimeLogPageShell({
       project={catalog.project}
       team={catalog.team}
       sprint={currentSprint}
-      times={times}
+      times={visibleTimes}
+      hiddenAssignees={Array.from(hidden)}
       disabled={statsState.loading || !statsState.stats}
     />
   ) : null;
@@ -65,6 +79,8 @@ export function ReportsTimeLogPageShell({
         statsState={statsState}
         shareScope={shareScope}
         exportDialog={exportDialog}
+        allAssignees={allAssignees}
+        visibleTimes={visibleTimes}
       />
     </AdoContextPageShell>
   );

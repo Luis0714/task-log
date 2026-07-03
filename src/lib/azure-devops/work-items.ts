@@ -18,6 +18,11 @@ import {
 } from "@/lib/filters/assignee-wiql";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
+import {
+  buildWiqlIdsQuery,
+  filterWorkItemIdsByCondition,
+  runWiqlIdsQuery,
+} from "@/lib/azure-devops/wiql";
 import { resolveWorkingTimeFromFields } from "@/lib/date/ado-datetime";
 import {
   buildWorkingDateTimeValue,
@@ -379,10 +384,6 @@ export type WorkItemSprintFilters = {
   pbiAssigneeField?: string;
 };
 
-type WiqlResponse = {
-  workItems?: Array<{ id: number }>;
-};
-
 const TITLE = "System.Title";
 const WORK_ITEM_TYPE = "System.WorkItemType";
 const STATE = "System.State";
@@ -422,12 +423,6 @@ function parseRichTextField(value: string | number | undefined): string | undefi
   const trimmed = value.trim();
   return trimmed || undefined;
 }
-
-function adoListErrorMessage(res: Response, body: string, fallback: string): string {
-  const snippet = body.trim().slice(0, 240);
-  return snippet ? `HTTP ${res.status}: ${snippet}` : `HTTP ${res.status}: ${fallback}`;
-}
-
 
 async function fetchWorkItemDetails(
   auth: AdoCallerAuth,
@@ -584,21 +579,11 @@ async function fetchCarryoverParents(
     const taskAssigneeCondition = buildAssigneeWiqlCondition(assignee);
     if (taskAssigneeCondition) taskConditions.push(taskAssigneeCondition);
 
-    const wiql = {
-      query: `SELECT [System.Id] FROM WorkItems WHERE ${taskConditions.join(" AND ")}`,
-    };
-
-    const url = `${adoProjectBase(auth)}/_apis/wit/wiql?api-version=7.1`;
-    const res = await adoFetch(auth, url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(wiql),
-    });
-
-    if (!res.ok) return [];
-
-    const data = (await res.json()) as WiqlResponse;
-    const taskIds = (data.workItems ?? []).map((item) => item.id);
+    const taskIds = await runWiqlIdsQuery(
+      auth,
+      buildWiqlIdsQuery(taskConditions),
+      "No se pudieron consultar las tareas del sprint.",
+    );
     if (taskIds.length === 0) return [];
 
     // 2. Encontrar los IDs de los PBIs padres de esas tareas.
@@ -628,18 +613,12 @@ async function fetchCarryoverParents(
     let filteredParentIds: number[];
 
     if (pbiAssigneeCondition) {
-      const idList = [...parentIds].join(", ");
-      const filterWiql = {
-        query: `SELECT [System.Id] FROM WorkItems WHERE [System.Id] IN (${idList}) AND (${pbiAssigneeCondition})`,
-      };
-      const filterRes = await adoFetch(auth, url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(filterWiql),
-      });
-      if (!filterRes.ok) return [];
-      const filterData = (await filterRes.json()) as WiqlResponse;
-      filteredParentIds = (filterData.workItems ?? []).map((item) => item.id);
+      filteredParentIds = await filterWorkItemIdsByCondition(
+        auth,
+        [...parentIds],
+        pbiAssigneeCondition,
+        "No se pudieron filtrar las historias por responsable.",
+      );
     } else {
       filteredParentIds = [...parentIds];
     }
@@ -683,26 +662,11 @@ export async function listWorkItemsInSprint(
     conditions.push(assigneeCondition);
   }
 
-  const wiql = {
-    query: `SELECT [System.Id] FROM WorkItems WHERE ${conditions.join(" AND ")} ORDER BY [System.ChangedDate] DESC`,
-  };
-
-  const url = `${adoProjectBase(auth)}/_apis/wit/wiql?api-version=7.1`;
-  const res = await adoFetch(auth, url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(wiql),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(
-      adoListErrorMessage(res, body, "No se pudieron consultar los elementos de trabajo del sprint."),
-    );
-  }
-
-  const data = (await res.json()) as WiqlResponse;
-  const ids = (data.workItems ?? []).map((item) => item.id);
+  const ids = await runWiqlIdsQuery(
+    auth,
+    buildWiqlIdsQuery(conditions, "[System.ChangedDate] DESC"),
+    "No se pudieron consultar los elementos de trabajo del sprint.",
+  );
   const mainItems = await fetchWorkItemDetails(auth, ids);
 
   // Only the default backlog type (PBI/HU) can be a carryover parent of Tasks.

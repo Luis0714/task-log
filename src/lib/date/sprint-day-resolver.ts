@@ -133,7 +133,7 @@ function matchDayOfMonth(text: string, range: DateRange): MatcherResult {
   if (day < 1 || day > 31) return null;
 
   const candidates: Date[] = [];
-  let cursor = stripTime(range.start);
+  const cursor = stripTime(range.start);
   cursor.setDate(day);
   while (cursor <= range.end) {
     if (cursor.getDate() === day) candidates.push(new Date(cursor));

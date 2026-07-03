@@ -50,10 +50,20 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
+    // Mismo alcance que eslint-config-next: las reglas react-hooks/* solo
+    // existen donde ese config registra el plugin (excluye p. ej. *.cjs).
+    files: ["**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
     plugins: {
       "unused-imports": unusedImports,
     },
     rules: projectStyleRules,
+  },
+  {
+    // Scripts Node en CommonJS: require() es el mecanismo de import válido.
+    files: ["scripts/**/*.cjs"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
   },
   globalIgnores([
     ".next/**",

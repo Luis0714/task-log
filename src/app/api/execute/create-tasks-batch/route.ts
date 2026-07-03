@@ -10,6 +10,7 @@ import {
   executeCreateTasksBatchRequestSchema,
   type CreateTaskBatchItem,
 } from "@/lib/schemas/agent";
+import { resolveExecutionSprintPath } from "@/lib/time-log/backlog-scope";
 import type { TaskActivity } from "@/lib/time-log/task-constants";
 
 type CreateTaskResultEntry =
@@ -78,7 +79,7 @@ export async function POST(req: Request): Promise<Response> {
         workingDate: task.workingDate,
         workingTime: task.workingTime,
         state: task.state,
-        sprintPath: task.sprintPath,
+        sprintPath: resolveExecutionSprintPath(task.sprintPath),
         markAsDone: task.markAsDone ?? true,
       },
       authForExecute,
