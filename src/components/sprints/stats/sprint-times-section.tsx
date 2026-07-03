@@ -229,7 +229,7 @@ export function SprintTimesSection({
 
   const hiddenAssignees = useAssigneeVisibilityStore((s) => s.hidden);
   const toggleAssignee = useAssigneeVisibilityStore((s) => s.toggle);
-  const showAssigneeFilter = Boolean(allAssignees?.length);
+  const showAssigneeFilter = allAssignees !== undefined;
 
   return (
     <DashboardSection
@@ -244,6 +244,7 @@ export function SprintTimesSection({
                 assignees={allAssignees!}
                 hiddenAssignees={hiddenAssignees}
                 onToggle={toggleAssignee}
+                disabled={!allAssignees?.length}
               />
             ) : null}
             {extraAction}
