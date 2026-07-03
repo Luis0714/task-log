@@ -138,7 +138,7 @@ function WeekGroupHeader({ week }: { week: SprintTimesWeekColumn }) {
 function TimesTableSkeleton() {
   return (
     <div className="overflow-hidden rounded-lg border border-border/60">
-      {Array.from({ length: 4 }).map((_, index) => (
+      {Array.from({ length: 8 }).map((_, index) => (
         <div
           key={index}
           className="border-border/60 grid gap-3 border-b px-3 py-3 last:border-b-0 md:grid-cols-4"
