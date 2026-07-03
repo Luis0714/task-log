@@ -11,8 +11,9 @@ const shareDateTimeFormatter = new Intl.DateTimeFormat("es", {
   day: "numeric",
   month: "short",
   year: "numeric",
-  hour: "2-digit",
+  hour: "numeric",
   minute: "2-digit",
+  hour12: true,
 });
 
 export function formatSprintGoalShareDate(date: Date): string {

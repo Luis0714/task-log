@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import { ShareExportProgressPanel } from "@/components/sprints/share-export-progress-panel";
 import type { ShareExportKind } from "@/lib/sprints/share-export-kind";
@@ -15,6 +17,8 @@ export type ShareExportPreviewProps = {
   loadingMessage?: string;
   imageAlt: string;
   pdfTitle: string;
+  /** Mensaje centrado mientras no hay preview y no se está cargando. */
+  emptyState?: ReactNode;
 };
 
 const PDF_PREVIEW_MIN_HEIGHT_CLASS = "min-h-[min(60vh,520px)]";
@@ -28,6 +32,7 @@ export function ShareExportPreview({
   loadingMessage,
   imageAlt,
   pdfTitle,
+  emptyState,
 }: ShareExportPreviewProps) {
   if (loading) {
     return (
@@ -45,7 +50,11 @@ export function ShareExportPreview({
 
   if (!previewUrl) {
     return (
-      <p className="text-muted-foreground text-sm">No hay vista previa disponible.</p>
+      <div className="flex flex-1 items-center justify-center text-center">
+        <p className="text-muted-foreground max-w-sm text-sm">
+          {emptyState ?? "No hay vista previa disponible."}
+        </p>
+      </div>
     );
   }
 

@@ -39,6 +39,13 @@ export type UseSprintShareExportOptions = {
   messages: SprintShareExportMessages;
   shareMeta: SprintShareExportShareMeta;
   copyEnabled?: boolean;
+  /**
+   * Si `true` (por defecto), abre el modal y dispara la generación del artefacto
+   * en cuanto el usuario lo abre. Si `false`, el caller debe invocar `trigger()`
+   * para iniciar la generación (útil cuando hay que esperar una selección del
+   * usuario antes de generar).
+   */
+  autoGenerateOnOpen?: boolean;
 };
 
 export type UseSprintShareExportResult = {
@@ -50,6 +57,8 @@ export type UseSprintShareExportResult = {
   error: string | null;
   canShareNative: boolean;
   canCopyImage: boolean;
+  /** Inicia (o reinicia) la generación del artefacto manualmente. */
+  trigger: () => void;
   download: () => Promise<void>;
   share: () => Promise<void>;
   copyImage: () => Promise<void>;
@@ -70,6 +79,7 @@ export function useSprintShareExport({
   messages,
   shareMeta,
   copyEnabled = true,
+  autoGenerateOnOpen = true,
 }: UseSprintShareExportOptions): UseSprintShareExportResult {
   const [open, setOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -77,6 +87,7 @@ export function useSprintShareExport({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fetchGenerationRef = useRef(0);
+  const controllerRef = useRef<AbortController | null>(null);
   const progress = useSimulatedProgress(loading);
 
   const canShareNative = useMemo(() => {
@@ -86,14 +97,17 @@ export function useSprintShareExport({
 
   const canCopyImage = useMemo(() => canCopyImageToClipboard(), []);
 
-  useEffect(() => {
-    if (!open || !canShare) {
+  const runFetch = useCallback(() => {
+    if (!canShare) {
       setLoading(false);
       return;
     }
 
-    const generation = ++fetchGenerationRef.current;
+    controllerRef.current?.abort();
     const controller = new AbortController();
+    controllerRef.current = controller;
+
+    const generation = ++fetchGenerationRef.current;
     setLoading(true);
     setError(null);
     setArtifactBlob(null);
@@ -105,6 +119,7 @@ export function useSprintShareExport({
     void fetchBlob(controller.signal)
       .then((blob) => {
         if (fetchGenerationRef.current !== generation) return;
+        if (!blob || blob.size === 0) return;
         setArtifactBlob(blob);
         setPreviewUrl(URL.createObjectURL(blob));
       })
@@ -118,9 +133,31 @@ export function useSprintShareExport({
           setLoading(false);
         }
       });
+  }, [canShare, fetchBlob, messages.fetch]);
 
-    return () => controller.abort();
-  }, [open, canShare, reloadKey, fetchBlob, messages.fetch]);
+  useEffect(() => {
+    if (!autoGenerateOnOpen) return;
+    if (!open) return;
+    runFetch();
+  }, [open, autoGenerateOnOpen, runFetch]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (autoGenerateOnOpen) return;
+    controllerRef.current?.abort();
+    setPreviewUrl((current) => {
+      revokeObjectUrl(current);
+      return null;
+    });
+    setArtifactBlob(null);
+    setError(null);
+    setLoading(false);
+  }, [open, autoGenerateOnOpen]);
+
+  useEffect(() => {
+    if (!open) return;
+    runFetch();
+  }, [reloadKey, runFetch]);
 
   useEffect(() => {
     return () => revokeObjectUrl(previewUrl);
@@ -215,6 +252,7 @@ export function useSprintShareExport({
     error,
     canShareNative,
     canCopyImage,
+    trigger: runFetch,
     download,
     share,
     copyImage,

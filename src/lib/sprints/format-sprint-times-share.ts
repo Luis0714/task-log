@@ -1,10 +1,14 @@
-import type { SprintTimesShareVariant } from "@/lib/sprints/sprint-times-share-variant";
+import {
+  isFullSprintTimesShareVariant,
+  parseSprintTimesShareWeekIndex,
+  type SprintTimesShareVariant,
+} from "@/lib/sprints/sprint-times-share-variant";
 import { sanitizeSprintGoalShareFilename } from "@/lib/sprints/format-sprint-goal-share";
 
 function resolveVariantFilenamePart(variant: SprintTimesShareVariant): string {
-  if (variant === "week1") return "semana-1";
-  if (variant === "week2") return "semana-2";
-  return "completo";
+  if (isFullSprintTimesShareVariant(variant)) return "completo";
+  const weekIndex = parseSprintTimesShareWeekIndex(variant);
+  return weekIndex === null ? variant : `semana-${weekIndex}`;
 }
 
 export function buildSprintTimesShareDownloadFilename(

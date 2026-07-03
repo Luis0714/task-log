@@ -6,10 +6,13 @@ import { useSprintShareExport } from "@/hooks/sprints/use-sprint-share-export";
 import { buildSprintTimesShareDownloadFilename } from "@/lib/sprints/format-sprint-times-share";
 import {
   isSprintTimesShareVariantEnabled,
-  resolveDefaultSprintTimesShareVariant,
   resolveSprintTimesShareVariant,
 } from "@/lib/sprints/sprint-times-share-eligibility";
-import type { SprintTimesShareVariant } from "@/lib/sprints/sprint-times-share-variant";
+import {
+  isSprintTimesShareVariantSelected,
+  type SprintTimesShareVariant,
+  type SprintTimesShareVariantSelection,
+} from "@/lib/sprints/sprint-times-share-variant";
 import { normalizeSprintShareScope } from "@/lib/sprints/sprint-share-scope";
 import type { SprintTimesMetrics } from "@/lib/sprints/sprint-stats-types";
 import {
@@ -18,13 +21,14 @@ import {
   type SprintTimesShareQuery,
 } from "@/services/sprints/sprint-times-share.service";
 
-export type UseSprintTimesShareOptions = Omit<SprintTimesShareQuery, "variant"> & {
+export type UseSprintTimesShareOptions = Omit<SprintTimesShareQuery, "variant" | "times"> & {
   times: SprintTimesMetrics;
   canShare: boolean;
 };
 
 export type UseSprintTimesShareResult = ReturnType<typeof useSprintShareExport> & {
-  variant: SprintTimesShareVariant;
+  times: SprintTimesMetrics;
+  variant: SprintTimesShareVariantSelection;
   setVariant: (variant: SprintTimesShareVariant) => void;
   isVariantEnabled: (variant: SprintTimesShareVariant) => boolean;
 };
@@ -42,28 +46,33 @@ export function useSprintTimesShare({
   times,
   ...query
 }: UseSprintTimesShareOptions): UseSprintTimesShareResult {
-  const [variant, setVariantState] = useState<SprintTimesShareVariant>(
-    resolveDefaultSprintTimesShareVariant(),
-  );
+  const [variant, setVariantState] = useState<SprintTimesShareVariantSelection>(null);
 
-  const shareQuery = useMemo(
-    (): SprintTimesShareQuery => ({
+  const effectiveVariant: SprintTimesShareVariant | null =
+    isSprintTimesShareVariantSelected(variant) &&
+    isSprintTimesShareVariantEnabled(times, variant)
+      ? variant
+      : null;
+
+  const shareQuery = useMemo((): SprintTimesShareQuery | null => {
+    if (!effectiveVariant) return null;
+    return {
       ...normalizeSprintShareScope(query),
       goalOnly: query.goalOnly,
-      variant: resolveSprintTimesShareVariant(times, variant),
-    }),
-    [
-      query.project,
-      query.team,
-      query.sprintPath,
-      query.sprintName,
-      query.sprintStartDate,
-      query.sprintFinishDate,
-      query.goalOnly,
+      variant: resolveSprintTimesShareVariant(times, effectiveVariant),
       times,
-      variant,
-    ],
-  );
+    };
+  }, [
+    query.project,
+    query.team,
+    query.sprintPath,
+    query.sprintName,
+    query.sprintStartDate,
+    query.sprintFinishDate,
+    query.goalOnly,
+    times,
+    effectiveVariant,
+  ]);
 
   const isVariantEnabled = useCallback(
     (value: SprintTimesShareVariant) => isSprintTimesShareVariantEnabled(times, value),
@@ -78,24 +87,26 @@ export function useSprintTimesShare({
     [times],
   );
 
-  useEffect(() => {
-    setVariantState((current) => resolveSprintTimesShareVariant(times, current));
-  }, [times]);
-
   const fetchBlob = useCallback(
-    (signal?: AbortSignal) => fetchSprintTimesShareImageBlob(shareQuery, signal),
+    (signal?: AbortSignal) => {
+      if (!shareQuery) return Promise.resolve(new Blob());
+      return fetchSprintTimesShareImageBlob(shareQuery, signal);
+    },
     [shareQuery],
   );
 
-  const buildFilename = useCallback(
-    () => buildSprintTimesShareDownloadFilename(shareQuery.sprintName, shareQuery.variant),
-    [shareQuery.sprintName, shareQuery.variant],
-  );
+  const buildFilename = useCallback(() => {
+    if (!shareQuery) return `tiempos-sprint-${Date.now()}.png`;
+    return buildSprintTimesShareDownloadFilename(
+      shareQuery.sprintName,
+      shareQuery.variant,
+    );
+  }, [shareQuery]);
 
-  const buildUrl = useCallback(
-    () => buildSprintTimesShareImageUrl(shareQuery),
-    [shareQuery],
-  );
+  const buildUrl = useCallback(() => {
+    if (!shareQuery) return "";
+    return buildSprintTimesShareImageUrl(shareQuery);
+  }, [shareQuery]);
 
   const exportResult = useSprintShareExport({
     canShare,
@@ -106,13 +117,21 @@ export function useSprintTimesShare({
     mimeType: "image/png",
     messages: TIMES_SHARE_MESSAGES,
     shareMeta: {
-      title: `Tiempos del sprint — ${shareQuery.sprintName}`,
-      text: `Tiempos del sprint ${shareQuery.sprintName}`,
+      title: `Tiempos del sprint — ${shareQuery?.sprintName ?? "sprint"}`,
+      text: `Tiempos del sprint ${shareQuery?.sprintName ?? "sprint"}`,
     },
+    autoGenerateOnOpen: false,
   });
+
+  useEffect(() => {
+    if (exportResult.open) {
+      setVariantState(null);
+    }
+  }, [exportResult.open]);
 
   return {
     ...exportResult,
+    times,
     variant,
     setVariant,
     isVariantEnabled,

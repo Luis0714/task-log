@@ -20,26 +20,18 @@ import type {
   SprintTimesShareTableRow,
 } from "@/lib/sprints/sprint-times-share-types";
 
-function weekGroupBackground(weekKey: "week1" | "week2", emphasized = false): string {
-  if (weekKey === "week1") {
-    return emphasized
-      ? sprintTimesShareImageColors.week1GroupBackgroundEmphasis
-      : sprintTimesShareImageColors.week1GroupBackground;
-  }
-
-  return emphasized
-    ? sprintTimesShareImageColors.week2GroupBackgroundEmphasis
-    : sprintTimesShareImageColors.week2GroupBackground;
+function weekGroupBackground(weekIndex: number, emphasized = false): string {
+  return sprintTimesShareImageColors.resolveWeekGroupBackground(weekIndex, emphasized);
 }
 
 function WeekGroupHeader({
   label,
   dateRangeLabel,
-  weekKey,
+  weekIndex,
 }: {
   label: string;
   dateRangeLabel: string;
-  weekKey: "week1" | "week2";
+  weekIndex: number;
 }) {
   return (
     <div
@@ -51,7 +43,7 @@ function WeekGroupHeader({
         gap: 4,
         padding: "10px 12px",
         borderRadius: 8,
-        backgroundColor: weekGroupBackground(weekKey),
+        backgroundColor: weekGroupBackground(weekIndex),
         width: "100%",
       }}
     >
@@ -67,11 +59,11 @@ function WeekGroupHeader({
 
 function WeekGroupCells({
   breakdown,
-  weekKey,
+  weekIndex,
   emphasized = false,
 }: {
   breakdown: HoursBreakdown;
-  weekKey: "week1" | "week2";
+  weekIndex: number;
   emphasized?: boolean;
 }) {
   const weekTotal = totalHoursBreakdown(breakdown);
@@ -81,7 +73,7 @@ function WeekGroupCells({
         display: "flex",
         flexDirection: "row",
         borderRadius: 8,
-        backgroundColor: weekGroupBackground(weekKey, emphasized),
+        backgroundColor: weekGroupBackground(weekIndex, emphasized),
         width: "100%",
       }}
     >
@@ -144,7 +136,7 @@ function renderColumnHeader(column: SprintTimesShareColumn) {
       <WeekGroupHeader
         label={column.week.label}
         dateRangeLabel={column.week.dateRangeLabel}
-        weekKey={column.weekKey}
+        weekIndex={column.weekIndex}
       />
     );
   }
@@ -221,10 +213,10 @@ function renderRowCell(
   }
 
   if (column.kind === "week") {
-    const breakdown = column.weekKey === "week1" ? row.week1 : row.week2;
+    const breakdown = row.weeks[column.weekIndex];
     if (!breakdown) return <span style={{ display: "flex" }} />;
     return (
-      <WeekGroupCells breakdown={breakdown} weekKey={column.weekKey} emphasized={row.emphasized} />
+      <WeekGroupCells breakdown={breakdown} weekIndex={column.weekIndex} emphasized={row.emphasized} />
     );
   }
 

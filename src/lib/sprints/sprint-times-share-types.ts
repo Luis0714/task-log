@@ -6,16 +6,17 @@ import type {
 
 export type SprintTimesShareTableRow = {
   assignee: string;
-  week1: HoursBreakdown | null;
-  week2: HoursBreakdown | null;
+  /** Una entrada por semana del sprint (mismo orden que `SprintTimesMetrics.weeks`). */
+  weeks: HoursBreakdown[];
   sprint: HoursBreakdown | null;
+  /** Breakdown del "Total semana" cuando la variante es una semana puntual. */
   weekTotal: HoursBreakdown | null;
   emphasized?: boolean;
 };
 
 export type SprintTimesShareColumn =
   | { kind: "assignee" }
-  | { kind: "week"; weekKey: "week1" | "week2"; week: SprintTimesWeekColumn }
+  | { kind: "week"; weekIndex: number; week: SprintTimesWeekColumn }
   | { kind: "weekTotal"; label: string }
   | { kind: "sprintTotal" };
 
@@ -34,6 +35,7 @@ export type SprintTimesShareContext = {
   goalOnly: boolean;
   dataSourceLabel: string;
   variant: SprintTimesShareVariant;
+  hiddenAssignees: readonly string[];
 };
 
 export type SprintTimesSharePayload = {

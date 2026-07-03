@@ -37,6 +37,7 @@ export type ReportsTimeLogExportDialogProps = {
   team: string;
   sprint: AdoSprintDto;
   times: SprintTimesMetrics;
+  hiddenAssignees?: readonly string[];
   disabled?: boolean;
 };
 
@@ -45,6 +46,7 @@ export function ReportsTimeLogExportDialog({
   team,
   sprint,
   times,
+  hiddenAssignees = [],
   disabled = false,
 }: ReportsTimeLogExportDialogProps) {
   const [open, setOpen] = useState(false);
@@ -72,6 +74,9 @@ export function ReportsTimeLogExportDialog({
     if (sprint.startDate) params.set("sprintStartDate", sprint.startDate);
     if (sprint.finishDate) params.set("sprintFinishDate", sprint.finishDate);
     if (scope === "week") params.set("weekIndex", String(weekIndex >= 0 ? weekIndex : 0));
+    if (hiddenAssignees.length > 0) {
+      params.set("hiddenAssignees", hiddenAssignees.join(","));
+    }
 
     try {
       const res = await fetch(`/api/reports/times/excel?${params}`);

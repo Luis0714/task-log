@@ -1,5 +1,4 @@
-import { EMPTY_HOURS_BREAKDOWN } from "@/lib/dashboard/hours-breakdown";
-import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import { EMPTY_HOURS_BREAKDOWN, type HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
 import { SITE_NAME } from "@/lib/seo/site";
 import { formatSprintDateRange } from "@/lib/time-log/format-options";
 import { SPRINT_TIMES_SHARE_LABELS } from "@/lib/sprints/sprint-times-share-labels";
@@ -12,21 +11,16 @@ import type {
 } from "@/lib/sprints/sprint-times-share-types";
 import {
   getSprintTimesShareVariantLabel,
+  getSprintTimesShareWeekDateRange,
+  isFullSprintTimesShareVariant,
+  parseSprintTimesShareWeekIndex,
   type SprintTimesShareVariant,
 } from "@/lib/sprints/sprint-times-share-variant";
+import { filterSprintTimesByVisibility } from "@/lib/sprints/filter-sprint-times-by-visibility";
 import type {
   SprintTimesMetrics,
   SprintTimesPersonRow,
-  SprintTimesWeekColumn,
 } from "@/lib/sprints/sprint-stats-types";
-
-function defaultWeekMeta(index: number): SprintTimesWeekColumn {
-  return {
-    label: index === 0 ? "Semana 1" : "Semana 2",
-    dateRangeLabel: "",
-    workingDaysCount: 0,
-  };
-}
 
 function sumWeekBreakdowns(
   rows: readonly SprintTimesPersonRow[],
@@ -59,44 +53,46 @@ function buildScopeLabel(context: SprintTimesShareContext): string {
   return `${scopePrefix} · ${context.projectName.trim()} · ${context.teamName.trim()} · ${context.sprintName.trim()}`;
 }
 
+function resolveFocusWeekIndex(
+  times: SprintTimesMetrics,
+  variant: SprintTimesShareVariant,
+): number | null {
+  if (isFullSprintTimesShareVariant(variant)) return null;
+  const weekIndex = parseSprintTimesShareWeekIndex(variant);
+  if (weekIndex === null) return null;
+  if (weekIndex < 1 || weekIndex > times.weeks.length) return null;
+  return weekIndex - 1;
+}
+
 function mapPersonRow(
   row: SprintTimesPersonRow,
-  variant: SprintTimesShareVariant,
+  focusWeekIndex: number | null,
 ): SprintTimesShareTableRow {
-  const week1 = row.weeks[0] ?? EMPTY_HOURS_BREAKDOWN;
-  const week2 = row.weeks[1] ?? EMPTY_HOURS_BREAKDOWN;
-  const weekTotal =
-    variant === "week1" ? week1
-    : variant === "week2" ? week2
-    : null;
+  const weeks = row.weeks.map((week) => week ?? EMPTY_HOURS_BREAKDOWN);
+  const weekTotal = focusWeekIndex === null ? null : weeks[focusWeekIndex] ?? EMPTY_HOURS_BREAKDOWN;
 
-  return { assignee: row.assignee, week1, week2, sprint: row.sprint, weekTotal };
+  return { assignee: row.assignee, weeks, sprint: row.sprint, weekTotal };
 }
 
 function buildColumns(
   times: SprintTimesMetrics,
   variant: SprintTimesShareVariant,
 ): SprintTimesShareColumn[] {
-  const week1 = times.weeks[0] ?? defaultWeekMeta(0);
-  const week2 = times.weeks[1] ?? defaultWeekMeta(1);
   const columns: SprintTimesShareColumn[] = [{ kind: "assignee" }];
+  const focusWeekIndex = resolveFocusWeekIndex(times, variant);
 
-  if (variant === "full") {
-    columns.push({ kind: "week", weekKey: "week1", week: week1 });
-    if (times.weeks.length >= 2) {
-      columns.push({ kind: "week", weekKey: "week2", week: week2 });
-    }
+  if (focusWeekIndex === null) {
+    times.weeks.forEach((week, index) => {
+      columns.push({ kind: "week", weekIndex: index, week });
+    });
     columns.push({ kind: "sprintTotal" });
     return columns;
   }
 
-  if (variant === "week1") {
-    columns.push({ kind: "week", weekKey: "week1", week: week1 });
-    columns.push({ kind: "weekTotal", label: SPRINT_TIMES_SHARE_LABELS.weekTotalColumn });
-    return columns;
+  const focusWeek = times.weeks[focusWeekIndex];
+  if (focusWeek) {
+    columns.push({ kind: "week", weekIndex: focusWeekIndex, week: focusWeek });
   }
-
-  columns.push({ kind: "week", weekKey: "week2", week: week2 });
   columns.push({ kind: "weekTotal", label: SPRINT_TIMES_SHARE_LABELS.weekTotalColumn });
   return columns;
 }
@@ -105,20 +101,22 @@ function buildTableLayout(
   times: SprintTimesMetrics,
   variant: SprintTimesShareVariant,
 ): SprintTimesShareTableLayout {
-  const rows = times.rows.map((row) => mapPersonRow(row, variant));
-  const week1Total = sumWeekBreakdowns(times.rows, 0);
-  const week2Total = sumWeekBreakdowns(times.rows, 1);
+  const focusWeekIndex = resolveFocusWeekIndex(times, variant);
+  const rows = times.rows.map((row) => mapPersonRow(row, focusWeekIndex));
+
+  const weekTotals = times.weeks.map((_, index) => sumWeekBreakdowns(times.rows, index));
   const sprintTotal = sumSprintBreakdowns(times.rows);
+
+  const teamTotalWeeks = weekTotals.map((week) => week ?? EMPTY_HOURS_BREAKDOWN);
+  const teamTotalWeekTotal = focusWeekIndex === null
+    ? null
+    : (teamTotalWeeks[focusWeekIndex] ?? EMPTY_HOURS_BREAKDOWN);
 
   const teamTotalRow: SprintTimesShareTableRow = {
     assignee: SPRINT_TIMES_SHARE_LABELS.teamTotal,
-    week1: week1Total,
-    week2: week2Total,
+    weeks: teamTotalWeeks,
     sprint: sprintTotal,
-    weekTotal:
-      variant === "week1" ? week1Total
-      : variant === "week2" ? week2Total
-      : null,
+    weekTotal: teamTotalWeekTotal,
     emphasized: true,
   };
 
@@ -129,22 +127,35 @@ function buildTableLayout(
   };
 }
 
+function resolveSprintDateRange(
+  times: SprintTimesMetrics,
+  context: SprintTimesShareContext,
+): string | null {
+  const weekRange = getSprintTimesShareWeekDateRange(times, context.variant);
+  if (weekRange) return weekRange;
+  return formatSprintDateRange(context.sprintStartDate, context.sprintFinishDate);
+}
+
 export function buildSprintTimesSharePayload(
   times: SprintTimesMetrics,
   context: SprintTimesShareContext,
   generatedAt: Date = new Date(),
 ): SprintTimesSharePayload {
+  const visibleTimes = filterSprintTimesByVisibility(
+    times,
+    new Set(context.hiddenAssignees),
+  );
   return {
     generatedAt,
     platformName: SITE_NAME,
     projectName: context.projectName.trim(),
     teamName: context.teamName.trim(),
     sprintName: context.sprintName.trim(),
-    sprintDateRange: formatSprintDateRange(context.sprintStartDate, context.sprintFinishDate),
+    sprintDateRange: resolveSprintDateRange(visibleTimes, context),
     variant: context.variant,
-    variantLabel: getSprintTimesShareVariantLabel(context.variant),
+    variantLabel: getSprintTimesShareVariantLabel(context.variant, visibleTimes),
     scopeLabel: buildScopeLabel(context),
     dataSourceLabel: context.dataSourceLabel.trim(),
-    table: buildTableLayout(times, context.variant),
+    table: buildTableLayout(visibleTimes, context.variant),
   };
 }

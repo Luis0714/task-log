@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { SprintTimesSection } from "@/components/sprints/stats/sprint-times-section";
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
 import type { UseSprintStatsResult } from "@/hooks/sprints/use-sprint-stats";
-import { EMPTY_SPRINT_TIMES_METRICS } from "@/lib/sprints/build-sprint-times-metrics";
+import type { SprintTimesMetrics } from "@/lib/sprints/sprint-stats-types";
 import type { SprintTimesShareScope } from "@/lib/sprints/sprint-times-share-scope";
 
 export type ReportsTimeLogContentProps = {
@@ -13,6 +13,8 @@ export type ReportsTimeLogContentProps = {
   statsState: UseSprintStatsResult;
   shareScope?: SprintTimesShareScope;
   exportDialog?: ReactNode;
+  visibleTimes: SprintTimesMetrics;
+  allAssignees: readonly string[];
 };
 
 export function ReportsTimeLogContent({
@@ -20,7 +22,9 @@ export function ReportsTimeLogContent({
   statsState,
   shareScope,
   exportDialog,
-}: ReportsTimeLogContentProps) {
+  visibleTimes,
+  allAssignees,
+}: Readonly<ReportsTimeLogContentProps>) {
   if (!sprint) {
     return (
       <p className="text-muted-foreground text-sm">
@@ -29,17 +33,16 @@ export function ReportsTimeLogContent({
     );
   }
 
-  const times = statsState.stats?.times ?? EMPTY_SPRINT_TIMES_METRICS;
-
   return (
     <div className="flex flex-col gap-6">
       {statsState.error ? <CopilotErrorAlert message={statsState.error} /> : null}
 
       <SprintTimesSection
-        times={times}
+        times={visibleTimes}
         loading={statsState.loading}
         shareScope={shareScope}
         extraAction={exportDialog}
+        allAssignees={allAssignees}
       />
     </div>
   );

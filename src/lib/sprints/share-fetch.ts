@@ -15,6 +15,8 @@ export function readShareApiError(payload: unknown, fallback: string): string {
 
 export type FetchShareBlobOptions = {
   url: string;
+  method?: "GET" | "POST";
+  body?: string;
   signal?: AbortSignal;
   fallbackMessage: string;
   expectedMimeType: string;
@@ -23,6 +25,8 @@ export type FetchShareBlobOptions = {
 
 export async function fetchShareBlob({
   url,
+  method = "GET",
+  body,
   signal,
   fallbackMessage,
   expectedMimeType,
@@ -31,7 +35,12 @@ export async function fetchShareBlob({
   let response: Response;
 
   try {
-    response = await fetch(url, { signal });
+    response = await fetch(url, {
+      method,
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body,
+      signal,
+    });
   } catch (cause) {
     rethrowShareFetchError(cause, fallbackMessage);
   }

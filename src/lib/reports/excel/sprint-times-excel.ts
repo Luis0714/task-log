@@ -303,10 +303,13 @@ function writeTitleRow(
 
   ws.mergeCells(row + 1, 1, row + 1, colCount);
   const subtitle = ws.getCell(row + 1, 1);
-  subtitle.value = `Generado por NeosView · ${generatedAt.toLocaleDateString("es-CO", {
+  subtitle.value = `Generado por NeosView · ${generatedAt.toLocaleString("es-CO", {
     day: "2-digit",
     month: "long",
     year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
   })}`;
   styleCell(subtitle, {
     fill: COLOR.subHeaderBg,

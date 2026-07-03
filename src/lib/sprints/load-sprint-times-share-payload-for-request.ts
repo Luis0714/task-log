@@ -34,6 +34,10 @@ import type { SprintTimesSharePayload } from "@/lib/sprints/sprint-times-share-t
 import type { SprintTimesMetrics } from "@/lib/sprints/sprint-stats-types";
 import type { SprintTimesShareQueryDto } from "@/lib/schemas/sprint-times-share";
 
+export type SprintTimesShareResolvedQuery = SprintTimesShareQueryDto & {
+  times: SprintTimesMetrics | null;
+};
+
 export type LoadSprintTimesSharePayloadResult =
   | { ok: true; payload: SprintTimesSharePayload }
   | { ok: false; error: string; status: number };
@@ -156,7 +160,7 @@ async function loadFrozenSprintTimesMetrics(
 
 export async function loadSprintTimesSharePayloadForRequest(
   organization: string,
-  query: SprintTimesShareQueryDto,
+  query: SprintTimesShareResolvedQuery,
 ): Promise<LoadSprintTimesSharePayloadResult> {
   const scope: SprintGoalScope = {
     organization,
@@ -166,21 +170,23 @@ export async function loadSprintTimesSharePayloadForRequest(
   };
 
   const goalOnly = query.goalOnly ?? SPRINT_STATS_GOAL_ONLY_DEFAULT;
-  const finalized = await isSprintScopeFinalized(scope);
 
-  const loaded = finalized
-    ? await loadFrozenSprintTimesMetrics(scope, goalOnly)
-    : await loadLiveSprintTimesMetrics(scope, {
-        goalOnly,
-        sprintStartDate: query.sprintStartDate,
-        sprintFinishDate: query.sprintFinishDate,
-      });
-
-  if (loaded.error) {
-    return { ok: false, error: loaded.error, status: 502 };
-  }
-
-  const times = loaded.times;
+  const times = query.times
+    ? query.times
+    : await (async () => {
+        const finalized = await isSprintScopeFinalized(scope);
+        const loaded = finalized
+          ? await loadFrozenSprintTimesMetrics(scope, goalOnly)
+          : await loadLiveSprintTimesMetrics(scope, {
+              goalOnly,
+              sprintStartDate: query.sprintStartDate,
+              sprintFinishDate: query.sprintFinishDate,
+            });
+        if (loaded.error) {
+          throw new Error(loaded.error);
+        }
+        return loaded.times;
+      })();
 
   if (!times || !canShareSprintTimes(times)) {
     return {
@@ -198,6 +204,10 @@ export async function loadSprintTimesSharePayloadForRequest(
     };
   }
 
+  const dataSourceLabel = query.times
+    ? SPRINT_TIMES_SHARE_LABELS.liveDataSource
+    : SPRINT_TIMES_SHARE_LABELS.frozenDataSource;
+
   const payload = buildSprintTimesSharePayload(times, {
     projectName: query.project,
     teamName: query.team,
@@ -205,10 +215,9 @@ export async function loadSprintTimesSharePayloadForRequest(
     sprintStartDate: query.sprintStartDate,
     sprintFinishDate: query.sprintFinishDate,
     goalOnly,
-    dataSourceLabel: finalized
-      ? SPRINT_TIMES_SHARE_LABELS.frozenDataSource
-      : SPRINT_TIMES_SHARE_LABELS.liveDataSource,
+    dataSourceLabel,
     variant: query.variant,
+    hiddenAssignees: [],
   });
 
   return { ok: true, payload };

@@ -7,4 +7,5 @@ export type SprintTimesShareScope = {
   sprintStartDate?: string;
   sprintFinishDate?: string;
   goalOnly: boolean;
+  hiddenAssignees?: readonly string[];
 };
