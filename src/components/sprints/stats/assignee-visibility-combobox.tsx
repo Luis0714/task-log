@@ -20,13 +20,15 @@ export type AssigneeVisibilityComboboxProps = {
   assignees: readonly string[];
   hiddenAssignees: ReadonlySet<string>;
   onToggle: (assignee: string) => void;
+  disabled?: boolean;
 };
 
 export function AssigneeVisibilityCombobox({
   assignees,
   hiddenAssignees,
   onToggle,
-}: AssigneeVisibilityComboboxProps) {
+  disabled = false,
+}: Readonly<AssigneeVisibilityComboboxProps>) {
   const anchor = useComboboxAnchor();
   const total = assignees.length;
   const hiddenCount = assignees.filter((a) => hiddenAssignees.has(a)).length;
@@ -40,6 +42,7 @@ export function AssigneeVisibilityCombobox({
     <div ref={anchor} className="w-auto">
       <Combobox
         multiple
+        disabled={disabled}
         value={[...hiddenAssignees]}
         onValueChange={(next: string[]) => {
           const nextSet = new Set(next);
@@ -59,6 +62,7 @@ export function AssigneeVisibilityCombobox({
               size="sm"
               aria-label={triggerLabel}
               className="gap-1.5"
+              disabled={disabled}
             />
           }
         >
