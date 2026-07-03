@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 
-import { BugDetailSheet } from "@/components/bugs/bug-detail-sheet";
 import { SprintLoggedHoursBadge } from "@/components/dashboard/metrics/sprint-logged-hours-badge";
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { SprintItemList, type SprintItemListSelection } from "@/components/sprint-items/sprint-item-list";
 import { SprintItemsSortBar } from "@/components/sprint-items/sprint-items-sort-bar";
-import { TaskDetailSheet, type ParentHuOption } from "@/components/tasks/task-detail-sheet";
+import type { ParentHuOption } from "@/components/tasks/task-detail-sheet";
 import { BulkTasksActionsBar } from "@/components/tasks/bulk-tasks-actions-bar";
 import { useSprintItemsLists } from "@/hooks/sprint-items/use-sprint-items-lists";
 import { useSprintItemsSort } from "@/hooks/sprint-items/use-sprint-items-sort";
@@ -17,6 +17,15 @@ import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 import { sumTaskLoggedHours } from "@/lib/dashboard/task-hours";
+
+// Los sheets de detalle (incluyen el editor tiptap) solo se cargan y montan
+// cuando el usuario abre un ítem, para no engordar el bundle inicial de la página.
+const BugDetailSheet = dynamic(() =>
+  import("@/components/bugs/bug-detail-sheet").then((mod) => mod.BugDetailSheet),
+);
+const TaskDetailSheet = dynamic(() =>
+  import("@/components/tasks/task-detail-sheet").then((mod) => mod.TaskDetailSheet),
+);
 
 function buildParentHuOptions(items: readonly AdoWorkItemOptionDto[]): ParentHuOption[] {
   const seen = new Set<number>();
@@ -76,6 +85,7 @@ export function SprintItemsLists({
 
   const [selectedItem, setSelectedItem] = useState<AdoWorkItemOptionDto | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetMounted, setSheetMounted] = useState(false);
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<number>>(
     () => new Set<number>(),
   );
@@ -87,6 +97,7 @@ export function SprintItemsLists({
 
   const handleItemClick = useCallback((item: AdoWorkItemOptionDto) => {
     setSelectedItem(item);
+    setSheetMounted(true);
     setSheetOpen(true);
   }, []);
 
@@ -173,7 +184,7 @@ export function SprintItemsLists({
         />
       </DashboardSection>
 
-      {kind === "bugs" ? (
+      {!sheetMounted ? null : kind === "bugs" ? (
         <BugDetailSheet
           open={sheetOpen}
           onOpenChange={handleSheetOpenChange}

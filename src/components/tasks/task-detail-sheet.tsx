@@ -25,7 +25,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RichTextarea } from "@/components/ui/rich-textarea";
+import { RichTextarea } from "@/components/ui/rich-textarea-lazy";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import { appToast } from "@/lib/toast";
 import type { AdoTaskStateDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
