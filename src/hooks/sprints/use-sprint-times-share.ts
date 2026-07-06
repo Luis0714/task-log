@@ -31,6 +31,8 @@ export type UseSprintTimesShareResult = ReturnType<typeof useSprintShareExport> 
   variant: SprintTimesShareVariantSelection;
   setVariant: (variant: SprintTimesShareVariant) => void;
   isVariantEnabled: (variant: SprintTimesShareVariant) => boolean;
+  /** Nombre del sprint que se está compartiendo (para títulos dinámicos). */
+  sprintName: string;
 };
 
 const TIMES_SHARE_MESSAGES = {
@@ -135,5 +137,6 @@ export function useSprintTimesShare({
     variant,
     setVariant,
     isVariantEnabled,
+    sprintName: query.sprintName,
   };
 }

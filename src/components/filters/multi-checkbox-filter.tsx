@@ -8,7 +8,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { FilterPresetRow } from "@/components/filters/filter-preset-row";
 import { filterFieldTriggerClassName } from "@/components/filters/filter-field-trigger-classes";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 export type MultiCheckboxFilterOption = {
@@ -31,6 +36,12 @@ export type MultiCheckboxFilterProps = {
   triggerLabel: string;
   presets?: MultiCheckboxFilterPreset[];
   disabled?: boolean;
+  /**
+   * Por opción, indica si debe mostrarse deshabilitada (no se permite
+   * marcarla). Las opciones ya seleccionadas se mantienen activas para que
+   * el usuario pueda des-seleccionarlas aunque el resto esté bloqueado.
+   */
+  isOptionDisabled?: (value: string) => boolean;
   className?: string;
 };
 
@@ -43,6 +54,7 @@ export function MultiCheckboxFilter({
   triggerLabel,
   presets = [],
   disabled = false,
+  isOptionDisabled,
   className,
 }: MultiCheckboxFilterProps) {
   const selectedSet = new Set(selected);
@@ -54,8 +66,6 @@ export function MultiCheckboxFilter({
     }
     onSelectedChange(selected.filter((item) => item !== value));
   };
-
-  const showClear = selected.length > 0 && selected.length < options.length;
 
   return (
     <div className={cn("space-y-1.5", className)}>
@@ -69,7 +79,7 @@ export function MultiCheckboxFilter({
           <span className="truncate text-left">{triggerLabel}</span>
           <ChevronDown className="text-muted-foreground size-4 shrink-0" aria-hidden />
         </PopoverTrigger>
-        <PopoverContent className="w-[var(--anchor-width)] p-2" align="start">
+        <PopoverContent className="w-(--anchor-width) p-2" align="start">
           {presets.length > 0 ? (
             <div className="space-y-0.5">
               {presets.map((preset) => (
@@ -88,19 +98,29 @@ export function MultiCheckboxFilter({
           <div className="max-h-60 space-y-0.5 overflow-y-auto">
             {options.map((option) => {
               const checked = selectedSet.has(option.value);
+              // Sólo deshabilitamos opciones NO seleccionadas: el usuario
+              // siempre debe poder des-marcar las que ya marcó.
+              const optionBlocked = !!isOptionDisabled?.(option.value) && !checked;
               const optionId = `${id}-${option.value}`;
               return (
                 <label
                   key={option.value}
                   htmlFor={optionId}
-                  className="hover:bg-muted/60 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5"
+                  className={cn(
+                    "flex items-center gap-2 rounded-md px-2 py-1.5",
+                    optionBlocked
+                      ? "cursor-not-allowed opacity-50"
+                      : "hover:bg-muted/60 cursor-pointer",
+                  )}
                 >
                   <Checkbox
                     id={optionId}
                     checked={checked}
-                    onCheckedChange={(next) =>
-                      toggleValue(option.value, next === true)
-                    }
+                    disabled={optionBlocked}
+                    onCheckedChange={(next) => {
+                      if (optionBlocked) return;
+                      toggleValue(option.value, next === true);
+                    }}
                   />
                   <span className="min-w-0 flex-1 text-sm leading-tight">
                     {option.label}
@@ -109,17 +129,18 @@ export function MultiCheckboxFilter({
               );
             })}
           </div>
-          {showClear ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="mt-1 h-7 w-full text-xs"
-              onClick={() => onSelectedChange([])}
-            >
-              Limpiar selección
-            </Button>
-          ) : null}
+          <PopoverClose
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="mt-1 h-7 w-full text-xs"
+              >
+                Cerrar
+              </Button>
+            }
+          />
         </PopoverContent>
       </Popover>
     </div>

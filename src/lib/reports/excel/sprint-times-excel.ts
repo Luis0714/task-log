@@ -750,7 +750,15 @@ export async function buildCombinedSprintTimesExcel(
   const { project, team, sprints, memberRoles } = input;
   const generatedAt = input.generatedAt ?? new Date();
 
-  const weekCount = sprints.reduce(
+  // El diálogo permite seleccionar en cualquier orden, pero el Excel siempre
+  // emite los sprints cronológicamente para que el lector los recorra de forma
+  // natural. Los huecos entre sprints (no consecutivos) no se rellenan: sólo
+  // aparecen los sprints efectivamente seleccionados.
+  const sortedSprints = [...sprints].sort((a, b) =>
+    (a.startDate ?? "").localeCompare(b.startDate ?? ""),
+  );
+
+  const weekCount = sortedSprints.reduce(
     (max, sprint) => Math.max(max, sprint.times.weeks.length),
     0,
   );
@@ -767,8 +775,12 @@ export async function buildCombinedSprintTimesExcel(
     project,
     team,
     generatedAt,
-    aggregates: aggregateUsersAcrossSprints(sprints, sprints.length, memberRoles),
-    sprints: sprints.map((sprint) => ({
+    aggregates: aggregateUsersAcrossSprints(
+      sortedSprints,
+      sortedSprints.length,
+      memberRoles,
+    ),
+    sprints: sortedSprints.map((sprint) => ({
       sprintName: sprint.sprintName,
       startDate: sprint.startDate,
       finishDate: sprint.finishDate,
@@ -803,14 +815,14 @@ export async function buildCombinedSprintTimesExcel(
   ws.getRow(SUB_HEADER_ROW).height = 20;
 
   // Título + subtítulo (incluye rango si hay al menos un sprint)
-  writeCombinedTitleRow(ws, 1, totalCols, generatedAt, sprints.length);
+  writeCombinedTitleRow(ws, 1, totalCols, generatedAt, sortedSprints.length);
 
   // Metadata con lista de sprints incluidos
   writeCombinedMetadataRows(ws, 3, totalCols, {
     project,
     team,
-    sprintNames: sprints.map((s) => s.sprintName),
-    count: sprints.length,
+    sprintNames: sortedSprints.map((s) => s.sprintName),
+    count: sortedSprints.length,
   });
 
   // Cabeceras
@@ -825,7 +837,7 @@ export async function buildCombinedSprintTimesExcel(
     sprintTotal: HoursBreakdown;
   }> = [];
 
-  for (const sprintEntry of sprints) {
+  for (const sprintEntry of sortedSprints) {
     const sprintName = sprintEntry.sprintName;
     const sprintWeeks = sprintEntry.times.weeks;
 
@@ -858,7 +870,7 @@ export async function buildCombinedSprintTimesExcel(
     dataRowIdx++;
   }
 
-  if (sprints.length > 0) {
+  if (sortedSprints.length > 0) {
     // Adaptamos al contrato de `sumWeekBreakdowns` ({ weeks: HoursBreakdown[] }).
     const groupRows = sprintGroupTotals.map((g) => ({ weeks: g.weekTotals }));
     const overallWeekTotals = Array.from({ length: weekCount }, (_, idx) =>
