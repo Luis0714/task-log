@@ -56,16 +56,17 @@ export function ReportsTimeLogPageShell({
       }
     : undefined;
 
-  const exportDialog = currentSprint ? (
+  const exportDialog = (
     <ReportsTimeLogExportDialog
       project={catalog.project}
       team={catalog.team}
-      sprint={currentSprint}
-      times={visibleTimes}
+      availableSprints={catalog.sprints}
+      activeSprintWeeks={times.weeks}
+      initialSprintPath={currentSprint?.path}
       hiddenAssignees={Array.from(hidden)}
       disabled={statsState.loading || !statsState.stats}
     />
-  ) : null;
+  );
 
   return (
     <AdoContextPageShell

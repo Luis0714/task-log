@@ -80,8 +80,22 @@ function PopoverDescription({
   );
 }
 
+function PopoverClose({
+  className,
+  ...props
+}: React.ComponentProps<typeof PopoverPrimitive.Close>) {
+  return (
+    <PopoverPrimitive.Close
+      data-slot="popover-close"
+      className={cn(className)}
+      {...props}
+    />
+  );
+}
+
 export {
   Popover,
+  PopoverClose,
   PopoverContent,
   PopoverDescription,
   PopoverHeader,
