@@ -34,16 +34,32 @@ export type {
 export {
   adoAuthMethodEnum,
   adoConnections,
+  assignmentWorkingDayDecisions,
+  personProjectAssignments,
   userAuthProviderEnum,
   userFilterPreferences,
   projectConfigurations,
   users,
   type AdoConnection,
+  type AssignmentWorkingDayDecision,
+  type NewAssignmentWorkingDayDecision,
   type NewAdoConnection,
   type NewUser,
   type NewUserFilterPreferences,
+  type PersonProjectAssignment,
+  type NewPersonProjectAssignment,
   type User,
   type UserFilterPreferences,
   type ProjectConfiguration,
   type NewProjectConfiguration,
 } from "@/lib/db/schema";
+
+export type {
+  AssignmentFilter,
+  CreateAssignmentInput,
+  PersonProjectAssignmentNotFoundError,
+  PersonProjectAssignmentRepository,
+  PersonProjectAssignmentRow,
+  PersonProjectAssignmentWithRole,
+  UpdateAssignmentEndInput,
+} from "@/lib/db/ports/person-project-assignment.repository.port";

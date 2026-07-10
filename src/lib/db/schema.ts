@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean as pgBoolean,
+  date as pgDate,
   index,
   integer,
   jsonb,
@@ -389,3 +390,72 @@ export const timeLogTemplates = pgTable(
 
 export type TimeLogTemplate = typeof timeLogTemplates.$inferSelect;
 export type NewTimeLogTemplate = typeof timeLogTemplates.$inferInsert;
+
+export const personProjectAssignments = pgTable(
+  "person_project_assignments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    personAdoId: text("person_ado_id").notNull(),
+    personDisplayName: text("person_display_name").notNull(),
+    projectId: text("project_id").notNull(),
+    projectName: text("project_name").notNull(),
+    teamId: text("team_id"),
+    teamName: text("team_name"),
+    roleId: uuid("role_id").references(() => roles.id),
+    assignmentPct: integer("assignment_pct").notNull(),
+    assignedMonth: text("assigned_month"),
+    validFrom: pgDate("valid_from", { mode: "date" }).notNull(),
+    validTo: pgDate("valid_to", { mode: "date" }),
+    createdByUserId: uuid("created_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("person_project_assignments_person_idx").on(
+      table.personAdoId,
+      table.validFrom,
+    ),
+    index("person_project_assignments_project_idx").on(table.projectId),
+    index("person_project_assignments_valid_to_idx").on(table.validTo),
+  ],
+);
+
+export type PersonProjectAssignment = typeof personProjectAssignments.$inferSelect;
+export type NewPersonProjectAssignment =
+  typeof personProjectAssignments.$inferInsert;
+
+export const assignmentWorkingDayDecisions = pgTable(
+  "assignment_working_day_decisions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    assignmentId: uuid("assignment_id")
+      .notNull()
+      .references(() => personProjectAssignments.id, { onDelete: "cascade" }),
+    date: pgDate("date", { mode: "date" }).notNull(),
+    decision: text("decision").notNull(),
+    observation: text("observation"),
+    createdByUserId: uuid("created_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("assignment_working_day_decisions_assignment_date_unique").on(
+      table.assignmentId,
+      table.date,
+    ),
+    index("assignment_working_day_decisions_assignment_idx").on(
+      table.assignmentId,
+    ),
+  ],
+);
+
+export type AssignmentWorkingDayDecision =
+  typeof assignmentWorkingDayDecisions.$inferSelect;
+export type NewAssignmentWorkingDayDecision =
+  typeof assignmentWorkingDayDecisions.$inferInsert;

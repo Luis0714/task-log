@@ -8,6 +8,7 @@ import {
   ListTodo,
   Settings,
   Sparkles,
+  UserCog,
   Users,
 } from "lucide-react";
 import type { IconType } from "react-icons";
@@ -77,6 +78,7 @@ const ALL_NAVIGATION: NavGroupConfig[] = [
   {
     title: "Administración",
     items: [
+      { href: "/admin/asignaciones", label: "Asignaciones", icon: UserCog, roles: ["scrum_master", "product_owner", "product_manager", "super_admin"] },
       { href: "/admin/usuarios", label: "Usuarios", icon: Users, roles: ["super_admin"] },
       { href: "/admin/plantillas", label: "Plantillas", icon: TbTemplate, roles: ["super_admin"] },
     ],

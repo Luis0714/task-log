@@ -2,6 +2,7 @@ import { cache } from "react";
 
 import { getAzdoAuthMethod, type AzdoAuthMethod, type ConnectAuthOptions } from "@/lib/auth/auth-method";
 import { getConnectAuthOptions } from "@/lib/auth/connect-auth-options";
+import { isManagementRole } from "@/lib/auth/management-roles";
 import {
   emptyServerProfileFields,
   toServerProfileFields,
@@ -43,6 +44,7 @@ export type ServerAuthBootstrap = {
   userSessionActive: boolean;
   userRole: string | null;
   isAdmin: boolean;
+  isManagement: boolean;
 };
 
 export type ServerAuthState = ServerAuthBootstrap & ServerAuthProfileFields;
@@ -123,6 +125,7 @@ export const getServerAuthBootstrap = cache(async function getServerAuthBootstra
     userRole = session.userRole ?? null;
   }
   const isAdmin = userRole === "super_admin";
+  const isManagement = isManagementRole(userRole);
 
   return {
     authMethod,
@@ -140,6 +143,7 @@ export const getServerAuthBootstrap = cache(async function getServerAuthBootstra
     userSessionActive,
     userRole,
     isAdmin,
+    isManagement,
   };
 });
 
