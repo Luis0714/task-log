@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { GitFork } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -51,10 +51,10 @@ export function BulkReassignParentTasksDialog({
     canFetchBacklog ? project : null,
   );
 
-  // Resetea la selección cada vez que se cierra el diálogo.
-  useEffect(() => {
-    if (!open) setNewParentId(null);
-  }, [open]);
+  const handleOpenChange = useCallback((next: boolean) => {
+    setOpen(next);
+    if (!next) setNewParentId(null);
+  }, []);
 
   async function handleConfirm() {
     if (!project || count === 0 || !newParentId) return;
@@ -85,7 +85,7 @@ export function BulkReassignParentTasksDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
         render={
           <Button

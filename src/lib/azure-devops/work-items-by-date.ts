@@ -51,10 +51,25 @@ export function buildWorkingDateRangeConditions(
   ];
 }
 
+/**
+ * Condición WIQL `Completed Work > 0` o `null` si el proyecto no tiene
+ * el campo configurado. Mantener la firma pura permite probarla sin
+ * tocar la red ni instanciar `processProfile`.
+ */
+export function buildCompletedWorkGtZeroCondition(
+  completedWorkField: string | null,
+): string | null {
+  if (!completedWorkField) return null;
+  return `[${completedWorkField}] > '0'`;
+}
+
 async function listWorkItemsInWorkingDateRange(
   auth: AdoCallerAuth,
   workItemType: string,
-  processProfile: Pick<AdoProcessProfile, "workingDateField" | "timezone">,
+  processProfile: Pick<
+    AdoProcessProfile,
+    "workingDateField" | "timezone" | "completedWorkField"
+  >,
   range: WorkingDateRange,
   filters: WorkingDateRangeFilters,
 ): Promise<AdoWorkItemOption[]> {
@@ -76,6 +91,11 @@ async function listWorkItemsInWorkingDateRange(
 
   const teamCondition = await buildTeamScopeWiqlCondition(auth, filters.team);
   if (teamCondition) conditions.push(teamCondition);
+
+  const completedWorkCondition = buildCompletedWorkGtZeroCondition(
+    processProfile.completedWorkField,
+  );
+  if (completedWorkCondition) conditions.push(completedWorkCondition);
 
   const assignee = filters.assignee?.trim() || WORK_ITEM_ASSIGNEE_ALL;
   const assigneeCondition = buildAssigneeWiqlCondition(assignee);
