@@ -9,20 +9,6 @@ import type {
 
 const NO_VALUE = "__none__";
 
-const MONTH_NAMES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-];
-
-function monthOptions(currentYear: number): FormSelectOption[] {
-  const out: FormSelectOption[] = [];
-  for (let m = 1; m <= 12; m++) {
-    const value = `${currentYear}-${String(m).padStart(2, "0")}`;
-    out.push({ value, label: `${MONTH_NAMES[m - 1]} ${currentYear}`, key: value });
-  }
-  return out;
-}
-
 function PlaceholderSpan({ children }: Readonly<{ children: React.ReactNode }>) {
   return <span className="text-muted-foreground">{children}</span>;
 }
@@ -32,7 +18,6 @@ export type AssignmentsContextFieldsProps = {
   selection: AssignmentsContextSelection;
   onProjectChange: (value: string) => void;
   onTeamChange: (value: string) => void;
-  onMonthChange: (value: string) => void;
 };
 
 export function AssignmentsContextFields({
@@ -40,7 +25,6 @@ export function AssignmentsContextFields({
   selection,
   onProjectChange,
   onTeamChange,
-  onMonthChange,
 }: AssignmentsContextFieldsProps) {
   const projectOptions: FormSelectOption[] = catalog.projects.map((p) => ({
     value: p.name,
@@ -53,20 +37,13 @@ export function AssignmentsContextFields({
     key: t.name,
   }));
 
-  const currentYear = new Date().getFullYear();
-  const monthList = monthOptions(currentYear);
-
   const projectLabel =
     catalog.projects.find((p) => p.name === selection.project)?.name ?? null;
   const teamLabel =
     catalog.teams.find((t) => t.name === selection.team)?.name ?? null;
-  const monthLabel: string | null =
-    monthList.find((m) => m.value === selection.month)?.label != null
-      ? String(monthList.find((m) => m.value === selection.month)?.label)
-      : null;
 
   return (
-    <div className="grid w-full min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid w-full min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
       <ControlledSelectField
         label="Proyecto"
         value={selection.project || NO_VALUE}
@@ -111,21 +88,6 @@ export function AssignmentsContextFields({
         onValueChange={(value) => {
           if (value === NO_VALUE) return;
           onTeamChange(value);
-        }}
-      />
-
-      <ControlledSelectField
-        label="Mes"
-        value={selection.month || monthList[0].value}
-        placeholder="Mes del año actual"
-        options={monthList}
-        displayValue={
-          monthLabel ?? <PlaceholderSpan>Selecciona un mes</PlaceholderSpan>
-        }
-        triggerTitle={monthLabel ?? undefined}
-        onValueChange={(value) => {
-          if (value === NO_VALUE) return;
-          onMonthChange(value);
         }}
       />
     </div>

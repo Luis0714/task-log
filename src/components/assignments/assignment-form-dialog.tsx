@@ -37,16 +37,30 @@ import type {
   AssignmentDefaultContext,
   CreateAssignmentPayload,
 } from "@/services/assignments/assignments.service";
+import type { AssignmentDto } from "@/lib/assignments/build-assignment-row";
+import {
+  checkOverAllocation,
+  type MessageSegment,
+} from "@/lib/assignments/over-allocation";
+import { monthToDateRange } from "@/lib/assignments/month-range";
+import {
+  OverAllocationMessage,
+  OverAllocationWarning,
+} from "@/components/assignments/over-allocation-message";
 import { appToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { ASSIGNMENT_USER_MESSAGES } from "@/lib/assignments/error-codes";
 import type { WorkingDayDecisionDto } from "@/services/assignments/working-day-decisions.service";
 import { WorkingDayDecisionsPanel } from "@/components/assignments/working-day-decisions-panel";
 
+export type AssignmentFormSubmitResult = { ok: boolean; error?: string };
+
 export type AssignmentFormDialogProps = {
   catalog: AdoCatalogSnapshot;
   loadMembers: (projectName: string, teamName: string) => Promise<AdoTeamMember[]>;
-  onSubmit: (payload: CreateAssignmentPayload) => Promise<boolean>;
+  onSubmit: (payload: CreateAssignmentPayload) => Promise<AssignmentFormSubmitResult>;
+  /** Asignaciones existentes (todas) para validar el 100% global por persona. */
+  existingAssignments: AssignmentDto[];
   defaultContext: AssignmentDefaultContext;
   triggerClassName?: string;
 };
@@ -101,10 +115,9 @@ function triggerLabelFor(
 
 export function AssignmentFormDialog({
   catalog,
-  roles,
   loadMembers,
   onSubmit,
-  lastKnownRoleIdByPerson: _lastKnownRoleIdByPerson,
+  existingAssignments,
   defaultContext,
   triggerClassName,
 }: AssignmentFormDialogProps) {
@@ -112,6 +125,8 @@ export function AssignmentFormDialog({
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Advertencia de sobreasignación global (colores de warning, no error).
+  const [warning, setWarning] = useState<MessageSegment[] | null>(null);
 
   const [projectId, setProjectId] = useState("");
   const [projectName, setProjectName] = useState("");
@@ -126,8 +141,27 @@ export function AssignmentFormDialog({
   const [workingDayDecisions, setWorkingDayDecisions] = useState<WorkingDayDecisionDto[]>([]);
   const [members, setMembers] = useState<LoadState<AdoTeamMember[]>>({ kind: "idle" });
 
-  void setDateMode;
-  void setAssignedMonth;
+  // Vigencia por Mes: al elegir el mes se deriva el rango [primer, último día].
+  function selectMonth(value: string) {
+    setAssignedMonth(value);
+    const range = monthToDateRange(value);
+    setValidFrom(range?.from ?? "");
+    setValidTo(range?.to ?? "");
+  }
+
+  function switchDateMode(next: "month" | "range") {
+    setDateMode(next);
+    if (next === "month") {
+      if (assignedMonth) selectMonth(assignedMonth);
+      else {
+        setValidFrom("");
+        setValidTo("");
+      }
+    } else {
+      // Rango manual: el mes deja de aplicar.
+      setAssignedMonth("");
+    }
+  }
 
   const personOptions: PersonOption[] = useMemo(
     () =>
@@ -166,7 +200,6 @@ export function AssignmentFormDialog({
 
   const selectedCount = selectedPersonIds.length;
   const isBulk = selectedCount > 1;
-  const requireRole = selectedCount <= 1;
 
   const reset = useCallback(() => {
     const matchedProject = defaultContext.project
@@ -183,10 +216,13 @@ export function AssignmentFormDialog({
 
     setSelectedPersonIds([]);
     setPct("100");
+    setDateMode("month");
+    setAssignedMonth("");
     setValidFrom("");
     setValidTo("");
     setWorkingDayDecisions([]);
     setError(null);
+    setWarning(null);
     setMembers({ kind: "idle" });
   }, [catalog.projects, catalog.teams, defaultContext, currentProjectId]);
 
@@ -270,7 +306,10 @@ export function AssignmentFormDialog({
     Number.isInteger(Number(pct)) &&
     Number(pct) >= 1 &&
     Number(pct) <= 100;
-  const hasValidDates = Boolean(validFrom) && (!validTo || validTo >= validFrom);
+  const hasValidDates =
+    dateMode === "month"
+      ? Boolean(assignedMonth) && Boolean(validFrom) && Boolean(validTo)
+      : Boolean(validFrom) && (!validTo || validTo >= validFrom);
 
   const canSubmit = Boolean(
     projectId &&
@@ -281,8 +320,46 @@ export function AssignmentFormDialog({
 
   const onSave = async () => {
     if (!canSubmit || submitting) return;
+
+    // Pre-validación global del 100% por cada persona seleccionada (feedback
+    // inmediato; el backend vuelve a validar como fuente de verdad).
+    const candidate = {
+      fromMs: Date.parse(validFrom),
+      toMs: validTo ? Date.parse(validTo) : null,
+      pct: Number(pct),
+      projectName,
+      teamName: teamName || null,
+    };
+    for (const personId of selectedPersonIds) {
+      const displayName =
+        members.kind === "ok"
+          ? members.value.find((m) => m.id === personId)?.displayName ?? ""
+          : "";
+      const others = existingAssignments
+        .filter((a) => a.personAdoId === personId)
+        .map((a) => ({
+          projectName: a.projectName,
+          teamName: a.teamName,
+          pct: a.assignmentPct,
+          fromMs: Date.parse(a.validFrom),
+          toMs: a.validTo ? Date.parse(a.validTo) : null,
+        }));
+      const check = checkOverAllocation({
+        personDisplayName: displayName,
+        others,
+        candidate,
+      });
+      if (!check.ok) {
+        setError(null);
+        setWarning(check.segments);
+        appToast.warning(<OverAllocationMessage segments={check.segments} />);
+        return;
+      }
+    }
+
     setSubmitting(true);
     setError(null);
+    setWarning(null);
 
     const ids = selectedPersonIds;
     const firstId = ids[0];
@@ -291,7 +368,7 @@ export function AssignmentFormDialog({
         ? members.value.find((m) => m.id === firstId)?.displayName ?? ""
         : "";
 
-    const ok = await onSubmit({
+    const result = await onSubmit({
       personAdoId: firstId,
       personDisplayName: firstDisplayName,
       personAdoIds: ids,
@@ -300,13 +377,13 @@ export function AssignmentFormDialog({
       teamId: teamId || null,
       teamName: teamName || null,
       assignmentPct: Number(pct),
-      assignedMonth: assignedMonth || null,
+      assignedMonth: dateMode === "month" ? assignedMonth || null : null,
       validFrom,
       validTo: validTo ? validTo : null,
       workingDayDecisions,
     });
     setSubmitting(false);
-    if (ok) {
+    if (result.ok) {
       const msg =
         ids.length > 1
           ? `Asignación creada para ${ids.length} personas.`
@@ -314,7 +391,10 @@ export function AssignmentFormDialog({
       appToast.success(msg);
       setOpen(false);
     } else {
-      setError(ASSIGNMENT_USER_MESSAGES.conflictProject);
+      const msg = result.error ?? ASSIGNMENT_USER_MESSAGES.conflictProject;
+      setWarning(null);
+      setError(msg);
+      appToast.error(msg);
     }
   };
 
@@ -404,87 +484,126 @@ export function AssignmentFormDialog({
             </FieldShell>
           </div>
 
-          <FieldShell
-            label="Personas"
-            htmlFor={`${formId}-persons`}
-          >
-            <PersonMultiSelect
-              id={`${formId}-persons`}
-              options={personOptions}
-              selectedIds={selectedPersonIds}
-              onToggle={togglePerson}
-              onClear={clearPersons}
-              onSelectAll={toggleAllPersons}
-              allSelected={allPersonsSelected}
-              disabled={submitting || !teamName || members.kind === "loading"}
-              loading={members.kind === "loading"}
-              blockedTeamsForOtherProject={teamsUnavailableForOtherProject}
-              emptyMessage="No hay miembros en este equipo."
-              triggerText={triggerText}
-            />
-            {members.kind === "error" ? (
-              <p className="text-destructive text-xs">{members.message}</p>
-            ) : null}
-          </FieldShell>
+          <div className="flex items-start gap-4">
+            <div className="min-w-0 flex-1">
+              <FieldShell label="Personas" htmlFor={`${formId}-persons`}>
+                <PersonMultiSelect
+                  id={`${formId}-persons`}
+                  options={personOptions}
+                  selectedIds={selectedPersonIds}
+                  onToggle={togglePerson}
+                  onClear={clearPersons}
+                  onSelectAll={toggleAllPersons}
+                  allSelected={allPersonsSelected}
+                  disabled={submitting || !teamName || members.kind === "loading"}
+                  loading={members.kind === "loading"}
+                  blockedTeamsForOtherProject={teamsUnavailableForOtherProject}
+                  emptyMessage="No hay miembros en este equipo."
+                  triggerText={triggerText}
+                />
+                {members.kind === "error" ? (
+                  <p className="text-destructive text-xs">{members.message}</p>
+                ) : null}
+              </FieldShell>
+            </div>
 
-          <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2">
-            <FieldShell label="Mes" htmlFor={`${formId}-assigned-month`}>
-              <Input
-                id={`${formId}-assigned-month`}
-                type="month"
-                value={assignedMonth}
-                onChange={(e) => setAssignedMonth(e.target.value)}
-                disabled={submitting || dateMode === "range"}
-                className="font-mono"
-              />
-            </FieldShell>
-
-            <FieldShell
-              label="% Asignación"
-              htmlFor={`${formId}-pct`}
-              error={
-                pct.trim() !== "" &&
-                (!Number.isInteger(Number(pct)) || Number(pct) < 1 || Number(pct) > 100)
-                  ? "Entero entre 1 y 100"
-                  : null
-              }
-            >
-              <Input
-                id={`${formId}-pct`}
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={100}
-                step={1}
-                value={pct}
-                onChange={(e) => setPct(e.target.value)}
-                disabled={submitting}
-              />
-            </FieldShell>
+            <div className="w-24 shrink-0">
+              <FieldShell
+                label="%"
+                htmlFor={`${formId}-pct`}
+                error={
+                  pct.trim() !== "" &&
+                  (!Number.isInteger(Number(pct)) || Number(pct) < 1 || Number(pct) > 100)
+                    ? "1–100"
+                    : null
+                }
+              >
+                <Input
+                  id={`${formId}-pct`}
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={100}
+                  step={1}
+                  value={pct}
+                  onChange={(e) => setPct(e.target.value)}
+                  disabled={submitting}
+                  className="text-right"
+                />
+              </FieldShell>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2">
-            <FieldShell label="Fecha inicio" htmlFor={`${formId}-valid-from`}>
-              <DatePicker
-                id={`${formId}-valid-from`}
-                value={validFrom}
-                onChange={setValidFrom}
-                disabled={submitting}
-              />
-            </FieldShell>
+          <div className="flex flex-col gap-3 rounded-lg border p-3">
+            <div className="flex items-center justify-between gap-2">
+              <Label>Vigencia</Label>
+              <div
+                className="bg-muted inline-flex rounded-md p-0.5"
+                role="group"
+                aria-label="Tipo de vigencia"
+              >
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={dateMode === "month" ? "secondary" : "ghost"}
+                  aria-pressed={dateMode === "month"}
+                  onClick={() => switchDateMode("month")}
+                  disabled={submitting}
+                  className="h-7"
+                >
+                  Mes
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={dateMode === "range" ? "secondary" : "ghost"}
+                  aria-pressed={dateMode === "range"}
+                  onClick={() => switchDateMode("range")}
+                  disabled={submitting}
+                  className="h-7"
+                >
+                  Rango
+                </Button>
+              </div>
+            </div>
 
-            <FieldShell
-              label="Fecha fin"
-              htmlFor={`${formId}-valid-to`}
-            >
-              <DatePicker
-                id={`${formId}-valid-to`}
-                value={validTo}
-                onChange={setValidTo}
-                min={validFrom}
-                disabled={submitting}
-              />
-            </FieldShell>
+            {dateMode === "month" ? (
+              <FieldShell
+                label="Mes"
+                htmlFor={`${formId}-assigned-month`}
+                description="La vigencia será del primer al último día del mes."
+              >
+                <Input
+                  id={`${formId}-assigned-month`}
+                  type="month"
+                  value={assignedMonth}
+                  onChange={(e) => selectMonth(e.target.value)}
+                  disabled={submitting}
+                  className="font-mono"
+                />
+              </FieldShell>
+            ) : (
+              <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2">
+                <FieldShell label="Fecha inicio" htmlFor={`${formId}-valid-from`}>
+                  <DatePicker
+                    id={`${formId}-valid-from`}
+                    value={validFrom}
+                    onChange={setValidFrom}
+                    disabled={submitting}
+                  />
+                </FieldShell>
+
+                <FieldShell label="Fecha fin" htmlFor={`${formId}-valid-to`}>
+                  <DatePicker
+                    id={`${formId}-valid-to`}
+                    value={validTo}
+                    onChange={setValidTo}
+                    min={validFrom}
+                    disabled={submitting}
+                  />
+                </FieldShell>
+              </div>
+            )}
           </div>
 
           {validTo ? (
@@ -498,6 +617,7 @@ export function AssignmentFormDialog({
             </FieldShell>
           ) : null}
 
+          {warning ? <OverAllocationWarning segments={warning} /> : null}
           {error ? <p className="text-destructive text-sm">{error}</p> : null}
         </div>
 

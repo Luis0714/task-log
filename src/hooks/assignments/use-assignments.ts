@@ -7,6 +7,8 @@ import {
   changeAssignment,
   closeAssignment,
   createAssignment,
+  deleteAssignment,
+  updateAssignmentPct,
   type ChangeAssignmentPayload,
   type CloseAssignmentPayload,
   type CreateAssignmentPayload,
@@ -14,14 +16,28 @@ import {
 
 export type AssignmentRow = AssignmentDto & { pending?: boolean };
 
+export type CreateRowResult =
+  | { ok: true; assignments: AssignmentDto[] }
+  | { ok: false; message: string };
+
+export type UpdatePctResult =
+  | { ok: true; assignment: AssignmentDto }
+  | { ok: false; message: string };
+
 export type UseAssignmentsResult = {
   rows: AssignmentRow[];
-  createRow: (
-    input: CreateAssignmentPayload,
-  ) => Promise<AssignmentDto[] | null>;
+  createRow: (input: CreateAssignmentPayload) => Promise<CreateRowResult>;
   changeRow: (id: string, input: ChangeAssignmentPayload) => Promise<AssignmentDto | null>;
   closeRow: (id: string, input: CloseAssignmentPayload) => Promise<AssignmentDto | null>;
+  updatePctRow: (id: string, assignmentPct: number) => Promise<UpdatePctResult>;
+  deleteRow: (id: string) => Promise<boolean>;
 };
+
+const FALLBACK_ERROR = "No se pudo completar la operación. Inténtalo de nuevo.";
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error && err.message.trim() ? err.message : FALLBACK_ERROR;
+}
 
 export type AssignmentMutationError = Error & {
   code?: string;
@@ -75,13 +91,13 @@ export function useAssignments(initial: AssignmentDto[]): UseAssignmentsResult {
   }, []);
 
   const createRow = useCallback(
-    async (input: CreateAssignmentPayload) => {
+    async (input: CreateAssignmentPayload): Promise<CreateRowResult> => {
       try {
         const result = await createAssignment(input);
         upsertRows(result.assignments);
-        return result.assignments;
-      } catch {
-        return null;
+        return { ok: true, assignments: result.assignments };
+      } catch (err) {
+        return { ok: false, message: errorMessage(err) };
       }
     },
     [upsertRows],
@@ -125,5 +141,41 @@ export function useAssignments(initial: AssignmentDto[]): UseAssignmentsResult {
     [markPending, replaceRow, rows],
   );
 
-  return { rows, createRow, changeRow, closeRow };
+  const updatePctRow = useCallback(
+    async (id: string, assignmentPct: number): Promise<UpdatePctResult> => {
+      const snapshot = rows.find((r) => r.id === id);
+      if (!snapshot) {
+        return { ok: false, message: "La asignación ya no existe." };
+      }
+      markPending(id, true);
+      try {
+        const updated = await updateAssignmentPct(id, assignmentPct);
+        replaceRow(updated);
+        return { ok: true, assignment: updated };
+      } catch (err) {
+        markPending(snapshot.id, false);
+        return { ok: false, message: errorMessage(err) };
+      } finally {
+        markPending(id, false);
+      }
+    },
+    [markPending, replaceRow, rows],
+  );
+
+  const deleteRow = useCallback(
+    async (id: string) => {
+      markPending(id, true);
+      try {
+        await deleteAssignment(id);
+        setRows((prev) => prev.filter((r) => r.id !== id));
+        return true;
+      } catch (_err) {
+        markPending(id, false);
+        return false;
+      }
+    },
+    [markPending],
+  );
+
+  return { rows, createRow, changeRow, closeRow, updatePctRow, deleteRow };
 }

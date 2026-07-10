@@ -16,6 +16,7 @@ import type {
   PersonProjectAssignmentRow,
   PersonProjectAssignmentWithRole,
   UpdateAssignmentEndInput,
+  UpdateAssignmentPctInput,
 } from "@/lib/db/ports/person-project-assignment.repository.port";
 
 function statusPredicate(filter: AssignmentFilter) {
@@ -189,6 +190,26 @@ export const drizzlePersonProjectAssignmentRepository: PersonProjectAssignmentRe
         throw err;
       }
       return row;
+    },
+
+    async updatePct(input: UpdateAssignmentPctInput): Promise<PersonProjectAssignmentRow> {
+      const [row] = await getDb()
+        .update(personProjectAssignments)
+        .set({ assignmentPct: input.assignmentPct })
+        .where(eq(personProjectAssignments.id, input.id))
+        .returning();
+      if (!row) {
+        const err = new Error("Asignación no encontrada.");
+        err.name = "PersonProjectAssignmentNotFoundError";
+        throw err;
+      }
+      return row;
+    },
+
+    async deleteById(id: string): Promise<void> {
+      await getDb()
+        .delete(personProjectAssignments)
+        .where(eq(personProjectAssignments.id, id));
     },
 
     async listOpenByPersonAndProject(input): Promise<PersonProjectAssignmentRow[]> {

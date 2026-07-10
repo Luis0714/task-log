@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { toast, type ExternalToast } from "sonner";
 
 export type ToastOptions = ExternalToast;
@@ -34,7 +35,7 @@ export const appToast = {
     return toast.info(message, withDefaults(options));
   },
 
-  warning(message: string, options?: ToastOptions) {
+  warning(message: ReactNode, options?: ToastOptions) {
     return toast.warning(message, withDefaults(options));
   },
 

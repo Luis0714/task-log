@@ -84,6 +84,14 @@ export const closeAssignmentBodySchema = z.object({
 
 export type CloseAssignmentBody = z.infer<typeof closeAssignmentBodySchema>;
 
+export const updateAssignmentPctBodySchema = z.object({
+  assignmentPct: baseBody.shape.assignmentPct,
+});
+
+export type UpdateAssignmentPctBody = z.infer<
+  typeof updateAssignmentPctBodySchema
+>;
+
 export const assignmentFilterSchema = z.object({
   personAdoId: z.string().trim().optional(),
   projectId: z.string().trim().optional(),

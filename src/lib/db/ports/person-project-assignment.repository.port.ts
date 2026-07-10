@@ -28,6 +28,11 @@ export type UpdateAssignmentEndInput = {
   validTo: Date;
 };
 
+export type UpdateAssignmentPctInput = {
+  id: string;
+  assignmentPct: number;
+};
+
 export type AssignmentFilter = {
   personAdoId?: string;
   projectId?: string;
@@ -63,6 +68,12 @@ export interface PersonProjectAssignmentRepository {
   updateEnd(
     input: UpdateAssignmentEndInput,
   ): Promise<PersonProjectAssignmentRow>;
+
+  updatePct(
+    input: UpdateAssignmentPctInput,
+  ): Promise<PersonProjectAssignmentRow>;
+
+  deleteById(id: string): Promise<void>;
 
   listOpenByPersonAndProject(input: {
     personAdoId: string;

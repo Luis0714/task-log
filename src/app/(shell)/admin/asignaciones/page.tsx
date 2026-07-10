@@ -4,9 +4,7 @@ import { AssignmentsShell } from "@/components/assignments/assignments-shell";
 import { PageHeader } from "@/components/layout/page-header";
 import { assignmentRowToDto } from "@/lib/assignments/build-assignment-row";
 import { getServerAuthBootstrap } from "@/lib/auth/server-state";
-import { getDb } from "@/lib/db/client";
 import { getRepositories } from "@/lib/db";
-import { roles as rolesTable } from "@/lib/db/schema";
 import { loadAssignmentsCatalog } from "@/lib/ado/load-assignments-catalog";
 import type { AdoContextSearchParams } from "@/lib/ado/types";
 
@@ -23,9 +21,8 @@ export default async function AdminAsignacionesPage({
   const sp = (await (searchParams ?? Promise.resolve({}))) as AdoContextSearchParams;
 
   const repo = getRepositories().personProjectAssignment;
-  const [rawAssignments, rolesRows, catalog] = await Promise.all([
+  const [rawAssignments, catalog] = await Promise.all([
     repo.listWithRoles({ status: "todas" }),
-    getDb().select().from(rolesTable),
     loadAssignmentsCatalog(sp),
   ]);
 
@@ -37,11 +34,6 @@ export default async function AdminAsignacionesPage({
       />
       <AssignmentsShell
         initialAssignments={rawAssignments.map(assignmentRowToDto)}
-        roles={rolesRows.map((r) => ({
-          id: r.id,
-          name: r.name,
-          displayName: r.displayName,
-        }))}
         catalog={catalog}
       />
     </div>

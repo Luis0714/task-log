@@ -179,6 +179,35 @@ export async function closeAssignment(
   return body.assignment;
 }
 
+export async function updateAssignmentPct(
+  id: string,
+  assignmentPct: number,
+): Promise<AssignmentDto> {
+  const res = await fetch(`/api/assignments/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ assignmentPct }),
+  });
+  if (!res.ok) {
+    const err = await parseError(res);
+    throw Object.assign(new Error(err.error), {
+      code: err.code,
+      currentTotal: err.currentTotal,
+      conflictingPct: err.conflictingPct,
+    });
+  }
+  const body = (await res.json()) as { assignment: AssignmentDto };
+  return body.assignment;
+}
+
+export async function deleteAssignment(id: string): Promise<void> {
+  const res = await fetch(`/api/assignments/${id}`, { method: "DELETE" });
+  if (!res.ok) {
+    const err = await parseError(res);
+    throw Object.assign(new Error(err.error), { code: err.code });
+  }
+}
+
 export async function listAssignmentRoles(): Promise<AssignmentRoleOption[]> {
   const res = await fetch("/api/assignments/options", { cache: "no-store" });
   if (!res.ok) {

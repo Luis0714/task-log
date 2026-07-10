@@ -10,6 +10,12 @@ import {
 } from "@/lib/assignments/error-codes";
 import { assignmentRowToDto } from "@/lib/assignments/build-assignment-row";
 import { validateNewAssignment } from "@/lib/assignments/validate-new-assignment";
+import {
+  checkOverAllocation,
+  type AllocationItem,
+} from "@/lib/assignments/over-allocation";
+import { endOfDay, startOfDay } from "@/lib/assignments/is-assignment-open";
+import type { PersonProjectAssignmentRow } from "@/lib/db";
 import { getRepositories } from "@/lib/db";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import {
@@ -88,6 +94,17 @@ export async function GET(req: Request) {
 }
 
 type PersonToAssign = { adoId: string; displayName: string };
+
+/** Convierte filas de asignación en ítems para el cálculo de sobreasignación. */
+function toAllocationItems(rows: PersonProjectAssignmentRow[]): AllocationItem[] {
+  return rows.map((r) => ({
+    projectName: r.projectName,
+    teamName: r.teamName,
+    pct: r.assignmentPct,
+    fromMs: startOfDay(r.validFrom).getTime(),
+    toMs: r.validTo ? endOfDay(r.validTo).getTime() : null,
+  }));
+}
 
 function resolveAssignees(
   data: {
@@ -181,6 +198,30 @@ export async function POST(req: Request) {
       overlapping,
     });
     if (!result.ok) {
+      if (result.code === "over100") {
+        const check = checkOverAllocation({
+          personDisplayName: person.displayName,
+          others: toAllocationItems(overlapping),
+          candidate: {
+            fromMs: startOfDay(new Date(parsed.data.validFrom)).getTime(),
+            toMs: parsed.data.validTo
+              ? endOfDay(new Date(parsed.data.validTo)).getTime()
+              : null,
+            pct: parsed.data.assignmentPct,
+            projectName: parsed.data.projectName,
+            teamName: parsed.data.teamName ?? null,
+          },
+        });
+        return NextResponse.json(
+          {
+            error: check.ok ? ASSIGNMENT_USER_MESSAGES.over100 : check.message,
+            code: ASSIGNMENT_ERROR_CODES.over100,
+            currentTotal: check.ok ? result.currentTotal : check.total,
+            conflictingPct: result.conflictingPct,
+          },
+          { status: ASSIGNMENT_HTTP_STATUS.over100 },
+        );
+      }
       return failWithContext(
         result.code,
         ASSIGNMENT_ERROR_CODES[result.code],
