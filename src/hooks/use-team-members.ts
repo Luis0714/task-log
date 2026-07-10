@@ -4,13 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
 
-export type UseTeamMembersSource = "workItems" | "tasks" | "bugs";
-
 export type UseTeamMembersParams = {
   project: string | null | undefined;
   team: string | null | undefined;
-  sprintPath?: string | null | undefined;
-  source?: UseTeamMembersSource;
   /**
    * Permite desactivar la consulta (p. ej. hasta que el usuario esté
    * autenticado contra Azure DevOps). Default: `true`.
@@ -38,13 +34,13 @@ function buildUrl(params: UseTeamMembersParams): string {
   const qs = new URLSearchParams();
   if (params.project) qs.set("project", params.project);
   if (params.team) qs.set("team", params.team);
-  if (params.sprintPath) qs.set("sprintPath", params.sprintPath);
-  if (params.source) qs.set("source", params.source);
-  return `/api/ado/team-members${qs.toString() ? `?${qs}` : ""}`;
+  const query = qs.toString();
+  const suffix = query ? `?${query}` : "";
+  return `/api/ado/team-members${suffix}`;
 }
 
 function cacheKey(params: UseTeamMembersParams): string {
-  return `${params.project ?? ""}|${params.team ?? ""}|${params.sprintPath ?? ""}|${params.source ?? ""}`;
+  return `${params.project ?? ""}|${params.team ?? ""}`;
 }
 
 function createEntry(
@@ -86,12 +82,12 @@ function fetchEntry(
 }
 
 /**
- * Hook unificado para obtener los miembros del equipo visibles en la app:
- * roster oficial + asignados del sprint. Cachea en memoria por params
- * durante la sesión para no refetchar al navegar entre pantallas.
+ * Hook unificado para obtener el roster del equipo visible en la app.
+ * Cachea en memoria por `(project, team)` durante la sesión para no
+ * refetchar al navegar entre pantallas.
  */
 export function useTeamMembers(params: UseTeamMembersParams): UseTeamMembersResult {
-  const { project, team, sprintPath, source, enabled = true } = params;
+  const { project, team, enabled = true } = params;
   const enabledEffective = enabled && Boolean(project) && Boolean(team);
 
   const [members, setMembers] = useState<AdoTeamMemberDto[]>([]);
@@ -101,8 +97,8 @@ export function useTeamMembers(params: UseTeamMembersParams): UseTeamMembersResu
   const abortRef = useRef<AbortController | null>(null);
 
   const key = useMemo(
-    () => cacheKey({ project, team, sprintPath, source }),
-    [project, team, sprintPath, source],
+    () => cacheKey({ project, team }),
+    [project, team],
   );
 
   const cached = cache.get(key);
@@ -151,42 +147,56 @@ export function useTeamMembers(params: UseTeamMembersParams): UseTeamMembersResu
     return () => {
       controller.abort();
     };
-  }, [shouldFetch, key, nonce, project, team, sprintPath, source, params, cached]);
+  }, [shouldFetch, key, nonce, project, team, params, cached]);
 
   // Sincronizamos el estado con la caché durante el render (patrón
   // "storing info from previous renders" — ver docs de React). Evita
   // setState dentro del useEffect para mantener limpio el lint.
   if (!enabledEffective) {
-    if (members.length > 0 || error !== null || loading) {
-      setMembers([]);
-      setError(null);
-      setLoading(false);
-    }
+    resetToEmpty();
   } else if (shouldFetch) {
-    if (!loading) setLoading(true);
-    if (error !== null) setError(null);
+    setLoadingState();
   } else if (cached) {
-    if (cached.status === "error") {
-      if (error !== cached.error || members.length > 0 || loading) {
-        setMembers([]);
-        setError(cached.error);
-        setLoading(false);
-      }
-    } else if (
-      members !== cached.members ||
-      (error !== null && cached.members.length > 0) ||
-      loading
-    ) {
-      setMembers(cached.members);
-      setError(null);
-      setLoading(false);
-    }
+    syncWithCache(cached);
   }
 
   const refresh = useCallback(() => {
     cache.delete(key);
     setNonce((n) => n + 1);
   }, [key]);
+
+  function resetToEmpty() {
+    if (members.length > 0 || error !== null || loading) {
+      setMembers([]);
+      setError(null);
+      setLoading(false);
+    }
+  }
+
+  function setLoadingState() {
+    if (!loading) setLoading(true);
+    if (error !== null) setError(null);
+  }
+
+  function syncWithCache(entry: CacheEntry) {
+    if (entry.status === "error") {
+      if (error !== entry.error || members.length > 0 || loading) {
+        setMembers([]);
+        setError(entry.error);
+        setLoading(false);
+      }
+      return;
+    }
+    if (
+      members !== entry.members ||
+      (error !== null && entry.members.length > 0) ||
+      loading
+    ) {
+      setMembers(entry.members);
+      setError(null);
+      setLoading(false);
+    }
+  }
 
   return { members, loading, error, refresh };
 }

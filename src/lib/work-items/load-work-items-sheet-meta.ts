@@ -39,8 +39,6 @@ export const loadWorkItemsSheetMeta = cache(async function loadWorkItemsSheetMet
       loadTeamMembers({
         project: catalog.project,
         team: catalog.team,
-        sprintPath: catalog.sprintPath,
-        source: "workItems",
       }),
       listBacklogItemStates(auth, profile.backlogItemType),
       listBugStates(auth, profile.bugWorkItemType),

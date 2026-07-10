@@ -10,7 +10,6 @@ import {
   splitSprintIntoWeeks,
 } from "@/lib/dashboard/sprint-weeks";
 import { findTeamMemberByAssigneeName } from "@/lib/filters/person-name";
-import { mergeTeamMembersWithWorkItemAssignees } from "@/lib/filters/merge-team-members-with-assignees";
 import type { AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import {
   resolveSprintBugAssigneeLabel,
@@ -133,16 +132,36 @@ function collectAssigneeLabelsFromWorkItems(
   return [...labels];
 }
 
+/**
+ * Fallback defensivo: si un work item tiene horas de alguien que ya no
+ * está en el roster (p. ej. persona dada de baja pero con tareas
+ * registradas), lo agregamos al roster local para que sus horas no se
+ * pierdan del reporte. Sin llamada extra a ADO.
+ */
+function ensureRosterCoversItems(
+  roster: readonly AdoTeamMemberDto[],
+  items: readonly AdoWorkItemOptionDto[],
+): AdoTeamMemberDto[] {
+  const seen = new Set(roster.map((member) => member.displayName));
+  const extras: AdoTeamMemberDto[] = [];
+
+  for (const item of items) {
+    const name = item.assignedTo?.trim();
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    extras.push({ id: `sprint-assignee:${name}`, displayName: name });
+  }
+
+  return [...roster, ...extras];
+}
+
 function collectTimesAssigneeLabels(
   tasks: readonly AdoWorkItemOptionDto[],
   bugs: readonly AdoWorkItemOptionDto[],
   assigneeRoster: readonly AdoTeamMemberDto[],
 ): string[] {
   const scopedItems = [...tasks, ...bugs];
-  const roster = mergeTeamMembersWithWorkItemAssignees(
-    assigneeRoster,
-    scopedItems.map((item) => ({ assignedTo: item.assignedTo })),
-  );
+  const roster = ensureRosterCoversItems(assigneeRoster, scopedItems);
 
   const assignees = roster.map((member) => member.displayName);
 
@@ -190,10 +209,7 @@ export function buildSprintTimesMetrics(
 
   const assigneeRoster = input.assigneeRoster ?? [];
   const scopedItems = [...input.tasks, ...input.bugs];
-  const roster = mergeTeamMembersWithWorkItemAssignees(
-    assigneeRoster,
-    scopedItems.map((item) => ({ assignedTo: item.assignedTo })),
-  );
+  const roster = ensureRosterCoversItems(assigneeRoster, scopedItems);
   const assignees = resolveAssigneeLabels(input.tasks, input.bugs, assigneeRoster);
   const rows = sortPersonRows(
     assignees.map((assignee) =>

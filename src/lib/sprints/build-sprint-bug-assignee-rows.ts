@@ -1,4 +1,3 @@
-import { mergeTeamMembersWithWorkItemAssignees } from "@/lib/filters/merge-team-members-with-assignees";
 import { findTeamMemberByAssigneeName } from "@/lib/filters/person-name";
 import type { AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { SprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
@@ -83,13 +82,9 @@ function buildSprintBugAssigneeRowsFromSources(
   sources: readonly SprintBugAssigneeSource[],
   assigneeRoster: readonly AdoTeamMemberDto[],
 ): SprintBugAssigneeRow[] {
-  const roster = mergeTeamMembersWithWorkItemAssignees(
-    assigneeRoster,
-    sources.map((source) => ({ assignedTo: source.assignedTo ?? undefined })),
-  );
-  const counts = countBugSourcesByAssignee(sources, roster);
+  const counts = countBugSourcesByAssignee(sources, assigneeRoster);
 
-  const rows = roster.map(
+  const rows = assigneeRoster.map(
     (member) => counts.get(member.displayName) ?? emptyAssigneeRow(member.displayName),
   );
 

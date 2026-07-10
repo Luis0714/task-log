@@ -88,8 +88,6 @@ export async function finalizeSprintSnapshot(
       loadTeamMembers({
         project: input.scope.project,
         team: input.scope.team,
-        sprintPath: input.scope.sprintPath,
-        source: "workItems",
       }),
       getRepositories().sprintStoryGoal.listByScope(input.scope),
       getRepositories().sprintGoal.getByScope(input.scope),

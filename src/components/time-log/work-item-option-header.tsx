@@ -12,7 +12,9 @@ export function WorkItemOptionHeader({ item }: WorkItemOptionHeaderProps) {
     <div className="flex min-w-0 items-start justify-between gap-2">
       <WorkItemId id={item.id} />
       <div className="flex min-w-0 shrink items-center justify-end gap-1.5">
-        {item.assignedTo ? <WorkItemAssigneeTag name={item.assignedTo} /> : null}
+        {item.assignedTo ? (
+          <WorkItemAssigneeTag name={item.assignedTo} hideAvatar />
+        ) : null}
         {item.state ? (
           <WorkItemStateBadge state={item.state} className="max-w-26" />
         ) : null}

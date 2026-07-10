@@ -43,7 +43,6 @@ export const loadSprintItemsData = cache(async function loadSprintItemsData(
       input.kind,
       input.project,
       input.team,
-      input.sprintPath,
     ),
     loadNonWorkingDates(input.project, input.team),
   ]);

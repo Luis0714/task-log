@@ -6,13 +6,11 @@ import { Button } from "@/components/ui/button";
 import { BulkDeleteTasksDialog } from "@/components/tasks/bulk-delete-tasks-dialog";
 import { BulkChangeStatusTasksDialog } from "@/components/tasks/bulk-change-status-tasks-dialog";
 import { BulkReassignParentTasksDialog } from "@/components/tasks/bulk-reassign-parent-tasks-dialog";
-import type { ParentHuOption } from "@/components/tasks/task-detail-sheet";
 
 export type BulkTasksActionsBarProps = {
   project: string | null;
   selectedIds: number[];
   stateNames: readonly string[];
-  parentHuOptions: readonly ParentHuOption[];
   workingDate?: string;
   onClear: () => void;
   onCompleted: () => void;
@@ -22,7 +20,6 @@ export function BulkTasksActionsBar({
   project,
   selectedIds,
   stateNames,
-  parentHuOptions,
   workingDate,
   onClear,
   onCompleted,
@@ -45,7 +42,6 @@ export function BulkTasksActionsBar({
         <BulkReassignParentTasksDialog
           project={project ?? ""}
           ids={selectedIds}
-          parentHuOptions={parentHuOptions}
           onCompleted={onCompleted}
         />
         <BulkChangeStatusTasksDialog

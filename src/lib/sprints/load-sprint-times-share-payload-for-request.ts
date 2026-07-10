@@ -75,8 +75,6 @@ async function loadLiveSprintTimesMetrics(
       loadTeamMembers({
         project: scope.project,
         team: scope.team,
-        sprintPath: scope.sprintPath,
-        source: "workItems",
       }),
     ]);
 

@@ -45,7 +45,7 @@ export const loadWorkItemsLists = cache(async function loadWorkItemsLists(
       listBugItemsInSprint(auth, sprintPath, { assignee: WORK_ITEM_ASSIGNEE_ALL }),
       listBacklogItemStates(auth, processProfile.backlogItemType),
       listBugStates(auth, processProfile.bugWorkItemType),
-      loadTeamMembers({ project, team, sprintPath, source: "workItems" }),
+      loadTeamMembers({ project, team }),
     ]);
 
     const userStoryMapping = buildSprintStatusMapping(backlogStates);

@@ -25,8 +25,6 @@ async function enrichSnapshotAssigneeRows(
   const assigneeRoster = await loadTeamMembers({
     project: scope.project,
     team: scope.team,
-    sprintPath: scope.sprintPath,
-    source: "workItems",
   });
 
   return {
