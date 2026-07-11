@@ -2,19 +2,20 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 
-import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
+import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import { searchUserStories } from "@/lib/azure-devops/search-user-stories";
+import { requireManagementUser } from "@/app/api/assignments/helpers";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { searchNewsStoriesQuerySchema } from "@/lib/schemas/news-stories";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const caller = await requireAdoCaller();
-  if (!caller.ok) {
+  const auth = await requireManagementUser();
+  if (!auth.ok) {
     return NextResponse.json(
-      { error: caller.message, stories: [] },
-      { status: 401 },
+      { error: auth.error, stories: [] },
+      { status: auth.status },
     );
   }
 
@@ -32,8 +33,19 @@ export async function GET(req: Request) {
     );
   }
 
+  const adoCaller = await resolveAdoCaller();
+  if (!adoCaller) {
+    return NextResponse.json(
+      {
+        error: "No hay conexión activa con Azure DevOps para esta cuenta.",
+        stories: [],
+      },
+      { status: 502 },
+    );
+  }
+
   try {
-    const stories = await searchUserStories(caller.auth, {
+    const stories = await searchUserStories(adoCaller, {
       team: parsed.data.team ?? null,
       query: parsed.data.q,
       limit: parsed.data.limit,
