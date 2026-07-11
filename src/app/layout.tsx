@@ -6,6 +6,7 @@ import { buildSoftwareApplicationJsonLd } from "@/lib/seo/json-ld";
 import { buildRootMetadata } from "@/lib/seo/metadata";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
+import "sileo/styles.css";
 
 const satoshi = localFont({
   variable: "--font-satoshi",
@@ -69,7 +70,7 @@ export default function RootLayout({
         />
         <ThemeProvider>
           {children}
-          <Toaster richColors closeButton position="top-right" />
+          <Toaster position="top-right" />
         </ThemeProvider>
         <Analytics />
       </body>

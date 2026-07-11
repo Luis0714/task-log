@@ -27,7 +27,7 @@ import type {
   EditAssignmentPayload,
 } from "@/services/assignments/assignments.service";
 import type { MultiCheckboxFilterOption } from "@/components/filters/multi-checkbox-filter";
-import type { InferredDefaultRow } from "@/components/assignments/assignments-table";
+import type { InferredDefaultRow } from "@/components/assignments/table/types";
 import { toLocalDateKey } from "@/lib/dashboard/sprint-days";
 
 export type DefaultCreateDialogProps = Readonly<{

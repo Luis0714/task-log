@@ -229,7 +229,6 @@ export function AssignmentsShell({
           return handleCellChange(rowRef.id, patch);
         }}
         onDefaultCreate={handleDefaultCreate}
-        onCloseVigencia={(row, validTo) => handleCloseVigencia(row, validTo)}
         onDelete={handleDelete}
       />
     </div>
@@ -325,32 +324,6 @@ async function resolveDefaultRows(
     teamId: d.teamId,
     teamName: d.teamName,
   }));
-}
-
-async function handleCloseVigencia(
-  row: AssignmentRow,
-  validTo: string,
-): Promise<{ ok: boolean; message?: string }> {
-  try {
-    const res = await fetch(`/api/assignments/${row.id}/close`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ validTo }),
-    });
-    if (!res.ok) {
-      const err = (await res.json().catch(() => ({}))) as { error?: string };
-      const message = err.error ?? "No se pudo cerrar la vigencia.";
-      appToast.error(message);
-      return { ok: false, message };
-    }
-    appToast.success("Vigencia cerrada.");
-    return { ok: true };
-  } catch (e) {
-    const message =
-      e instanceof Error ? e.message : "No se pudo cerrar la vigencia.";
-    appToast.error(message);
-    return { ok: false, message };
-  }
 }
 
 function todayKey(): string {

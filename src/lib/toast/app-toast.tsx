@@ -155,34 +155,37 @@ export const appToast = {
     options?: AppToastOptions,
   ) {
     const position = options?.position;
+    // Extraemos a consts para que TS mantenga el estrechamiento de tipo
+    // (`typeof … === "function"`) dentro de los closures de éxito/error.
+    const { loading, success, error } = messages;
     return sileo.promise(promise, {
       loading: {
-        ...toSileoPromise(messages.loading),
+        ...toSileoPromise(loading),
         icon: <Loader2Icon className={`${ICON_CLASS} animate-spin`} />,
       },
       success:
-        typeof messages.success === "function"
+        typeof success === "function"
           ? (data: T) => ({
-              ...toSileoPromise(messages.success(data)),
+              ...toSileoPromise(success(data)),
               icon: <CircleCheckIcon className={ICON_CLASS} />,
             })
           : {
-              ...toSileoPromise(messages.success),
+              ...toSileoPromise(success),
               icon: <CircleCheckIcon className={ICON_CLASS} />,
             },
       error:
-        messages.error === undefined
+        error === undefined
           ? (err: unknown) => ({
               title: formatError(err) || "Ocurrió un error inesperado.",
               icon: <OctagonXIcon className={ICON_CLASS} />,
             })
-          : typeof messages.error === "function"
+          : typeof error === "function"
             ? (err: unknown) => ({
-                ...toSileoPromise(messages.error(err)),
+                ...toSileoPromise(error(err)),
                 icon: <OctagonXIcon className={ICON_CLASS} />,
               })
             : {
-                ...toSileoPromise(messages.error),
+                ...toSileoPromise(error),
                 icon: <OctagonXIcon className={ICON_CLASS} />,
               },
       ...(position ? { position } : {}),

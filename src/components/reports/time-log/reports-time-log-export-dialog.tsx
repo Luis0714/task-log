@@ -2,7 +2,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+
+import { appToast } from "@/lib/toast";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -142,7 +143,7 @@ export function ReportsTimeLogExportDialog({
         return;
       }
       if (next.length > MAX_EXPORT_SPRINTS) {
-        toast.error(
+        appToast.error(
           `Solo puedes escoger hasta ${MAX_EXPORT_SPRINTS} sprints por reporte.`,
         );
         setSelectedPaths(next.slice(0, MAX_EXPORT_SPRINTS));
@@ -152,7 +153,7 @@ export function ReportsTimeLogExportDialog({
         next.length === MAX_EXPORT_SPRINTS &&
         !areSprintsAdjacent(next[0], next[1], sprintPathIndex)
       ) {
-        toast.error(
+        appToast.error(
           "Solo puedes escoger dos sprints consecutivos del catálogo.",
         );
         return;
@@ -269,7 +270,7 @@ export function ReportsTimeLogExportDialog({
 
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        toast.error(data.error ?? "No se pudo generar el reporte.");
+        appToast.error(data.error ?? "No se pudo generar el reporte.");
         return;
       }
 
@@ -281,7 +282,7 @@ export function ReportsTimeLogExportDialog({
       triggerBlobDownload(blob, filename);
       setOpen(false);
     } catch {
-      toast.error("Error al generar el reporte. Intenta de nuevo.");
+      appToast.error("Error al generar el reporte. Intenta de nuevo.");
     } finally {
       setGenerating(false);
     }
