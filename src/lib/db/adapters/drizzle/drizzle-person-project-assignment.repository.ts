@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 
 import { getDb } from "@/lib/db/client";
 import {
@@ -12,6 +12,8 @@ import {
 import type {
   AssignmentFilter,
   CreateAssignmentInput,
+  InferredDefaultAssignmentRow,
+  InferredDefaultsInput,
   PersonProjectAssignmentRepository,
   PersonProjectAssignmentRow,
   PersonProjectAssignmentWithRole,
@@ -19,60 +21,56 @@ import type {
   UpdateAssignmentPctInput,
 } from "@/lib/db/ports/person-project-assignment.repository.port";
 
-function statusPredicate(filter: AssignmentFilter) {
-  if (filter.status === "vigente") {
-    return isNull(personProjectAssignments.validTo);
-  }
-  if (filter.status === "historica") {
-    return sql`${personProjectAssignments.validTo} IS NOT NULL`;
-  }
-  return undefined;
-}
-
 function applyFilter(filter: AssignmentFilter) {
   const parts = [] as ReturnType<typeof eq>[];
-  if (filter.personAdoId) parts.push(eq(personProjectAssignments.personAdoId, filter.personAdoId));
-  if (filter.projectId) parts.push(eq(personProjectAssignments.projectId, filter.projectId));
-  const status = statusPredicate(filter);
-  if (status) parts.push(status);
+  if (filter.personAdoId) {
+    parts.push(eq(personProjectAssignments.personAdoId, filter.personAdoId));
+  }
+  if (filter.projectId) {
+    parts.push(eq(personProjectAssignments.projectId, filter.projectId));
+  }
   return parts.length ? and(...parts) : undefined;
+}
+
+const ROW_PROJECTION = {
+  id: personProjectAssignments.id,
+  personAdoId: personProjectAssignments.personAdoId,
+  personDisplayName: personProjectAssignments.personDisplayName,
+  projectId: personProjectAssignments.projectId,
+  projectName: personProjectAssignments.projectName,
+  teamId: personProjectAssignments.teamId,
+  teamName: personProjectAssignments.teamName,
+  roleId: personProjectAssignments.roleId,
+  assignmentPct: personProjectAssignments.assignmentPct,
+  validFrom: personProjectAssignments.validFrom,
+  validTo: personProjectAssignments.validTo,
+  createdByUserId: personProjectAssignments.createdByUserId,
+  createdAt: personProjectAssignments.createdAt,
+  roleName: roles.name,
+  roleDisplayName: roles.displayName,
+  createdByDisplayName: users.displayName,
+} as const;
+
+/** Une persona + proyecto en una clave estable para Sets. */
+function slotKey(personAdoId: string, projectId: string): string {
+  return personAdoId.concat("::", projectId);
 }
 
 export const drizzlePersonProjectAssignmentRepository: PersonProjectAssignmentRepository =
   {
     async listWithRoles(filter): Promise<PersonProjectAssignmentWithRole[]> {
       const where = applyFilter(filter);
-      const rows = await getDb()
-        .select({
-          id: personProjectAssignments.id,
-          personAdoId: personProjectAssignments.personAdoId,
-          personDisplayName: personProjectAssignments.personDisplayName,
-          projectId: personProjectAssignments.projectId,
-          projectName: personProjectAssignments.projectName,
-          teamId: personProjectAssignments.teamId,
-          teamName: personProjectAssignments.teamName,
-          roleId: personProjectAssignments.roleId,
-          assignmentPct: personProjectAssignments.assignmentPct,
-          assignedMonth: personProjectAssignments.assignedMonth,
-          validFrom: personProjectAssignments.validFrom,
-          validTo: personProjectAssignments.validTo,
-          createdByUserId: personProjectAssignments.createdByUserId,
-          createdAt: personProjectAssignments.createdAt,
-          roleName: roles.name,
-          roleDisplayName: roles.displayName,
-          createdByDisplayName: users.displayName,
-        })
+      return getDb()
+        .select(ROW_PROJECTION)
         .from(personProjectAssignments)
         .leftJoin(roles, eq(roles.id, personProjectAssignments.roleId))
         .leftJoin(users, eq(users.id, personProjectAssignments.createdByUserId))
         .where(where)
         .orderBy(
-          desc(isNull(personProjectAssignments.validTo)),
           asc(personProjectAssignments.personDisplayName),
           asc(personProjectAssignments.teamName),
           desc(personProjectAssignments.validFrom),
         );
-      return rows;
     },
 
     async findById(id): Promise<PersonProjectAssignmentRow | null> {
@@ -86,25 +84,7 @@ export const drizzlePersonProjectAssignmentRepository: PersonProjectAssignmentRe
 
     async findByIdWithRole(id): Promise<PersonProjectAssignmentWithRole | null> {
       const rows = await getDb()
-        .select({
-          id: personProjectAssignments.id,
-          personAdoId: personProjectAssignments.personAdoId,
-          personDisplayName: personProjectAssignments.personDisplayName,
-          projectId: personProjectAssignments.projectId,
-          projectName: personProjectAssignments.projectName,
-          teamId: personProjectAssignments.teamId,
-          teamName: personProjectAssignments.teamName,
-          roleId: personProjectAssignments.roleId,
-          assignmentPct: personProjectAssignments.assignmentPct,
-          assignedMonth: personProjectAssignments.assignedMonth,
-          validFrom: personProjectAssignments.validFrom,
-          validTo: personProjectAssignments.validTo,
-          createdByUserId: personProjectAssignments.createdByUserId,
-          createdAt: personProjectAssignments.createdAt,
-          roleName: roles.name,
-          roleDisplayName: roles.displayName,
-          createdByDisplayName: users.displayName,
-        })
+        .select(ROW_PROJECTION)
         .from(personProjectAssignments)
         .leftJoin(roles, eq(roles.id, personProjectAssignments.roleId))
         .leftJoin(users, eq(users.id, personProjectAssignments.createdByUserId))
@@ -119,6 +99,34 @@ export const drizzlePersonProjectAssignmentRepository: PersonProjectAssignmentRe
         .from(personProjectAssignments)
         .where(eq(personProjectAssignments.personAdoId, personAdoId))
         .orderBy(desc(personProjectAssignments.validFrom));
+    },
+
+    async listInferredDefaults(
+      input: InferredDefaultsInput,
+    ): Promise<InferredDefaultAssignmentRow[]> {
+      if (input.members.length === 0) return [];
+
+      const personAdoIds = [
+        ...new Set(input.members.map((m) => m.personAdoId)),
+      ];
+
+      // Una sola query trae los pares (persona, proyecto) ya configurados.
+      // Suficientemente pequeño porque se filtra por persona.
+      const existingPairs = await getDb()
+        .selectDistinct({
+          personAdoId: personProjectAssignments.personAdoId,
+          projectId: personProjectAssignments.projectId,
+        })
+        .from(personProjectAssignments)
+        .where(inArray(personProjectAssignments.personAdoId, personAdoIds));
+
+      const configuredKeys = new Set(
+        existingPairs.map((r) => slotKey(r.personAdoId, r.projectId)),
+      );
+
+      return input.members.filter(
+        (m) => !configuredKeys.has(slotKey(m.personAdoId, m.projectId)),
+      );
     },
 
     async listOverlappingForPerson(input): Promise<PersonProjectAssignmentRow[]> {
@@ -138,13 +146,11 @@ export const drizzlePersonProjectAssignmentRepository: PersonProjectAssignmentRe
       if (input.excludeAssignmentId) {
         parts.push(ne(personProjectAssignments.id, input.excludeAssignmentId));
       }
-      const inputFrom = input.from;
-      const inputTo = input.to;
       const openEnded = or(
         isNull(personProjectAssignments.validTo),
-        sql`${personProjectAssignments.validTo} >= ${inputFrom}`,
+        sql`${personProjectAssignments.validTo} >= ${input.from}`,
       );
-      const closedEnded = sql`${personProjectAssignments.validFrom} <= COALESCE(${inputTo}::date, ${personProjectAssignments.validFrom})`;
+      const closedEnded = sql`${personProjectAssignments.validFrom} <= COALESCE(${input.to}::date, ${personProjectAssignments.validFrom})`;
       parts.push(and(openEnded, closedEnded)!);
 
       return getDb()
@@ -163,7 +169,6 @@ export const drizzlePersonProjectAssignmentRepository: PersonProjectAssignmentRe
         teamName: input.teamName,
         roleId: input.roleId,
         assignmentPct: input.assignmentPct,
-        assignedMonth: input.assignedMonth,
         validFrom: input.validFrom,
         validTo: input.validTo,
         createdByUserId: input.createdByUserId,

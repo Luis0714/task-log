@@ -1,140 +1,195 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { MultiCheckboxFilter } from "@/components/filters/multi-checkbox-filter";
+import type { MultiCheckboxFilterOption } from "@/components/filters/multi-checkbox-filter";
 
+/** Mes actual, en formato `YYYY-MM`. */
+function defaultMonthKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Estado de los filtros del módulo de asignaciones.
+ * Proyectos/Equipos vacíos = "todos". El mes sí tiene siempre un valor por
+ * defecto (el actual) — el usuario lo cambia si quiere uno distinto.
+ */
 export type AssignmentsFiltersValue = {
   personQuery: string;
-  /**
-   * Filtro por mes "YYYY-MM". Excluyente con el rango de fechas: al definir
-   * uno se limpia el otro.
-   */
+  projects: string[];
+  teams: string[];
   month: string;
-  /** Filtro por rango de fechas "YYYY-MM-DD". Excluyente con el mes. */
-  from: string;
-  to: string;
 };
 
-export const EMPTY_ASSIGNMENTS_FILTERS: AssignmentsFiltersValue = {
+/** Shape "vacío" usado sólo por la firma; los defaults reales se aplican en shell. */
+export type EmptyAssignmentsFiltersShape = Readonly<{
+  personQuery: string;
+  projects: ReadonlyArray<string>;
+  teams: ReadonlyArray<string>;
+  month: string;
+}>;
+
+export const EMPTY_ASSIGNMENTS_FILTERS: EmptyAssignmentsFiltersShape = {
   personQuery: "",
-  month: "",
-  from: "",
-  to: "",
-};
+  projects: [],
+  teams: [],
+  month: defaultMonthKey(),
+} as const;
+
+/** Construye los filtros iniciales con proyectos/equipos del catálogo por defecto. */
+export function buildInitialAssignmentsFilters(
+  projectNames: readonly string[],
+  teamNames: readonly string[],
+): AssignmentsFiltersValue {
+  return {
+    personQuery: "",
+    projects: [...projectNames],
+    teams: [...teamNames],
+    month: defaultMonthKey(),
+  };
+}
 
 export type AssignmentsFiltersProps = Readonly<{
   value: AssignmentsFiltersValue;
   onChange: (next: AssignmentsFiltersValue) => void;
-  /** Limpia todos los filtros. */
   onClear: () => void;
+  projectOptions: MultiCheckboxFilterOption[];
+  teamOptions: MultiCheckboxFilterOption[];
+  /** Predeterminados del usuario (guardados en sesión). Sirven para saber
+   *  cuándo los filtros actuales difieren de los iniciales. */
+  defaultProjects: ReadonlyArray<string>;
+  defaultTeams: ReadonlyArray<string>;
 }>;
+
+function multiTriggerLabel(label: string, selected: readonly string[]): string {
+  if (selected.length === 0) return `Todos los ${label}`;
+  if (selected.length === 1) return selected[0]!;
+  return `${selected.length} ${label} seleccionados`;
+}
+
+function sameSet(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const set = new Set(a);
+  return b.every((value) => set.has(value));
+}
 
 export function AssignmentsFilters({
   value,
   onChange,
   onClear,
+  projectOptions,
+  teamOptions,
+  defaultProjects,
+  defaultTeams,
 }: AssignmentsFiltersProps) {
-  const rangeActive = Boolean(value.from || value.to);
-  const monthActive = Boolean(value.month);
-
   function setPersonQuery(personQuery: string) {
     onChange({ ...value, personQuery });
   }
 
-  function setMonth(month: string) {
-    // Excluyentes: al usar el mes se limpia el rango.
-    onChange({ ...value, month, from: "", to: "" });
+  function setProjects(projects: string[]) {
+    onChange({ ...value, projects });
   }
 
-  function setRange(patch: { from?: string; to?: string }) {
-    const next = { ...value, ...patch };
-    const active = Boolean(next.from || next.to);
-    // Excluyentes: al usar el rango se limpia el mes.
-    onChange({ ...next, month: active ? "" : next.month });
+  function setTeams(teams: string[]) {
+    onChange({ ...value, teams });
   }
 
   const hasAnyFilter = Boolean(
-    value.personQuery || value.month || value.from || value.to,
+    value.personQuery ||
+      !sameSet(value.projects, defaultProjects) ||
+      !sameSet(value.teams, defaultTeams),
   );
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="flex min-w-[12rem] flex-1 flex-col gap-1.5 sm:max-w-xs">
-        <label htmlFor="assignments-filter-person" className="text-xs font-medium">
+    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-nowrap lg:items-end">
+      {/* Persona — 30% en desktop. */}
+      <div className="flex w-full min-w-0 flex-col gap-1.5 sm:w-[calc(50%-0.375rem)] lg:w-[30%]">
+        <label
+          htmlFor="assignments-filter-person"
+          className="text-xs font-medium"
+        >
           Persona
         </label>
-        <div className="relative">
-          <Search
-            className="text-muted-foreground pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2"
-            aria-hidden
-          />
-          <Input
-            id="assignments-filter-person"
-            value={value.personQuery}
-            onChange={(e) => setPersonQuery(e.target.value)}
-            placeholder="Buscar por nombre…"
-            className="pl-8"
-          />
-        </div>
+        <Input
+          id="assignments-filter-person"
+          value={value.personQuery}
+          onChange={(e) => setPersonQuery(e.target.value)}
+          placeholder="Buscar por nombre…"
+        />
       </div>
 
-      <div className="flex shrink-0 flex-col gap-1.5">
-        <label htmlFor="assignments-filter-month" className="text-xs font-medium">
+      {/* Proyectos — 25% en desktop. */}
+      <div className="w-full min-w-0 sm:w-[calc(50%-0.375rem)] lg:w-[25%]">
+        <MultiCheckboxFilter
+          id="assignments-filter-projects"
+          label="Proyectos"
+          options={projectOptions}
+          selected={value.projects}
+          onSelectedChange={setProjects}
+          triggerLabel={multiTriggerLabel("proyectos", value.projects)}
+        />
+      </div>
+
+      {/* Equipos — 25% en desktop. */}
+      <div className="w-full min-w-0 sm:w-[calc(50%-0.375rem)] lg:w-[25%]">
+        <MultiCheckboxFilter
+          id="assignments-filter-teams"
+          label="Equipos"
+          options={teamOptions}
+          selected={value.teams}
+          onSelectedChange={setTeams}
+          triggerLabel={multiTriggerLabel("equipos", value.teams)}
+        />
+      </div>
+
+      {/* Mes — 15% en desktop, input compacto. */}
+      <div className="flex w-full min-w-0 flex-col gap-1.5 sm:w-[calc(50%-0.375rem)] lg:w-[15%]">
+        <label
+          htmlFor="assignments-filter-month"
+          className="text-xs font-medium"
+        >
           Mes
         </label>
         <Input
           id="assignments-filter-month"
           type="month"
           value={value.month}
-          onChange={(e) => setMonth(e.target.value)}
-          disabled={rangeActive}
-          className="w-40 font-mono"
-          title={
-            rangeActive
-              ? "Deshabilitado mientras usas el rango de fechas"
-              : undefined
-          }
+          onChange={(e) => onChange({ ...value, month: e.target.value })}
+          className="w-full font-mono"
         />
       </div>
 
-      <div className="flex shrink-0 flex-col gap-1.5">
-        <span className="text-xs font-medium">Rango de fechas</span>
-        <div className="flex items-center gap-2">
-          <DatePicker
-            id="assignments-filter-from"
-            value={value.from}
-            onChange={(next) => setRange({ from: next })}
-            placeholder="Inicio"
-            disabled={monthActive}
-            className="w-36"
-          />
-          <span className="text-muted-foreground text-xs">a</span>
-          <DatePicker
-            id="assignments-filter-to"
-            value={value.to}
-            onChange={(next) => setRange({ to: next })}
-            min={value.from || undefined}
-            placeholder="Fin"
-            disabled={monthActive}
-            className="w-36"
-          />
-        </div>
-      </div>
-
+      {/* Limpiar filtros — 5% en desktop (icon-only), fila propia en mobile. */}
       {hasAnyFilter ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onClear}
-          className="shrink-0"
-        >
-          <X className="size-4" aria-hidden />
-          Limpiar filtros
-        </Button>
+        <div className="flex w-full min-w-0 items-end justify-end sm:w-full lg:w-[5%] lg:justify-center">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClear}
+                  aria-label="Limpiar filtros"
+                  className="shrink-0 gap-1.5 lg:h-7 lg:w-7 lg:gap-0 lg:px-0"
+                />
+              }
+            >
+              <X className="size-3.5" aria-hidden />
+              <span className="lg:sr-only">Limpiar filtros</span>
+            </TooltipTrigger>
+            <TooltipContent>Limpiar filtros</TooltipContent>
+          </Tooltip>
+        </div>
       ) : null}
     </div>
   );

@@ -8,10 +8,11 @@ import {
   closeAssignment,
   createAssignment,
   deleteAssignment,
-  updateAssignmentPct,
+  editAssignment,
   type ChangeAssignmentPayload,
   type CloseAssignmentPayload,
   type CreateAssignmentPayload,
+  type EditAssignmentPayload,
 } from "@/services/assignments/assignments.service";
 
 export type AssignmentRow = AssignmentDto & { pending?: boolean };
@@ -20,16 +21,25 @@ export type CreateRowResult =
   | { ok: true; assignments: AssignmentDto[] }
   | { ok: false; message: string };
 
-export type UpdatePctResult =
+export type UpdateCellResult =
   | { ok: true; assignment: AssignmentDto }
   | { ok: false; message: string };
 
 export type UseAssignmentsResult = {
   rows: AssignmentRow[];
   createRow: (input: CreateAssignmentPayload) => Promise<CreateRowResult>;
-  changeRow: (id: string, input: ChangeAssignmentPayload) => Promise<AssignmentDto | null>;
-  closeRow: (id: string, input: CloseAssignmentPayload) => Promise<AssignmentDto | null>;
-  updatePctRow: (id: string, assignmentPct: number) => Promise<UpdatePctResult>;
+  changeRow: (
+    id: string,
+    input: ChangeAssignmentPayload,
+  ) => Promise<AssignmentDto | null>;
+  closeRow: (
+    id: string,
+    input: CloseAssignmentPayload,
+  ) => Promise<AssignmentDto | null>;
+  editCell: (
+    id: string,
+    patch: EditAssignmentPayload,
+  ) => Promise<UpdateCellResult>;
   deleteRow: (id: string) => Promise<boolean>;
 };
 
@@ -39,143 +49,134 @@ function errorMessage(err: unknown): string {
   return err instanceof Error && err.message.trim() ? err.message : FALLBACK_ERROR;
 }
 
-export type AssignmentMutationError = Error & {
-  code?: string;
-  currentTotal?: number | null;
-  conflictingPct?: number | null;
-};
-
 function sortRows(list: AssignmentRow[]): AssignmentRow[] {
   return [...list].sort((a, b) => {
-    if (a.status !== b.status) {
-      return a.status === "vigente" ? -1 : 1;
-    }
+    // Vigentes primero.
+    const aOpen = !a.validTo;
+    const bOpen = !b.validTo;
+    if (aOpen !== bOpen) return aOpen ? -1 : 1;
     const personA = a.personDisplayName ?? "";
     const personB = b.personDisplayName ?? "";
-    const byPerson = personA.localeCompare(personB, "es", { sensitivity: "base" });
+    const byPerson = personA.localeCompare(personB, "es", {
+      sensitivity: "base",
+    });
     if (byPerson !== 0) return byPerson;
     return b.validFrom.localeCompare(a.validFrom);
   });
 }
 
-function mergeRows(prev: AssignmentRow[], next: AssignmentDto[]): AssignmentRow[] {
-  if (next.length === 0) return prev;
-  const nextIds = new Set(next.map((d) => d.id));
-  const filtered = prev.filter((r) => !nextIds.has(r.id));
-  return sortRows([...filtered, ...next.map((d) => ({ ...d, pending: false }))]);
+function upsertOne(
+  prev: AssignmentRow[],
+  next: AssignmentDto,
+): AssignmentRow[] {
+  const idx = prev.findIndex((r) => r.id === next.id);
+  const merged = { ...next, pending: false };
+  const list = idx >= 0
+    ? prev.map((r, i) => (i === idx ? merged : r))
+    : [...prev, merged];
+  return sortRows(list);
 }
 
 export function useAssignments(initial: AssignmentDto[]): UseAssignmentsResult {
   const [rows, setRows] = useState<AssignmentRow[]>(sortRows(initial));
 
-  const replaceRow = useCallback((updated: AssignmentDto) => {
-    setRows((prev) =>
-      sortRows(
-        prev.map((r) => (r.id === updated.id ? { ...updated, pending: false } : r)),
-      ),
-    );
-  }, []);
-
-  const markPending = useCallback((id: string, pending: boolean) => {
-    setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, pending } : r)),
-    );
-  }, []);
-
-  const upsertRow = useCallback((dto: AssignmentDto) => {
-    setRows((prev) => mergeRows(prev, [dto]));
-  }, []);
-
-  const upsertRows = useCallback((dtos: AssignmentDto[]) => {
-    setRows((prev) => mergeRows(prev, dtos));
-  }, []);
-
   const createRow = useCallback(
     async (input: CreateAssignmentPayload): Promise<CreateRowResult> => {
       try {
         const result = await createAssignment(input);
-        upsertRows(result.assignments);
-        return { ok: true, assignments: result.assignments };
+        const created = result.assignments;
+        if (created.length > 0) {
+          setRows((prev) => sortRows([...prev, ...created.map((d) => ({ ...d, pending: false }))]));
+        }
+        return { ok: true, assignments: created };
       } catch (err) {
         return { ok: false, message: errorMessage(err) };
       }
     },
-    [upsertRows],
+    [],
   );
 
   const changeRow = useCallback(
     async (id: string, input: ChangeAssignmentPayload) => {
-      const snapshot = rows.find((r) => r.id === id);
-      if (!snapshot) return null;
-      markPending(id, true);
+      const exists = rows.some((r) => r.id === id);
+      if (!exists) return null;
       try {
         const updated = await changeAssignment(id, input);
-        upsertRow(updated);
+        setRows((prev) => upsertOne(prev, updated));
         return updated;
-      } catch (_err) {
-        markPending(snapshot.id, false);
+      } catch {
         return null;
-      } finally {
-        markPending(id, false);
       }
     },
-    [markPending, rows, upsertRow],
+    [rows],
   );
 
   const closeRow = useCallback(
     async (id: string, input: CloseAssignmentPayload) => {
-      const snapshot = rows.find((r) => r.id === id);
-      if (!snapshot) return null;
-      markPending(id, true);
+      const exists = rows.some((r) => r.id === id);
+      if (!exists) return null;
       try {
         const updated = await closeAssignment(id, input);
-        replaceRow(updated);
+        setRows((prev) => upsertOne(prev, updated));
         return updated;
-      } catch (_err) {
-        markPending(snapshot.id, false);
+      } catch {
         return null;
-      } finally {
-        markPending(id, false);
       }
     },
-    [markPending, replaceRow, rows],
+    [rows],
   );
 
-  const updatePctRow = useCallback(
-    async (id: string, assignmentPct: number): Promise<UpdatePctResult> => {
+  const editCell = useCallback(
+    async (
+      id: string,
+      patch: EditAssignmentPayload,
+    ): Promise<UpdateCellResult> => {
       const snapshot = rows.find((r) => r.id === id);
-      if (!snapshot) {
-        return { ok: false, message: "La asignación ya no existe." };
-      }
-      markPending(id, true);
+      if (!snapshot) return { ok: false, message: "La asignación ya no existe." };
+      setRows((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, pending: true } : r)),
+      );
       try {
-        const updated = await updateAssignmentPct(id, assignmentPct);
-        replaceRow(updated);
+        const updated = await editAssignment(id, patch);
+        setRows((prev) => upsertOne(prev, updated));
         return { ok: true, assignment: updated };
       } catch (err) {
-        markPending(snapshot.id, false);
+        setRows((prev) =>
+          prev.map((r) =>
+            r.id === id ? { ...r, pending: snapshot.pending ?? false } : r,
+          ),
+        );
         return { ok: false, message: errorMessage(err) };
-      } finally {
-        markPending(id, false);
       }
     },
-    [markPending, replaceRow, rows],
+    [rows],
   );
 
   const deleteRow = useCallback(
     async (id: string) => {
-      markPending(id, true);
+      setRows((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, pending: true } : r)),
+      );
       try {
         await deleteAssignment(id);
         setRows((prev) => prev.filter((r) => r.id !== id));
         return true;
-      } catch (_err) {
-        markPending(id, false);
+      } catch {
+        setRows((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, pending: false } : r)),
+        );
         return false;
       }
     },
-    [markPending],
+    [],
   );
 
-  return { rows, createRow, changeRow, closeRow, updatePctRow, deleteRow };
+  return {
+    rows,
+    createRow,
+    changeRow,
+    closeRow,
+    editCell,
+    deleteRow,
+  };
 }

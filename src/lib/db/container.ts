@@ -1,10 +1,10 @@
 import "server-only";
 
 import { drizzleAdoConnectionRepository } from "@/lib/db/adapters/drizzle/drizzle-ado-connection.repository";
-import { drizzleAssignmentWorkingDayDecisionRepository } from "@/lib/db/adapters/drizzle/drizzle-assignment-working-day-decision.repository";
 import { drizzleEntraUserRepository } from "@/lib/db/adapters/drizzle/drizzle-entra-user.repository";
 import { drizzleLlmInteractionRepository } from "@/lib/db/adapters/drizzle/drizzle-llm-interaction.repository";
 import { drizzleLocalUserRepository } from "@/lib/db/adapters/drizzle/drizzle-local-user.repository";
+import { drizzleNewsStoriesRepository } from "@/lib/db/adapters/drizzle/drizzle-news-stories.repository";
 import { drizzlePersonProjectAssignmentRepository } from "@/lib/db/adapters/drizzle/drizzle-person-project-assignment.repository";
 import { drizzleProjectConfigurationRepository } from "@/lib/db/adapters/drizzle/drizzle-project-configuration.repository";
 import { drizzleTimeLogTemplateRepository } from "@/lib/db/adapters/drizzle/drizzle-time-log-template.repository";
@@ -14,6 +14,7 @@ import type { AdoConnectionRepository } from "@/lib/db/ports/ado-connection.repo
 import type { EntraUserRepository } from "@/lib/db/ports/entra-user.repository.port";
 import type { LlmInteractionRepository } from "@/lib/db/ports/llm-interaction.repository.port";
 import type { LocalUserRepository } from "@/lib/db/ports/local-user.repository.port";
+import type { NewsStoriesRepository } from "@/lib/db/ports/news-stories.repository.port";
 import type {
   PersonProjectAssignmentRepository,
 } from "@/lib/db/ports/person-project-assignment.repository.port";
@@ -27,7 +28,6 @@ import { drizzleSprintStoryGoalRepository } from "@/lib/db/adapters/drizzle/driz
 import type { SprintGoalRepository } from "@/lib/db/ports/sprint-goal.repository.port";
 import type { SprintSnapshotRepository } from "@/lib/db/ports/sprint-snapshot.repository.port";
 import type { SprintStoryGoalRepository } from "@/lib/db/ports/sprint-story-goal.repository.port";
-import type { AssignmentWorkingDayDecisionRepository } from "@/lib/db/ports/assignment-working-day-decision.repository.port";
 
 export type Repositories = {
   localUser: LocalUserRepository;
@@ -42,7 +42,7 @@ export type Repositories = {
   projectConfiguration: ProjectConfigurationRepository;
   timeLogTemplate: TimeLogTemplateRepository;
   personProjectAssignment: PersonProjectAssignmentRepository;
-  assignmentWorkingDayDecision: AssignmentWorkingDayDecisionRepository;
+  newsStories: NewsStoriesRepository;
 };
 
 const defaultRepositories: Repositories = {
@@ -58,7 +58,7 @@ const defaultRepositories: Repositories = {
   projectConfiguration: drizzleProjectConfigurationRepository,
   timeLogTemplate: drizzleTimeLogTemplateRepository,
   personProjectAssignment: drizzlePersonProjectAssignmentRepository,
-  assignmentWorkingDayDecision: drizzleAssignmentWorkingDayDecisionRepository,
+  newsStories: drizzleNewsStoriesRepository,
 };
 
 let repositories: Repositories = defaultRepositories;

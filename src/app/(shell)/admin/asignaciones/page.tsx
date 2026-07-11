@@ -22,7 +22,7 @@ export default async function AdminAsignacionesPage({
 
   const repo = getRepositories().personProjectAssignment;
   const [rawAssignments, catalog] = await Promise.all([
-    repo.listWithRoles({ status: "todas" }),
+    repo.listWithRoles({}),
     loadAssignmentsCatalog(sp),
   ]);
 

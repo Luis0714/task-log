@@ -2,6 +2,11 @@ import type { PersonProjectAssignmentWithRole } from "@/lib/db";
 
 export type { PersonProjectAssignmentRow } from "@/lib/db";
 
+/**
+ * Forma "alambrada al cliente" de una asignación. Se calcula a partir del
+ * row de BD; no contiene campos derivados como el estado (vigente/histórica),
+ * que se computa en el momento de pintar/filtrar.
+ */
 export type AssignmentDto = {
   id: string;
   personAdoId: string;
@@ -14,10 +19,8 @@ export type AssignmentDto = {
   roleName: string | null;
   roleDisplayName: string | null;
   assignmentPct: number;
-  assignedMonth: string | null;
   validFrom: string;
   validTo: string | null;
-  status: "vigente" | "historica";
   createdByUserId: string;
   createdByDisplayName: string | null;
   createdAt: string;
@@ -38,10 +41,8 @@ export function assignmentRowToDto(
     roleName: row.roleName ?? null,
     roleDisplayName: row.roleDisplayName ?? null,
     assignmentPct: row.assignmentPct,
-    assignedMonth: row.assignedMonth ?? null,
     validFrom: toIso(row.validFrom),
     validTo: row.validTo ? toIso(row.validTo) : null,
-    status: row.validTo ? "historica" : "vigente",
     createdByUserId: row.createdByUserId,
     createdByDisplayName: row.createdByDisplayName ?? null,
     createdAt: row.createdAt.toISOString(),

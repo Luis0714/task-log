@@ -17,7 +17,6 @@ export type CreateAssignmentInput = {
   teamName: string | null;
   roleId: string | null;
   assignmentPct: number;
-  assignedMonth: string | null;
   validFrom: Date;
   validTo: Date | null;
   createdByUserId: string;
@@ -36,7 +35,32 @@ export type UpdateAssignmentPctInput = {
 export type AssignmentFilter = {
   personAdoId?: string;
   projectId?: string;
-  status?: "vigente" | "historica" | "todas";
+};
+
+/**
+ * Slot inferido por defecto (100%) para una persona sin excepciones en su
+ * (proyecto, equipo). No es una fila persistente: la construye el repositorio
+ * cruzando los miembros del (proyecto, equipo) del catálogo con las
+ * excepciones que ya existen.
+ */
+export type InferredDefaultAssignmentRow = {
+  personAdoId: string;
+  personDisplayName: string;
+  projectId: string;
+  projectName: string;
+  teamId: string | null;
+  teamName: string | null;
+};
+
+export type InferredDefaultsInput = {
+  members: ReadonlyArray<{
+    personAdoId: string;
+    personDisplayName: string;
+    projectId: string;
+    projectName: string;
+    teamId: string | null;
+    teamName: string | null;
+  }>;
 };
 
 export interface PersonProjectAssignmentRepository {
@@ -53,6 +77,16 @@ export interface PersonProjectAssignmentRepository {
   listByPerson(
     personAdoId: string,
   ): Promise<PersonProjectAssignmentRow[]>;
+
+  /**
+   * Dado un conjunto de slots (persona, proyecto, equipo) obtenidos del
+   * catálogo, devuelve aquellos para los que NO existe una excepción
+   * (vigente o histórica) en la BD. Útil para pintar las filas virtuales
+   * "por defecto" en la UI.
+   */
+  listInferredDefaults(
+    input: InferredDefaultsInput,
+  ): Promise<InferredDefaultAssignmentRow[]>;
 
   listOverlappingForPerson(input: {
     personAdoId: string;

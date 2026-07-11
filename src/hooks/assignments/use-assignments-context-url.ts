@@ -1,38 +1,42 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
+const ARRAY_SEPARATOR = "|";
+
 export type AssignmentsContextSelection = {
-  project: string;
-  team: string;
-  month: string;
+  projects: string[];
+  teams: string[];
 };
 
 export type UseAssignmentsContextUrlOptions = {
-  /** Fallback cuando la URL está vacía (típicamente el project/team por defecto de la sesión). */
-  defaultProject?: string | null;
-  defaultTeam?: string | null;
+  defaultProjects?: readonly string[];
+  defaultTeams?: readonly string[];
 };
 
 export type UseAssignmentsContextUrl = {
   selection: AssignmentsContextSelection;
-  setProject: (value: string) => void;
-  setTeam: (value: string) => void;
-  setMonth: (value: string) => void;
+  setProjects: (values: string[]) => void;
+  setTeams: (values: string[]) => void;
 };
 
-function isMonthKey(value: string): boolean {
-  return /^\d{4}-\d{2}$/.test(value);
+function parseArrayParam(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(ARRAY_SEPARATOR)
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0);
 }
 
-function defaultMonthKey(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+function serializeArrayParam(values: string[]): string {
+  return Array.from(new Set(values)).join(ARRAY_SEPARATOR);
 }
 
-function normalize(value: string | null | undefined): string {
-  return value?.trim() ?? "";
+function sameSet(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const set = new Set(a);
+  return b.every((value) => set.has(value));
 }
 
 export function useAssignmentsContextUrl(
@@ -42,21 +46,39 @@ export function useAssignmentsContextUrl(
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const urlProject = normalize(searchParams.get("project"));
-  const urlTeam = normalize(searchParams.get("team"));
-  const monthRaw = normalize(searchParams.get("month"));
-  const month = isMonthKey(monthRaw) ? monthRaw : defaultMonthKey();
+  const urlProjects = useMemo(
+    () =>
+      parseArrayParam(searchParams.get("projects")).concat(
+        parseArrayParam(searchParams.get("project")),
+      ),
+    [searchParams],
+  );
+  const urlTeams = useMemo(
+    () => parseArrayParam(searchParams.get("teams")),
+    [searchParams],
+  );
 
-  const project = urlProject || normalize(options.defaultProject);
-  const team = urlTeam || normalize(options.defaultTeam);
+  const projects = useMemo(() => {
+    if (urlProjects.length > 0) return Array.from(new Set(urlProjects));
+    const fallback = options.defaultProjects ?? [];
+    return Array.from(new Set(fallback));
+  }, [urlProjects, options.defaultProjects]);
+
+  const teams = useMemo(() => {
+    if (urlTeams.length > 0) return Array.from(new Set(urlTeams));
+    const fallback = options.defaultTeams ?? [];
+    return Array.from(new Set(fallback));
+  }, [urlTeams, options.defaultTeams]);
 
   const pushParam = useCallback(
-    (key: "project" | "team" | "month", value: string) => {
+    (key: string, raw: string) => {
+      const current = searchParams.get(key) ?? "";
+      if (current === raw) return;
       const params = new URLSearchParams(searchParams.toString());
-      if (!value) {
+      if (!raw) {
         params.delete(key);
       } else {
-        params.set(key, value);
+        params.set(key, raw);
       }
       const qs = params.toString();
       router.replace(qs ? `${pathname}?${qs}` : pathname);
@@ -64,23 +86,45 @@ export function useAssignmentsContextUrl(
     [pathname, router, searchParams],
   );
 
-  const setProject = useCallback(
-    (value: string) => {
-      pushParam("project", value);
-      pushParam("team", "");
+  const setProjects = useCallback(
+    (values: string[]) => {
+      const cleaned = Array.from(new Set(values.filter((v) => v.length > 0)));
+      // Comparamos contra el estado actual de la URL (incluyendo el alias
+      // singular legacy) para no disparar un router.replace cuando el set
+      // que llega ya coincide — eso evita refetch de la página server en
+      // cada keystroke del filtro de texto.
+      const currentUrl = parseArrayParam(searchParams.get("projects")).concat(
+        parseArrayParam(searchParams.get("project")),
+      );
+      if (sameSet(cleaned, currentUrl)) return;
+      // Limpia ambos (singular legacy + plural nuevo) para evitar confusiones.
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("project");
+      params.delete("projects");
+      if (cleaned.length === 0) {
+        params.delete("projects");
+      } else {
+        params.set("projects", serializeArrayParam(cleaned));
+      }
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname);
     },
-    [pushParam],
+    [pathname, router, searchParams],
   );
 
-  const setTeam = useCallback(
-    (value: string) => pushParam("team", value),
-    [pushParam],
+  const setTeams = useCallback(
+    (values: string[]) => {
+      const cleaned = Array.from(new Set(values));
+      const current = parseArrayParam(searchParams.get("teams"));
+      if (sameSet(cleaned, current)) return;
+      pushParam("teams", serializeArrayParam(cleaned));
+    },
+    [pushParam, searchParams],
   );
 
-  const setMonth = useCallback(
-    (value: string) => pushParam("month", value),
-    [pushParam],
-  );
-
-  return { selection: { project, team, month }, setProject, setTeam, setMonth };
+  return {
+    selection: { projects, teams },
+    setProjects,
+    setTeams,
+  };
 }

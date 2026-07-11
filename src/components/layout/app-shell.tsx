@@ -11,9 +11,32 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { AdoConnectionDisplay } from "@/lib/auth/connection-display";
+import { cn } from "@/lib/utils";
+
+/**
+ * Inner content area for the shell. Reads the sidebar context to widen the
+ * horizontal padding when the desktop sidebar is collapsed, since the content
+ * then has more horizontal room available.
+ */
+function ShellContent({ children }: Readonly<{ children: React.ReactNode }>) {
+  const { state, isMobile } = useSidebar();
+  const collapsedOnDesktop = !isMobile && state === "collapsed";
+
+  return (
+    <div
+      className={cn(
+        "mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col p-4 sm:max-w-lg md:max-w-none md:py-6 md:px-6",
+        collapsedOnDesktop && "md:px-10",
+      )}
+    >
+      {children}
+    </div>
+  );
+}
 
 export type AppShellProps = {
   connection: AdoConnectionDisplay;
@@ -31,7 +54,7 @@ export function AppShell({
   sidebarConnection,
   children,
   userRole = null,
-}: AppShellProps) {
+}:  AppShellProps) {
   const pathname = usePathname();
 
   return (
@@ -60,9 +83,7 @@ export function AppShell({
             </div>
           </header>
 
-          <div className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col p-4 sm:max-w-lg md:max-w-none md:p-6">
-            {children}
-          </div>
+          <ShellContent>{children}</ShellContent>
         </SidebarInset>
         </SidebarProvider>
         </AdoWorkItemLinksProvider>

@@ -403,7 +403,6 @@ export const personProjectAssignments = pgTable(
     teamName: text("team_name"),
     roleId: uuid("role_id").references(() => roles.id),
     assignmentPct: integer("assignment_pct").notNull(),
-    assignedMonth: text("assigned_month"),
     validFrom: pgDate("valid_from", { mode: "date" }).notNull(),
     validTo: pgDate("valid_to", { mode: "date" }),
     createdByUserId: uuid("created_by_user_id")
@@ -427,35 +426,32 @@ export type PersonProjectAssignment = typeof personProjectAssignments.$inferSele
 export type NewPersonProjectAssignment =
   typeof personProjectAssignments.$inferInsert;
 
-export const assignmentWorkingDayDecisions = pgTable(
-  "assignment_working_day_decisions",
+export const projectTeamNewsStories = pgTable(
+  "project_team_news_stories",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    assignmentId: uuid("assignment_id")
-      .notNull()
-      .references(() => personProjectAssignments.id, { onDelete: "cascade" }),
-    date: pgDate("date", { mode: "date" }).notNull(),
-    decision: text("decision").notNull(),
-    observation: text("observation"),
-    createdByUserId: uuid("created_by_user_id")
+    projectId: text("project_id").notNull(),
+    teamId: text("team_id"),
+    workItemId: integer("work_item_id").notNull(),
+    workItemTitleSnapshot: text("work_item_title_snapshot"),
+    linkedByUserId: uuid("linked_by_user_id")
       .notNull()
       .references(() => users.id),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    linkedAt: timestamp("linked_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
   (table) => [
-    uniqueIndex("assignment_working_day_decisions_assignment_date_unique").on(
-      table.assignmentId,
-      table.date,
+    uniqueIndex("project_team_news_stories_unique_link").on(
+      table.projectId,
+      sql`COALESCE(${table.teamId}, '')`,
+      table.workItemId,
     ),
-    index("assignment_working_day_decisions_assignment_idx").on(
-      table.assignmentId,
-    ),
+    index("project_team_news_stories_project_idx").on(table.projectId),
+    index("project_team_news_stories_team_idx").on(table.teamId),
   ],
 );
 
-export type AssignmentWorkingDayDecision =
-  typeof assignmentWorkingDayDecisions.$inferSelect;
-export type NewAssignmentWorkingDayDecision =
-  typeof assignmentWorkingDayDecisions.$inferInsert;
+export type ProjectTeamNewsStory = typeof projectTeamNewsStories.$inferSelect;
+export type NewProjectTeamNewsStory =
+  typeof projectTeamNewsStories.$inferInsert;

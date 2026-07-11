@@ -15,7 +15,6 @@ const baseRow = (
   teamName: overrides.teamName ?? null,
   roleId: overrides.roleId ?? null,
   assignmentPct: overrides.assignmentPct ?? 50,
-  assignedMonth: overrides.assignedMonth ?? null,
   validFrom: overrides.validFrom ?? new Date("2026-07-01T00:00:00Z"),
   validTo: overrides.validTo ?? null,
   createdByUserId: overrides.createdByUserId ?? "user-1",

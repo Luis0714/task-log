@@ -8,20 +8,6 @@ const isoDate = z
 
 const isoDateAny = isoDate;
 
-const workingDayDecisionItemSchema = z.object({
-  date: isoDate,
-  decision: z.enum(["habil_con_observacion", "no_habil"]),
-  observation: z.string().trim().max(2000).nullable().optional(),
-});
-
-export const workingDayDecisionsSchema = z
-  .array(workingDayDecisionItemSchema)
-  .max(4000);
-
-export type WorkingDayDecisionsPayload = z.infer<
-  typeof workingDayDecisionsSchema
->;
-
 const baseBody = z.object({
   personAdoId: z.string().trim().min(1, ASSIGNMENT_ERROR_CODES.personRequired),
   personDisplayName: z.string().trim().min(1),
@@ -39,32 +25,43 @@ const baseBody = z.object({
     .int(ASSIGNMENT_ERROR_CODES.pctInteger)
     .min(1, ASSIGNMENT_ERROR_CODES.pctRange)
     .max(100, ASSIGNMENT_ERROR_CODES.pctRange),
-  assignedMonth: z
-    .string()
-    .regex(/^\d{4}-\d{2}$/, "Formato YYYY-MM.")
-    .nullable()
-    .optional(),
   validFrom: isoDateAny,
   validTo: z
     .union([isoDate, z.literal(""), z.null()])
     .optional()
     .transform((v) => (v == null || v === "" ? null : v)),
-  workingDayDecisions: workingDayDecisionsSchema.optional(),
 });
 
-export const createAssignmentBodySchema = baseBody
-  .refine(
-    (data) => {
-      if (!data.validTo) return true;
-      return new Date(data.validTo).getTime() >= new Date(data.validFrom).getTime();
-    },
-    {
-      message: ASSIGNMENT_ERROR_CODES.endBeforeStart,
-      path: ["validTo"],
-    },
-  );
+export const createAssignmentBodySchema = baseBody.refine(
+  (data) => {
+    if (!data.validTo) return true;
+    return new Date(data.validTo).getTime() >= new Date(data.validFrom).getTime();
+  },
+  {
+    message: ASSIGNMENT_ERROR_CODES.endBeforeStart,
+    path: ["validTo"],
+  },
+);
 
 export type CreateAssignmentBody = z.infer<typeof createAssignmentBodySchema>;
+
+/**
+ * Edición inline de una asignación. Todos los campos son opcionales; sólo se
+ * aplican los que vengan. Si la fecha de inicio cambia, el backend cierra la
+ * vigencia anterior (`valid_to = newStart - 1`) y crea una nueva.
+ */
+export const editAssignmentBodySchema = z.object({
+  projectId: z.string().trim().max(128).optional(),
+  projectName: z.string().trim().max(256).optional(),
+  teamId: z.string().trim().max(128).nullable().optional(),
+  teamName: z.string().trim().max(256).nullable().optional(),
+  roleId: z.string().uuid(ASSIGNMENT_ERROR_CODES.roleRequired).nullable().optional(),
+  assignmentPct: baseBody.shape.assignmentPct.optional(),
+  validFrom: isoDateAny.optional(),
+  validTo: baseBody.shape.validTo,
+});
+
+export type EditAssignmentBody = z.infer<typeof editAssignmentBodySchema>;
 
 export const changeAssignmentBodySchema = z.object({
   newAssignmentPct: baseBody.shape.assignmentPct,
@@ -95,7 +92,6 @@ export type UpdateAssignmentPctBody = z.infer<
 export const assignmentFilterSchema = z.object({
   personAdoId: z.string().trim().optional(),
   projectId: z.string().trim().optional(),
-  status: z.enum(["vigente", "historica", "todas"]).optional(),
 });
 
 export type AssignmentFilterSchema = z.infer<typeof assignmentFilterSchema>;

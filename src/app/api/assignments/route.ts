@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { assignmentRowToDto } from "@/lib/assignments/build-assignment-row";
 import {
   ASSIGNMENT_ERROR_CODES,
   ASSIGNMENT_HTTP_STATUS,
@@ -8,7 +9,6 @@ import {
   type AssignmentErrorKey,
   isAssignmentErrorKey,
 } from "@/lib/assignments/error-codes";
-import { assignmentRowToDto } from "@/lib/assignments/build-assignment-row";
 import { validateNewAssignment } from "@/lib/assignments/validate-new-assignment";
 import {
   checkOverAllocation,
@@ -68,7 +68,6 @@ export async function GET(req: Request) {
   const parsedFilter = assignmentFilterSchema.safeParse({
     personAdoId: url.searchParams.get("personAdoId") ?? undefined,
     projectId: url.searchParams.get("projectId") ?? undefined,
-    status: url.searchParams.get("status") ?? undefined,
   });
   if (!parsedFilter.success) {
     return NextResponse.json(
@@ -78,10 +77,9 @@ export async function GET(req: Request) {
   }
 
   try {
-    const rows = await getRepositories().personProjectAssignment.listWithRoles({
-      ...parsedFilter.data,
-      status: parsedFilter.data.status ?? "todas",
-    });
+    const rows = await getRepositories().personProjectAssignment.listWithRoles(
+      parsedFilter.data,
+    );
     return NextResponse.json({
       assignments: rows.map(assignmentRowToDto),
     });
@@ -95,7 +93,6 @@ export async function GET(req: Request) {
 
 type PersonToAssign = { adoId: string; displayName: string };
 
-/** Convierte filas de asignación en ítems para el cálculo de sobreasignación. */
 function toAllocationItems(rows: PersonProjectAssignmentRow[]): AllocationItem[] {
   return rows.map((r) => ({
     projectName: r.projectName,
@@ -120,7 +117,12 @@ function resolveAssignees(
     if (data.personAdoIds.length === 1) {
       const single = data.personAdoIds[0];
       const match = members.find((m) => m.id === single);
-      return [{ adoId: single, displayName: match?.displayName ?? data.personDisplayName }];
+      return [
+        {
+          adoId: single,
+          displayName: match?.displayName ?? data.personDisplayName,
+        },
+      ];
     }
     return data.personAdoIds.map((adoId) => {
       const match = members.find((m) => m.id === adoId);
@@ -145,13 +147,19 @@ export async function POST(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: USER_MESSAGES.invalidJsonBody }, { status: 400 });
+    return NextResponse.json(
+      { error: USER_MESSAGES.invalidJsonBody },
+      { status: 400 },
+    );
   }
 
   const parsed = createAssignmentBodySchema.safeParse(body);
   if (!parsed.success) {
-    const firstCode = parsed.error.issues[0]?.message as AssignmentErrorCode | undefined;
-    const safeCode: AssignmentErrorCode = firstCode ?? ASSIGNMENT_ERROR_CODES.roleRequired;
+    const firstCode = parsed.error.issues[0]?.message as
+      | AssignmentErrorCode
+      | undefined;
+    const safeCode: AssignmentErrorCode =
+      firstCode ?? ASSIGNMENT_ERROR_CODES.roleRequired;
     return failResponse(codeToKey(safeCode), safeCode);
   }
 
@@ -160,13 +168,11 @@ export async function POST(req: Request) {
     parsed.data.personAdoIds.length > 1;
 
   let membersForNames: { id: string; displayName: string }[] = [];
-  if (
-    isBulk &&
-    parsed.data.teamId &&
-    parsed.data.projectId
-  ) {
+  if (isBulk && parsed.data.teamId && parsed.data.projectId) {
     try {
-      const { loadTeamMembers } = await import("@/lib/filters/load-team-members");
+      const { loadTeamMembers } = await import(
+        "@/lib/filters/load-team-members"
+      );
       membersForNames = await loadTeamMembers({
         project: parsed.data.projectName,
         team: parsed.data.teamName ?? "",
@@ -242,7 +248,6 @@ export async function POST(req: Request) {
         teamName: parsed.data.teamName ?? null,
         roleId: parsed.data.roleId ?? null,
         assignmentPct: parsed.data.assignmentPct,
-        assignedMonth: parsed.data.assignedMonth ?? null,
         validFrom: new Date(parsed.data.validFrom),
         validTo: parsed.data.validTo ? new Date(parsed.data.validTo) : null,
         createdByUserId: auth.userId,

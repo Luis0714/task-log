@@ -11,12 +11,13 @@ import {
   type AssignmentErrorKey,
   isAssignmentErrorKey,
 } from "@/lib/assignments/error-codes";
+import { splitAssignmentOnChange } from "@/lib/assignments/split-on-change";
 import { validateNewAssignment } from "@/lib/assignments/validate-new-assignment";
 import { checkOverAllocation } from "@/lib/assignments/over-allocation";
 import { endOfDay, startOfDay } from "@/lib/assignments/is-assignment-open";
 import { getRepositories } from "@/lib/db";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
-import { updateAssignmentPctBodySchema } from "@/lib/schemas/assignments";
+import { editAssignmentBodySchema } from "@/lib/schemas/assignments";
 import { requireManagementUser } from "@/app/api/assignments/helpers";
 
 export const dynamic = "force-dynamic";
@@ -31,8 +32,28 @@ function codeToKey(code: AssignmentErrorCode): AssignmentErrorKey {
 function notFound() {
   const key: AssignmentErrorKey = "notFound";
   return NextResponse.json(
-    { error: ASSIGNMENT_USER_MESSAGES[key], code: ASSIGNMENT_ERROR_CODES.notFound },
+    {
+      error: ASSIGNMENT_USER_MESSAGES[key],
+      code: ASSIGNMENT_ERROR_CODES.notFound,
+    },
     { status: ASSIGNMENT_HTTP_STATUS[key] },
+  );
+}
+
+/**
+ * ¿El PATCH requiere un split? Sí si cambia fecha de inicio o cualquier
+ * campo no-% (proyecto, equipo, rol) o si cambia el %. Un cambio de sólo
+ * `validTo` no requiere split.
+ */
+function needsSplit(
+  body: { validFrom?: string; projectId?: string; teamId?: string | null; roleId?: string | null; assignmentPct?: number },
+): boolean {
+  return Boolean(
+    body.validFrom ||
+      body.projectId ||
+      body.teamId !== undefined ||
+      body.roleId !== undefined ||
+      typeof body.assignmentPct === "number",
   );
 }
 
@@ -46,20 +67,28 @@ export async function PATCH(
   }
   const { id } = await params;
   if (!id) {
-    return NextResponse.json({ error: USER_MESSAGES.invalidPayload }, { status: 400 });
+    return NextResponse.json(
+      { error: USER_MESSAGES.invalidPayload },
+      { status: 400 },
+    );
   }
 
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: USER_MESSAGES.invalidJsonBody }, { status: 400 });
+    return NextResponse.json(
+      { error: USER_MESSAGES.invalidJsonBody },
+      { status: 400 },
+    );
   }
 
-  const parsed = updateAssignmentPctBodySchema.safeParse(body);
+  const parsed = editAssignmentBodySchema.safeParse(body);
   if (!parsed.success) {
     const raw = parsed.error.issues[0]?.message;
-    const code = (typeof raw === "string" ? raw : ASSIGNMENT_ERROR_CODES.pctRange) as AssignmentErrorCode;
+    const code = (typeof raw === "string"
+      ? raw
+      : ASSIGNMENT_ERROR_CODES.pctRange) as AssignmentErrorCode;
     const key = codeToKey(code);
     return NextResponse.json(
       { error: ASSIGNMENT_USER_MESSAGES[key], code },
@@ -71,22 +100,67 @@ export async function PATCH(
   const existing = await repo.findById(id);
   if (!existing) return notFound();
 
-  // Validar que el nuevo % no genere sobreasignación GLOBAL: se consideran
-  // todas las vigencias de la persona que se cruzan en el tiempo con esta
-  // (en cualquier proyecto), excluyendo la propia fila.
+  // Sólo se modifica validTo: cierre manual directo (sin split).
+  if (
+    !needsSplit(parsed.data) &&
+    parsed.data.validTo
+  ) {
+    try {
+      await repo.updateEnd({ id, validTo: new Date(parsed.data.validTo) });
+      const enriched = await repo.findByIdWithRole(id);
+      if (!enriched) {
+        return NextResponse.json(
+          { error: "No pudimos actualizar la asignación." },
+          { status: 500 },
+        );
+      }
+      return NextResponse.json({ assignment: assignmentRowToDto(enriched) });
+    } catch {
+      return NextResponse.json(
+        { error: "No pudimos actualizar la asignación." },
+        { status: 500 },
+      );
+    }
+  }
+
+  // Para todo cambio que afecte vigencia/proyecto/equipo/rol/%: split.
+  const newStart = parsed.data.validFrom
+    ? new Date(parsed.data.validFrom)
+    : existing.validFrom;
+
+  const newProject = parsed.data.projectId ?? existing.projectId;
+  const newProjectName = parsed.data.projectName ?? existing.projectName;
+  const newTeamId =
+    parsed.data.teamId !== undefined
+      ? parsed.data.teamId
+      : existing.teamId ?? null;
+  const newTeamName =
+    parsed.data.teamName !== undefined
+      ? parsed.data.teamName
+      : existing.teamName ?? null;
+  const newRoleId =
+    parsed.data.roleId !== undefined ? parsed.data.roleId : existing.roleId;
+  const newPct = parsed.data.assignmentPct ?? existing.assignmentPct;
+
+  // Valida suma 100% sobre la nueva configuración frente a otras
+  // excepciones vigentes de la persona (excluyendo la actual).
   const overlapping = await repo.listOverlappingForPerson({
     personAdoId: existing.personAdoId,
     from: existing.validFrom,
     to: existing.validTo ?? null,
     excludeAssignmentId: id,
   });
+  const candidateValidTo =
+    parsed.data.validTo && parsed.data.validTo !== ""
+      ? new Date(parsed.data.validTo)
+      : null;
   const validation = validateNewAssignment({
     candidate: {
-      projectId: existing.projectId,
-      teamId: existing.teamId ?? null,
-      validFrom: existing.validFrom,
-      validTo: existing.validTo ?? null,
-      assignmentPct: parsed.data.assignmentPct,
+      projectId: newProject,
+      teamId: newTeamId,
+      validFrom: newStart,
+      validTo: candidateValidTo,
+      assignmentPct: newPct,
     },
     overlapping,
   });
@@ -102,11 +176,11 @@ export async function PATCH(
           toMs: r.validTo ? endOfDay(r.validTo).getTime() : null,
         })),
         candidate: {
-          fromMs: startOfDay(existing.validFrom).getTime(),
-          toMs: existing.validTo ? endOfDay(existing.validTo).getTime() : null,
-          pct: parsed.data.assignmentPct,
-          projectName: existing.projectName,
-          teamName: existing.teamName,
+          fromMs: startOfDay(newStart).getTime(),
+          toMs: candidateValidTo ? endOfDay(candidateValidTo).getTime() : null,
+          pct: newPct,
+          projectName: newProjectName,
+          teamName: newTeamName,
         },
       });
       return NextResponse.json(
@@ -131,8 +205,18 @@ export async function PATCH(
   }
 
   try {
-    await repo.updatePct({ id, assignmentPct: parsed.data.assignmentPct });
-    const enriched = await repo.findByIdWithRole(id);
+    const { created } = await splitAssignmentOnChange(repo, {
+      existing,
+      newValidFrom: newStart,
+      newAssignmentPct: newPct,
+      newRoleId: newRoleId ?? null,
+      newProjectId: newProject,
+      newProjectName,
+      newTeamId,
+      newTeamName,
+      createdByUserId: auth.userId,
+    });
+    const enriched = await repo.findByIdWithRole(created.id);
     if (!enriched) {
       return NextResponse.json(
         { error: "No pudimos actualizar la asignación." },
@@ -158,7 +242,10 @@ export async function DELETE(
   }
   const { id } = await params;
   if (!id) {
-    return NextResponse.json({ error: USER_MESSAGES.invalidPayload }, { status: 400 });
+    return NextResponse.json(
+      { error: USER_MESSAGES.invalidPayload },
+      { status: 400 },
+    );
   }
 
   const repo = getRepositories().personProjectAssignment;

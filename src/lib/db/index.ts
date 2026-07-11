@@ -34,20 +34,20 @@ export type {
 export {
   adoAuthMethodEnum,
   adoConnections,
-  assignmentWorkingDayDecisions,
   personProjectAssignments,
+  projectTeamNewsStories,
   userAuthProviderEnum,
   userFilterPreferences,
   projectConfigurations,
   users,
   type AdoConnection,
-  type AssignmentWorkingDayDecision,
-  type NewAssignmentWorkingDayDecision,
   type NewAdoConnection,
   type NewUser,
   type NewUserFilterPreferences,
   type PersonProjectAssignment,
   type NewPersonProjectAssignment,
+  type ProjectTeamNewsStory,
+  type NewProjectTeamNewsStory,
   type User,
   type UserFilterPreferences,
   type ProjectConfiguration,
@@ -57,9 +57,18 @@ export {
 export type {
   AssignmentFilter,
   CreateAssignmentInput,
+  InferredDefaultAssignmentRow,
+  InferredDefaultsInput,
   PersonProjectAssignmentNotFoundError,
   PersonProjectAssignmentRepository,
   PersonProjectAssignmentRow,
   PersonProjectAssignmentWithRole,
   UpdateAssignmentEndInput,
+  UpdateAssignmentPctInput,
 } from "@/lib/db/ports/person-project-assignment.repository.port";
+
+export type {
+  CreateNewsStoryInput,
+  NewsStoriesFilter,
+  NewsStoriesRepository,
+} from "@/lib/db/ports/news-stories.repository.port";

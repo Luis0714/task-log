@@ -1,7 +1,7 @@
 import "client-only";
 
 import type { AssignmentDto } from "@/lib/assignments/build-assignment-row";
-import type { WorkingDayDecisionDto } from "@/services/assignments/working-day-decisions.service";
+import type { InferredDefaultAssignmentRow } from "@/lib/db";
 
 export type AssignmentRoleOption = {
   id: string;
@@ -12,8 +12,9 @@ export type AssignmentRoleOption = {
 export type AssignmentFilter = {
   personAdoId?: string;
   projectId?: string;
-  status?: "vigente" | "historica" | "todas";
 };
+
+export type InferredAssignmentDto = InferredDefaultAssignmentRow;
 
 export type CreateAssignmentPayload = {
   personAdoId: string;
@@ -24,22 +25,30 @@ export type CreateAssignmentPayload = {
   teamName?: string | null;
   roleId?: string | null;
   assignmentPct: number;
-  assignedMonth?: string | null;
   validFrom: string;
-  validTo: string | null;
+  validTo?: string | null;
   /**
-   * Cuando está definido y tiene más de un ID, la API crea una asignación
-   * por cada persona (modo "Todos"). El primer elemento debe ser el ID
-   * de la persona fija para mantener compatibilidad hacia atrás.
+   * Cuando hay varios IDs, la API crea una asignación por persona.
+   * El primer elemento debe ir también en `personAdoId` por compatibilidad.
    */
   personAdoIds?: string[];
-  workingDayDecisions?: WorkingDayDecisionDto[];
 };
 
 export type ChangeAssignmentPayload = {
   newAssignmentPct: number;
   newRoleId?: string | null;
   validFrom: string;
+};
+
+export type EditAssignmentPayload = {
+  projectId?: string;
+  projectName?: string;
+  teamId?: string | null;
+  teamName?: string | null;
+  roleId?: string | null;
+  assignmentPct?: number;
+  validFrom?: string;
+  validTo?: string | null;
 };
 
 export type CloseAssignmentPayload = {
@@ -50,11 +59,6 @@ export type AdoTeamMember = {
   id: string;
   displayName: string;
   uniqueName: string;
-};
-
-export type AssignmentDefaultContext = {
-  project: { id: string; name: string } | null;
-  team: { id: string; name: string } | null;
 };
 
 export type AssignmentErrorPayload = {
@@ -82,7 +86,6 @@ function toQuery(filter: AssignmentFilter): string {
   const params = new URLSearchParams();
   if (filter.personAdoId) params.set("personAdoId", filter.personAdoId);
   if (filter.projectId) params.set("projectId", filter.projectId);
-  if (filter.status) params.set("status", filter.status);
   const q = params.toString();
   return q ? `?${q}` : "";
 }
@@ -141,6 +144,27 @@ export async function createAssignment(
   return { createdCount: 0, assignments: [] };
 }
 
+export async function editAssignment(
+  id: string,
+  input: EditAssignmentPayload,
+): Promise<AssignmentDto> {
+  const res = await fetch(`/api/assignments/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const err = await parseError(res);
+    throw Object.assign(new Error(err.error), {
+      code: err.code,
+      currentTotal: err.currentTotal,
+      conflictingPct: err.conflictingPct,
+    });
+  }
+  const body = (await res.json()) as { assignment: AssignmentDto };
+  return body.assignment;
+}
+
 export async function changeAssignment(
   id: string,
   input: ChangeAssignmentPayload,
@@ -183,21 +207,7 @@ export async function updateAssignmentPct(
   id: string,
   assignmentPct: number,
 ): Promise<AssignmentDto> {
-  const res = await fetch(`/api/assignments/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ assignmentPct }),
-  });
-  if (!res.ok) {
-    const err = await parseError(res);
-    throw Object.assign(new Error(err.error), {
-      code: err.code,
-      currentTotal: err.currentTotal,
-      conflictingPct: err.conflictingPct,
-    });
-  }
-  const body = (await res.json()) as { assignment: AssignmentDto };
-  return body.assignment;
+  return editAssignment(id, { assignmentPct });
 }
 
 export async function deleteAssignment(id: string): Promise<void> {
@@ -235,3 +245,18 @@ export async function listTeamMembersByProjectAndTeam(
   return body.members;
 }
 
+export async function listInferredDefaults(
+  slots: InferredAssignmentDto[],
+): Promise<InferredAssignmentDto[]> {
+  const res = await fetch("/api/assignments/inferred-defaults", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ members: slots }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error((await parseError(res)).error);
+  }
+  const body = (await res.json()) as { defaults: InferredAssignmentDto[] };
+  return body.defaults;
+}
