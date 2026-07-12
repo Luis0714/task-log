@@ -293,4 +293,46 @@ describe("buildHoursReport", () => {
       ),
     ).rejects.toThrow("Nager.Date caído");
   });
+
+  it("persona con asignación en BD fuera del periodo → no queda 'Sin configurar' (BD rige)", async () => {
+    // Caso del cliente: persona con excepción en BD cuya vigencia NO se
+    // cruza con el periodo (vigencia futura). Antes del fix esto caía en
+    // `expectedHours = 0` y se mostraba "Sin configurar" en % Cumplimiento.
+    // Ahora la asignación de BD rige: el % de la más reciente se aplica
+    // sobre todo el periodo.
+    const futureAssignment = makeAssignment({
+      personAdoId: "user-1",
+      personDisplayName: "Juan Pérez",
+      assignmentPct: 50,
+      // Vigencia futura: empieza agosto, fuera del periodo de junio.
+      validFrom: new Date("2026-08-01"),
+      validTo: null,
+    });
+
+    const result = await buildHoursReport(
+      {
+        scopes: [makeScope()],
+        period: { kind: "month", monthKey: "2026-06" },
+      },
+      {
+        auth: fakeAuth,
+        assignmentRepo: makeFakeAssignmentRepo([futureAssignment]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+        listTasks: async () => [
+          makeTask({ id: 1, loggedHours: 80, parentId: 500 }),
+        ],
+        listBugs: async () => [],
+        listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
+        now: fixedNow,
+      },
+    );
+
+    const row = result.rows[0];
+    // % Cumplimiento debe estar calculado, NO null (no "Sin configurar").
+    expect(row.compliancePct).not.toBeNull();
+    expect(row.semaforo).not.toBeNull();
+    expect(row.expectedHours).toBeGreaterThan(0);
+    // % Asignación refleja la excepción de BD.
+    expect(row.assignmentPct).toEqual({ kind: "exception", weightedPct: 50 });
+  });
 });

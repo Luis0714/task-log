@@ -1,5 +1,3 @@
-import { AlertTriangle } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -14,7 +12,6 @@ export function ReportsTimeLogStaleBanner({
 }: Readonly<ReportsTimeLogStaleBannerProps>) {
   return (
     <Alert>
-      <AlertTriangle className="size-4" aria-hidden />
       <AlertTitle>Reporte desactualizado</AlertTitle>
       <AlertDescription className="flex items-center justify-between gap-4">
         <span>Cambiaste los filtros. Regenera el reporte para ver los datos actualizados.</span>

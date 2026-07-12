@@ -16,6 +16,7 @@ import {
 } from "@/components/reports/time-log/reports-time-log-table";
 import { useHoursReport } from "@/hooks/reports/use-hours-report";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
+import { normalizePersonName } from "@/lib/filters/person-name";
 import { appToast } from "@/lib/toast";
 import type {
   HoursReportExcelQuerySchema,
@@ -71,6 +72,7 @@ export function ReportsTimeLogContent({
   const [rangeTo, setRangeTo] = useState<string>(todayIso());
   const [projectIds, setProjectIds] = useState<string[]>(initialScopes.projectIds);
   const [teamIds, setTeamIds] = useState<string[]>(initialScopes.teamIds);
+  const [nameFilter, setNameFilter] = useState<string>("");
   const [downloadingExcel, setDownloadingExcel] = useState(false);
 
   const hoursReport = useHoursReport();
@@ -88,21 +90,54 @@ export function ReportsTimeLogContent({
     [catalog.teams],
   );
 
+  /**
+   * Construye el payload del reporte. Acepta overrides para que los handlers
+   * de filtros (projects/teams/period) puedan pasar el valor NUEVO
+   * directamente al `markStale`. Si no se pasa override, usa el estado actual
+   * capturado en el closure — importante para que `markStale` detecte cambios
+   * de projects/teams (antes el closure tenía los IDs viejos y nunca marcaba
+   * stale al cambiar un proyecto o equipo).
+   */
   const buildPayload = useCallback(
-    (nextPeriod: HoursReportPeriodSchema): HoursReportRequestSchema => ({
-      period: nextPeriod,
-      scopes: {
-        projectIds: projectIds.length > 0 ? projectIds : allProjectNames,
-        teamIds: teamIds.length > 0 ? teamIds : allTeamNames,
-      },
-    }),
-    [projectIds, teamIds, allProjectNames, allTeamNames],
+    (next?: {
+      period?: HoursReportPeriodSchema;
+      projectIds?: string[];
+      teamIds?: string[];
+    }): HoursReportRequestSchema => {
+      const periodValue = next?.period ?? period;
+      const projectIdsValue = next?.projectIds ?? projectIds;
+      const teamIdsValue = next?.teamIds ?? teamIds;
+      return {
+        period: periodValue,
+        scopes: {
+          projectIds: projectIdsValue.length > 0 ? projectIdsValue : allProjectNames,
+          teamIds: teamIdsValue.length > 0 ? teamIdsValue : allTeamNames,
+        },
+      };
+    },
+    [period, projectIds, teamIds, allProjectNames, allTeamNames],
   );
 
   const payload = useMemo(
-    () => buildPayload(period),
-    [buildPayload, period],
+    () => buildPayload(),
+    [buildPayload],
   );
+
+  const allRows = useMemo(
+    () => hoursReport.result?.rows ?? [],
+    [hoursReport.result],
+  );
+  const filteredRows = useMemo(() => {
+    const query = normalizePersonName(nameFilter);
+    if (!query) return allRows;
+    return allRows.filter((row) =>
+      normalizePersonName(row.personDisplayName).includes(query),
+    );
+  }, [allRows, nameFilter]);
+
+  const onNameFilterChange = useCallback((value: string) => {
+    setNameFilter(value);
+  }, []);
 
   const onGenerate = useCallback(async () => {
     await hoursReport.generate(payload);
@@ -110,7 +145,7 @@ export function ReportsTimeLogContent({
 
   const markStaleNow = useCallback(
     (nextPeriod: HoursReportPeriodSchema) => {
-      hoursReport.markStale(buildPayload(nextPeriod));
+      hoursReport.markStale(buildPayload({ period: nextPeriod }));
     },
     [hoursReport, buildPayload],
   );
@@ -184,17 +219,19 @@ export function ReportsTimeLogContent({
   const onProjectIdsChange = useCallback(
     (ids: string[]) => {
       setProjectIds(ids);
-      markStaleNow(period);
+      // Pasamos los IDs nuevos al markStale para que la comparación detecte
+      // el cambio (con el closure solo teníamos los IDs anteriores).
+      hoursReport.markStale(buildPayload({ projectIds: ids }));
     },
-    [markStaleNow, period],
+    [hoursReport, buildPayload],
   );
 
   const onTeamIdsChange = useCallback(
     (ids: string[]) => {
       setTeamIds(ids);
-      markStaleNow(period);
+      hoursReport.markStale(buildPayload({ teamIds: ids }));
     },
-    [markStaleNow, period],
+    [hoursReport, buildPayload],
   );
 
   const onExportExcel = useCallback(async () => {
@@ -242,6 +279,8 @@ export function ReportsTimeLogContent({
         rangeTo={rangeTo}
         selectedProjectIds={projectIds}
         selectedTeamIds={teamIds}
+        nameFilter={nameFilter}
+        isStale={hoursReport.status === "stale"}
         onPeriodChange={(kind) => (kind === "month" ? switchToMonth() : switchToRange())}
         onYearChange={onYearChange}
         onMonthKeyChange={onMonthKeyChange}
@@ -249,12 +288,17 @@ export function ReportsTimeLogContent({
         onRangeToChange={onRangeToChange}
         onProjectIdsChange={onProjectIdsChange}
         onTeamIdsChange={onTeamIdsChange}
+        onNameFilterChange={onNameFilterChange}
         onGenerate={onGenerate}
         generating={hoursReport.status === "generating"}
         payload={payload}
         exportButton={
           showExport ? (
-            <Button onClick={() => void onExportExcel()} disabled={downloadingExcel}>
+            <Button
+              variant="default"
+              onClick={() => void onExportExcel()}
+              disabled={downloadingExcel}
+            >
               {downloadingExcel ? (
                 <>
                   <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -286,7 +330,7 @@ export function ReportsTimeLogContent({
       ) : (
         <>
           {showEmpty ? <ReportsTimeLogEmptyState /> : null}
-          <ReportsTimeLogTable rows={hoursReport.result?.rows ?? []} />
+          <ReportsTimeLogTable rows={filteredRows} />
         </>
       )}
     </div>

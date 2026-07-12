@@ -37,7 +37,7 @@ describe("resolveAssignmentSegments", () => {
     expect(segments).toEqual([{ pct: 50, from: "2026-07-01", to: null }]);
   });
 
-  it("asignación cerrada antes del periodo → descartada", () => {
+  it("asignación cerrada antes del periodo → fallback al % de la más reciente (BD rige)", () => {
     const segments = resolveAssignmentSegments({
       assignments: [
         { assignmentPct: 50, validFrom: "2026-05-01", validTo: "2026-05-31" },
@@ -46,10 +46,12 @@ describe("resolveAssignmentSegments", () => {
       periodEnd: "2026-07-31",
       hasInferredDefault: false,
     });
-    expect(segments).toEqual([]);
+    expect(segments).toEqual([
+      { pct: 50, from: "2026-07-01", to: null },
+    ]);
   });
 
-  it("asignación que inicia después del periodo → descartada", () => {
+  it("asignación que inicia después del periodo → fallback al % de la más reciente (BD rige)", () => {
     const segments = resolveAssignmentSegments({
       assignments: [
         { assignmentPct: 50, validFrom: "2026-08-01", validTo: null },
@@ -58,7 +60,26 @@ describe("resolveAssignmentSegments", () => {
       periodEnd: "2026-07-31",
       hasInferredDefault: false,
     });
-    expect(segments).toEqual([]);
+    expect(segments).toEqual([
+      { pct: 50, from: "2026-07-01", to: null },
+    ]);
+  });
+
+  it("varias asignaciones, ninguna se cruza con el periodo → fallback al % de la más reciente", () => {
+    // Vigencias todas fuera del periodo: histórica (cerrada) + futura.
+    // La asignación de BD debe regir ⇒ usamos la más reciente (la futura al 80%).
+    const segments = resolveAssignmentSegments({
+      assignments: [
+        { assignmentPct: 50, validFrom: "2026-05-01", validTo: "2026-05-31" },
+        { assignmentPct: 80, validFrom: "2026-08-15", validTo: null },
+      ],
+      periodStart: "2026-07-01",
+      periodEnd: "2026-07-31",
+      hasInferredDefault: false,
+    });
+    expect(segments).toEqual([
+      { pct: 80, from: "2026-07-01", to: null },
+    ]);
   });
 
   it("dos tramos consecutivos devueltos ordenados por fecha", () => {

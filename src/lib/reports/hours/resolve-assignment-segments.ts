@@ -13,6 +13,19 @@ export type ResolveAssignmentSegmentsArgs = {
   hasInferredDefault: boolean;
 };
 
+/**
+ * Resuelve los tramos de asignación aplicables al periodo.
+ *
+ * Reglas:
+ * - Sin asignaciones y sin default inferido → sin tramos ("Sin configurar").
+ * - Sin asignaciones pero con default inferido → 100% en la totalidad del
+ *   periodo.
+ * - Con asignaciones → se filtran las que se cruzan con el periodo; si
+ *   ninguna se cruza, se usa el % de la más reciente cubriendo la totalidad
+ *   del periodo (la asignación en BD rige, anula "Sin configurar" — decisión
+ *   del usuario: "si la persona tiene asignación en BD, esa es la que
+ *   rige").
+ */
 export function resolveAssignmentSegments(
   args: ResolveAssignmentSegmentsArgs,
 ): AssignmentSegment[] {
@@ -36,6 +49,18 @@ export function resolveAssignmentSegments(
       from: a.validFrom,
       to: a.validTo,
     });
+  }
+
+  if (segments.length === 0) {
+    // La persona tiene excepción en BD pero ningún tramo cae dentro del
+    // periodo (vigencia futura o ya vencida). La asignación de BD gobierna:
+    // aplicamos su % más reciente como tramo único cubriendo la totalidad
+    // del periodo para que el reporte calcule y nunca quede "Sin
+    // configurar".
+    const mostRecent = [...assignments].sort((x, y) =>
+      x.validFrom.localeCompare(y.validFrom),
+    ).at(-1)!;
+    return [{ pct: mostRecent.assignmentPct, from: periodStart, to: null }];
   }
 
   return segments.sort((x, y) => x.from.localeCompare(y.from));
