@@ -87,8 +87,10 @@ describe("buildHoursReport", () => {
     expect(result.alerts.find((a) => a.kind === "news_not_configured")).toBeUndefined();
   });
 
-  it("persona sin asignar → fila con assignmentPct unconfigured + alerta", async () => {
-    const task = makeTask({ id: 1, assignedTo: "Sin Asignar", loggedHours: 8, parentId: undefined });
+  it("solo salen las personas del roster/excepciones, no los asignados de tasks ajenos", async () => {
+    // "Ana Gómez" es miembro del equipo; "Externo X" reportó trabajo pero no
+    // está en el roster ni tiene excepción → NO debe aparecer (paridad con
+    // la pantalla de Asignaciones, misma fuente de personas).
     const result = await buildHoursReport(
       {
         scopes: [makeScope()],
@@ -98,18 +100,24 @@ describe("buildHoursReport", () => {
         auth: fakeAuth,
         assignmentRepo: makeFakeAssignmentRepo([]),
         newsStoriesRepo: makeFakeNewsStoriesRepo([]),
-        listTasks: async () => [task],
+        listTasks: async () => [
+          makeTask({ id: 1, assignedTo: "Ana Gómez", loggedHours: 8, parentId: 500 }),
+          makeTask({ id: 2, assignedTo: "Externo X", loggedHours: 8, parentId: 501 }),
+        ],
         listBugs: async () => [],
         fetchUserStories: (async () => []) as never,
         listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
+        loadTeamMembers: async () => [
+          { personAdoId: "user-ana", personDisplayName: "Ana Gómez" },
+        ],
         now: fixedNow,
       },
     );
 
-    expect(result.rows.length).toBe(1);
-    expect(result.rows[0].assignmentPct).toEqual({ kind: "unconfigured" });
-    expect(result.rows[0].expectedHours).toBe(0);
-    expect(result.alerts.find((a) => a.kind === "unconfigured_person")).toBeDefined();
+    expect(result.rows.map((r) => r.personDisplayName)).toEqual(["Ana Gómez"]);
+    expect(result.rows[0].assignmentPct).toEqual({ kind: "default" });
+    expect(result.rows[0].developmentHours).toBeGreaterThan(0);
+    expect(result.alerts.find((a) => a.kind === "unconfigured_person")).toBeUndefined();
   });
 
   it("miembro del equipo sin excepción → 100% por defecto, sin alerta (CA-18)", async () => {
@@ -140,8 +148,41 @@ describe("buildHoursReport", () => {
     expect(result.alerts.find((a) => a.kind === "unconfigured_person")).toBeUndefined();
   });
 
-  it("no-miembro con trabajo reportado → sigue 'Sin configurar' (CA-29)", async () => {
-    const task = makeTask({ id: 1, assignedTo: "Externo X", loggedHours: 8, parentId: 500 });
+  it("excepción con nombre distinto al roster no duplica: 1 fila por adoId", async () => {
+    // El roster trae "José Pérez"; la excepción en BD tiene el mismo adoId pero
+    // el nombre sin tildes. Debe salir UNA sola fila (clave = personAdoId).
+    const result = await buildHoursReport(
+      {
+        scopes: [makeScope()],
+        period: { kind: "month", monthKey: "2026-06" },
+      },
+      {
+        auth: fakeAuth,
+        assignmentRepo: makeFakeAssignmentRepo([
+          makeAssignment({
+            personAdoId: "u1",
+            personDisplayName: "Jose Perez",
+            assignmentPct: 50,
+          }),
+        ]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+        listTasks: async () => [],
+        listBugs: async () => [],
+        fetchUserStories: (async () => []) as never,
+        listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
+        loadTeamMembers: async () => [
+          { personAdoId: "u1", personDisplayName: "José Pérez" },
+        ],
+        now: fixedNow,
+      },
+    );
+
+    expect(result.rows.length).toBe(1);
+    expect(result.rows[0].personDisplayName).toBe("José Pérez");
+    expect(result.rows[0].assignmentPct).toEqual({ kind: "exception", weightedPct: 50 });
+  });
+
+  it("miembro del equipo sin trabajo reportado igual aparece (roster, CA-28)", async () => {
     const result = await buildHoursReport(
       {
         scopes: [makeScope()],
@@ -151,7 +192,7 @@ describe("buildHoursReport", () => {
         auth: fakeAuth,
         assignmentRepo: makeFakeAssignmentRepo([]),
         newsStoriesRepo: makeFakeNewsStoriesRepo([]),
-        listTasks: async () => [task],
+        listTasks: async () => [],
         listBugs: async () => [],
         fetchUserStories: (async () => []) as never,
         listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
@@ -162,9 +203,11 @@ describe("buildHoursReport", () => {
       },
     );
 
-    const row = result.rows.find((r) => r.personDisplayName === "Externo X");
-    expect(row?.assignmentPct).toEqual({ kind: "unconfigured" });
-    expect(result.alerts.find((a) => a.kind === "unconfigured_person")).toBeDefined();
+    const row = result.rows.find((r) => r.personDisplayName === "Ana Gómez");
+    expect(row?.assignmentPct).toEqual({ kind: "default" });
+    expect(row?.totalHours).toBe(0);
+    expect(row?.compliancePct).toBe(0);
+    expect(result.alerts.find((a) => a.kind === "unconfigured_person")).toBeUndefined();
   });
 
   it("scope sin HUs de novedad → alerta news_not_configured y 0 en newsHours", async () => {

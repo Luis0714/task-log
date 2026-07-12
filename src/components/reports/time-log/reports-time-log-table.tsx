@@ -7,22 +7,24 @@ type Column = {
   label: string;
   /** Clases extra para la celda (encabezado y cuerpo) de esta columna. */
   cellClassName?: string;
+  /** Alineación de la columna. Proyecto/Equipo/Usuario a la izquierda; el resto centrado. */
+  align?: "left" | "center";
 };
 
 const COLUMNS: readonly Column[] = [
-  { label: "Proyecto", cellClassName: "min-w-[12rem]" },
-  { label: "Equipo", cellClassName: "min-w-[12rem]" },
-  { label: "Usuario", cellClassName: "min-w-[14rem]" },
-  { label: "% Asignación" },
-  { label: "Días hábiles" },
-  { label: "Horas esperadas" },
-  { label: "Horas desarrollo" },
-  { label: "Horas bugs" },
-  { label: "Horas novedades" },
-  { label: "Horas totales" },
-  { label: "Cant. novedades" },
-  { label: "Detalle de novedades" },
-  { label: "% Cumplimiento" },
+  { label: "Proyecto", align: "left", cellClassName: "min-w-[12rem]" },
+  { label: "Equipo", align: "left", cellClassName: "min-w-[12rem]" },
+  { label: "Usuario", align: "left", cellClassName: "min-w-[14rem]" },
+  { label: "% Asignación", align: "center" },
+  { label: "Horas desarrollo", align: "center" },
+  { label: "Horas bugs", align: "center" },
+  { label: "Cant. novedades", align: "center" },
+  { label: "Horas novedades", align: "center" },
+  { label: "Detalle de novedades", align: "center" },
+  { label: "Días hábiles", align: "center" },
+  { label: "Horas esperadas", align: "center" },
+  { label: "Horas totales", align: "center" },
+  { label: "% Cumplimiento", align: "center" },
 ] as const;
 
 export type ReportsTimeLogTableProps = {
@@ -41,18 +43,18 @@ export function ReportsTimeLogTable({ rows }: Readonly<ReportsTimeLogTableProps>
             <td className="px-3 py-2 min-w-[12rem]">{row.projectName}</td>
             <td className="px-3 py-2 min-w-[12rem]">{row.teamName ?? "—"}</td>
             <td className="px-3 py-2 min-w-[14rem] font-medium">{row.personDisplayName}</td>
-            <td className="px-3 py-2">{formatAssignmentPct(row)}</td>
-            <td className="px-3 py-2 text-right tabular-nums">{row.workingDays}</td>
-            <td className="px-3 py-2 text-right tabular-nums">{row.expectedHours.toFixed(1)}</td>
-            <td className="px-3 py-2 text-right tabular-nums">{row.developmentHours.toFixed(1)}</td>
-            <td className="px-3 py-2 text-right tabular-nums">{row.bugHours.toFixed(1)}</td>
-            <td className="px-3 py-2 text-right tabular-nums">{row.newsHours.toFixed(1)}</td>
-            <td className="px-3 py-2 text-right tabular-nums font-semibold">{row.totalHours.toFixed(1)}</td>
-            <td className="px-3 py-2 text-right tabular-nums">{row.newsCount}</td>
-            <td className="px-3 py-2 max-w-xs whitespace-normal text-xs">
+            <td className="px-3 py-2 text-center">{formatAssignmentPct(row)}</td>
+            <td className="px-3 py-2 text-center tabular-nums">{row.developmentHours.toFixed(1)}</td>
+            <td className="px-3 py-2 text-center tabular-nums">{row.bugHours.toFixed(1)}</td>
+            <td className="px-3 py-2 text-center tabular-nums">{row.newsCount}</td>
+            <td className="px-3 py-2 text-center tabular-nums">{row.newsHours.toFixed(1)}</td>
+            <td className="px-3 py-2 max-w-xs whitespace-normal text-xs text-center">
               {row.newsCount === 0 ? "Sin novedades" : row.newsDetail || "Sin novedades"}
             </td>
-            <td className="px-3 py-2">
+            <td className="px-3 py-2 text-center tabular-nums">{row.workingDays}</td>
+            <td className="px-3 py-2 text-center tabular-nums">{row.expectedHours.toFixed(1)}</td>
+            <td className="px-3 py-2 text-center tabular-nums font-semibold">{row.totalHours.toFixed(1)}</td>
+            <td className="px-3 py-2 text-center">
               <ReportsTimeLogSemaforoBadge level={row.semaforo} pct={row.compliancePct} />
             </td>
           </tr>
@@ -96,7 +98,8 @@ function TableShell({ children }: Readonly<{ children: React.ReactNode }>) {
               <th
                 key={col.label}
                 className={cn(
-                  "px-3 py-2 text-left font-medium whitespace-nowrap",
+                  "px-3 py-2 font-medium whitespace-nowrap",
+                  col.align === "center" ? "text-center" : "text-left",
                   col.cellClassName,
                 )}
               >

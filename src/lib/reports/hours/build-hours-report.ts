@@ -1,7 +1,6 @@
 import "server-only";
 
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
-import type { AdoWorkItemOption } from "@/lib/azure-devops/work-items";
 import {
   listBugsInWorkingDateRange,
   listTasksInWorkingDateRange,
@@ -113,62 +112,65 @@ export async function buildHoursReport(
         (filters?.personAdoId === undefined || a.personAdoId === filters.personAdoId),
     );
 
+    // Las personas del reporte son EXACTAMENTE las mismas que la pantalla de
+    // Asignaciones: el roster oficial del (proyecto, equipo) más quien tenga
+    // excepción en BD. Se indexan por `personAdoId` (id estable de ADO, la MISMA
+    // clave que usa Asignaciones), no por displayName, para que el conjunto
+    // coincida y no haya duplicados por diferencias de nombre. NO se toman los
+    // asignados de tasks/bugs (quien reportó trabajo pero ya no está en el equipo
+    // no debe aparecer). Toda persona parte de 100% por defecto (D17/D18); si
+    // tiene excepción, esa rige.
     const scopeMembers = deps.loadTeamMembers ? await deps.loadTeamMembers(scope) : [];
-    const inferredDefaultRows = scopeMembers.length > 0
-      ? await deps.assignmentRepo.listInferredDefaults({
-          members: scopeMembers.map((m) => ({
-            personAdoId: m.personAdoId,
-            personDisplayName: m.personDisplayName,
-            projectId: scope.projectId,
-            projectName: scope.projectId,
-            teamId: scope.teamId,
-            teamName: scope.teamId,
-          })),
-        })
-      : [];
-    const inferredPersonNames = new Set(inferredDefaultRows.map((r) => r.personDisplayName));
 
-    const assigneesInScope = collectAssignees(tasks, bugs, scopeAssignments, inferredPersonNames);
+    const peopleById = new Map<string, { personAdoId: string; displayName: string }>();
+    for (const m of scopeMembers) {
+      peopleById.set(m.personAdoId, {
+        personAdoId: m.personAdoId,
+        displayName: m.personDisplayName,
+      });
+    }
+    for (const a of scopeAssignments) {
+      if (!peopleById.has(a.personAdoId)) {
+        peopleById.set(a.personAdoId, {
+          personAdoId: a.personAdoId,
+          displayName: a.personDisplayName,
+        });
+      }
+    }
 
-    for (const personDisplayName of assigneesInScope) {
+    for (const person of peopleById.values()) {
+      if (filters?.personAdoId && person.personAdoId !== filters.personAdoId) continue;
       const personAssignments = scopeAssignments.filter(
-        (a) => a.personDisplayName === personDisplayName,
+        (a) => a.personAdoId === person.personAdoId,
       );
       const hasException = personAssignments.length > 0;
-      const isInferredDefault = !hasException && inferredPersonNames.has(personDisplayName);
       const segments = resolveAssignmentSegments({
         assignments: toSegmentInputs(personAssignments),
         periodStart: fromIso,
         periodEnd: toIso,
-        hasInferredDefault: isInferredDefault,
+        // Sin excepción ⇒ 100% por defecto para toda persona (D17/D18, CA-18).
+        hasInferredDefault: !hasException,
       });
       const expected = computeExpectedHours(workingDays, segments);
 
       const personTasks: ReportedTask[] = tasks
-        .filter((t) => t.assignedTo === personDisplayName && t.parentId !== undefined)
+        .filter((t) => t.assignedTo === person.displayName && t.parentId !== undefined)
         .map((t) => ({ hours: t.loggedHours ?? 0, parentId: t.parentId ?? null }));
       const personBugs = bugs
-        .filter((b) => b.assignedTo === personDisplayName)
+        .filter((b) => b.assignedTo === person.displayName)
         .map((b) => ({ hours: b.loggedHours ?? 0 }));
 
       const classified = classifyReportedHours(personTasks, personBugs, newsStoryIds);
       const total = classified.developmentHours + classified.bugHours + classified.newsHours;
       const compliance = computeCompliance(total, expected.expectedHours);
 
-      if (!hasException && !isInferredDefault) {
-        alerts.push({
-          kind: "unconfigured_person",
-          message: `Persona sin asignación aplicable: ${personDisplayName}`,
-        });
-      }
-
       rows.push({
         projectId: scope.projectId,
         projectName: scope.projectId,
         teamId: scope.teamId,
         teamName: scope.teamId,
-        personDisplayName,
-        assignmentPct: buildAssignmentLabel(hasException, isInferredDefault, personAssignments),
+        personDisplayName: person.displayName,
+        assignmentPct: buildAssignmentLabel(hasException, personAssignments),
         workingDays: expected.workingDays,
         expectedHours: expected.expectedHours,
         developmentHours: classified.developmentHours,
@@ -223,31 +225,16 @@ function toIsoKey(date: Date | string): string {
   return `${y}-${m}-${d}`;
 }
 
-function collectAssignees(
-  tasks: readonly AdoWorkItemOption[],
-  bugs: readonly AdoWorkItemOption[],
-  assignments: readonly PersonProjectAssignmentRow[],
-  inferredPersonNames: ReadonlySet<string>,
-): Set<string> {
-  const set = new Set<string>();
-  for (const t of tasks) if (t.assignedTo) set.add(t.assignedTo);
-  for (const b of bugs) if (b.assignedTo) set.add(b.assignedTo);
-  for (const a of assignments) set.add(a.personDisplayName);
-  for (const name of inferredPersonNames) set.add(name);
-  return set;
-}
-
 function buildAssignmentLabel(
   hasException: boolean,
-  isInferredDefault: boolean,
   rows: readonly PersonProjectAssignmentRow[],
 ): AssignmentPctLabel {
   if (hasException) {
     const last = rows.at(-1);
     return { kind: "exception", weightedPct: last?.assignmentPct ?? 100 };
   }
-  if (isInferredDefault) return { kind: "default" };
-  return { kind: "unconfigured" };
+  // Sin excepción en BD ⇒ 100% por defecto (nunca "sin configurar").
+  return { kind: "default" };
 }
 
 async function resolveStoryInfos(

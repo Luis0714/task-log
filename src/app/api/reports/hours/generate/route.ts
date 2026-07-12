@@ -89,12 +89,20 @@ export async function POST(req: Request) {
   }
 }
 
+/**
+ * Un scope por cada par (proyecto, equipo) seleccionado. Cada equipo genera su
+ * propio scope para que el reporte incluya a los miembros de cada equipo (no
+ * solo el primero). Sin proyecto → scope comodín; sin equipo → `teamId` nulo
+ * (no se puede cargar roster, pero no rompe la generación).
+ */
 function resolveScopes(scopes: { projectIds: string[]; teamIds: string[] }): ReportedNewsScope[] {
-  if (scopes.projectIds.length === 0) {
-    return [{ projectId: "*", teamId: null }];
+  const projectIds = scopes.projectIds.length > 0 ? scopes.projectIds : ["*"];
+  const teamIds: (string | null)[] = scopes.teamIds.length > 0 ? scopes.teamIds : [null];
+  const result: ReportedNewsScope[] = [];
+  for (const projectId of projectIds) {
+    for (const teamId of teamIds) {
+      result.push({ projectId, teamId });
+    }
   }
-  return scopes.projectIds.map((projectId) => ({
-    projectId,
-    teamId: scopes.teamIds[0] ?? null,
-  }));
+  return result;
 }

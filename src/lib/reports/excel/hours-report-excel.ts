@@ -17,20 +17,20 @@ import type {
   SemaforoLevel,
 } from "@/lib/reports/hours/hours-report-types";
 
-const COL_WIDTHS = [28, 24, 28, 16, 12, 14, 14, 14, 14, 14, 16, 56, 16] as const;
+const COL_WIDTHS = [28, 24, 28, 16, 14, 14, 16, 14, 56, 12, 14, 14, 16] as const;
 const HEADER_LABELS = [
   "Proyecto",
   "Equipo",
   "Usuario",
   "% Asignación",
-  "Días hábiles",
-  "Horas esperadas",
   "Horas desarrollo",
   "Horas bugs",
-  "Horas novedades",
-  "Horas totales",
   "Cant. novedades",
+  "Horas novedades",
   "Detalle de novedades",
+  "Días hábiles",
+  "Horas esperadas",
+  "Horas totales",
   "% Cumplimiento",
 ] as const;
 
@@ -179,30 +179,32 @@ function writeDataRow(
   buildPersonaCell(ws.getCell(excelRow, 3), row.personDisplayName, memberInfo?.email ?? "");
   buildRolCell(ws.getCell(excelRow, 4), formatAssignmentPct(row));
 
-  buildNumericCell(ws, excelRow, 5, row.workingDays);
-  buildNumericCell(ws, excelRow, 6, row.expectedHours);
-  buildNumericCell(ws, excelRow, 7, row.developmentHours);
-  buildNumericCell(ws, excelRow, 8, row.bugHours);
-  buildNumericCell(ws, excelRow, 9, row.newsHours);
-  buildNumericCell(ws, excelRow, 10, row.totalHours);
+  buildNumericCell(ws, excelRow, 5, row.developmentHours);
+  buildNumericCell(ws, excelRow, 6, row.bugHours);
 
-  styleCell(ws.getCell(excelRow, 11), {
+  styleCell(ws.getCell(excelRow, 7), {
     fill: COLOR.cardBg,
     alignment: centerAlign(),
     borderStyle: "thin",
     skipRightBorder: true,
     numFmt: "0",
   });
-  ws.getCell(excelRow, 11).value = row.newsCount;
+  ws.getCell(excelRow, 7).value = row.newsCount;
 
-  styleCell(ws.getCell(excelRow, 12), {
+  buildNumericCell(ws, excelRow, 8, row.newsHours);
+
+  styleCell(ws.getCell(excelRow, 9), {
     fill: COLOR.cardBg,
     alignment: leftAlign(1, true),
     borderStyle: "thin",
     skipRightBorder: true,
   });
-  ws.getCell(excelRow, 12).value =
+  ws.getCell(excelRow, 9).value =
     row.newsCount === 0 ? "Sin novedades" : row.newsDetail || "Sin novedades";
+
+  buildNumericCell(ws, excelRow, 10, row.workingDays);
+  buildNumericCell(ws, excelRow, 11, row.expectedHours);
+  buildNumericCell(ws, excelRow, 12, row.totalHours);
 
   buildSemaforoCell(ws, excelRow, 13, row);
 }
