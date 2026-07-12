@@ -5,12 +5,16 @@ import {
   listBugsInWorkingDateRange,
   listTasksInWorkingDateRange,
 } from "@/lib/azure-devops/work-items-by-date";
-import type { ReportedNewsScope } from "@/lib/azure-devops/list-reported-news";
-import { fetchUserStoriesByIds } from "@/lib/azure-devops/fetch-user-stories-by-ids";
+import {
+  listReportedNews,
+  type ReportedNewsDateFilter,
+  type ReportedNewsDetail,
+  type ReportedNewsScope,
+} from "@/lib/azure-devops/list-reported-news";
 import { classifyReportedHours, type ReportedTask } from "@/lib/reports/hours/classify-reported-hours";
 import { computeCompliance } from "@/lib/reports/hours/compliance";
 import { computeExpectedHours } from "@/lib/reports/hours/compute-expected-hours";
-import { formatNewsDetail, type NewsStoryInfo } from "@/lib/reports/hours/format-news-detail";
+import { NEWS_DETAIL_DELIMITER } from "@/lib/reports/hours/format-news-detail";
 import type {
   AssignmentPctLabel,
   HoursReportAlert,
@@ -46,7 +50,12 @@ export type BuildHoursReportDeps = {
   newsStoriesRepo: NewsStoriesRepository;
   listTasks?: typeof listTasksInWorkingDateRange;
   listBugs?: typeof listBugsInWorkingDateRange;
-  fetchUserStories?: typeof fetchUserStoriesByIds;
+  /**
+   * Novedades reportadas del scope (mismo helper que el módulo de Novedades).
+   * Cada novedad tiene `assignedTo` + rango `fechaInicio/fechaFin`; sus horas se
+   * calculan como días hábiles del rango (∩ periodo) × 8 × % asignación.
+   */
+  listReportedNews?: typeof listReportedNews;
   listWorkingDays?: typeof listWorkingDaysInPeriod;
   /**
    * Roster oficial del (proyecto, equipo) del scope. Sus miembros sin
@@ -73,10 +82,11 @@ export async function buildHoursReport(
 
   const listTasks = deps.listTasks ?? listTasksInWorkingDateRange;
   const listBugs = deps.listBugs ?? listBugsInWorkingDateRange;
-  const fetchUserStories = deps.fetchUserStories ?? fetchUserStoriesByIds;
+  const listNews = deps.listReportedNews ?? listReportedNews;
   const listWorkingDays = deps.listWorkingDays ?? listWorkingDaysInPeriod;
   const now = deps.now ?? (() => new Date());
 
+  const newsDateFilter = toNewsDateFilter(period);
   const workingDays = await listWorkingDays(fromIso, toIso);
   const rows: HoursReportRow[] = [];
   const alerts: HoursReportAlert[] = [];
@@ -86,9 +96,6 @@ export async function buildHoursReport(
       projectIds: [scope.projectId],
       teamIds: scope.teamId !== null ? [scope.teamId] : undefined,
     });
-    const newsStoryIds = new Set<number>(
-      linkedHUs.map((row) => row.workItemId).filter((id) => Number.isInteger(id) && id > 0),
-    );
 
     if (linkedHUs.length === 0) {
       alerts.push({
@@ -97,12 +104,26 @@ export async function buildHoursReport(
       });
     }
 
-    const [tasks, bugs] = await Promise.all([
+    const [tasks, bugs, novedades] = await Promise.all([
       listTasks(deps.auth, { startDate: fromIso, finishDate: toIso }, { team: scope.teamId ?? undefined }),
       listBugs(deps.auth, { startDate: fromIso, finishDate: toIso }, { team: scope.teamId ?? undefined }),
+      linkedHUs.length > 0
+        ? listNews(
+            { auth: deps.auth, scopes: [scope], dateFilter: newsDateFilter },
+            { repo: deps.newsStoriesRepo },
+          )
+        : Promise.resolve<ReportedNewsDetail[]>([]),
     ]);
 
-    const storyInfos = await resolveStoryInfos(fetchUserStories, deps.auth, newsStoryIds, linkedHUs, alerts);
+    // Novedades agrupadas por persona (assignedTo, mismo displayName de ADO).
+    const novedadesByPerson = new Map<string, ReportedNewsDetail[]>();
+    for (const n of novedades) {
+      const name = n.assignedTo?.trim();
+      if (!name) continue;
+      const list = novedadesByPerson.get(name) ?? [];
+      list.push(n);
+      novedadesByPerson.set(name, list);
+    }
 
     const assignments = await deps.assignmentRepo.listWithRoles({ projectId: scope.projectId });
 
@@ -153,15 +174,25 @@ export async function buildHoursReport(
       });
       const expected = computeExpectedHours(workingDays, segments);
 
+      // Todas las tasks (con Completed Work) de la persona son desarrollo; los
+      // bugs van aparte. Las novedades ya NO salen de tasks: son items propios.
       const personTasks: ReportedTask[] = tasks
-        .filter((t) => t.assignedTo === person.displayName && t.parentId !== undefined)
+        .filter((t) => t.assignedTo === person.displayName)
         .map((t) => ({ hours: t.loggedHours ?? 0, parentId: t.parentId ?? null }));
       const personBugs = bugs
         .filter((b) => b.assignedTo === person.displayName)
         .map((b) => ({ hours: b.loggedHours ?? 0 }));
 
-      const classified = classifyReportedHours(personTasks, personBugs, newsStoryIds);
-      const total = classified.developmentHours + classified.bugHours + classified.newsHours;
+      const classified = classifyReportedHours(personTasks, personBugs, EMPTY_NEWS_IDS);
+
+      // Horas novedades = días hábiles del rango de cada novedad (∩ periodo) × 8
+      // × % asignación vigente por día (mismo prorrateo que las horas esperadas).
+      const personNovedades = novedadesByPerson.get(person.displayName) ?? [];
+      const newsDays = collectNewsWorkingDays(personNovedades, workingDays, fromIso, toIso);
+      const newsHours = computeExpectedHours(newsDays, segments).expectedHours;
+      const newsEntries = novedadesDetailEntries(personNovedades);
+
+      const total = classified.developmentHours + classified.bugHours + newsHours;
       const compliance = computeCompliance(total, expected.expectedHours);
 
       rows.push({
@@ -175,10 +206,12 @@ export async function buildHoursReport(
         expectedHours: expected.expectedHours,
         developmentHours: classified.developmentHours,
         bugHours: classified.bugHours,
-        newsHours: classified.newsHours,
+        newsHours,
         totalHours: total,
-        newsCount: classified.newsStoryIds.length,
-        newsDetail: formatNewsDetail(classified.newsStoryIds, storyInfos),
+        newsCount: personNovedades.length,
+        newsDays: newsDays.length,
+        newsDetail: newsEntries.join(NEWS_DETAIL_DELIMITER),
+        newsDetails: newsEntries,
         compliancePct: compliance.pct,
         semaforo: compliance.level,
       });
@@ -237,34 +270,48 @@ function buildAssignmentLabel(
   return { kind: "default" };
 }
 
-async function resolveStoryInfos(
-  fetchUserStories: typeof fetchUserStoriesByIds,
-  auth: AdoCallerAuth,
-  newsStoryIds: ReadonlySet<number>,
-  linkedHUs: ReadonlyArray<{ workItemId: number; workItemTitleSnapshot?: string | null }>,
-  alerts: HoursReportAlert[],
-): Promise<ReadonlyMap<number, NewsStoryInfo>> {
-  if (newsStoryIds.size === 0) return new Map();
-  const snapshots = await fetchUserStories(auth, Array.from(newsStoryIds));
-  const foundIds = new Set(snapshots.map((s) => s.id));
-  for (const id of newsStoryIds) {
-    if (!foundIds.has(id)) {
-      alerts.push({
-        kind: "news_story_deleted",
-        message: `HU de novedad eliminada en Azure: ${id}`,
-      });
+/** Ninguna task se clasifica como novedad: las novedades son items propios. */
+const EMPTY_NEWS_IDS: ReadonlySet<number> = new Set<number>();
+
+function toNewsDateFilter(period: BuildHoursReportPeriod): ReportedNewsDateFilter {
+  if (period.kind === "month") return { kind: "month", monthKey: period.monthKey };
+  return { kind: "range", fromKey: period.fromIso, toKey: period.toIso };
+}
+
+/**
+ * Días hábiles del periodo cubiertos por al menos una de las novedades de la
+ * persona (unión, sin doble conteo). Cada novedad aporta [fechaInicio, fechaFin]
+ * recortado al periodo; una novedad sin fecha se toma como abierta a ese lado.
+ */
+function collectNewsWorkingDays(
+  novedades: readonly ReportedNewsDetail[],
+  workingDays: readonly string[],
+  periodStart: string,
+  periodEnd: string,
+): string[] {
+  const days = new Set<string>();
+  for (const n of novedades) {
+    const start = (n.fechaInicio ?? periodStart).slice(0, 10);
+    const end = (n.fechaFin ?? periodEnd).slice(0, 10);
+    const from = start > periodStart ? start : periodStart;
+    const to = end < periodEnd ? end : periodEnd;
+    for (const day of workingDays) {
+      if (day >= from && day <= to) days.add(day);
     }
   }
-  const byId = new Map<number, NewsStoryInfo>();
-  for (const s of snapshots) {
-    byId.set(s.id, { type: s.type, title: s.title });
+  return [...days];
+}
+
+/** Una entrada `<tipo> - <título>` por novedad (CA-24), para detalle y tooltip. */
+function novedadesDetailEntries(novedades: readonly ReportedNewsDetail[]): string[] {
+  const entries: string[] = [];
+  for (const n of novedades) {
+    const title = n.title?.trim();
+    if (!title) continue;
+    const tipo = n.tipoNovedad?.trim();
+    entries.push(tipo ? `${tipo} - ${title}` : title);
   }
-  for (const row of linkedHUs) {
-    if (!byId.has(row.workItemId) && row.workItemTitleSnapshot) {
-      byId.set(row.workItemId, { type: null, title: row.workItemTitleSnapshot });
-    }
-  }
-  return byId;
+  return entries;
 }
 
 function scopeLabel(scope: ReportedNewsScope): string {

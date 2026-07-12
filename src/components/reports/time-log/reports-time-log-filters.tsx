@@ -47,6 +47,8 @@ export type ReportsTimeLogFiltersProps = {
   onGenerate: () => void;
   generating: boolean;
   payload: HoursReportRequestSchema;
+  /** Botón de exportar, renderizado junto al de "Generar reporte". */
+  exportButton?: React.ReactNode;
 };
 
 export function ReportsTimeLogFilters({
@@ -68,6 +70,7 @@ export function ReportsTimeLogFilters({
   onTeamIdsChange,
   onGenerate,
   generating,
+  exportButton,
 }: Readonly<ReportsTimeLogFiltersProps>) {
   const showMonth = period.kind === "month";
   const projectOptions = projects.map((p) => ({ value: p.name, label: p.name }));
@@ -156,11 +159,12 @@ export function ReportsTimeLogFilters({
             </div>
           </>
         )}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-3">
           <Button onClick={onGenerate} disabled={generating}>
             {generating ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Search className="size-4" aria-hidden />}
             {generating ? "Generando..." : "Generar reporte"}
           </Button>
+          {exportButton}
         </div>
       </div>
     </div>

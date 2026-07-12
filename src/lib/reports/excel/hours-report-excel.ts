@@ -17,7 +17,7 @@ import type {
   SemaforoLevel,
 } from "@/lib/reports/hours/hours-report-types";
 
-const COL_WIDTHS = [28, 24, 28, 16, 14, 14, 16, 14, 56, 12, 14, 14, 16] as const;
+const COL_WIDTHS = [28, 24, 28, 16, 14, 14, 16, 14, 14, 56, 12, 14, 14, 16] as const;
 const HEADER_LABELS = [
   "Proyecto",
   "Equipo",
@@ -27,6 +27,7 @@ const HEADER_LABELS = [
   "Horas bugs",
   "Cant. novedades",
   "Horas novedades",
+  "Días novedades",
   "Detalle de novedades",
   "Días hábiles",
   "Horas esperadas",
@@ -192,21 +193,22 @@ function writeDataRow(
   ws.getCell(excelRow, 7).value = row.newsCount;
 
   buildNumericCell(ws, excelRow, 8, row.newsHours);
+  buildNumericCell(ws, excelRow, 9, row.newsDays);
 
-  styleCell(ws.getCell(excelRow, 9), {
+  styleCell(ws.getCell(excelRow, 10), {
     fill: COLOR.cardBg,
     alignment: leftAlign(1, true),
     borderStyle: "thin",
     skipRightBorder: true,
   });
-  ws.getCell(excelRow, 9).value =
+  ws.getCell(excelRow, 10).value =
     row.newsCount === 0 ? "Sin novedades" : row.newsDetail || "Sin novedades";
 
-  buildNumericCell(ws, excelRow, 10, row.workingDays);
-  buildNumericCell(ws, excelRow, 11, row.expectedHours);
-  buildNumericCell(ws, excelRow, 12, row.totalHours);
+  buildNumericCell(ws, excelRow, 11, row.workingDays);
+  buildNumericCell(ws, excelRow, 12, row.expectedHours);
+  buildNumericCell(ws, excelRow, 13, row.totalHours);
 
-  buildSemaforoCell(ws, excelRow, 13, row);
+  buildSemaforoCell(ws, excelRow, 14, row);
 }
 
 function buildNumericCell(
@@ -218,7 +220,7 @@ function buildNumericCell(
   buildHoursCell(ws.getCell(excelRow, col), value, {
     fill: COLOR.cardBg,
     color: COLOR.foreground,
-    skipRightBorder: col < 13,
+    skipRightBorder: col < 14,
   });
 }
 

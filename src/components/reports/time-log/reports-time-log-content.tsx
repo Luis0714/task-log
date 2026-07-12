@@ -247,6 +247,23 @@ export function ReportsTimeLogContent({
         onGenerate={onGenerate}
         generating={hoursReport.status === "generating"}
         payload={payload}
+        exportButton={
+          showExport ? (
+            <Button onClick={() => void onExportExcel()} disabled={downloadingExcel}>
+              {downloadingExcel ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Descargando...
+                </>
+              ) : (
+                <>
+                  <Download className="size-4" aria-hidden />
+                  Exportar Excel
+                </>
+              )}
+            </Button>
+          ) : null
+        }
       />
 
       {showStale ? (
@@ -258,24 +275,6 @@ export function ReportsTimeLogContent({
       {hoursReport.result !== null ? (
         <ReportsTimeLogAlerts alerts={hoursReport.result.alerts} />
       ) : null}
-
-      <div className="flex items-center justify-end gap-3">
-        {showExport ? (
-          <Button onClick={() => void onExportExcel()} disabled={downloadingExcel || downloadingExcel}>
-            {downloadingExcel ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Descargando...
-              </>
-            ) : (
-              <>
-                <Download className="size-4" aria-hidden />
-                Exportar Excel
-              </>
-            )}
-          </Button>
-        ) : null}
-      </div>
 
       {hoursReport.status === "generating" ? (
         <ReportsTimeLogTableSkeleton />

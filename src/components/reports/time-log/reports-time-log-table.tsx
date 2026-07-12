@@ -1,5 +1,10 @@
 import { ReportsTimeLogSemaforoBadge } from "@/components/reports/time-log/reports-time-log-semaforo-badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { HoursReportRow } from "@/lib/reports/hours/hours-report-types";
 
@@ -20,6 +25,7 @@ const COLUMNS: readonly Column[] = [
   { label: "Horas bugs", align: "center" },
   { label: "Cant. novedades", align: "center" },
   { label: "Horas novedades", align: "center" },
+  { label: "Días novedades", align: "center" },
   { label: "Detalle de novedades", align: "center" },
   { label: "Días hábiles", align: "center" },
   { label: "Horas esperadas", align: "center" },
@@ -48,8 +54,28 @@ export function ReportsTimeLogTable({ rows }: Readonly<ReportsTimeLogTableProps>
             <td className="px-3 py-2 text-center tabular-nums">{row.bugHours.toFixed(1)}</td>
             <td className="px-3 py-2 text-center tabular-nums">{row.newsCount}</td>
             <td className="px-3 py-2 text-center tabular-nums">{row.newsHours.toFixed(1)}</td>
-            <td className="px-3 py-2 max-w-xs whitespace-normal text-xs text-center">
-              {row.newsCount === 0 ? "Sin novedades" : row.newsDetail || "Sin novedades"}
+            <td className="px-3 py-2 text-center tabular-nums">{row.newsDays ?? 0}</td>
+            <td className="px-3 py-2 text-center text-xs">
+              {row.newsCount === 0 || (row.newsDetails?.length ?? 0) === 0 ? (
+                "Sin novedades"
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <span className="mx-auto block max-w-[16rem] cursor-default truncate" />
+                    }
+                  >
+                    {row.newsDetail}
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-sm">
+                    <ol className="list-inside list-decimal space-y-0.5 text-left">
+                      {(row.newsDetails ?? []).map((detail, i) => (
+                        <li key={i}>{detail}</li>
+                      ))}
+                    </ol>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </td>
             <td className="px-3 py-2 text-center tabular-nums">{row.workingDays}</td>
             <td className="px-3 py-2 text-center tabular-nums">{row.expectedHours.toFixed(1)}</td>

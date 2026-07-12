@@ -11,7 +11,7 @@ import {
   makeTask,
 } from "@/lib/reports/hours/build-hours-report.fixtures";
 import type { AdoWorkItemOption } from "@/lib/azure-devops/work-items";
-import type { UserStorySnapshot } from "@/lib/azure-devops/fetch-user-stories-by-ids";
+import type { ReportedNewsDetail } from "@/lib/azure-devops/list-reported-news";
 
 function fixedWorkingDays(fromIso: string, toIso: string): string[] {
   const start = new Date(`${fromIso}T00:00:00Z`);
@@ -28,35 +28,38 @@ function fixedWorkingDays(fromIso: string, toIso: string): string[] {
   return result;
 }
 
+/** Novedad reportada (item tipo "Novedades") para inyectar en `listReportedNews`. */
+function makeNovedad(overrides: Partial<ReportedNewsDetail> = {}): ReportedNewsDetail {
+  return {
+    id: overrides.id ?? 900,
+    title: overrides.title ?? "Novedad",
+    state: overrides.state ?? "Active",
+    assignedTo: overrides.assignedTo ?? "Juan Pérez",
+    description: overrides.description ?? null,
+    // 2026-06-15 y 16 son lunes y martes → 2 días hábiles por defecto.
+    fechaInicio: overrides.fechaInicio ?? "2026-06-15",
+    fechaFin: overrides.fechaFin ?? "2026-06-16",
+    fechaReintegro: overrides.fechaReintegro ?? null,
+    tipoNovedad: overrides.tipoNovedad ?? "Permiso",
+    parentId: overrides.parentId ?? 100,
+    createdDate: overrides.createdDate ?? null,
+  };
+}
+
+const linkedHU = [
+  { projectId: "Proyecto A", teamId: "Backend", workItemId: 100, workItemTitleSnapshot: "HU novedad" },
+];
+
 const fixedNow = () => new Date("2026-07-01T00:00:00Z");
 
 describe("buildHoursReport", () => {
-  it("caso del cliente: 60 dev + 20 bugs + 8 news = 88 → 100% verde (CA-26)", async () => {
+  it("caso del cliente: 60 dev + 20 bugs + 8 novedades = 88 → 100% verde (CA-26)", async () => {
     const devTasks: AdoWorkItemOption[] = Array.from({ length: 8 }, (_, i) =>
       makeTask({ id: i + 1, loggedHours: 7.5, parentId: 500 + i }),
     );
     const bugTasks: AdoWorkItemOption[] = Array.from({ length: 5 }, (_, i) =>
       makeBug({ id: 200 + i, loggedHours: 4 }),
     );
-    const newsTasks: AdoWorkItemOption[] = [
-      makeTask({ id: 300, loggedHours: 4, parentId: 100 }),
-      makeTask({ id: 301, loggedHours: 4, parentId: 101 }),
-    ];
-
-    const repo = makeFakeAssignmentRepo([
-      makeAssignment({ assignmentPct: 50 }),
-    ]);
-    const newsStories = makeFakeNewsStoriesRepo([
-      { projectId: "Proyecto A", teamId: "Backend", workItemId: 100, workItemTitleSnapshot: "Novedad 1" },
-      { projectId: "Proyecto A", teamId: "Backend", workItemId: 101, workItemTitleSnapshot: "Novedad 2" },
-      { projectId: "Proyecto A", teamId: "Backend", workItemId: 102, workItemTitleSnapshot: "Novedad 3" },
-    ]);
-
-    const fetchUserStories = async (): Promise<UserStorySnapshot[]> => [
-      { id: 100, title: "Novedad 1", state: "Active", type: "Feature" },
-      { id: 101, title: "Novedad 2", state: "Active", type: "Feature" },
-      { id: 102, title: "Novedad 3", state: "Active", type: "Feature" },
-    ];
 
     const result = await buildHoursReport(
       {
@@ -65,11 +68,14 @@ describe("buildHoursReport", () => {
       },
       {
         auth: fakeAuth,
-        assignmentRepo: repo,
-        newsStoriesRepo: newsStories,
-        listTasks: async () => [...devTasks, ...newsTasks],
+        assignmentRepo: makeFakeAssignmentRepo([makeAssignment({ assignmentPct: 50 })]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo(linkedHU),
+        listTasks: async () => devTasks,
         listBugs: async () => bugTasks,
-        fetchUserStories: fetchUserStories as never,
+        // 2 días hábiles (15 y 16) × 8 × 50% = 8 horas de novedad.
+        listReportedNews: async () => [
+          makeNovedad({ assignedTo: "Juan Pérez", tipoNovedad: "Feature", title: "Novedad 1" }),
+        ],
         listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
         now: fixedNow,
       },
@@ -80,11 +86,48 @@ describe("buildHoursReport", () => {
     expect(row.developmentHours).toBe(60);
     expect(row.bugHours).toBe(20);
     expect(row.newsHours).toBe(8);
+    expect(row.newsCount).toBe(1);
+    expect(row.newsDetail).toBe("Feature - Novedad 1");
     expect(row.totalHours).toBe(88);
-    expect(row.expectedHours).toBeGreaterThan(0);
     expect(row.compliancePct).toBeGreaterThanOrEqual(95);
     expect(row.semaforo).toBe("verde");
-    expect(result.alerts.find((a) => a.kind === "news_not_configured")).toBeUndefined();
+  });
+
+  it("novedades: días hábiles del rango × 8 × % asignación, con detalle", async () => {
+    // Ana al 100% (roster, sin excepción); novedad de 3 días hábiles (15,16,17).
+    const result = await buildHoursReport(
+      {
+        scopes: [makeScope()],
+        period: { kind: "month", monthKey: "2026-06" },
+      },
+      {
+        auth: fakeAuth,
+        assignmentRepo: makeFakeAssignmentRepo([]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo(linkedHU),
+        listTasks: async () => [],
+        listBugs: async () => [],
+        listReportedNews: async () => [
+          makeNovedad({
+            assignedTo: "Ana Gómez",
+            fechaInicio: "2026-06-15",
+            fechaFin: "2026-06-17",
+            tipoNovedad: "Permiso",
+            title: "Cita médica",
+          }),
+        ],
+        listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
+        loadTeamMembers: async () => [
+          { personAdoId: "user-ana", personDisplayName: "Ana Gómez" },
+        ],
+        now: fixedNow,
+      },
+    );
+
+    const row = result.rows.find((r) => r.personDisplayName === "Ana Gómez");
+    expect(row?.newsHours).toBe(24); // 3 días × 8 × 100%
+    expect(row?.newsDays).toBe(3);
+    expect(row?.newsCount).toBe(1);
+    expect(row?.newsDetail).toBe("Permiso - Cita médica");
   });
 
   it("solo salen las personas del roster/excepciones, no los asignados de tasks ajenos", async () => {
@@ -105,7 +148,6 @@ describe("buildHoursReport", () => {
           makeTask({ id: 2, assignedTo: "Externo X", loggedHours: 8, parentId: 501 }),
         ],
         listBugs: async () => [],
-        fetchUserStories: (async () => []) as never,
         listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
         loadTeamMembers: async () => [
           { personAdoId: "user-ana", personDisplayName: "Ana Gómez" },
@@ -133,7 +175,6 @@ describe("buildHoursReport", () => {
         newsStoriesRepo: makeFakeNewsStoriesRepo([]),
         listTasks: async () => [task],
         listBugs: async () => [],
-        fetchUserStories: (async () => []) as never,
         listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
         loadTeamMembers: async () => [
           { personAdoId: "user-ana", personDisplayName: "Ana Gómez" },
@@ -168,7 +209,6 @@ describe("buildHoursReport", () => {
         newsStoriesRepo: makeFakeNewsStoriesRepo([]),
         listTasks: async () => [],
         listBugs: async () => [],
-        fetchUserStories: (async () => []) as never,
         listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
         loadTeamMembers: async () => [
           { personAdoId: "u1", personDisplayName: "José Pérez" },
@@ -194,7 +234,6 @@ describe("buildHoursReport", () => {
         newsStoriesRepo: makeFakeNewsStoriesRepo([]),
         listTasks: async () => [],
         listBugs: async () => [],
-        fetchUserStories: (async () => []) as never,
         listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
         loadTeamMembers: async () => [
           { personAdoId: "user-ana", personDisplayName: "Ana Gómez" },
@@ -210,7 +249,7 @@ describe("buildHoursReport", () => {
     expect(result.alerts.find((a) => a.kind === "unconfigured_person")).toBeUndefined();
   });
 
-  it("scope sin HUs de novedad → alerta news_not_configured y 0 en newsHours", async () => {
+  it("scope sin HUs de novedad → alerta news_not_configured y 0 en novedades", async () => {
     const result = await buildHoursReport(
       {
         scopes: [makeScope()],
@@ -220,9 +259,8 @@ describe("buildHoursReport", () => {
         auth: fakeAuth,
         assignmentRepo: makeFakeAssignmentRepo([makeAssignment({ assignmentPct: 100 })]),
         newsStoriesRepo: makeFakeNewsStoriesRepo([]),
-        listTasks: async () => [makeTask({ id: 1, loggedHours: 8, parentId: undefined })],
+        listTasks: async () => [makeTask({ id: 1, loggedHours: 8, parentId: 500 })],
         listBugs: async () => [],
-        fetchUserStories: (async () => []) as never,
         listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
         now: fixedNow,
       },
@@ -231,32 +269,6 @@ describe("buildHoursReport", () => {
     expect(result.alerts.find((a) => a.kind === "news_not_configured")).toBeDefined();
     expect(result.rows[0].newsHours).toBe(0);
     expect(result.rows[0].newsCount).toBe(0);
-  });
-
-  it("HU de novedad eliminada en Azure → alerta news_story_deleted", async () => {
-    const newsStories = makeFakeNewsStoriesRepo([
-      { projectId: "Proyecto A", teamId: "Backend", workItemId: 999, workItemTitleSnapshot: "Borrada" },
-    ]);
-    const fetchUserStories = async (): Promise<UserStorySnapshot[]> => [];
-
-    const result = await buildHoursReport(
-      {
-        scopes: [makeScope()],
-        period: { kind: "month", monthKey: "2026-06" },
-      },
-      {
-        auth: fakeAuth,
-        assignmentRepo: makeFakeAssignmentRepo([makeAssignment({ assignmentPct: 100 })]),
-        newsStoriesRepo: newsStories,
-        listTasks: async () => [],
-        listBugs: async () => [],
-        fetchUserStories: fetchUserStories as never,
-        listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
-        now: fixedNow,
-      },
-    );
-
-    expect(result.alerts.find((a) => a.kind === "news_story_deleted")).toBeDefined();
   });
 
   it("festivos caídos → propaga el error (el caller bloquea el reporte)", async () => {
@@ -272,7 +284,6 @@ describe("buildHoursReport", () => {
           newsStoriesRepo: makeFakeNewsStoriesRepo([]),
           listTasks: async () => [],
           listBugs: async () => [],
-          fetchUserStories: (async () => []) as never,
           listWorkingDays: async () => {
             throw new Error("Nager.Date caído");
           },

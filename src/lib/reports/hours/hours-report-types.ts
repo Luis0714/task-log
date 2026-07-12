@@ -26,7 +26,12 @@ export type HoursReportRow = Readonly<{
   newsHours: number;
   totalHours: number;
   newsCount: number;
+  /** Días hábiles cubiertos por novedades en el periodo (para "Días novedades"). */
+  newsDays: number;
+  /** Detalle concatenado en una línea (`<tipo> - <título>` unidos). */
   newsDetail: string;
+  /** Detalle por novedad (una entrada por novedad), para el tooltip numerado. */
+  newsDetails: string[];
   compliancePct: number | null;
   semaforo: SemaforoLevel | null;
 }>;
