@@ -59,7 +59,7 @@ describe("fetchUserStoriesByIds", () => {
 
     const result = await fetchUserStoriesByIds(auth, [1, 1, 1, 1]);
 
-    expect(result).toEqual([{ id: 1, title: "A", state: "Active" }]);
+    expect(result).toEqual([{ id: 1, title: "A", state: "Active", type: null }]);
     expect(capturedUrl).toContain("ids=1");
     expect(capturedUrl).not.toContain("ids=1,1");
   });
@@ -75,7 +75,7 @@ describe("fetchUserStoriesByIds", () => {
 
     const result = await fetchUserStoriesByIds(auth, [5]);
 
-    expect(result).toEqual([{ id: 5, title: "Elemento de trabajo 5", state: "Active" }]);
+    expect(result).toEqual([{ id: 5, title: "Elemento de trabajo 5", state: "Active", type: null }]);
   });
 
   it("pagina en bloques de 200 cuando hay más IDs", async () => {
@@ -108,6 +108,6 @@ describe("fetchUserStoriesByIds", () => {
     const ids = Array.from({ length: 250 }, (_, idx) => idx + 1);
     const result = await fetchUserStoriesByIds(auth, ids);
 
-    expect(result).toEqual([{ id: 10, title: "T", state: "Active" }]);
+    expect(result).toEqual([{ id: 10, title: "T", state: "Active", type: null }]);
   });
 });

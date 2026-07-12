@@ -9,6 +9,7 @@ export type UserStorySnapshot = {
   id: number;
   title: string;
   state: string;
+  type: string | null;
 };
 
 /**
@@ -33,7 +34,7 @@ export async function fetchUserStoriesByIds(
 
   const snapshots: UserStorySnapshot[] = [];
   for (const chunk of chunks) {
-    const url = `${adoProjectBase(auth)}/_apis/wit/workitems?ids=${chunk.join(",")}&fields=System.Id,System.Title,System.State&api-version=7.1`;
+    const url = `${adoProjectBase(auth)}/_apis/wit/workitems?ids=${chunk.join(",")}&fields=System.Id,System.Title,System.State,System.WorkItemType&api-version=7.1`;
     const res = await adoFetch(auth, url);
     if (!res.ok) continue;
     const body = (await res.json()) as {
@@ -42,10 +43,12 @@ export async function fetchUserStoriesByIds(
     for (const item of body.value ?? []) {
       const title = (item.fields?.["System.Title"] ?? "").trim();
       const state = (item.fields?.["System.State"] ?? "").trim();
+      const workItemType = (item.fields?.["System.WorkItemType"] ?? "").trim();
       snapshots.push({
         id: item.id,
         title: title || `Elemento de trabajo ${item.id}`,
         state,
+        type: workItemType || null,
       });
     }
   }

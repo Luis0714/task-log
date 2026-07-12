@@ -20,17 +20,13 @@ function formatDate(iso: string | null | undefined): string | null {
 
 export type ReportsTimeLogExportRangeBannerProps = {
   startIso: string | null | undefined;
-  startSprintName: string;
   endIso: string | null | undefined;
-  endSprintName: string;
   className?: string;
 };
 
 export function ReportsTimeLogExportRangeBanner({
   startIso,
-  startSprintName,
   endIso,
-  endSprintName,
   className,
 }: Readonly<ReportsTimeLogExportRangeBannerProps>) {
   const startDate = formatDate(startIso);
@@ -46,19 +42,9 @@ export function ReportsTimeLogExportRangeBanner({
     >
       <CalendarRange className="mt-0.5 size-4 shrink-0 text-foreground" aria-hidden />
       <p className="leading-relaxed">
-        Contendra los reportes de tiempos hechos desde el{" "}
-        <span className="font-medium text-foreground">{startDate}</span>, día en
-        que empezó{" "}
-        <span className="font-medium text-foreground">
-          “{startSprintName}”
-        </span>
-        , hasta el{" "}
-        <span className="font-medium text-foreground">{endDate}</span>, día en
-        que finaliza{" "}
-        <span className="font-medium text-foreground">
-          “{endSprintName}”
-        </span>
-        .
+        Periodo cubierto:{" "}
+        <span className="font-medium text-foreground">{startDate}</span> hasta{" "}
+        <span className="font-medium text-foreground">{endDate}</span>.
       </p>
     </output>
   );

@@ -70,7 +70,7 @@ const ALL_NAVIGATION: NavGroupConfig[] = [
     items: [
       {
         href: "/reports/time-log",
-        label: "Tiempos registrados",
+        label: "Reporte de horas",
         icon: FileSpreadsheet,
         roles: ["super_admin", "product_manager", "product_owner", "scrum_master"],
       },
