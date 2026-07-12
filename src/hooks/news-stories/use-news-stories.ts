@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type {
   NewsStoriesValidationResponse,
@@ -9,21 +9,18 @@ import type {
 import {
   linkNewsStory as linkNewsStoryRequest,
   listNewsStories,
-  searchAdoUserStories,
   unlinkNewsStory as unlinkNewsStoryRequest,
   validateNewsStories,
-  type AdoUserStoryHit,
   type NewsStoriesServiceResult,
 } from "@/services/news-stories/news-stories.service";
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { useBacklogPbis } from "@/hooks/use-backlog-pbis";
+import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { ProjectTeamNewsStory } from "@/lib/db";
 import { appToast } from "@/lib/toast";
 
-const SEARCH_DEBOUNCE_MS = 350;
-
 export type NewsStoriesScope = Readonly<{
-  projectId: string;
-  teamId: string;
+  selectedProjects: ReadonlyArray<string>;
+  selectedTeams: ReadonlyArray<string>;
 }>;
 
 export type UseNewsStoriesResult = Readonly<{
@@ -35,16 +32,20 @@ export type UseNewsStoriesResult = Readonly<{
   refreshLinked: () => Promise<void>;
   refreshValidation: () => Promise<void>;
 
-  searchInput: string;
-  setSearchInput: (value: string) => void;
-  searchResults: ReadonlyArray<AdoUserStoryHit>;
-  searching: boolean;
-  searchError: string | null;
-  retrySearch: () => void;
-  /** Token para identificar la última query ejecutada (útil para debounce/cancel). */
-  searchNonce: number;
+  /** HUs del backlog del PRIMER proyecto seleccionado (alimenta el picker
+   *  de "Vincular HU"). El picker sigue siendo single-scope para que el
+   *  link resultante tenga un (proyecto, equipo) único y bien definido. */
+  backlog: ReadonlyArray<AdoWorkItemOptionDto>;
+  backlogLoading: boolean;
 
-  link: (hit: AdoUserStoryHit) => Promise<NewsStoriesServiceResult<ProjectTeamNewsStory>>;
+  /**
+   * Vincula la HU al (proyecto, equipo) indicado. Cuando la pantalla es
+   * multi-scope, el shell decide a qué par vincular y lo pasa aquí.
+   */
+  link: (
+    item: AdoWorkItemOptionDto,
+    target: { projectId: string; teamId: string | null },
+  ) => Promise<NewsStoriesServiceResult<ProjectTeamNewsStory>>;
   unlink: (id: string) => Promise<NewsStoriesServiceResult<{ ok: true }>>;
 }>;
 
@@ -59,13 +60,15 @@ function mapValidationEntries(
 }
 
 /**
- * Orquesta el estado del módulo de HUs de novedad para un (proyecto, equipo):
- * - Lista las HUs vinculadas y su estado actual en Azure.
- * - Busca nuevas HUs en el backlog con debounce.
+ * Orquesta el estado del módulo de HUs de novedad multi-scope:
+ * - Lista las HUs vinculadas en BD para los (proyectos × equipos) seleccionados.
+ * - Carga el backlog del PRIMER proyecto seleccionado (alimenta el picker de
+ *   "Vincular HU"; el vínculo sigue siendo single-scope para tener un par
+ *   (proyecto, equipo) único al guardar).
  * - Vincula / desvincula con feedback al usuario.
  *
- * La responsabilidad de presentación vive en componentes; este hook sólo
- * coordina fetching + estado.
+ * Los componentes sólo orquestan presentación; este hook coordina fetching +
+ * estado.
  */
 export function useNewsStories(scope: NewsStoriesScope): UseNewsStoriesResult {
   const [linked, setLinked] = useState<ReadonlyArray<ProjectTeamNewsStory>>([]);
@@ -77,27 +80,22 @@ export function useNewsStories(scope: NewsStoriesScope): UseNewsStoriesResult {
   const [validationLoading, setValidationLoading] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const [searchInput, setSearchInput] = useState("");
-  const [searchResults, setSearchResults] = useState<ReadonlyArray<AdoUserStoryHit>>([]);
-  const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchNonce, setSearchNonce] = useState(0);
+  const firstProject = scope.selectedProjects[0] ?? null;
+  const { pbis: backlog, loading: backlogLoading } = useBacklogPbis({
+    project: firstProject,
+  });
 
-  const debouncedQuery = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
-  const trimmedQuery = debouncedQuery.trim();
-  const queryIsNumeric = /^\d+$/.test(trimmedQuery);
-  const queryIsLongEnough = trimmedQuery.length >= 3;
-  const canSearch = trimmedQuery.length > 0 && (queryIsNumeric || queryIsLongEnough);
+  // Scopes estables para usar en deps de useCallback/useEffect — el caller
+  // pasa arrays nuevos en cada render; queremos que las queries sólo se
+  // disparen cuando el contenido cambia de verdad.
+  const projectsKey = scope.selectedProjects.join("|");
+  const teamsKey = scope.selectedTeams.join("|");
 
   const refreshLinked = useCallback(async () => {
-    if (!scope.projectId) {
-      setLinked([]);
-      return;
-    }
     setLinkedLoading(true);
     const result = await listNewsStories({
-      projectId: scope.projectId,
-      teamId: scope.teamId || null,
+      projects: scope.selectedProjects,
+      teams: scope.selectedTeams,
     });
     setLinkedLoading(false);
     if (!result.ok) {
@@ -106,19 +104,14 @@ export function useNewsStories(scope: NewsStoriesScope): UseNewsStoriesResult {
       return;
     }
     setLinked(result.value);
-  }, [scope.projectId, scope.teamId]);
+  }, [projectsKey, teamsKey, scope.selectedProjects, scope.selectedTeams]);
 
   const refreshValidation = useCallback(async () => {
-    if (!scope.projectId) {
-      setValidation(new Map());
-      setValidationError(null);
-      return;
-    }
     setValidationLoading(true);
     setValidationError(null);
     const result = await validateNewsStories({
-      projectId: scope.projectId,
-      teamId: scope.teamId || null,
+      projects: scope.selectedProjects,
+      teams: scope.selectedTeams,
     });
     setValidationLoading(false);
     if (!result.ok) {
@@ -127,7 +120,7 @@ export function useNewsStories(scope: NewsStoriesScope): UseNewsStoriesResult {
       return;
     }
     setValidation(mapValidationEntries(result.value));
-  }, [scope.projectId, scope.teamId]);
+  }, [projectsKey, teamsKey, scope.selectedProjects, scope.selectedTeams]);
 
   useEffect(() => {
     void refreshLinked();
@@ -137,72 +130,33 @@ export function useNewsStories(scope: NewsStoriesScope): UseNewsStoriesResult {
     void refreshValidation();
   }, [refreshValidation]);
 
-  const linkedIds = useMemo(
-    () => new Set(linked.map((row) => row.workItemId)),
-    [linked],
-  );
-
-  useEffect(() => {
-    if (!scope.projectId || !canSearch) {
-      setSearchResults([]);
-      setSearchError(null);
-      setSearching(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    setSearching(true);
-    setSearchError(null);
-
-    void (async () => {
-      const result = await searchAdoUserStories(
-        {
-          project: scope.projectId,
-          team: scope.teamId || null,
-          q: trimmedQuery,
-        },
-        controller.signal,
-      );
-      if (controller.signal.aborted) return;
-      setSearching(false);
-      if (!result.ok) {
-        setSearchError(result.message);
-        setSearchResults([]);
-        return;
-      }
-      setSearchResults(result.value.filter((hit) => !linkedIds.has(hit.id)));
-      setSearchNonce((n) => n + 1);
-    })();
-
-    return () => controller.abort();
-  }, [scope.projectId, scope.teamId, trimmedQuery, canSearch, linkedIds]);
-
-  const retrySearch = useCallback(() => {
-    setSearchError(null);
-    setSearchInput((current) => current);
-  }, []);
-
   const link = useCallback(
-    async (hit: AdoUserStoryHit) => {
+    async (
+      item: AdoWorkItemOptionDto,
+      target: { projectId: string; teamId: string | null },
+    ) => {
       const result = await linkNewsStoryRequest({
-        projectId: scope.projectId,
-        teamId: scope.teamId || null,
-        workItemId: hit.id,
-        workItemTitle: hit.title,
+        projectId: target.projectId,
+        teamId: target.teamId,
+        workItemId: item.id,
+        workItemTitle: item.title,
       });
       if (!result.ok) return result;
       await refreshLinked();
       return result;
     },
-    [scope.projectId, scope.teamId, refreshLinked],
+    [refreshLinked],
   );
 
-  const unlink = useCallback(async (id: string) => {
-    const result = await unlinkNewsStoryRequest(id);
-    if (!result.ok) return result;
-    await refreshLinked();
-    return result;
-  }, [refreshLinked]);
+  const unlink = useCallback(
+    async (id: string) => {
+      const result = await unlinkNewsStoryRequest(id);
+      if (!result.ok) return result;
+      await refreshLinked();
+      return result;
+    },
+    [refreshLinked],
+  );
 
   return {
     linked,
@@ -212,13 +166,8 @@ export function useNewsStories(scope: NewsStoriesScope): UseNewsStoriesResult {
     validationError,
     refreshLinked,
     refreshValidation,
-    searchInput,
-    setSearchInput,
-    searchResults,
-    searching,
-    searchError,
-    retrySearch,
-    searchNonce,
+    backlog,
+    backlogLoading,
     link,
     unlink,
   };

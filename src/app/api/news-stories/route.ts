@@ -7,7 +7,7 @@ import {
   linkNewsStoryBodySchema,
   newsStoriesFilterSchema,
 } from "@/lib/schemas/news-stories";
-import { newsStoriesFilterFrom, validateLinkNewsStory } from "@/lib/news-stories/validate";
+import { validateLinkNewsStory } from "@/lib/news-stories/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +18,21 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url);
+  const projectsRaw = url.searchParams.get("projects") ?? "";
+  const teamsRaw = url.searchParams.get("teams") ?? "";
+  const legacyProject = url.searchParams.get("projectId") ?? "";
+  const legacyTeam = url.searchParams.get("teamId") ?? "";
   const parsedFilter = newsStoriesFilterSchema.safeParse({
-    projectId: url.searchParams.get("projectId") ?? "",
-    teamId: url.searchParams.get("teamId") ?? "",
+    projects: projectsRaw
+      ? projectsRaw.split(",").map((p) => p.trim()).filter(Boolean)
+      : legacyProject
+        ? [legacyProject]
+        : [],
+    teams: teamsRaw
+      ? teamsRaw.split(",").map((p) => p.trim()).filter(Boolean)
+      : legacyTeam
+        ? [legacyTeam]
+        : [],
   });
   if (!parsedFilter.success) {
     return NextResponse.json(
@@ -30,12 +42,10 @@ export async function GET(req: Request) {
   }
 
   const repo = getRepositories().newsStories;
-  const rows = await repo.list(
-    newsStoriesFilterFrom({
-      projectId: parsedFilter.data.projectId,
-      teamId: parsedFilter.data.teamId ?? "",
-    }),
-  );
+  const rows = await repo.list({
+    projectIds: parsedFilter.data.projects,
+    teamIds: parsedFilter.data.teams,
+  });
   return NextResponse.json({ stories: rows });
 }
 

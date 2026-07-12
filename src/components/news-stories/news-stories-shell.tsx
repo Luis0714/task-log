@@ -1,44 +1,73 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+
+import { Plus } from "lucide-react";
 
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
-import { ConfirmLinkDialog } from "@/components/news-stories/confirm-link-dialog";
+import { Button } from "@/components/ui/button";
 import { ConfirmUnlinkDialog } from "@/components/news-stories/confirm-unlink-dialog";
 import { NewsStoriesLinkedSection } from "@/components/news-stories/news-stories-linked-section";
+import { NewsStoriesLinkDialog } from "@/components/news-stories/news-stories-link-dialog";
+import { NewsStoriesReportedSection } from "@/components/news-stories/news-stories-reported-section";
 import {
-  NewsStoriesScopeSelector,
-  type NewsStoriesScopeValue,
-} from "@/components/news-stories/news-stories-scope-selector";
-import { NewsStoriesSearchSection } from "@/components/news-stories/news-stories-search-section";
+  NewsStoriesScopeFilters,
+  type NewsStoriesScopeFiltersValue,
+} from "@/components/news-stories/news-stories-scope-filters";
 import { useNewsStories } from "@/hooks/news-stories/use-news-stories";
+import type { ReportedNewsScope } from "@/lib/azure-devops/list-reported-news";
 import type { ProjectTeamNewsStory } from "@/lib/db";
 import { appToast } from "@/lib/toast";
-import type { AdoUserStoryHit } from "@/services/news-stories/news-stories.service";
 
 export type NewsStoriesShellProps = Readonly<{
   catalog: AdoCatalogSnapshot;
   projects: ReadonlyArray<string>;
   teams: ReadonlyArray<string>;
+  /** Selección guardada del usuario para el scope `newsStories`. Si vacía,
+   *  el selector empieza vacío (modo "Todos"). */
+  initialSelectedProjects?: ReadonlyArray<string>;
+  initialSelectedTeams?: ReadonlyArray<string>;
 }>;
 
 /**
- * Punto de entrada del módulo de HUs de novedad. Sólo compone los
- * sub-componentes y mantiene el estado efímero de los diálogos de
- * confirmación; el resto del estado vive en `useNewsStories`.
+ * Shell de la pantalla `/admin/novedades`. Composición:
+ *
+ *   <NewsStoriesScopeFilters>      ← multi-checkbox (proyectos × equipos)
+ *   <NewsStoriesLinkedSection>     ← lista de HUs vinculadas (union de scopes)
+ *   <NewsStoriesReportedSection>   ← novedades reportadas (union de scopes)
+ *
+ * Diálogos:
+ *   - Link:  abre para vincular una HU al (proyecto, equipo) seleccionado.
+ *           El primer proyecto + primer equipo definen la clave destino.
+ *   - Unlink: confirma borrar una HU vinculada concreta.
  */
 export function NewsStoriesShell({
   catalog,
   projects,
   teams,
+  initialSelectedProjects = [],
+  initialSelectedTeams = [],
 }: NewsStoriesShellProps) {
-  const [scope, setScope] = useState<NewsStoriesScopeValue>(() => ({
-    projectId: catalog.defaultProject ?? "",
-    teamId: catalog.defaultTeam ?? "",
-  }));
-  const [linkHit, setLinkHit] = useState<AdoUserStoryHit | null>(null);
+  const [scopeFilters, setScopeFilters] = useState<NewsStoriesScopeFiltersValue>(
+    () => ({
+      selectedProjects: [...initialSelectedProjects],
+      selectedTeams: [...initialSelectedTeams],
+    }),
+  );
+
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkSaving, setLinkSaving] = useState(false);
   const [unlinkStory, setUnlinkStory] = useState<ProjectTeamNewsStory | null>(
     null,
+  );
+
+  const selectedProjectsArray = useMemo(
+    () => Array.from(scopeFilters.selectedProjects),
+    [scopeFilters.selectedProjects],
+  );
+  const selectedTeamsArray = useMemo(
+    () => Array.from(scopeFilters.selectedTeams),
+    [scopeFilters.selectedTeams],
   );
 
   const {
@@ -48,25 +77,38 @@ export function NewsStoriesShell({
     validationLoading,
     validationError,
     refreshValidation,
-    searchInput,
-    setSearchInput,
-    searchResults,
-    searching,
-    searchError,
-    retrySearch,
+    backlog,
+    backlogLoading,
     link,
     unlink,
-  } = useNewsStories(scope);
+  } = useNewsStories({
+    selectedProjects: selectedProjectsArray,
+    selectedTeams: selectedTeamsArray,
+  });
+
+  // Para Vincular HU necesitamos un par (proyecto, equipo) único. Tomamos
+  // el primero seleccionado de cada lista. Si no hay selección, el botón
+  // queda deshabilitado.
+  const firstProject = selectedProjectsArray[0];
+  const firstTeam = selectedTeamsArray[0];
+  const hasLinkTarget =
+    Boolean(firstProject) && selectedTeamsArray.length <= 1;
 
   const handleLink = useCallback(
-    async (hit: AdoUserStoryHit): Promise<boolean> => {
-      const result = await link(hit);
-      if (!result.ok) {
-        appToast.error(result.message);
-        return false;
+    async (
+      item: Parameters<typeof link>[0],
+      target: Parameters<typeof link>[1],
+    ) => {
+      setLinkSaving(true);
+      try {
+        const result = await link(item, target);
+        if (!result.ok) {
+          return { ok: false, message: result.message };
+        }
+        return { ok: true };
+      } finally {
+        setLinkSaving(false);
       }
-      appToast.success("HU vinculada.");
-      return true;
     },
     [link],
   );
@@ -84,27 +126,14 @@ export function NewsStoriesShell({
     [unlink],
   );
 
-  const scopeReady = scope.projectId.length > 0;
-  const scopeLabel = scope.teamId;
-
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <section className="flex flex-col gap-4 rounded-lg border p-4">
-        <header className="flex flex-col gap-0.5">
-          <h2 className="text-base font-semibold">Contexto</h2>
-          <p className="text-muted-foreground text-xs">
-            Selecciona el (Proyecto, Equipo) cuyas HUs de novedad quieres
-            administrar. El equipo es opcional: déjalo vacío para configurar a
-            nivel de proyecto.
-          </p>
-        </header>
-        <NewsStoriesScopeSelector
-          value={scope}
-          onChange={setScope}
-          projects={projects}
-          teams={teams}
-        />
-      </section>
+      <NewsStoriesScopeFilters
+        value={scopeFilters}
+        onChange={setScopeFilters}
+        projects={projects}
+        teams={teams}
+      />
 
       <NewsStoriesLinkedSection
         items={linked}
@@ -114,30 +143,55 @@ export function NewsStoriesShell({
         validationError={validationError}
         onUnlink={setUnlinkStory}
         onRetryValidation={refreshValidation}
+        renderLinkTrigger={() => (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={
+              !hasLinkTarget ||
+              backlogLoading ||
+              linkSaving ||
+              linkedLoading ||
+              Boolean(catalog.defaultProject) === false
+            }
+            onClick={() => setLinkDialogOpen(true)}
+            title={
+              !firstProject
+                ? "Selecciona un proyecto para vincular HUs"
+                : !hasLinkTarget
+                  ? "Reduce a un solo equipo para poder vincular"
+                  : undefined
+            }
+          >
+            <Plus className="size-4" aria-hidden />
+            Vincular HU
+          </Button>
+        )}
       />
 
-      <NewsStoriesSearchSection
-        query={searchInput}
-        onQueryChange={setSearchInput}
-        scopeReady={scopeReady}
-        scopeLabel={scopeLabel}
-        results={searchResults}
-        searching={searching}
-        error={searchError}
-        onRetry={retrySearch}
-        onLink={setLinkHit}
+      <NewsStoriesLinkDialog
+        open={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        pbis={backlog}
+        scopeReady={Boolean(firstProject)}
+        saving={linkSaving}
+        onConfirm={async (item) => {
+          if (!firstProject) {
+            return { ok: false, message: "Selecciona un proyecto." };
+          }
+          return handleLink(item, {
+            projectId: firstProject,
+            teamId: firstTeam ?? null,
+          });
+        }}
       />
 
-      {linkHit ? (
-        <ConfirmLinkDialog
-          hit={linkHit}
-          open
-          onOpenChange={(open) => {
-            if (!open) setLinkHit(null);
-          }}
-          onConfirm={() => handleLink(linkHit)}
-        />
-      ) : null}
+      <NewsStoriesReportedSection
+        scopes={buildReportedScopes(
+          selectedProjectsArray,
+          selectedTeamsArray,
+        )}
+      />
 
       {unlinkStory ? (
         <ConfirmUnlinkDialog
@@ -151,4 +205,27 @@ export function NewsStoriesShell({
       ) : null}
     </div>
   );
+}
+
+/**
+ * Construye el universo multi-scope (proyectos × equipos) que consume la
+ * sección de novedades reportadas. Si no hay equipos, cada proyecto se
+ * serializa con `teamId = null` (a nivel de proyecto).
+ */
+function buildReportedScopes(
+  projects: ReadonlyArray<string>,
+  teams: ReadonlyArray<string>,
+): ReadonlyArray<ReportedNewsScope> {
+  if (projects.length === 0) return [];
+  const result: ReportedNewsScope[] = [];
+  for (const projectId of projects) {
+    if (teams.length === 0) {
+      result.push({ projectId, teamId: null });
+    } else {
+      for (const teamId of teams) {
+        result.push({ projectId, teamId });
+      }
+    }
+  }
+  return result;
 }

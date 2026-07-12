@@ -1,8 +1,10 @@
 import type { ProjectTeamNewsStory } from "@/lib/db/schema";
 
 export type NewsStoriesFilter = Readonly<{
-  projectId?: string;
-  teamId?: string;
+  /** Si está vacío, no se filtra por proyecto. */
+  projectIds?: ReadonlyArray<string>;
+  /** Si está vacío, no se filtra por equipo (incluye filas con `teamId` nulo). */
+  teamIds?: ReadonlyArray<string>;
 }>;
 
 export type CreateNewsStoryInput = Readonly<{

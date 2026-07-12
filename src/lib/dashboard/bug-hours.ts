@@ -1,13 +1,10 @@
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import { roundHours } from "@/lib/number/rounding";
 
 export type SprintBugHoursSource = Pick<
   AdoWorkItemOptionDto,
   "loggedHours" | "workingDate"
 >;
-
-function roundHours(value: number): number {
-  return Math.round(value * 10) / 10;
-}
 
 function hasLoggedHours(bug: SprintBugHoursSource): boolean {
   return typeof bug.loggedHours === "number";

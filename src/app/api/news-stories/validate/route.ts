@@ -6,7 +6,6 @@ import { fetchUserStoriesByIds } from "@/lib/azure-devops/fetch-user-stories-by-
 import { resolveAdoCaller } from "@/lib/azure-devops/resolve-auth";
 import { requireManagementUser } from "@/app/api/assignments/helpers";
 import { getRepositories } from "@/lib/db";
-import { newsStoriesFilterFrom } from "@/lib/news-stories/validate";
 import type {
   NewsStoriesValidationResponse,
   NewsStoryValidationEntry,
@@ -33,13 +32,19 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url);
-  const filter = newsStoriesFilterFrom({
-    projectId: url.searchParams.get("projectId") ?? "",
-    teamId: url.searchParams.get("teamId") ?? "",
-  });
-  if (!filter.projectId) {
+  const projectsRaw = url.searchParams.get("projects") ?? "";
+  const teamsRaw = url.searchParams.get("teams") ?? "";
+  const filter = {
+    projectIds: projectsRaw
+      ? projectsRaw.split(",").map((p) => p.trim()).filter(Boolean)
+      : undefined,
+    teamIds: teamsRaw
+      ? teamsRaw.split(",").map((p) => p.trim()).filter(Boolean)
+      : undefined,
+  };
+  if (!filter.projectIds || filter.projectIds.length === 0) {
     return NextResponse.json(
-      { error: "Falta el proyecto a validar." },
+      { error: "Falta al menos un proyecto a validar." },
       { status: 400 },
     );
   }

@@ -21,6 +21,7 @@ export async function GET(req: Request): Promise<
 > {
   const url = new URL(req.url);
   const projectParam = url.searchParams.get("project")?.trim();
+  const teamParam = url.searchParams.get("team")?.trim();
 
   const auth = projectParam
     ? await getScopedProjectAuth(projectParam)
@@ -29,6 +30,8 @@ export async function GET(req: Request): Promise<
     return NextResponse.json({ pbis: [] });
   }
 
-  const pbis = await listBacklogWorkItems(auth);
+  const pbis = await listBacklogWorkItems(auth, {
+    team: teamParam && teamParam.length > 0 ? teamParam : undefined,
+  });
   return NextResponse.json({ pbis });
 }

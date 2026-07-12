@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { getDb } from "@/lib/db/client";
 import {
@@ -13,18 +13,29 @@ import type {
   NewsStoriesRepository,
 } from "@/lib/db/ports/news-stories.repository.port";
 
+/**
+ * Construye la cláusula `WHERE` multi-scope. Semántica:
+ * - `projectIds` no vacío → `project_id IN (…projectIds)`.
+ * - `teamIds` no vacío → `(team_id IN (…teamIds) OR team_id IS NULL)`
+ *   (los "Sin equipo" a nivel proyecto también aparecen).
+ * Si el array está vacío (o `undefined`), ese eje no filtra — equivalente
+ * a "todos".
+ */
 function buildWhere(
   filter: NewsStoriesFilter,
 ): ReturnType<typeof and> | undefined {
   const parts = [];
-  if (filter.projectId) {
-    parts.push(eq(projectTeamNewsStories.projectId, filter.projectId));
+  const projectIds = filter.projectIds?.filter((p) => p.length > 0) ?? [];
+  if (projectIds.length > 0) {
+    parts.push(inArray(projectTeamNewsStories.projectId, [...projectIds]));
   }
-  if (filter.teamId !== undefined) {
+  const teamIds = filter.teamIds?.filter((t) => t.length > 0) ?? [];
+  if (teamIds.length > 0) {
     parts.push(
-      filter.teamId === ""
-        ? isNull(projectTeamNewsStories.teamId)
-        : eq(projectTeamNewsStories.teamId, filter.teamId),
+      or(
+        inArray(projectTeamNewsStories.teamId, [...teamIds]),
+        isNull(projectTeamNewsStories.teamId),
+      )!,
     );
   }
   return parts.length ? and(...parts) : undefined;

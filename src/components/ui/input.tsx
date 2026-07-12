@@ -27,11 +27,18 @@ function Input({
       )}
       onValueChange={
         onChange
-          ? (value) => {
+          ? (value, eventDetails) => {
+              // Preservamos el `nativeEvent` del `eventDetails` de base-ui para
+              // que los consumidores que esperan la API estándar de React
+              // (`onChange`) puedan leer `event.nativeEvent.*` (p. ej.
+              // `inputType`, usado por `ComboboxPrimitive.Input` para
+              // distinguir tecleo humano de autofill).
+              const nativeEvent = eventDetails?.event;
               onChange({
                 target: { value },
                 currentTarget: { value },
-              } as React.ChangeEvent<HTMLInputElement>);
+                nativeEvent,
+              } as unknown as React.ChangeEvent<HTMLInputElement>);
             }
           : undefined
       }

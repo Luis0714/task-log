@@ -79,14 +79,23 @@ export function validateLinkNewsStory(input: {
   };
 }
 
-export function newsStoriesFilterFrom(input: {
-  projectId?: unknown;
-  teamId?: unknown;
+/** Convierte una query params cruda (`?projects=A,B&teams=Backend`) al filtro
+ *  multi-scope del repo. Acepta listas separadas por coma y descarta vacíos. */
+export function newsStoriesFilterFromList(input: {
+  projects?: unknown;
+  teams?: unknown;
 }): NewsStoriesFilter {
-  const projectId =
-    typeof input.projectId === "string" ? input.projectId.trim() : undefined;
-  const teamIdRaw =
-    typeof input.teamId === "string" ? input.teamId.trim() : "";
-  const teamId = teamIdRaw === "" ? undefined : teamIdRaw;
-  return { projectId, teamId };
+  return {
+    projectIds: splitCsv(input.projects),
+    teamIds: splitCsv(input.teams),
+  };
+}
+
+function splitCsv(value: unknown): ReadonlyArray<string> | undefined {
+  if (typeof value !== "string") return undefined;
+  const items = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  return items.length > 0 ? items : undefined;
 }

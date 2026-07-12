@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { newsStoriesFilterFrom, validateLinkNewsStory } from "@/lib/news-stories/validate";
+import { validateLinkNewsStory } from "@/lib/news-stories/validate";
 
 describe("validateLinkNewsStory", () => {
   const baseInput = {
@@ -63,17 +63,5 @@ describe("validateLinkNewsStory", () => {
     const result = validateLinkNewsStory({ ...baseInput, workItemTitle: "   " });
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.input.workItemTitleSnapshot).toBeNull();
-  });
-});
-
-describe("newsStoriesFilterFrom", () => {
-  it("normaliza teamId vacío a undefined", () => {
-    const filter = newsStoriesFilterFrom({ projectId: "Proyecto A", teamId: "" });
-    expect(filter).toEqual({ projectId: "Proyecto A", teamId: undefined });
-  });
-
-  it("preserva teamId si viene con valor", () => {
-    const filter = newsStoriesFilterFrom({ projectId: "Proyecto A", teamId: "Backend" });
-    expect(filter).toEqual({ projectId: "Proyecto A", teamId: "Backend" });
   });
 });
