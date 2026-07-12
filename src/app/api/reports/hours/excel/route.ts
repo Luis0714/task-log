@@ -3,6 +3,7 @@ import "server-only";
 import { requireManagementUser } from "@/app/api/assignments/helpers";
 import { ADO_SIGN_IN_REQUIRED_MESSAGE } from "@/lib/auth/ado-auth-messages";
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
+import { filterHoursReportByVisibility } from "@/lib/reports/hours/filter-hours-report-by-visibility";
 import { runHoursReport } from "@/lib/reports/hours/run-hours-report";
 import {
   buildHoursReportExcel,
@@ -10,40 +11,32 @@ import {
   formatHoursReportPeriodLabel,
 } from "@/lib/reports/excel/hours-report-excel";
 import { xlsxResponse } from "@/lib/reports/excel/route-helpers";
-import { hoursReportExcelQuerySchema } from "@/lib/schemas/reports-hours";
+import { hoursReportExcelRequestSchema } from "@/lib/schemas/reports-hours";
 import { apiErrorFromCause, apiErrorResponse } from "@/lib/errors/api-error-response";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+export async function POST(req: Request) {
   const auth = await requireManagementUser();
   if (!auth.ok) {
     return apiErrorResponse(auth.error, auth.status);
   }
 
-  const url = new URL(req.url);
-  const parsed = hoursReportExcelQuerySchema.safeParse({
-    periodKind: url.searchParams.get("periodKind") ?? undefined,
-    monthKey: url.searchParams.get("monthKey") ?? undefined,
-    fromIso: url.searchParams.get("fromIso") ?? undefined,
-    toIso: url.searchParams.get("toIso") ?? undefined,
-    projectIds: url.searchParams.get("projects") ?? undefined,
-    teamIds: url.searchParams.get("teams") ?? undefined,
-    personAdoId: url.searchParams.get("person") ?? undefined,
-    roleId: url.searchParams.get("role") ?? undefined,
-  });
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return apiErrorResponse("Body inválido.", 400);
+  }
 
+  const parsed = hoursReportExcelRequestSchema.safeParse(body);
   if (!parsed.success) {
     return apiErrorResponse(parsed.error.issues[0]?.message ?? "Parámetros inválidos.", 400);
   }
 
-  if (parsed.data.periodKind === "range") {
-    if (!parsed.data.fromIso || !parsed.data.toIso) {
-      return apiErrorResponse("Fechas desde/hasta requeridas.", 400);
-    }
-    if (parsed.data.fromIso > parsed.data.toIso) {
-      return apiErrorResponse("La fecha hasta debe ser posterior a la fecha desde.", 400);
-    }
+  const period = parsed.data.period;
+  if (period.kind === "range" && period.fromIso > period.toIso) {
+    return apiErrorResponse("La fecha hasta debe ser posterior a la fecha desde.", 400);
   }
 
   const adoCaller = await requireAdoCaller();
@@ -51,29 +44,27 @@ export async function GET(req: Request) {
     return apiErrorResponse(ADO_SIGN_IN_REQUIRED_MESSAGE, 401);
   }
 
-  const period =
-    parsed.data.periodKind === "month"
-      ? { kind: "month" as const, monthKey: parsed.data.monthKey ?? "" }
-      : {
-          kind: "range" as const,
-          fromIso: parsed.data.fromIso ?? "",
-          toIso: parsed.data.toIso ?? "",
-        };
-
   try {
     const result = await runHoursReport({
       auth: adoCaller.auth,
       period,
-      projectIds: parsed.data.projectIds,
-      teamIds: parsed.data.teamIds,
+      projectIds: parsed.data.scopes.projectIds,
+      teamIds: parsed.data.scopes.teamIds,
       filters: {
         personAdoId: parsed.data.personAdoId,
         roleId: parsed.data.roleId,
       },
     });
 
-    const projectNames = Array.from(new Set(result.rows.map((r) => r.projectName)));
-    // Etiqueta legible para el subtítulo; slug compacto para el nombre de archivo.
+    const visibleResult = filterHoursReportByVisibility(
+      result,
+      new Set(parsed.data.hiddenPersons),
+    );
+
+    const projectNames = Array.from(
+      new Set(visibleResult.rows.map((r) => r.projectName)),
+    );
+
     const periodLabel = formatHoursReportPeriodLabel(period);
     const periodSlug =
       period.kind === "month" ? period.monthKey : `${period.fromIso}_a_${period.toIso}`;
@@ -81,7 +72,7 @@ export async function GET(req: Request) {
     const buffer = await buildHoursReportExcel({
       projectNames,
       periodLabel,
-      result,
+      result: visibleResult,
     });
     const filename = buildHoursReportFilename(projectNames, periodSlug);
     return xlsxResponse(buffer, filename);
@@ -96,7 +87,7 @@ export async function GET(req: Request) {
       );
     }
     return apiErrorFromCause(
-      "reports/hours/excel GET",
+      "reports/hours/excel POST",
       cause,
       "No se pudo generar el Excel del reporte de horas.",
     );

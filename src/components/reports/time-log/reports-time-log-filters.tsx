@@ -62,6 +62,8 @@ export type ReportsTimeLogFiltersProps = {
   onGenerate: () => void;
   generating: boolean;
   payload: HoursReportRequestSchema;
+  /** Combobox de mostrar/ocultar personas (aparece tras generar el reporte). */
+  visibilityControl?: React.ReactNode;
   exportButton?: React.ReactNode;
 };
 
@@ -87,6 +89,7 @@ export function ReportsTimeLogFilters({
   onNameFilterChange,
   onGenerate,
   generating,
+  visibilityControl,
   exportButton,
 }: Readonly<ReportsTimeLogFiltersProps>) {
   const showMonth = period.kind === "month";
@@ -102,7 +105,7 @@ export function ReportsTimeLogFilters({
     "Todos los equipos",
     "equipos seleccionados",
   );
-  // Etiqueta del botón Generar/Actualizar según el estado de los filtros.
+
   let generateLabel: string;
   if (generating) generateLabel = "Generando...";
   else if (isStale) generateLabel = "Actualizar reporte";
@@ -132,67 +135,64 @@ export function ReportsTimeLogFilters({
         />
       </div>
       <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-end">
-        {/* SECCIÓN DE FILTROS — a la izquierda/start, ocupa el espacio
-            disponible en desktop. Flex con wrap para que los filtros se
-            reacomoden en cualquier pantalla sin salirse del contenedor. */}
         <div className="flex flex-wrap items-end gap-3 lg:min-w-0 lg:flex-1">
-          {/* Periodo: `shrink-0` para que NO se comprima ni fuerce a los
-              demás filtros a separarse; mantiene su ancho natural
-              (SegmentedControl con "Mes | Rango personalizado"). */}
-          <div className="flex shrink-0 flex-col gap-1.5">
+          <div className="flex w-full shrink-0 flex-col gap-1.5 sm:w-auto">
             <Label>Periodo</Label>
             <SegmentedControl
               items={PERIOD_ITEMS}
               value={period.kind}
               onValueChange={onPeriodChange}
               ariaLabel="Tipo de periodo"
+              fullWidth
+              className="sm:inline-flex sm:w-fit sm:[&>button]:w-auto"
             />
           </div>
-          {showMonth ? (
-            <>
-              {/* Año y Mes comparten el espacio restante (`grow`) con un
-                  `basis` mínimo para que no se aplasten demasiado. */}
-              <div className="flex basis-32 min-w-32 grow flex-col gap-1.5">
-                <Label>Año</Label>
-                <Select value={String(year)} onValueChange={(v) => v && onYearChange(Number(v))}>
-                  <SelectTrigger>
-                    <span>{year}</span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {YEAR_OPTIONS.map((y) => (
-                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex basis-32 min-w-32 grow flex-col gap-1.5">
-                <Label>Mes</Label>
-                <Select value={monthKey.slice(5, 7)} onValueChange={(v) => v && onMonthKeyChange(`${year}-${v}`)}>
-                  <SelectTrigger>
-                    <span className="capitalize">{MONTH_NAMES[Number(monthKey.slice(5, 7)) - 1] ?? monthKey}</span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MONTH_NAMES.map((name, idx) => (
-                      <SelectItem key={idx + 1} value={String(idx + 1).padStart(2, "0")}>{name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex basis-32 min-w-32 grow flex-col gap-1.5">
-                <Label>Desde</Label>
-                <DatePicker value={rangeFrom} onChange={onRangeFromChange} max={rangeTo} />
-              </div>
-              <div className="flex basis-32 min-w-32 grow flex-col gap-1.5">
-                <Label>Hasta</Label>
-                <DatePicker value={rangeTo} onChange={onRangeToChange} min={rangeFrom} />
-              </div>
-            </>
-          )}
-          {/* Persona: ancho mayor para que el placeholder "Filtrar por
-              nombre…" se vea completo y el control no quede diminuto. */}
+          {/* Par de campos del periodo: un solo ítem del flex-wrap, de modo
+              que (Año, Mes) o (Desde, Hasta) siempre queden juntos en la
+              misma fila y se repartan el ancho disponible. */}
+          <div className="flex basis-64 min-w-64 grow gap-3">
+            {showMonth ? (
+              <>
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <Label>Año</Label>
+                  <Select value={String(year)} onValueChange={(v) => v && onYearChange(Number(v))}>
+                    <SelectTrigger>
+                      <span>{year}</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {YEAR_OPTIONS.map((y) => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <Label>Mes</Label>
+                  <Select value={monthKey.slice(5, 7)} onValueChange={(v) => v && onMonthKeyChange(`${year}-${v}`)}>
+                    <SelectTrigger>
+                      <span className="capitalize">{MONTH_NAMES[Number(monthKey.slice(5, 7)) - 1] ?? monthKey}</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MONTH_NAMES.map((name, idx) => (
+                        <SelectItem key={idx + 1} value={String(idx + 1).padStart(2, "0")}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <Label>Desde</Label>
+                  <DatePicker value={rangeFrom} onChange={onRangeFromChange} max={rangeTo} />
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <Label>Hasta</Label>
+                  <DatePicker value={rangeTo} onChange={onRangeToChange} min={rangeFrom} />
+                </div>
+              </>
+            )}
+          </div>
           <div className="flex basis-48 min-w-48 grow flex-col gap-1.5">
             <Label htmlFor="reports-time-log-name-filter">Persona</Label>
             <Input
@@ -206,15 +206,13 @@ export function ReportsTimeLogFilters({
             />
           </div>
         </div>
-
-        {/* SECCIÓN DE BOTONES — a la derecha/end, separada visualmente de los
-            filtros con un borde vertical solo en desktop (lg+). En móvil y
-            tablet se apila debajo con un gap generoso. */}
         <div className="flex flex-wrap items-center gap-3 sm:justify-end lg:shrink-0 lg:border-l lg:border-border lg:pl-6">
+          {visibilityControl}
           <Button
             onClick={onGenerate}
             disabled={generating}
             variant={isStale ? "default" : "outline"}
+            className="flex-1 sm:flex-none"
             aria-label={
               isStale
                 ? "Hay filtros sin aplicar. Genera el reporte para actualizarlos."
@@ -228,7 +226,11 @@ export function ReportsTimeLogFilters({
             )}
             {generating ? "Generando..." : generateLabel}
           </Button>
-          {exportButton}
+          {exportButton ? (
+            <div className="flex-1 sm:flex-none [&_button]:w-full sm:[&_button]:w-auto">
+              {exportButton}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

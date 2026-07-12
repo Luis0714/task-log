@@ -5,7 +5,6 @@ import ExcelJS from "exceljs";
 import {
   buildHoursCell,
   buildPersonaCell,
-  buildRolCell,
   centerAlign,
   COLOR,
   leftAlign,
@@ -203,7 +202,15 @@ function writeDataRow(
 
   const memberInfo = memberRoles.get(row.personDisplayName);
   buildPersonaCell(ws.getCell(excelRow, 3), row.personDisplayName, memberInfo?.email ?? "");
-  buildRolCell(ws.getCell(excelRow, 4), formatAssignmentPct(row));
+
+  styleCell(ws.getCell(excelRow, 4), {
+    fill: COLOR.cardBg,
+    font: { color: COLOR.mutedFg, size: 10 },
+    alignment: centerAlign(),
+    borderStyle: "thin",
+    skipRightBorder: true,
+  });
+  ws.getCell(excelRow, 4).value = formatAssignmentPct(row);
 
   buildNumericCell(ws, excelRow, 5, row.developmentHours);
   buildNumericCell(ws, excelRow, 6, row.bugHours);
@@ -218,7 +225,7 @@ function writeDataRow(
   ws.getCell(excelRow, 7).value = row.newsCount;
 
   buildNumericCell(ws, excelRow, 8, row.newsHours);
-  buildNumericCell(ws, excelRow, 9, row.newsDays);
+  buildNumericCell(ws, excelRow, 9, row.newsDays, "General");
 
   styleCell(ws.getCell(excelRow, 10), {
     fill: COLOR.cardBg,
@@ -228,8 +235,8 @@ function writeDataRow(
   });
   ws.getCell(excelRow, 10).value =
     row.newsCount === 0 ? "Sin novedades" : row.newsDetail || "Sin novedades";
-
-  buildNumericCell(ws, excelRow, 11, row.workingDays);
+    
+  buildNumericCell(ws, excelRow, 11, row.workingDays, "0");
   buildNumericCell(ws, excelRow, 12, row.expectedHours);
   buildNumericCell(ws, excelRow, 13, row.totalHours);
 
@@ -241,11 +248,13 @@ function buildNumericCell(
   excelRow: number,
   col: number,
   value: number,
+  numFmt?: string,
 ): void {
   buildHoursCell(ws.getCell(excelRow, col), value, {
     fill: COLOR.cardBg,
     color: COLOR.foreground,
     skipRightBorder: col < 14,
+    numFmt,
   });
 }
 

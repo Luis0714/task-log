@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { csvOf } from "@/lib/schemas/csv-of";
-
 export const hoursReportPeriodSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("month"),
@@ -32,15 +30,13 @@ export const hoursReportRequestSchema = z.object({
 
 export type HoursReportRequestSchema = z.infer<typeof hoursReportRequestSchema>;
 
-export const hoursReportExcelQuerySchema = z.object({
-  periodKind: z.enum(["month", "range"]),
-  monthKey: z.string().regex(/^\d{4}-\d{2}$/).optional(),
-  fromIso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  toIso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  projectIds: csvOf,
-  teamIds: csvOf,
-  personAdoId: z.string().optional(),
-  roleId: z.string().optional(),
+/**
+ * Body del POST del Excel: mismo payload que la generación más las personas
+ * ocultadas en la tabla (display names, vienen del store de visibilidad del
+ * cliente — nunca por la URL). Se excluyen del Excel.
+ */
+export const hoursReportExcelRequestSchema = hoursReportRequestSchema.extend({
+  hiddenPersons: z.array(z.string()).default([]),
 });
 
-export type HoursReportExcelQuerySchema = z.infer<typeof hoursReportExcelQuerySchema>;
+export type HoursReportExcelRequestSchema = z.infer<typeof hoursReportExcelRequestSchema>;

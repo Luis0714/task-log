@@ -84,7 +84,13 @@ export const HOURS_NUMFMT = `0.0"h"`;
 export function buildHoursCell(
   cell: ExcelJS.Cell,
   value: number,
-  opts: { fill: string; color: string; bold?: boolean; skipRightBorder?: boolean },
+  opts: {
+    fill: string;
+    color: string;
+    bold?: boolean;
+    skipRightBorder?: boolean;
+    numFmt?: string;
+  },
 ): void {
   cell.value = value;
   styleCell(cell, {
@@ -93,7 +99,7 @@ export function buildHoursCell(
     alignment: centerAlign(),
     borderStyle: "thin",
     skipRightBorder: opts.skipRightBorder,
-    numFmt: HOURS_NUMFMT,
+    numFmt: opts.numFmt ?? HOURS_NUMFMT,
   });
 }
 

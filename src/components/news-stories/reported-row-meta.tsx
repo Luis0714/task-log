@@ -14,8 +14,9 @@ export type ReportedRowMetaProps = Readonly<{
 }>;
 
 /**
- * Línea meta del row: rango de fechas, fecha de reintegro, asignado a y HU
- * padre — sólo aparecen si el campo está presente en el item.
+ * Línea meta del row: rango de fechas, fecha de reintegro, tiempo de la
+ * novedad, asignado a y HU padre — sólo aparecen si el campo está presente
+ * en el item.
  */
 export function ReportedRowMeta({ item }: ReportedRowMetaProps) {
   const fechaInicio = formatShortDate(item.fechaInicio);
@@ -29,6 +30,12 @@ export function ReportedRowMeta({ item }: ReportedRowMetaProps) {
         <span className="inline-flex items-center gap-1">
           Reintegro:{" "}
           <span className="text-foreground/70">{fechaReintegro}</span>
+        </span>
+      ) : null}
+      {item.completedWork !== null ? (
+        <span className="inline-flex items-center gap-1">
+          Tiempo novedad:{" "}
+          <span className="text-foreground/70">{item.completedWork}h</span>
         </span>
       ) : null}
       {item.assignedTo ? (
