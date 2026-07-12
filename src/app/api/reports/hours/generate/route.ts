@@ -5,12 +5,9 @@ import { NextResponse } from "next/server";
 import { requireManagementUser } from "@/app/api/assignments/helpers";
 import { ADO_SIGN_IN_REQUIRED_MESSAGE } from "@/lib/auth/ado-auth-messages";
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
-import { buildHoursReport } from "@/lib/reports/hours/build-hours-report";
+import { runHoursReport } from "@/lib/reports/hours/run-hours-report";
 import { hoursReportRequestSchema } from "@/lib/schemas/reports-hours";
-import { loadTeamMembers } from "@/lib/filters/load-team-members";
-import { getRepositories } from "@/lib/db";
 import { apiErrorFromCause, apiErrorResponse } from "@/lib/errors/api-error-response";
-import type { ReportedNewsScope } from "@/lib/azure-devops/list-reported-news";
 
 export const dynamic = "force-dynamic";
 
@@ -41,35 +38,17 @@ export async function POST(req: Request) {
     return apiErrorResponse(ADO_SIGN_IN_REQUIRED_MESSAGE, 401);
   }
 
-  const scopes = resolveScopes(parsed.data.scopes);
-
   try {
-    const result = await buildHoursReport(
-      {
-        scopes,
-        period: parsed.data.period,
-        filters: {
-          personAdoId: parsed.data.personAdoId,
-          roleId: parsed.data.roleId,
-        },
+    const result = await runHoursReport({
+      auth: adoCaller.auth,
+      period: parsed.data.period,
+      projectIds: parsed.data.scopes.projectIds,
+      teamIds: parsed.data.scopes.teamIds,
+      filters: {
+        personAdoId: parsed.data.personAdoId,
+        roleId: parsed.data.roleId,
       },
-      {
-        auth: adoCaller.auth,
-        assignmentRepo: getRepositories().personProjectAssignment,
-        newsStoriesRepo: getRepositories().newsStories,
-        loadTeamMembers: async (scope) => {
-          if (!scope.teamId || scope.projectId === "*") return [];
-          const members = await loadTeamMembers({
-            project: scope.projectId,
-            team: scope.teamId,
-          });
-          return members.map((m) => ({
-            personAdoId: m.id,
-            personDisplayName: m.displayName,
-          }));
-        },
-      },
-    );
+    });
     return NextResponse.json(result);
   } catch (cause) {
     if (
@@ -87,22 +66,4 @@ export async function POST(req: Request) {
       "No se pudo generar el reporte de horas.",
     );
   }
-}
-
-/**
- * Un scope por cada par (proyecto, equipo) seleccionado. Cada equipo genera su
- * propio scope para que el reporte incluya a los miembros de cada equipo (no
- * solo el primero). Sin proyecto → scope comodín; sin equipo → `teamId` nulo
- * (no se puede cargar roster, pero no rompe la generación).
- */
-function resolveScopes(scopes: { projectIds: string[]; teamIds: string[] }): ReportedNewsScope[] {
-  const projectIds = scopes.projectIds.length > 0 ? scopes.projectIds : ["*"];
-  const teamIds: (string | null)[] = scopes.teamIds.length > 0 ? scopes.teamIds : [null];
-  const result: ReportedNewsScope[] = [];
-  for (const projectId of projectIds) {
-    for (const teamId of teamIds) {
-      result.push({ projectId, teamId });
-    }
-  }
-  return result;
 }

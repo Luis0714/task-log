@@ -208,12 +208,18 @@ export function ReportsTimeLogContent({
     }
     setDownloadingExcel(true);
     try {
-      const query = resolveExcelQuery(period, projectIds, teamIds);
+      // Mismos scopes efectivos que la generación (vacío ⇒ todo el catálogo),
+      // para que el Excel refleje exactamente la tabla.
+      const query = resolveExcelQuery(
+        period,
+        payload.scopes.projectIds,
+        payload.scopes.teamIds,
+      );
       await hoursReport.downloadExcel(query);
     } finally {
       setDownloadingExcel(false);
     }
-  }, [hoursReport, period, projectIds, teamIds]);
+  }, [hoursReport, period, payload]);
 
   const showStale = hoursReport.status === "stale";
   const showError = hoursReport.status === "error" || Boolean(hoursReport.errorMessage);

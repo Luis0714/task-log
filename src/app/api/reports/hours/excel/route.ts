@@ -3,13 +3,15 @@ import "server-only";
 import { requireManagementUser } from "@/app/api/assignments/helpers";
 import { ADO_SIGN_IN_REQUIRED_MESSAGE } from "@/lib/auth/ado-auth-messages";
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
-import { buildHoursReport } from "@/lib/reports/hours/build-hours-report";
-import { buildHoursReportExcel, buildHoursReportFilename } from "@/lib/reports/excel/hours-report-excel";
+import { runHoursReport } from "@/lib/reports/hours/run-hours-report";
+import {
+  buildHoursReportExcel,
+  buildHoursReportFilename,
+  formatHoursReportPeriodLabel,
+} from "@/lib/reports/excel/hours-report-excel";
 import { xlsxResponse } from "@/lib/reports/excel/route-helpers";
 import { hoursReportExcelQuerySchema } from "@/lib/schemas/reports-hours";
-import { getRepositories } from "@/lib/db";
 import { apiErrorFromCause, apiErrorResponse } from "@/lib/errors/api-error-response";
-import type { ReportedNewsScope } from "@/lib/azure-devops/list-reported-news";
 
 export const dynamic = "force-dynamic";
 
@@ -58,30 +60,22 @@ export async function GET(req: Request) {
           toIso: parsed.data.toIso ?? "",
         };
 
-  const scopes = resolveScopes({
-    projectIds: parsed.data.projectIds,
-    teamIds: parsed.data.teamIds,
-  });
-
   try {
-    const result = await buildHoursReport(
-      {
-        scopes,
-        period,
-        filters: {
-          personAdoId: parsed.data.personAdoId,
-          roleId: parsed.data.roleId,
-        },
+    const result = await runHoursReport({
+      auth: adoCaller.auth,
+      period,
+      projectIds: parsed.data.projectIds,
+      teamIds: parsed.data.teamIds,
+      filters: {
+        personAdoId: parsed.data.personAdoId,
+        roleId: parsed.data.roleId,
       },
-      {
-        auth: adoCaller.auth,
-        assignmentRepo: getRepositories().personProjectAssignment,
-        newsStoriesRepo: getRepositories().newsStories,
-      },
-    );
+    });
 
     const projectNames = Array.from(new Set(result.rows.map((r) => r.projectName)));
-    const periodLabel =
+    // Etiqueta legible para el subtítulo; slug compacto para el nombre de archivo.
+    const periodLabel = formatHoursReportPeriodLabel(period);
+    const periodSlug =
       period.kind === "month" ? period.monthKey : `${period.fromIso}_a_${period.toIso}`;
 
     const buffer = await buildHoursReportExcel({
@@ -89,7 +83,7 @@ export async function GET(req: Request) {
       periodLabel,
       result,
     });
-    const filename = buildHoursReportFilename(projectNames, periodLabel);
+    const filename = buildHoursReportFilename(projectNames, periodSlug);
     return xlsxResponse(buffer, filename);
   } catch (cause) {
     if (
@@ -107,14 +101,4 @@ export async function GET(req: Request) {
       "No se pudo generar el Excel del reporte de horas.",
     );
   }
-}
-
-function resolveScopes(scopes: { projectIds: string[]; teamIds: string[] }): ReportedNewsScope[] {
-  if (scopes.projectIds.length === 0) {
-    return [{ projectId: "*", teamId: null }];
-  }
-  return scopes.projectIds.map((projectId) => ({
-    projectId,
-    teamId: scopes.teamIds[0] ?? null,
-  }));
 }

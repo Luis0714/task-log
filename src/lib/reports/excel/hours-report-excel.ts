@@ -11,11 +11,36 @@ import {
   leftAlign,
   styleCell,
 } from "@/lib/reports/excel/excel-styles";
+import type { BuildHoursReportPeriod } from "@/lib/reports/hours/build-hours-report";
 import type {
   HoursReportResult,
   HoursReportRow,
   SemaforoLevel,
 } from "@/lib/reports/hours/hours-report-types";
+
+const MONTHS_ES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+] as const;
+
+/** `2026-06-01` → `01 de junio de 2026` (sin depender de la zona horaria). */
+function formatIsoDateEs(iso: string): string {
+  const [year, month, day] = iso.slice(0, 10).split("-").map(Number);
+  const monthName = MONTHS_ES[(month ?? 1) - 1] ?? "";
+  return `${String(day ?? 1).padStart(2, "0")} de ${monthName} de ${year}`;
+}
+
+/**
+ * Etiqueta legible del periodo para el subtítulo del Excel:
+ * mes → `junio de 2026`; rango → `01 de junio de 2026 a 30 de junio de 2026`.
+ */
+export function formatHoursReportPeriodLabel(period: BuildHoursReportPeriod): string {
+  if (period.kind === "month") {
+    const [year, month] = period.monthKey.split("-").map(Number);
+    return `${MONTHS_ES[(month ?? 1) - 1] ?? ""} de ${year}`;
+  }
+  return `${formatIsoDateEs(period.fromIso)} a ${formatIsoDateEs(period.toIso)}`;
+}
 
 const COL_WIDTHS = [28, 24, 28, 16, 14, 14, 16, 14, 14, 56, 12, 14, 14, 16] as const;
 const HEADER_LABELS = [
