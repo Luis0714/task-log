@@ -1,6 +1,4 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { GoAlertFill } from "react-icons/go";
-
 
 export function ReportsTimeLogStaleBanner() {
   return (
