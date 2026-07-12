@@ -7,6 +7,7 @@ import { ADO_SIGN_IN_REQUIRED_MESSAGE } from "@/lib/auth/ado-auth-messages";
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
 import { buildHoursReport } from "@/lib/reports/hours/build-hours-report";
 import { hoursReportRequestSchema } from "@/lib/schemas/reports-hours";
+import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import { getRepositories } from "@/lib/db";
 import { apiErrorFromCause, apiErrorResponse } from "@/lib/errors/api-error-response";
 import type { ReportedNewsScope } from "@/lib/azure-devops/list-reported-news";
@@ -56,6 +57,17 @@ export async function POST(req: Request) {
         auth: adoCaller.auth,
         assignmentRepo: getRepositories().personProjectAssignment,
         newsStoriesRepo: getRepositories().newsStories,
+        loadTeamMembers: async (scope) => {
+          if (!scope.teamId || scope.projectId === "*") return [];
+          const members = await loadTeamMembers({
+            project: scope.projectId,
+            team: scope.teamId,
+          });
+          return members.map((m) => ({
+            personAdoId: m.id,
+            personDisplayName: m.displayName,
+          }));
+        },
       },
     );
     return NextResponse.json(result);

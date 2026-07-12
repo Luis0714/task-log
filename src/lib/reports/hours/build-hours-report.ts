@@ -49,8 +49,15 @@ export type BuildHoursReportDeps = {
   listBugs?: typeof listBugsInWorkingDateRange;
   fetchUserStories?: typeof fetchUserStoriesByIds;
   listWorkingDays?: typeof listWorkingDaysInPeriod;
-  listInferredDefaults?: PersonProjectAssignmentRepository["listInferredDefaults"];
-  inferredDefaultsInput?: Parameters<PersonProjectAssignmentRepository["listInferredDefaults"]>[0];
+  /**
+   * Roster oficial del (proyecto, equipo) del scope. Sus miembros sin
+   * excepción en BD se tratan como 100% por defecto (D17/D18, CA-18). Si no
+   * se provee, no se infiere ningún default y las personas sin excepción
+   * quedan "Sin configurar" (CA-29).
+   */
+  loadTeamMembers?: (
+    scope: ReportedNewsScope,
+  ) => Promise<ReadonlyArray<{ personAdoId: string; personDisplayName: string }>>;
   now?: () => Date;
 };
 
@@ -106,8 +113,18 @@ export async function buildHoursReport(
         (filters?.personAdoId === undefined || a.personAdoId === filters.personAdoId),
     );
 
-    const inferredDefaultRows = deps.listInferredDefaults && deps.inferredDefaultsInput
-      ? await deps.listInferredDefaults(deps.inferredDefaultsInput)
+    const scopeMembers = deps.loadTeamMembers ? await deps.loadTeamMembers(scope) : [];
+    const inferredDefaultRows = scopeMembers.length > 0
+      ? await deps.assignmentRepo.listInferredDefaults({
+          members: scopeMembers.map((m) => ({
+            personAdoId: m.personAdoId,
+            personDisplayName: m.personDisplayName,
+            projectId: scope.projectId,
+            projectName: scope.projectId,
+            teamId: scope.teamId,
+            teamName: scope.teamId,
+          })),
+        })
       : [];
     const inferredPersonNames = new Set(inferredDefaultRows.map((r) => r.personDisplayName));
 

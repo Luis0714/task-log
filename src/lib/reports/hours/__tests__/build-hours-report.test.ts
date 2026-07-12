@@ -112,6 +112,61 @@ describe("buildHoursReport", () => {
     expect(result.alerts.find((a) => a.kind === "unconfigured_person")).toBeDefined();
   });
 
+  it("miembro del equipo sin excepción → 100% por defecto, sin alerta (CA-18)", async () => {
+    const task = makeTask({ id: 1, assignedTo: "Ana Gómez", loggedHours: 8, parentId: 500 });
+    const result = await buildHoursReport(
+      {
+        scopes: [makeScope()],
+        period: { kind: "month", monthKey: "2026-06" },
+      },
+      {
+        auth: fakeAuth,
+        assignmentRepo: makeFakeAssignmentRepo([]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+        listTasks: async () => [task],
+        listBugs: async () => [],
+        fetchUserStories: (async () => []) as never,
+        listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
+        loadTeamMembers: async () => [
+          { personAdoId: "user-ana", personDisplayName: "Ana Gómez" },
+        ],
+        now: fixedNow,
+      },
+    );
+
+    const row = result.rows.find((r) => r.personDisplayName === "Ana Gómez");
+    expect(row?.assignmentPct).toEqual({ kind: "default" });
+    expect(row?.expectedHours).toBeGreaterThan(0);
+    expect(result.alerts.find((a) => a.kind === "unconfigured_person")).toBeUndefined();
+  });
+
+  it("no-miembro con trabajo reportado → sigue 'Sin configurar' (CA-29)", async () => {
+    const task = makeTask({ id: 1, assignedTo: "Externo X", loggedHours: 8, parentId: 500 });
+    const result = await buildHoursReport(
+      {
+        scopes: [makeScope()],
+        period: { kind: "month", monthKey: "2026-06" },
+      },
+      {
+        auth: fakeAuth,
+        assignmentRepo: makeFakeAssignmentRepo([]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+        listTasks: async () => [task],
+        listBugs: async () => [],
+        fetchUserStories: (async () => []) as never,
+        listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
+        loadTeamMembers: async () => [
+          { personAdoId: "user-ana", personDisplayName: "Ana Gómez" },
+        ],
+        now: fixedNow,
+      },
+    );
+
+    const row = result.rows.find((r) => r.personDisplayName === "Externo X");
+    expect(row?.assignmentPct).toEqual({ kind: "unconfigured" });
+    expect(result.alerts.find((a) => a.kind === "unconfigured_person")).toBeDefined();
+  });
+
   it("scope sin HUs de novedad → alerta news_not_configured y 0 en newsHours", async () => {
     const result = await buildHoursReport(
       {

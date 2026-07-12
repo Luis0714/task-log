@@ -201,7 +201,8 @@ function writeDataRow(
     borderStyle: "thin",
     skipRightBorder: true,
   });
-  ws.getCell(excelRow, 12).value = row.newsDetail;
+  ws.getCell(excelRow, 12).value =
+    row.newsCount === 0 ? "Sin novedades" : row.newsDetail || "Sin novedades";
 
   buildSemaforoCell(ws, excelRow, 13, row);
 }
@@ -251,7 +252,7 @@ function formatAssignmentPct(row: HoursReportRow): string {
     return `${row.assignmentPct.weightedPct}%`;
   }
   if (row.assignmentPct.kind === "default") {
-    return "100% (por defecto)";
+    return "100%";
   }
   return "Sin configurar";
 }

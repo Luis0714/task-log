@@ -93,8 +93,20 @@ export function makeFakeAssignmentRepo(
       const r = rows.find((row) => row.id === id);
       return r ? { ...r, roleName: null, roleDisplayName: null, createdByDisplayName: null } : null;
     },
-    async listInferredDefaults() {
-      return [];
+    async listInferredDefaults(input) {
+      const configured = new Set(
+        rows.map((r) => `${r.personAdoId}::${r.projectId}`),
+      );
+      return input.members
+        .filter((m) => !configured.has(`${m.personAdoId}::${m.projectId}`))
+        .map((m) => ({
+          personAdoId: m.personAdoId,
+          personDisplayName: m.personDisplayName,
+          projectId: m.projectId,
+          projectName: m.projectName,
+          teamId: m.teamId,
+          teamName: m.teamName,
+        }));
     },
     async listOverlappingForPerson() {
       return [];

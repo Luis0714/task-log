@@ -17,8 +17,8 @@ export const hoursReportPeriodSchema = z.discriminatedUnion("kind", [
 export type HoursReportPeriodSchema = z.infer<typeof hoursReportPeriodSchema>;
 
 export const hoursReportScopeSchema = z.object({
-  projectIds: csvOf,
-  teamIds: csvOf,
+  projectIds: z.array(z.string()).default([]),
+  teamIds: z.array(z.string()).default([]),
 });
 
 export type HoursReportScopeSchema = z.infer<typeof hoursReportScopeSchema>;

@@ -3,8 +3,11 @@
 import { Loader2, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { MultiCheckboxFilter } from "@/components/filters/multi-checkbox-filter";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import type {
   HoursReportPeriodSchema,
   HoursReportRequestSchema,
@@ -16,12 +19,10 @@ const PERIOD_ITEMS = [
   { value: "range" as const, label: "Rango personalizado" },
 ];
 
-const MONTH_OPTIONS = [
-  "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12",
-].map((m) => ({
-  value: m,
-  label: new Date(`2026-${m}-01`).toLocaleString("es-CO", { month: "long" }),
-}));
+const MONTH_NAMES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
 
 const CURRENT_YEAR = new Date().getUTCFullYear();
 const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
@@ -34,11 +35,15 @@ export type ReportsTimeLogFiltersProps = {
   monthKey: string;
   rangeFrom: string;
   rangeTo: string;
+  selectedProjectIds: string[];
+  selectedTeamIds: string[];
   onPeriodChange: (kind: "month" | "range") => void;
   onYearChange: (year: number) => void;
   onMonthKeyChange: (key: string) => void;
   onRangeFromChange: (iso: string) => void;
   onRangeToChange: (iso: string) => void;
+  onProjectIdsChange: (ids: string[]) => void;
+  onTeamIdsChange: (ids: string[]) => void;
   onGenerate: () => void;
   generating: boolean;
   payload: HoursReportRequestSchema;
@@ -52,17 +57,57 @@ export function ReportsTimeLogFilters({
   monthKey,
   rangeFrom,
   rangeTo,
+  selectedProjectIds,
+  selectedTeamIds,
   onPeriodChange,
   onYearChange,
   onMonthKeyChange,
   onRangeFromChange,
   onRangeToChange,
+  onProjectIdsChange,
+  onTeamIdsChange,
   onGenerate,
   generating,
 }: Readonly<ReportsTimeLogFiltersProps>) {
   const showMonth = period.kind === "month";
+  const projectOptions = projects.map((p) => ({ value: p.name, label: p.name }));
+  const teamOptions = teams.map((t) => ({ value: t.name, label: t.name }));
+  const projectsLabel =
+    selectedProjectIds.length === 0
+      ? "Todos los proyectos"
+      : selectedProjectIds.length === 1
+        ? selectedProjectIds[0]
+        : `${selectedProjectIds.length} proyectos seleccionados`;
+  const teamsLabel =
+    selectedTeamIds.length === 0
+      ? "Todos los equipos"
+      : selectedTeamIds.length === 1
+        ? selectedTeamIds[0]
+        : `${selectedTeamIds.length} equipos seleccionados`;
+
   return (
     <div className="space-y-4 rounded-md border p-4">
+      
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <MultiCheckboxFilter
+          id="page-projects"
+          label="Proyectos"
+          options={projectOptions}
+          selected={selectedProjectIds}
+          onSelectedChange={onProjectIdsChange}
+          triggerLabel={projectsLabel}
+          disabled={projectOptions.length === 0}
+        />
+        <MultiCheckboxFilter
+          id="page-teams"
+          label="Equipos"
+          options={teamOptions}
+          selected={selectedTeamIds}
+          onSelectedChange={onTeamIdsChange}
+          triggerLabel={teamsLabel}
+          disabled={teamOptions.length === 0}
+        />
+      </div>
       <div className="flex flex-wrap items-end gap-3">
         <SegmentedControl
           items={PERIOD_ITEMS}
@@ -72,8 +117,8 @@ export function ReportsTimeLogFilters({
         />
         {showMonth ? (
           <>
-            <div className="space-y-1">
-              <span className="text-muted-foreground text-xs uppercase tracking-wide">Año</span>
+            <div className="space-y-1.5">
+              <Label>Año</Label>
               <Select value={String(year)} onValueChange={(v) => v && onYearChange(Number(v))}>
                 <SelectTrigger className="w-32">
                   <span>{year}</span>
@@ -85,17 +130,15 @@ export function ReportsTimeLogFilters({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <span className="text-muted-foreground text-xs uppercase tracking-wide">Mes</span>
+            <div className="space-y-1.5">
+              <Label>Mes</Label>
               <Select value={monthKey.slice(5, 7)} onValueChange={(v) => v && onMonthKeyChange(`${year}-${v}`)}>
                 <SelectTrigger className="w-40">
-                  <span className="capitalize">{MONTH_OPTIONS.find((m) => m.value === monthKey.slice(5, 7))?.label ?? monthKey}</span>
+                  <span className="capitalize">{MONTH_NAMES[Number(monthKey.slice(5, 7)) - 1] ?? monthKey}</span>
                 </SelectTrigger>
                 <SelectContent>
-                  {MONTH_OPTIONS.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>
-                      <span className="capitalize">{m.label}</span>
-                    </SelectItem>
+                  {MONTH_NAMES.map((name, idx) => (
+                    <SelectItem key={idx + 1} value={String(idx + 1).padStart(2, "0")}>{name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -103,23 +146,13 @@ export function ReportsTimeLogFilters({
           </>
         ) : (
           <>
-            <div className="space-y-1">
-              <span className="text-muted-foreground text-xs uppercase tracking-wide">Desde</span>
-              <input
-                type="date"
-                value={rangeFrom}
-                onChange={(e) => onRangeFromChange(e.target.value)}
-                className="border-input rounded-md border px-3 py-2 text-sm"
-              />
+            <div className="w-44 space-y-1.5">
+              <Label>Desde</Label>
+              <DatePicker value={rangeFrom} onChange={onRangeFromChange} max={rangeTo} />
             </div>
-            <div className="space-y-1">
-              <span className="text-muted-foreground text-xs uppercase tracking-wide">Hasta</span>
-              <input
-                type="date"
-                value={rangeTo}
-                onChange={(e) => onRangeToChange(e.target.value)}
-                className="border-input rounded-md border px-3 py-2 text-sm"
-              />
+            <div className="w-44 space-y-1.5">
+              <Label>Hasta</Label>
+              <DatePicker value={rangeTo} onChange={onRangeToChange} min={rangeFrom} />
             </div>
           </>
         )}
@@ -130,9 +163,6 @@ export function ReportsTimeLogFilters({
           </Button>
         </div>
       </div>
-      <p className="text-muted-foreground text-xs">
-        Proyectos disponibles: {projects.length} · Equipos disponibles: {teams.length}
-      </p>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import type { HoursReportResult } from "@/lib/reports/hours/hours-report-types";
 import {
@@ -69,8 +69,6 @@ export function useHoursReport(): UseHoursReportReturn {
     if (payloadsEqual(last, currentPayload)) return;
     setStatus("stale");
   }, [status]);
-
-  useEffect(() => () => undefined, []);
 
   return { status, result, errorMessage, generate, downloadExcel, markStale };
 }
