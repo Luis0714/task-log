@@ -316,7 +316,7 @@ export function ReportsTimeLogContent({
       />
 
       {showStale ? (
-        <ReportsTimeLogStaleBanner onRegenerate={onGenerate} regenerating={hoursReport.status === "generating"} />
+        <ReportsTimeLogStaleBanner />
       ) : null}
 
       {showError ? <CopilotErrorAlert message={hoursReport.errorMessage ?? "Error desconocido"} /> : null}

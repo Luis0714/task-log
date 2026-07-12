@@ -1,23 +1,15 @@
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { GoAlertFill } from "react-icons/go";
 
-export type ReportsTimeLogStaleBannerProps = {
-  onRegenerate: () => void;
-  regenerating: boolean;
-};
 
-export function ReportsTimeLogStaleBanner({
-  onRegenerate,
-  regenerating,
-}: Readonly<ReportsTimeLogStaleBannerProps>) {
+export function ReportsTimeLogStaleBanner() {
   return (
-    <Alert>
+    <Alert className="bg-secondary">
+      <div className="flex w-full items-center gap-2">
       <AlertTitle>Reporte desactualizado</AlertTitle>
+      </div>
       <AlertDescription className="flex items-center justify-between gap-4">
-        <span>Cambiaste los filtros. Regenera el reporte para ver los datos actualizados.</span>
-        <Button size="sm" onClick={onRegenerate} disabled={regenerating}>
-          {regenerating ? "Regenerando..." : "Regenerar"}
-        </Button>
+        <span>Cambiaste los filtros. <strong>Actualiza el reporte</strong> para ver los datos actualizados.</span>
       </AlertDescription>
     </Alert>
   );
