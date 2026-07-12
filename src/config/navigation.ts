@@ -3,17 +3,16 @@ import {
   CalendarCheck2,
   CheckSquare,
   Clock,
-  FileSpreadsheet,
   LayoutDashboard,
   ListTodo,
   Megaphone,
   Settings,
   Sparkles,
-  UserCog,
   Users,
 } from "lucide-react";
 import type { IconType } from "react-icons";
-import { TbTemplate } from "react-icons/tb";
+import { TbTemplate,TbReport,TbReportSearch } from "react-icons/tb";
+import { MdAssignmentAdd } from "react-icons/md";
 
 /** Acepta lucide-react y react-icons como componentes opacos con `className`. */
 export type NavIcon = IconType;
@@ -71,7 +70,13 @@ const ALL_NAVIGATION: NavGroupConfig[] = [
       {
         href: "/reports/time-log",
         label: "Reporte de horas",
-        icon: FileSpreadsheet,
+        icon: TbReport,
+        roles: ["super_admin", "product_manager", "product_owner", "scrum_master"],
+      },
+      {
+        href: "/reports/sprint-hours",
+        label: "Horas por sprint",
+        icon: TbReportSearch,
         roles: ["super_admin", "product_manager", "product_owner", "scrum_master"],
       },
     ],
@@ -79,7 +84,7 @@ const ALL_NAVIGATION: NavGroupConfig[] = [
   {
     title: "Administración",
     items: [
-      { href: "/admin/asignaciones", label: "Asignaciones", icon: UserCog, roles: ["scrum_master", "product_owner", "product_manager", "super_admin"] },
+      { href: "/admin/asignaciones", label: "Asignaciones", icon: MdAssignmentAdd, roles: ["scrum_master", "product_owner", "product_manager", "super_admin"] },
       { href: "/admin/novedades", label: "Novedades", icon: Megaphone, roles: ["scrum_master", "product_owner", "product_manager", "super_admin"] },
       { href: "/admin/usuarios", label: "Usuarios", icon: Users, roles: ["super_admin"] },
       { href: "/admin/plantillas", label: "Plantillas", icon: TbTemplate, roles: ["super_admin"] },
