@@ -14,12 +14,14 @@ import {
   ReportsTimeLogTable,
   ReportsTimeLogTableSkeleton,
 } from "@/components/reports/time-log/reports-time-log-table";
+import { AssigneeVisibilityCombobox } from "@/components/sprints/stats/assignee-visibility-combobox";
 import { useHoursReport } from "@/hooks/reports/use-hours-report";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { normalizePersonName } from "@/lib/filters/person-name";
+import { filterHoursReportByVisibility } from "@/lib/reports/hours/filter-hours-report-by-visibility";
 import { appToast } from "@/lib/toast";
+import { useAssigneeVisibilityStore } from "@/store/assignee-visibility-store";
 import type {
-  HoursReportExcelQuerySchema,
   HoursReportPeriodSchema,
   HoursReportRequestSchema,
 } from "@/lib/schemas/reports-hours";
@@ -45,21 +47,6 @@ function todayIso(): string {
 function defaultMonthKey(): string {
   const p = defaultPeriod();
   return p.kind === "month" ? p.monthKey : "";
-}
-
-function resolveExcelQuery(
-  period: HoursReportPeriodSchema,
-  projectIds: string[],
-  teamIds: string[],
-): HoursReportExcelQuerySchema {
-  return {
-    periodKind: period.kind,
-    monthKey: period.kind === "month" ? period.monthKey : undefined,
-    fromIso: period.kind === "range" ? period.fromIso : undefined,
-    toIso: period.kind === "range" ? period.toIso : undefined,
-    projectIds,
-    teamIds,
-  };
 }
 
 export function ReportsTimeLogContent({
@@ -127,13 +114,36 @@ export function ReportsTimeLogContent({
     () => hoursReport.result?.rows ?? [],
     [hoursReport.result],
   );
+
+  // Mostrar/ocultar personas: mismo store que el reporte por sprint, para que
+  // las personas ocultas se compartan entre ambas pantallas.
+  const hiddenPersons = useAssigneeVisibilityStore((s) => s.hidden);
+  const togglePersonVisibility = useAssigneeVisibilityStore((s) => s.toggle);
+  const allPersons = useMemo(
+    () =>
+      Array.from(new Set(allRows.map((row) => row.personDisplayName))).sort(
+        (a, b) => a.localeCompare(b, "es"),
+      ),
+    [allRows],
+  );
+
+  // Mismo filtrado que aplica el POST del Excel, para que tabla y archivo
+  // siempre coincidan.
+  const visibleRows = useMemo(
+    () =>
+      hoursReport.result
+        ? filterHoursReportByVisibility(hoursReport.result, hiddenPersons).rows
+        : [],
+    [hoursReport.result, hiddenPersons],
+  );
+
   const filteredRows = useMemo(() => {
     const query = normalizePersonName(nameFilter);
-    if (!query) return allRows;
-    return allRows.filter((row) =>
+    if (!query) return visibleRows;
+    return visibleRows.filter((row) =>
       normalizePersonName(row.personDisplayName).includes(query),
     );
-  }, [allRows, nameFilter]);
+  }, [visibleRows, nameFilter]);
 
   const onNameFilterChange = useCallback((value: string) => {
     setNameFilter(value);
@@ -245,18 +255,17 @@ export function ReportsTimeLogContent({
     }
     setDownloadingExcel(true);
     try {
-      // Mismos scopes efectivos que la generación (vacío ⇒ todo el catálogo),
-      // para que el Excel refleje exactamente la tabla.
-      const query = resolveExcelQuery(
-        period,
-        payload.scopes.projectIds,
-        payload.scopes.teamIds,
-      );
-      await hoursReport.downloadExcel(query);
+      // Mismo payload que la generación (vacío ⇒ todo el catálogo) más las
+      // personas ocultas del store de visibilidad, para que el Excel refleje
+      // exactamente la tabla. Todo viaja en el body del POST, no por la URL.
+      await hoursReport.downloadExcel({
+        ...payload,
+        hiddenPersons: allPersons.filter((person) => hiddenPersons.has(person)),
+      });
     } finally {
       setDownloadingExcel(false);
     }
-  }, [hoursReport, period, payload]);
+  }, [hoursReport, payload, allPersons, hiddenPersons]);
 
   const showStale = hoursReport.status === "stale";
   const showError = hoursReport.status === "error" || Boolean(hoursReport.errorMessage);
@@ -292,6 +301,16 @@ export function ReportsTimeLogContent({
         onGenerate={onGenerate}
         generating={hoursReport.status === "generating"}
         payload={payload}
+        visibilityControl={
+          allPersons.length > 0 ? (
+            <AssigneeVisibilityCombobox
+              assignees={allPersons}
+              hiddenAssignees={hiddenPersons}
+              onToggle={togglePersonVisibility}
+              disabled={hoursReport.status === "generating"}
+            />
+          ) : null
+        }
         exportButton={
           showExport ? (
             <Button

@@ -9,7 +9,7 @@ import {
 } from "@/services/reports/hours-reports.service";
 import { appToast } from "@/lib/toast";
 import type {
-  HoursReportExcelQuerySchema,
+  HoursReportExcelRequestSchema,
   HoursReportRequestSchema,
 } from "@/lib/schemas/reports-hours";
 
@@ -20,7 +20,7 @@ export type UseHoursReportReturn = {
   result: HoursReportResult | null;
   errorMessage: string | null;
   generate: (payload: HoursReportRequestSchema) => Promise<void>;
-  downloadExcel: (query: HoursReportExcelQuerySchema) => Promise<void>;
+  downloadExcel: (payload: HoursReportExcelRequestSchema) => Promise<void>;
   markStale: (currentPayload: HoursReportRequestSchema) => void;
 };
 
@@ -45,8 +45,8 @@ export function useHoursReport(): UseHoursReportReturn {
     setStatus("ready");
   }, []);
 
-  const downloadExcel = useCallback(async (query: HoursReportExcelQuerySchema) => {
-    const response = await downloadHoursReportExcel(query);
+  const downloadExcel = useCallback(async (payload: HoursReportExcelRequestSchema) => {
+    const response = await downloadHoursReportExcel(payload);
     if (!response.ok) {
       appToast.error(response.message);
       return;

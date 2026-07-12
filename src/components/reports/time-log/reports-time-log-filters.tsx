@@ -62,6 +62,8 @@ export type ReportsTimeLogFiltersProps = {
   onGenerate: () => void;
   generating: boolean;
   payload: HoursReportRequestSchema;
+  /** Combobox de mostrar/ocultar personas (aparece tras generar el reporte). */
+  visibilityControl?: React.ReactNode;
   exportButton?: React.ReactNode;
 };
 
@@ -87,6 +89,7 @@ export function ReportsTimeLogFilters({
   onNameFilterChange,
   onGenerate,
   generating,
+  visibilityControl,
   exportButton,
 }: Readonly<ReportsTimeLogFiltersProps>) {
   const showMonth = period.kind === "month";
@@ -144,47 +147,52 @@ export function ReportsTimeLogFilters({
               className="sm:inline-flex sm:w-fit sm:[&>button]:w-auto"
             />
           </div>
-          {showMonth ? (
-            <>
-              <div className="flex basis-32 min-w-32 grow flex-col gap-1.5">
-                <Label>Año</Label>
-                <Select value={String(year)} onValueChange={(v) => v && onYearChange(Number(v))}>
-                  <SelectTrigger>
-                    <span>{year}</span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {YEAR_OPTIONS.map((y) => (
-                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex basis-32 min-w-32 grow flex-col gap-1.5">
-                <Label>Mes</Label>
-                <Select value={monthKey.slice(5, 7)} onValueChange={(v) => v && onMonthKeyChange(`${year}-${v}`)}>
-                  <SelectTrigger>
-                    <span className="capitalize">{MONTH_NAMES[Number(monthKey.slice(5, 7)) - 1] ?? monthKey}</span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MONTH_NAMES.map((name, idx) => (
-                      <SelectItem key={idx + 1} value={String(idx + 1).padStart(2, "0")}>{name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex basis-32 min-w-32 grow flex-col gap-1.5">
-                <Label>Desde</Label>
-                <DatePicker value={rangeFrom} onChange={onRangeFromChange} max={rangeTo} />
-              </div>
-              <div className="flex basis-32 min-w-32 grow flex-col gap-1.5">
-                <Label>Hasta</Label>
-                <DatePicker value={rangeTo} onChange={onRangeToChange} min={rangeFrom} />
-              </div>
-            </>
-          )}
+          {/* Par de campos del periodo: un solo ítem del flex-wrap, de modo
+              que (Año, Mes) o (Desde, Hasta) siempre queden juntos en la
+              misma fila y se repartan el ancho disponible. */}
+          <div className="flex basis-64 min-w-64 grow gap-3">
+            {showMonth ? (
+              <>
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <Label>Año</Label>
+                  <Select value={String(year)} onValueChange={(v) => v && onYearChange(Number(v))}>
+                    <SelectTrigger>
+                      <span>{year}</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {YEAR_OPTIONS.map((y) => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <Label>Mes</Label>
+                  <Select value={monthKey.slice(5, 7)} onValueChange={(v) => v && onMonthKeyChange(`${year}-${v}`)}>
+                    <SelectTrigger>
+                      <span className="capitalize">{MONTH_NAMES[Number(monthKey.slice(5, 7)) - 1] ?? monthKey}</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MONTH_NAMES.map((name, idx) => (
+                        <SelectItem key={idx + 1} value={String(idx + 1).padStart(2, "0")}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <Label>Desde</Label>
+                  <DatePicker value={rangeFrom} onChange={onRangeFromChange} max={rangeTo} />
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <Label>Hasta</Label>
+                  <DatePicker value={rangeTo} onChange={onRangeToChange} min={rangeFrom} />
+                </div>
+              </>
+            )}
+          </div>
           <div className="flex basis-48 min-w-48 grow flex-col gap-1.5">
             <Label htmlFor="reports-time-log-name-filter">Persona</Label>
             <Input
@@ -199,6 +207,7 @@ export function ReportsTimeLogFilters({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 sm:justify-end lg:shrink-0 lg:border-l lg:border-border lg:pl-6">
+          {visibilityControl}
           <Button
             onClick={onGenerate}
             disabled={generating}
