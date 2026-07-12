@@ -42,7 +42,7 @@ export function formatHoursReportPeriodLabel(period: BuildHoursReportPeriod): st
   return `${formatIsoDateEs(period.fromIso)} a ${formatIsoDateEs(period.toIso)}`;
 }
 
-const COL_WIDTHS = [28, 24, 28, 16, 14, 14, 16, 14, 14, 56, 12, 14, 14, 16] as const;
+const COL_WIDTHS = [28, 30, 34, 16, 18, 14, 16, 18, 14, 56, 12, 18, 14, 16] as const;
 const HEADER_LABELS = [
   "Proyecto",
   "Equipo",
