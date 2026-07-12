@@ -71,6 +71,12 @@ export const PAGE_SEO = {
       "Genera un reporte de horas trabajadas por periodo con horas esperadas, desarrollo, bugs, novedades y % de cumplimiento por persona, proyecto y equipo. Exporta a Excel.",
     path: "/reports/time-log",
   },
+  reportsSprintHours: {
+    title: "Reporte de horas por sprint",
+    description:
+      "Consulta las horas registradas por cada persona durante el sprint seleccionado, desglosadas por semana y tipo de trabajo (desarrollo y bugs), con totales por equipo. Permite ocultar personas, compartir el resumen y exportar a Excel.",
+    path: "/reports/sprint-hours",
+  },
   settings: {
     title: "Configuración",
     description:
