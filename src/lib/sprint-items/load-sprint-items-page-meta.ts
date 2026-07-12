@@ -26,7 +26,6 @@ export const loadSprintItemsPageMeta = cache(async function loadSprintItemsPageM
       kind,
       catalog.project,
       catalog.team,
-      catalog.sprintPath,
     ),
     loadNonWorkingDates(catalog.project, catalog.team),
   ]);

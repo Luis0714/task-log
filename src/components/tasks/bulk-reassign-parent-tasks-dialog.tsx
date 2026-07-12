@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { GitFork } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -15,31 +15,24 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { PbiSelectComboboxField } from "@/components/time-log/fields/pbi-select-combobox-field";
+import { Skeleton } from "@/components/ui/skeleton";
 import { bulkReassignWorkItemsParent } from "@/components/tasks/task-bulk.service";
 import { showStatusSummary } from "@/components/tasks/bulk-change-status-tasks-dialog";
+import { useBacklogPbis } from "@/hooks/use-backlog-pbis";
 import { appToast } from "@/lib/toast";
-import type { ParentHuOption } from "@/components/tasks/task-detail-sheet";
 
 export type BulkReassignParentTasksDialogProps = {
-  project: string;
-  ids: number[];
-  parentHuOptions: readonly ParentHuOption[];
-  onCompleted: () => void;
-  disabled?: boolean;
-  className?: string;
+  readonly project: string;
+  readonly ids: number[];
+  readonly onCompleted: () => void;
+  readonly disabled?: boolean;
+  readonly className?: string;
 };
 
 export function BulkReassignParentTasksDialog({
   project,
   ids,
-  parentHuOptions,
   onCompleted,
   disabled,
   className,
@@ -49,6 +42,19 @@ export function BulkReassignParentTasksDialog({
   const [saving, setSaving] = useState(false);
 
   const count = ids.length;
+  const canFetchBacklog = open && Boolean(project);
+
+  // Cargamos el backlog completo del proyecto (mismo alcance que "Backlog
+  // completo" en /time-log) solo cuando el diálogo está abierto, para no
+  // penalizar el render inicial de la pantalla de tareas.
+  const { pbis: backlogPbis, loading: backlogLoading } = useBacklogPbis(
+    canFetchBacklog ? project : null,
+  );
+
+  const handleOpenChange = useCallback((next: boolean) => {
+    setOpen(next);
+    if (!next) setNewParentId(null);
+  }, []);
 
   async function handleConfirm() {
     if (!project || count === 0 || !newParentId) return;
@@ -78,11 +84,6 @@ export function BulkReassignParentTasksDialog({
     }
   }
 
-  function handleOpenChange(next: boolean) {
-    setOpen(next);
-    if (!next) setNewParentId(null);
-  }
-
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
@@ -90,7 +91,7 @@ export function BulkReassignParentTasksDialog({
           <Button
             variant="outline"
             type="button"
-            disabled={disabled || count === 0 || parentHuOptions.length === 0}
+            disabled={disabled || count === 0}
             className={className}
           />
         }
@@ -104,39 +105,34 @@ export function BulkReassignParentTasksDialog({
             Cambiar HU padre de {count === 1 ? "1 tarea" : `${count} tareas`}
           </DialogTitle>
           <DialogDescription>
-            Selecciona la nueva HU padre. Las tareas se moverán una por una; si alguna falla,
-            las demás se siguen procesando.
+            Busca y selecciona la nueva HU padre en el backlog del proyecto.
+            Las tareas se moverán una por una; si alguna falla, las demás se
+            siguen procesando.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="bulk-task-parent-hu">HU padre</Label>
-          <Select
-            value={newParentId !== null ? String(newParentId) : ""}
-            onValueChange={(v) => setNewParentId(v ? Number(v) : null)}
-            disabled={saving || parentHuOptions.length === 0}
-          >
-            <SelectTrigger id="bulk-task-parent-hu" className="w-full">
-              <SelectValue
-                placeholder={
-                  parentHuOptions.length === 0
+          {canFetchBacklog && backlogLoading ? (
+            <Skeleton id="bulk-task-parent-hu" className="h-9 w-full rounded-lg" />
+          ) : (
+            <PbiSelectComboboxField
+              id="bulk-task-parent-hu"
+              pbis={backlogPbis}
+              value={newParentId !== null ? String(newParentId) : null}
+              onValueChange={(value) => setNewParentId(value ? Number(value) : null)}
+              disabled={saving || !project || backlogPbis.length === 0}
+              placeholder={
+                !project
+                  ? "Selecciona un proyecto"
+                  : backlogPbis.length === 0
                     ? "Sin HUs disponibles"
                     : "Selecciona una HU"
-                }
-              >
-                {newParentId !== null
-                  ? (parentHuOptions.find((o) => o.id === newParentId)?.title ?? `HU #${newParentId}`)
-                  : null}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {parentHuOptions.map((hu) => (
-                <SelectItem key={hu.id} value={String(hu.id)}>
-                  #{hu.id} {hu.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              }
+              searchPlaceholder="Buscar por título o ID…"
+              emptyMessage="Sin historias que coincidan."
+            />
+          )}
         </div>
 
         <DialogFooter>

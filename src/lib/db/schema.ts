@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean as pgBoolean,
+  date as pgDate,
   index,
   integer,
   jsonb,
@@ -389,3 +390,68 @@ export const timeLogTemplates = pgTable(
 
 export type TimeLogTemplate = typeof timeLogTemplates.$inferSelect;
 export type NewTimeLogTemplate = typeof timeLogTemplates.$inferInsert;
+
+export const personProjectAssignments = pgTable(
+  "person_project_assignments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    personAdoId: text("person_ado_id").notNull(),
+    personDisplayName: text("person_display_name").notNull(),
+    projectId: text("project_id").notNull(),
+    projectName: text("project_name").notNull(),
+    teamId: text("team_id"),
+    teamName: text("team_name"),
+    roleId: uuid("role_id").references(() => roles.id),
+    assignmentPct: integer("assignment_pct").notNull(),
+    validFrom: pgDate("valid_from", { mode: "date" }).notNull(),
+    validTo: pgDate("valid_to", { mode: "date" }),
+    createdByUserId: uuid("created_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("person_project_assignments_person_idx").on(
+      table.personAdoId,
+      table.validFrom,
+    ),
+    index("person_project_assignments_project_idx").on(table.projectId),
+    index("person_project_assignments_valid_to_idx").on(table.validTo),
+  ],
+);
+
+export type PersonProjectAssignment = typeof personProjectAssignments.$inferSelect;
+export type NewPersonProjectAssignment =
+  typeof personProjectAssignments.$inferInsert;
+
+export const projectTeamNewsStories = pgTable(
+  "project_team_news_stories",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: text("project_id").notNull(),
+    teamId: text("team_id"),
+    workItemId: integer("work_item_id").notNull(),
+    workItemTitleSnapshot: text("work_item_title_snapshot"),
+    linkedByUserId: uuid("linked_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    linkedAt: timestamp("linked_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("project_team_news_stories_unique_link").on(
+      table.projectId,
+      sql`COALESCE(${table.teamId}, '')`,
+      table.workItemId,
+    ),
+    index("project_team_news_stories_project_idx").on(table.projectId),
+    index("project_team_news_stories_team_idx").on(table.teamId),
+  ],
+);
+
+export type ProjectTeamNewsStory = typeof projectTeamNewsStories.$inferSelect;
+export type NewProjectTeamNewsStory =
+  typeof projectTeamNewsStories.$inferInsert;

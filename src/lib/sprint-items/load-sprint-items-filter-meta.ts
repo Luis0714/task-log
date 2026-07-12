@@ -23,19 +23,16 @@ export const loadSprintItemsFilterMeta = cache(async function loadSprintItemsFil
   kind: SprintItemsKind,
   project: string,
   team: string,
-  sprintPath?: string,
 ): Promise<SprintItemsFilterMeta> {
   if (!project.trim() || !team.trim()) return emptyMeta;
 
   const auth = await getScopedProjectAuth(project);
   if (!auth) return emptyMeta;
 
-  const sprintSource = kind === "tasks" ? "tasks" : "bugs";
-
   try {
     const profile = await resolveProcessProfile(auth);
     const [members, states] = await Promise.all([
-      loadTeamMembers({ project, team, sprintPath, source: sprintSource }),
+      loadTeamMembers({ project, team }),
       kind === "tasks"
         ? listTaskStates(auth, profile.taskWorkItemType)
         : listBugStates(auth, profile.bugWorkItemType),

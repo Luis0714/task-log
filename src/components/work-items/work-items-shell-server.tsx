@@ -21,7 +21,6 @@ export async function WorkItemsShellServer({
       ? await loadWorkItemsFilterMeta(
           catalog.project,
           catalog.team,
-          catalog.sprintPath,
         )
       : { members: [], states: [] };
 

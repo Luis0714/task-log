@@ -1,14 +1,11 @@
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import { isDoneTaskStateName } from "@/lib/time-log/task-state-utils";
+import { roundHours } from "@/lib/number/rounding";
 
 export type SprintTaskHoursSource = Pick<
   AdoWorkItemOptionDto,
   "state" | "loggedHours" | "workingDate"
 >;
-
-function roundHours(value: number): number {
-  return Math.round(value * 10) / 10;
-}
 
 /** Suma Completed Work de las tareas visibles (p. ej. tras filtros del listado). */
 export function sumTaskLoggedHours(

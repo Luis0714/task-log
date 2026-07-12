@@ -6,6 +6,7 @@ import {
   sumDoneTaskHoursThroughDay,
 } from "@/lib/dashboard/task-hours";
 import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
+import { roundHours } from "@/lib/number/rounding";
 
 export type HoursBreakdown = {
   taskHours: number;
@@ -16,10 +17,6 @@ export const EMPTY_HOURS_BREAKDOWN: HoursBreakdown = {
   taskHours: 0,
   bugHours: 0,
 };
-
-function roundHours(value: number): number {
-  return Math.round(value * 10) / 10;
-}
 
 export function totalHoursBreakdown(breakdown: HoursBreakdown): number {
   return roundHours(breakdown.taskHours + breakdown.bugHours);

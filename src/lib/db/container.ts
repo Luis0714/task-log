@@ -4,6 +4,8 @@ import { drizzleAdoConnectionRepository } from "@/lib/db/adapters/drizzle/drizzl
 import { drizzleEntraUserRepository } from "@/lib/db/adapters/drizzle/drizzle-entra-user.repository";
 import { drizzleLlmInteractionRepository } from "@/lib/db/adapters/drizzle/drizzle-llm-interaction.repository";
 import { drizzleLocalUserRepository } from "@/lib/db/adapters/drizzle/drizzle-local-user.repository";
+import { drizzleNewsStoriesRepository } from "@/lib/db/adapters/drizzle/drizzle-news-stories.repository";
+import { drizzlePersonProjectAssignmentRepository } from "@/lib/db/adapters/drizzle/drizzle-person-project-assignment.repository";
 import { drizzleProjectConfigurationRepository } from "@/lib/db/adapters/drizzle/drizzle-project-configuration.repository";
 import { drizzleTimeLogTemplateRepository } from "@/lib/db/adapters/drizzle/drizzle-time-log-template.repository";
 import { drizzleUserFilterPreferencesRepository } from "@/lib/db/adapters/drizzle/drizzle-user-filter-preferences.repository";
@@ -12,6 +14,10 @@ import type { AdoConnectionRepository } from "@/lib/db/ports/ado-connection.repo
 import type { EntraUserRepository } from "@/lib/db/ports/entra-user.repository.port";
 import type { LlmInteractionRepository } from "@/lib/db/ports/llm-interaction.repository.port";
 import type { LocalUserRepository } from "@/lib/db/ports/local-user.repository.port";
+import type { NewsStoriesRepository } from "@/lib/db/ports/news-stories.repository.port";
+import type {
+  PersonProjectAssignmentRepository,
+} from "@/lib/db/ports/person-project-assignment.repository.port";
 import type { ProjectConfigurationRepository } from "@/lib/db/ports/project-configuration.repository.port";
 import type { TimeLogTemplateRepository } from "@/lib/db/ports/time-log-template.repository.port";
 import type { UserRepository } from "@/lib/db/ports/user.repository.port";
@@ -35,6 +41,8 @@ export type Repositories = {
   userFilterPreferences: UserFilterPreferencesRepository;
   projectConfiguration: ProjectConfigurationRepository;
   timeLogTemplate: TimeLogTemplateRepository;
+  personProjectAssignment: PersonProjectAssignmentRepository;
+  newsStories: NewsStoriesRepository;
 };
 
 const defaultRepositories: Repositories = {
@@ -49,6 +57,8 @@ const defaultRepositories: Repositories = {
   userFilterPreferences: drizzleUserFilterPreferencesRepository,
   projectConfiguration: drizzleProjectConfigurationRepository,
   timeLogTemplate: drizzleTimeLogTemplateRepository,
+  personProjectAssignment: drizzlePersonProjectAssignmentRepository,
+  newsStories: drizzleNewsStoriesRepository,
 };
 
 let repositories: Repositories = defaultRepositories;

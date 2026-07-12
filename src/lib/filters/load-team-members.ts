@@ -3,39 +3,24 @@ import "server-only";
 import { cache } from "react";
 
 import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
-import {
-  loadSprintBugs,
-  loadSprintTasks,
-  loadSprintWorkItems,
-} from "@/lib/ado/load-sprint-data";
-import { mergeTeamMembersWithWorkItemAssignees } from "@/lib/filters/merge-team-members-with-assignees";
 import { listTeamMembers } from "@/lib/azure-devops/work-item-type-states";
 import type { AdoTeamMemberDto } from "@/lib/schemas/ado-catalog";
-import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
-
-export type TeamMembersSource = "workItems" | "tasks" | "bugs";
 
 export type LoadTeamMembersInput = {
   project: string;
   team: string;
-  sprintPath?: string;
-  /**
-   * De dónde sacar los asignados extra del sprint:
-   * - `undefined` o sin `sprintPath` → sólo roster del equipo.
-   * - `"tasks"` → añade tasks del sprint que no están en el roster.
-   * - `"bugs"` → idem con bugs.
-   * - `"workItems"` (default) → añade todos los work items del sprint.
-   */
-  source?: TeamMembersSource;
 };
 
 /**
  * ÚNICA fuente de miembros del equipo para toda la app.
  *
- * Devuelve una lista ya deduplicada y ordenada alfabéticamente. Combina:
- *  1. Roster oficial del equipo (incluye `imageUrl` cuando ADO lo provee).
- *  2. Asignados reales del sprint que no están en el roster (sin imageUrl;
- *     el componente de avatar usa iniciales como fallback).
+ * Devuelve el roster oficial del equipo desde Azure DevOps (incluye
+ * `imageUrl` cuando ADO lo provee; si no, el componente de avatar usa
+ * iniciales como fallback).
+ *
+ * El cliente garantiza que toda persona activa de la organización está
+ * dada de alta en el equipo, por lo que ya no es necesario mergear con
+ * asignados del sprint para descubrir personas faltantes.
  *
  * Si falta `project`/`team` o no hay auth, devuelve `[]` para no romper
  * el render. Los errores se loguean en consola y se devuelven como array
@@ -54,23 +39,7 @@ export const loadTeamMembers = cache(async function loadTeamMembers(
   if (!auth) return [];
 
   try {
-    const roster = await listTeamMembers(auth, team);
-
-    const sprintPath = input.sprintPath?.trim() ?? "";
-    if (!sprintPath) return roster;
-
-    const sprintItems =
-      input.source === "tasks"
-        ? await loadSprintTasks(project, sprintPath, WORK_ITEM_ASSIGNEE_ALL)
-        : input.source === "bugs"
-          ? await loadSprintBugs(project, sprintPath, WORK_ITEM_ASSIGNEE_ALL)
-          : await loadSprintWorkItems(
-              project,
-              sprintPath,
-              WORK_ITEM_ASSIGNEE_ALL,
-            );
-
-    return mergeTeamMembersWithWorkItemAssignees(roster, sprintItems.data);
+    return await listTeamMembers(auth, team);
   } catch (cause) {
     console.error("loadTeamMembers failed", cause);
     return [];

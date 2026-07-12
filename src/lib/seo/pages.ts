@@ -66,9 +66,9 @@ export const PAGE_SEO = {
     path: "/daily",
   },
   reportsTimeLog: {
-    title: "Tiempos registrados",
+    title: "Reporte de horas por periodo",
     description:
-      "Visualiza y exporta los tiempos registrados por el equipo por sprint. Genera reportes Excel profesionales listos para compartir.",
+      "Genera un reporte de horas trabajadas por periodo con horas esperadas, desarrollo, bugs, novedades y % de cumplimiento por persona, proyecto y equipo. Exporta a Excel.",
     path: "/reports/time-log",
   },
   settings: {

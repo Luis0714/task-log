@@ -86,8 +86,6 @@ export const loadSprintStatsScreen = cache(async function loadSprintStatsScreen(
       loadTeamMembers({
         project: scope.project,
         team: scope.team,
-        sprintPath: scope.sprintPath,
-        source: "workItems",
       }),
     ]);
 

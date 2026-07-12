@@ -12,6 +12,7 @@ export const USER_FILTER_SCOPES = {
   tasks: "tasks",
   bugs: "bugs",
   userHistories: "user-histories",
+  newsStories: "news-stories",
 } as const;
 
 export type UserFilterScope =

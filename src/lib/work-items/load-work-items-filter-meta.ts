@@ -17,7 +17,6 @@ const emptyMeta: WorkItemsFilterMeta = { members: [], states: [] };
 export const loadWorkItemsFilterMeta = cache(async function loadWorkItemsFilterMeta(
   project: string,
   team: string,
-  sprintPath?: string,
 ): Promise<WorkItemsFilterMeta> {
   if (!project.trim() || !team.trim()) return emptyMeta;
 
@@ -26,7 +25,7 @@ export const loadWorkItemsFilterMeta = cache(async function loadWorkItemsFilterM
 
   try {
     const [members, states] = await Promise.all([
-      loadTeamMembers({ project, team, sprintPath, source: "workItems" }),
+      loadTeamMembers({ project, team }),
       listBacklogItemStates(auth),
     ]);
     return { members, states };

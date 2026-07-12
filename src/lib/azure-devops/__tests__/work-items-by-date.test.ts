@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { buildWorkingDateRangeConditions } from "@/lib/azure-devops/work-items-by-date";
+import {
+  buildCompletedWorkGtZeroCondition,
+  buildWorkingDateRangeConditions,
+} from "@/lib/azure-devops/work-items-by-date";
 
 const FIELD = "Custom.WorkingDate";
 const TZ = "America/Bogota";
@@ -44,5 +47,29 @@ describe("buildWorkingDateRangeConditions", () => {
 
     expect(conditions[0]).toBe("[Custom.WorkingDate] >= '2026-01-09T05:00:00.000Z'");
     expect(conditions[1]).toBe("[Custom.WorkingDate] < '2026-01-10T05:00:00.000Z'");
+  });
+});
+
+describe("buildCompletedWorkGtZeroCondition", () => {
+  it("devuelve null cuando completedWorkField es null (proyecto sin campo)", () => {
+    expect(buildCompletedWorkGtZeroCondition(null)).toBeNull();
+  });
+
+  it("devuelve null cuando completedWorkField es string vacío", () => {
+    expect(buildCompletedWorkGtZeroCondition("")).toBeNull();
+  });
+
+  it("devuelve la condición WIQL con el reference name por defecto", () => {
+    expect(
+      buildCompletedWorkGtZeroCondition(
+        "Microsoft.VSTS.Scheduling.CompletedWork",
+      ),
+    ).toBe("[Microsoft.VSTS.Scheduling.CompletedWork] > '0'");
+  });
+
+  it("respeta el reference name custom configurado por el admin", () => {
+    expect(buildCompletedWorkGtZeroCondition("Custom.HoursLogged")).toBe(
+      "[Custom.HoursLogged] > '0'",
+    );
   });
 });

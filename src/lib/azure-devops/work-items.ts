@@ -382,6 +382,12 @@ export type WorkItemSprintFilters = {
    * usuario sea el responsable QA.
    */
   pbiAssigneeField?: string;
+  /**
+   * Si se define, agrega al WIQL `[<campo>] > '0'` para que la query
+   * excluya ítems sin horas registradas. Usado por los wrappers de
+   * Task/Bug; las queries PBI (e.g. selector de `/time-log`) lo omiten.
+   */
+  completedWorkField?: string | null;
 };
 
 const TITLE = "System.Title";
@@ -650,6 +656,13 @@ export async function listWorkItemsInSprint(
     `[System.WorkItemType] = '${escapeWiqlString(workItemType)}'`,
   ];
 
+  // Excluir ítems sin horas registradas para que solo cuenten los que
+  // aportaron tiempo. PBIs (queries del /time-log) nunca pasan este
+  // campo, así que la condición se omite y su WIQL queda intacto.
+  if (filters.completedWorkField) {
+    conditions.push(`[${filters.completedWorkField}] > '0'`);
+  }
+
   // Para PBIs, el campo de asignación puede ser personalizado (ej. QA usa
   // Custom.ResponsableQA). Para tareas/bugs se usa siempre System.AssignedTo.
   const isPbiQuery = workItemType === processProfile.backlogItemType;
@@ -698,6 +711,7 @@ export async function listTasksInSprint(
   return listWorkItemsInSprint(auth, iterationPath, {
     ...filters,
     workItemType: processProfile.taskWorkItemType,
+    completedWorkField: processProfile.completedWorkField,
   });
 }
 
@@ -710,6 +724,7 @@ export async function listBugItemsInSprint(
   return listWorkItemsInSprint(auth, iterationPath, {
     ...filters,
     workItemType: processProfile.bugWorkItemType,
+    completedWorkField: processProfile.completedWorkField,
   });
 }
 

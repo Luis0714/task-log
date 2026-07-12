@@ -21,7 +21,7 @@ export async function SprintItemsListsServer({
   const urlAssignee = assignee || DEFAULT_WORK_ITEM_FILTERS.assignee;
   const [list, meta] = await Promise.all([
     loadSprintItemsList(kind, catalog, urlAssignee),
-    loadSprintItemsListMeta(kind, catalog.project, catalog.team, catalog.sprintPath),
+    loadSprintItemsListMeta(kind, catalog.project, catalog.team),
   ]);
 
   const snapshot: SprintItemsDataSnapshot = {

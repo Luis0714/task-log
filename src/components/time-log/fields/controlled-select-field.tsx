@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SelectEmptyMessage } from "@/components/ui/select-empty-message";
 import { cn } from "@/lib/utils";
 
 export type FormSelectOption = {
@@ -35,6 +36,8 @@ export type ControlledSelectFieldProps = {
   /** Opciones multilínea en el listado (p. ej. equipos con nombres largos). */
   itemTextWrap?: boolean;
   contentClassName?: string;
+  /** Mensaje centrado cuando `options` está vacío y el control no está en loading. */
+  emptyMessage?: ReactNode;
   onValueChange: (value: string) => void;
 };
 
@@ -52,11 +55,12 @@ export function ControlledSelectField({
   triggerTitle,
   itemTextWrap = false,
   contentClassName,
+  emptyMessage,
   onValueChange,
 }: ControlledSelectFieldProps) {
   return (
-    <div className="min-w-0 w-full space-y-2">
-      <Label required={required}>{label}</Label>
+    <div className="flex min-w-0 w-full flex-col gap-1.5">
+      {label ? <Label required={required}>{label}</Label> : null}
       <Select
         value={value || null}
         onValueChange={(next) => {
@@ -77,16 +81,20 @@ export function ControlledSelectField({
           ) : null}
         </SelectTrigger>
         <SelectContent className={contentClassName}>
-          {options.map((option) => (
-            <SelectItem
-              key={option.key ?? option.value}
-              value={option.value}
-              textWrap={itemTextWrap}
-              title={typeof option.label === "string" ? option.label : option.value}
-            >
-              {option.label}
-            </SelectItem>
-          ))}
+          {options.length > 0 ? (
+            options.map((option) => (
+              <SelectItem
+                key={option.key ?? option.value}
+                value={option.value}
+                textWrap={itemTextWrap}
+                title={typeof option.label === "string" ? option.label : option.value}
+              >
+                {option.label}
+              </SelectItem>
+            ))
+          ) : emptyMessage ? (
+            <SelectEmptyMessage>{emptyMessage}</SelectEmptyMessage>
+          ) : null}
         </SelectContent>
       </Select>
       <FormInlineError message={error} />

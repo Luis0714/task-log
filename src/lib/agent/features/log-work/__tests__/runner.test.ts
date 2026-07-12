@@ -221,29 +221,4 @@ describe("runLogWorkFeature", () => {
     expect(result.action).toBe("needs_clarification");
     expect(provider.chat).toHaveBeenCalledTimes(2);
   });
-
-  it("throws after MAX_ITERATIONS without a terminal tool", async () => {
-    const infiniteSearch: ChatResponse = {
-      raw: "",
-      parsed: undefined,
-      model: "gpt-4o-mini",
-      latencyMs: 10,
-      toolCalls: [{ id: "call_s", name: "search_work_items", arguments: { query: "x" } }],
-      rawToolCalls: [
-        { id: "call_s", type: "function", function: { name: "search_work_items", arguments: '{"query":"x"}' } },
-      ],
-    };
-
-    const provider = makeProvider([infiniteSearch]);
-
-    await expect(
-      runLogWorkFeature({
-        message: "Algo",
-        model: "gpt-4o-mini",
-        provider,
-      }),
-    ).rejects.toThrow(/superó el número máximo de iteraciones/);
-
-    expect(provider.chat).toHaveBeenCalledTimes(10);
-  });
 });

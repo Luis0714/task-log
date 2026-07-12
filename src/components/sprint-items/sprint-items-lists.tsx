@@ -170,7 +170,6 @@ export function SprintItemsLists({
             project={project}
             selectedIds={Array.from(selectedIds)}
             stateNames={stateNames}
-            parentHuOptions={parentHuOptions}
             workingDate={dayKey}
             onClear={handleClearSelection}
             onCompleted={handleBulkCompleted}

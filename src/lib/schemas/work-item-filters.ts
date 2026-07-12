@@ -11,10 +11,10 @@ const ASSIGNEE_LIST_SEPARATOR_LEGACY = ",";
 
 export const workItemFiltersSchema = z.object({
   search: z.string(),
-  /** `all`, `me`, `me|Nombre` o nombres unidos con `|`. */
   assignee: z.string(),
-  /** Vacío = todos los estados. */
   states: z.array(z.string()),
+  projects: z.array(z.string()).optional(),
+  teams: z.array(z.string()).optional(),
 });
 
 export type WorkItemFilters = z.infer<typeof workItemFiltersSchema>;

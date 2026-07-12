@@ -120,6 +120,41 @@
       "when": 1782380000000,
       "tag": "0018_responsable_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1782470000000,
+      "tag": "0019_person_project_assignments",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1782490000000,
+      "tag": "0020_assignment_team",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1782500000000,
+      "tag": "0021_assignment_optional_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1782510000000,
+      "tag": "0022_assignment_working_day_decisions",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1782520000000,
+      "tag": "0022_assignment_assigned_month",
+      "breakpoints": true
     }
   ]
 }
