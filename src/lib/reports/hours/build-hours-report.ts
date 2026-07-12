@@ -13,8 +13,12 @@ import {
 } from "@/lib/azure-devops/list-reported-news";
 import { classifyReportedHours, type ReportedTask } from "@/lib/reports/hours/classify-reported-hours";
 import { computeCompliance } from "@/lib/reports/hours/compliance";
-import { computeExpectedHours } from "@/lib/reports/hours/compute-expected-hours";
+import {
+  computeExpectedHours,
+  HOURS_PER_WORKING_DAY,
+} from "@/lib/reports/hours/compute-expected-hours";
 import { NEWS_DETAIL_DELIMITER } from "@/lib/reports/hours/format-news-detail";
+import { roundHours, roundToDecimals } from "@/lib/number/rounding";
 import type {
   AssignmentPctLabel,
   HoursReportAlert,
@@ -185,11 +189,13 @@ export async function buildHoursReport(
 
       const classified = classifyReportedHours(personTasks, personBugs, EMPTY_NEWS_IDS);
 
-      // Horas novedades = días hábiles del rango de cada novedad (∩ periodo) × 8
-      // × % asignación vigente por día (mismo prorrateo que las horas esperadas).
+      // Horas novedades = Completed Work reportado en las novedades de la
+      // persona; los días equivalen a horas / 8 (jornada laboral de 8 h).
       const personNovedades = novedadesByPerson.get(person.displayName) ?? [];
-      const newsDays = collectNewsWorkingDays(personNovedades, workingDays, fromIso, toIso);
-      const newsHours = computeExpectedHours(newsDays, segments).expectedHours;
+      const newsHours = roundHours(
+        personNovedades.reduce((sum, n) => sum + (n.completedWork ?? 0), 0),
+      );
+      const newsDays = roundToDecimals(newsHours / HOURS_PER_WORKING_DAY, 2);
       const newsEntries = novedadesDetailEntries(personNovedades);
 
       const total = classified.developmentHours + classified.bugHours + newsHours;
@@ -209,7 +215,7 @@ export async function buildHoursReport(
         newsHours,
         totalHours: total,
         newsCount: personNovedades.length,
-        newsDays: newsDays.length,
+        newsDays,
         newsDetail: newsEntries.join(NEWS_DETAIL_DELIMITER),
         newsDetails: newsEntries,
         compliancePct: compliance.pct,
@@ -276,30 +282,6 @@ const EMPTY_NEWS_IDS: ReadonlySet<number> = new Set<number>();
 function toNewsDateFilter(period: BuildHoursReportPeriod): ReportedNewsDateFilter {
   if (period.kind === "month") return { kind: "month", monthKey: period.monthKey };
   return { kind: "range", fromKey: period.fromIso, toKey: period.toIso };
-}
-
-/**
- * Días hábiles del periodo cubiertos por al menos una de las novedades de la
- * persona (unión, sin doble conteo). Cada novedad aporta [fechaInicio, fechaFin]
- * recortado al periodo; una novedad sin fecha se toma como abierta a ese lado.
- */
-function collectNewsWorkingDays(
-  novedades: readonly ReportedNewsDetail[],
-  workingDays: readonly string[],
-  periodStart: string,
-  periodEnd: string,
-): string[] {
-  const days = new Set<string>();
-  for (const n of novedades) {
-    const start = (n.fechaInicio ?? periodStart).slice(0, 10);
-    const end = (n.fechaFin ?? periodEnd).slice(0, 10);
-    const from = start > periodStart ? start : periodStart;
-    const to = end < periodEnd ? end : periodEnd;
-    for (const day of workingDays) {
-      if (day >= from && day <= to) days.add(day);
-    }
-  }
-  return [...days];
 }
 
 /** Una entrada `<tipo> - <título>` por novedad (CA-24), para detalle y tooltip. */

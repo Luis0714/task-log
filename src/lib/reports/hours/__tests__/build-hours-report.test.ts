@@ -43,6 +43,7 @@ function makeNovedad(overrides: Partial<ReportedNewsDetail> = {}): ReportedNewsD
     tipoNovedad: overrides.tipoNovedad ?? "Permiso",
     parentId: overrides.parentId ?? 100,
     createdDate: overrides.createdDate ?? null,
+    completedWork: overrides.completedWork ?? 8,
   };
 }
 
@@ -72,9 +73,14 @@ describe("buildHoursReport", () => {
         newsStoriesRepo: makeFakeNewsStoriesRepo(linkedHU),
         listTasks: async () => devTasks,
         listBugs: async () => bugTasks,
-        // 2 días hábiles (15 y 16) × 8 × 50% = 8 horas de novedad.
+        // Completed Work de la novedad = 8 h → 8 horas, 1 día.
         listReportedNews: async () => [
-          makeNovedad({ assignedTo: "Juan Pérez", tipoNovedad: "Feature", title: "Novedad 1" }),
+          makeNovedad({
+            assignedTo: "Juan Pérez",
+            tipoNovedad: "Feature",
+            title: "Novedad 1",
+            completedWork: 8,
+          }),
         ],
         listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
         now: fixedNow,
@@ -93,8 +99,8 @@ describe("buildHoursReport", () => {
     expect(row.semaforo).toBe("verde");
   });
 
-  it("novedades: días hábiles del rango × 8 × % asignación, con detalle", async () => {
-    // Ana al 100% (roster, sin excepción); novedad de 3 días hábiles (15,16,17).
+  it("novedades: horas = Completed Work, días = horas / 8", async () => {
+    // Ana con dos novedades: 8 h + 4 h = 12 h → 1.5 días.
     const result = await buildHoursReport(
       {
         scopes: [makeScope()],
@@ -107,13 +113,8 @@ describe("buildHoursReport", () => {
         listTasks: async () => [],
         listBugs: async () => [],
         listReportedNews: async () => [
-          makeNovedad({
-            assignedTo: "Ana Gómez",
-            fechaInicio: "2026-06-15",
-            fechaFin: "2026-06-17",
-            tipoNovedad: "Permiso",
-            title: "Cita médica",
-          }),
+          makeNovedad({ id: 1, assignedTo: "Ana Gómez", tipoNovedad: "Permiso", title: "Cita médica", completedWork: 8 }),
+          makeNovedad({ id: 2, assignedTo: "Ana Gómez", tipoNovedad: "Capacitación", title: "Scrum", completedWork: 4 }),
         ],
         listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
         loadTeamMembers: async () => [
@@ -124,10 +125,10 @@ describe("buildHoursReport", () => {
     );
 
     const row = result.rows.find((r) => r.personDisplayName === "Ana Gómez");
-    expect(row?.newsHours).toBe(24); // 3 días × 8 × 100%
-    expect(row?.newsDays).toBe(3);
-    expect(row?.newsCount).toBe(1);
-    expect(row?.newsDetail).toBe("Permiso - Cita médica");
+    expect(row?.newsHours).toBe(12); // 8 + 4
+    expect(row?.newsDays).toBe(1.5); // 12 / 8
+    expect(row?.newsCount).toBe(2);
+    expect(row?.newsDetails).toEqual(["Permiso - Cita médica", "Capacitación - Scrum"]);
   });
 
   it("solo salen las personas del roster/excepciones, no los asignados de tasks ajenos", async () => {

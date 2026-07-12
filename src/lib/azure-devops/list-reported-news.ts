@@ -26,6 +26,8 @@ export type ReportedNewsDetail = Readonly<{
   tipoNovedad: string | null;
   parentId: number | null;
   createdDate: string | null;
+  /** Horas reportadas de la novedad (Completed Work). Días = horas / 8. */
+  completedWork: number | null;
 }>;
 
 const MAX_IDS_PER_REQUEST = 200;
@@ -42,6 +44,7 @@ const NOVEDADES_FIELDS = [
   "Custom.FechaReintegro",
   "Custom.TipodeNovedad",
   "System.Parent",
+  "Microsoft.VSTS.Scheduling.CompletedWork",
 ] as const;
 
 /** Rango de fechas de un mes en formato civil `YYYY-MM-DD`. */
@@ -265,6 +268,15 @@ function mapReportedNews(
     if (typeof value === "string" && /^\d+$/.test(value)) return Number(value);
     return null;
   };
+  const numberField = (key: string): number | null => {
+    const value = fields[key];
+    if (typeof value === "number") return Number.isFinite(value) ? value : null;
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+  };
   const assignedTo = readAssignedTo(fields["System.AssignedTo"]);
 
   return {
@@ -279,6 +291,7 @@ function mapReportedNews(
     tipoNovedad: stringField("Custom.TipodeNovedad"),
     parentId: intField("System.Parent"),
     createdDate: stringField("System.CreatedDate"),
+    completedWork: numberField("Microsoft.VSTS.Scheduling.CompletedWork"),
   };
 }
 

@@ -36,10 +36,9 @@ function defaultPeriod(): HoursReportPeriodSchema {
   return { kind: "month", monthKey: `${y}-${m}` };
 }
 
-function thisMonthLastIso(): string {
-  const now = new Date();
-  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-  return next.toISOString().slice(0, 10);
+/** Fecha actual en formato `YYYY-MM-DD` (UTC). */
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function defaultMonthKey(): string {
@@ -68,8 +67,8 @@ export function ReportsTimeLogContent({
   adoExecutionReady,
 }: Readonly<ReportsTimeLogContentProps>) {
   const [period, setPeriod] = useState<HoursReportPeriodSchema>(defaultPeriod());
-  const [rangeFrom, setRangeFrom] = useState<string>(thisMonthLastIso().slice(0, 8) + "01");
-  const [rangeTo, setRangeTo] = useState<string>(thisMonthLastIso());
+  const [rangeFrom, setRangeFrom] = useState<string>(todayIso());
+  const [rangeTo, setRangeTo] = useState<string>(todayIso());
   const [projectIds, setProjectIds] = useState<string[]>(initialScopes.projectIds);
   const [teamIds, setTeamIds] = useState<string[]>(initialScopes.teamIds);
   const [downloadingExcel, setDownloadingExcel] = useState(false);

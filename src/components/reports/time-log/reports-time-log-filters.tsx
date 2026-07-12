@@ -27,6 +27,17 @@ const MONTH_NAMES = [
 const CURRENT_YEAR = new Date().getUTCFullYear();
 const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 
+/** Etiqueta del trigger multiselección: "Todos", el único, o "N seleccionados". */
+function selectionLabel(
+  selected: readonly string[],
+  allLabel: string,
+  countedNoun: string,
+): string {
+  if (selected.length === 0) return allLabel;
+  if (selected.length === 1) return selected[0];
+  return `${selected.length} ${countedNoun}`;
+}
+
 export type ReportsTimeLogFiltersProps = {
   projects: ReadonlyArray<AdoProjectDto>;
   teams: ReadonlyArray<AdoTeamDto>;
@@ -75,18 +86,16 @@ export function ReportsTimeLogFilters({
   const showMonth = period.kind === "month";
   const projectOptions = projects.map((p) => ({ value: p.name, label: p.name }));
   const teamOptions = teams.map((t) => ({ value: t.name, label: t.name }));
-  const projectsLabel =
-    selectedProjectIds.length === 0
-      ? "Todos los proyectos"
-      : selectedProjectIds.length === 1
-        ? selectedProjectIds[0]
-        : `${selectedProjectIds.length} proyectos seleccionados`;
-  const teamsLabel =
-    selectedTeamIds.length === 0
-      ? "Todos los equipos"
-      : selectedTeamIds.length === 1
-        ? selectedTeamIds[0]
-        : `${selectedTeamIds.length} equipos seleccionados`;
+  const projectsLabel = selectionLabel(
+    selectedProjectIds,
+    "Todos los proyectos",
+    "proyectos seleccionados",
+  );
+  const teamsLabel = selectionLabel(
+    selectedTeamIds,
+    "Todos los equipos",
+    "equipos seleccionados",
+  );
 
   return (
     <div className="space-y-4 rounded-md border p-4">
