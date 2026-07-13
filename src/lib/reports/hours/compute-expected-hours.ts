@@ -1,7 +1,5 @@
 import { roundToDecimals, roundHours } from "@/lib/number/rounding";
-
-/** Jornada laboral fija de la épica (D2). */
-export const HOURS_PER_WORKING_DAY = 8;
+import { HOURS_PER_WORKING_DAY } from "@/lib/working-days";
 
 /**
  * Tramo de asignación vigente en un intervalo de fechas. Un porcentaje del
@@ -27,7 +25,6 @@ export type ExpectedHoursResult = Readonly<{
   weightedPct: number;
 }>;
 
-/** % vigente para una fecha según los tramos (el primero que la cubre). */
 function pctForDate(
   date: string,
   segments: readonly AssignmentSegment[],

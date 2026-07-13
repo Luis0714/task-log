@@ -1,9 +1,9 @@
 import { sumHoursBreakdownForDayKeys } from "@/lib/dashboard/hours-breakdown";
-import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
 import { toLocalDateKey, type SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import type { SprintBugHoursSource } from "@/lib/dashboard/bug-hours";
 import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
 import type { SprintWeekMetrics } from "@/lib/dashboard/types";
+import { HOURS_PER_WORKING_DAY } from "@/lib/working-days";
 
 function getMondayOfWeek(date: Date): Date {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -60,7 +60,7 @@ function buildWeekMetrics(
   return {
     label,
     hours,
-    hoursTarget: days.length * HOURS_PER_SPRINT_WORKING_DAY,
+    hoursTarget: days.length * HOURS_PER_WORKING_DAY,
     workingDaysCount: days.length,
     dateRangeLabel: formatSprintWeekDateRange(days),
     dayKeys,

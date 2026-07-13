@@ -3,12 +3,12 @@ import {
   sumHoursBreakdownForDay,
   totalHoursBreakdown,
 } from "@/lib/dashboard/hours-breakdown";
-import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
 import {
   formatSprintDayChartLabel,
   type SprintWorkingDay,
 } from "@/lib/dashboard/sprint-days";
 import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
+import { HOURS_PER_WORKING_DAY } from "@/lib/working-days";
 
 export type SprintDayHoursPoint = {
   dayKey: string;
@@ -61,7 +61,7 @@ export function computeSprintHoursSeries(
       bugHours: breakdown.bugHours,
       totalHours: totalHoursBreakdown(breakdown),
       cumulativeHours: Math.round(runningTotal * 10) / 10,
-      idealCumulativeHours: (index + 1) * HOURS_PER_SPRINT_WORKING_DAY,
+      idealCumulativeHours: (index + 1) * HOURS_PER_WORKING_DAY,
     };
   });
 }

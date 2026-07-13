@@ -1,15 +1,13 @@
 import { DEFAULT_SPRINT_HOURS_TARGET } from "@/lib/dashboard/constants";
-import type { WorkingDayFilterOptions } from "@/lib/dashboard/non-working-days";
+import { parseSprintCalendarDate } from "@/lib/dashboard/sprint-days";
 import {
-  countWorkingDaysInRange,
+  countWorkingDayKeysBetween,
+  HOURS_PER_WORKING_DAY,
   parseLocalDateKey,
-  parseSprintCalendarDate,
-} from "@/lib/dashboard/sprint-days";
+  toLocalDateKey,
+  type WorkingDayFilterOptions,
+} from "@/lib/working-days";
 
-/** Horas de capacidad por día laborable del sprint. */
-export const HOURS_PER_SPRINT_WORKING_DAY = 8;
-
-/** Capacidad del sprint: días laborables (lun–vie, sin festivos) × 8 h. */
 export function computeSprintCapacityHours(
   startDate?: string | null,
   finishDate?: string | null,
@@ -25,13 +23,12 @@ export function computeSprintCapacityHours(
     return DEFAULT_SPRINT_HOURS_TARGET;
   }
 
-  const workingDays = countWorkingDaysInRange(start, end, options);
+  const workingDays = countWorkingDayKeysBetween(startDate.trim(), finishDate.trim(), options);
   if (workingDays <= 0) return DEFAULT_SPRINT_HOURS_TARGET;
 
-  return workingDays * HOURS_PER_SPRINT_WORKING_DAY;
+  return workingDays * HOURS_PER_WORKING_DAY;
 }
 
-/** Capacidad acumulada hasta un día del sprint (inclusive), en días laborables × 8 h. */
 export function computeSprintCapacityHoursThroughDay(
   startDate: string | null | undefined,
   selectedDayKey: string,
@@ -56,8 +53,8 @@ export function computeSprintCapacityHoursThroughDay(
 
   if (end < start) return DEFAULT_SPRINT_HOURS_TARGET;
 
-  const workingDays = countWorkingDaysInRange(start, end, options);
+  const workingDays = countWorkingDayKeysBetween(startDate.trim(), toLocalDateKey(end), options);
   if (workingDays <= 0) return DEFAULT_SPRINT_HOURS_TARGET;
 
-  return workingDays * HOURS_PER_SPRINT_WORKING_DAY;
+  return workingDays * HOURS_PER_WORKING_DAY;
 }

@@ -8,12 +8,12 @@ import { SprintWeekHoursPanel } from "@/components/dashboard/charts/sprint-week-
 import { StackedBarChart } from "@/components/dashboard/charts/stacked-bar-chart";
 import { formatHours } from "@/lib/dashboard/format-hours";
 import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
-import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
 import { getHoursPaceStatus } from "@/lib/dashboard/hours-pace";
 import { kpiProgressPercent, resolveHoursKpiVariant } from "@/lib/dashboard/kpi-variant";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
 import type { DashboardKpiVariant } from "@/components/dashboard/charts/dashboard-kpi";
 import type { KpiVariant } from "@/lib/dashboard/kpi-variant";
+import { HOURS_PER_WORKING_DAY } from "@/lib/working-days";
 import { cn } from "@/lib/utils";
 
 export type SprintHoursSectionProps = {
@@ -35,13 +35,13 @@ export function SprintHoursSection({
   const hoursSprint = totalHoursBreakdown(metrics.hoursSprintCurrent);
   const hoursDayPending = Math.max(
     0,
-    Math.round((HOURS_PER_SPRINT_WORKING_DAY - hoursToday) * 10) / 10,
+    Math.round((HOURS_PER_WORKING_DAY - hoursToday) * 10) / 10,
   );
   const hasDaySeries = metrics.hoursByDay.length > 0;
   const pace = getHoursPaceStatus(metrics.hoursByDay);
   const todayVariant: DashboardKpiVariant = resolveHoursKpiVariant(
     hoursToday,
-    HOURS_PER_SPRINT_WORKING_DAY,
+    HOURS_PER_WORKING_DAY,
   );
   const sprintVariantBase: KpiVariant = resolveHoursKpiVariant(
     hoursSprint,
@@ -71,8 +71,8 @@ export function SprintHoursSection({
           size="compact"
           layout="stack"
           label={hoursDayLabel}
-          value={`${formatHours(hoursToday)} / ${HOURS_PER_SPRINT_WORKING_DAY}h`}
-          progress={kpiProgressPercent(hoursToday, HOURS_PER_SPRINT_WORKING_DAY)}
+          value={`${formatHours(hoursToday)} / ${HOURS_PER_WORKING_DAY}h`}
+          progress={kpiProgressPercent(hoursToday, HOURS_PER_WORKING_DAY)}
           hoursBreakdown={metrics.hoursToday}
           hoursPending={hoursDayPending}
           variant={todayVariant}
