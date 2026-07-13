@@ -1,3 +1,5 @@
+import type { AssignmentSegment } from "@/lib/expected-hours";
+import { computeExpectedHours } from "@/lib/expected-hours";
 import type { SprintBugHoursSource } from "@/lib/dashboard/bug-hours";
 import {
   sumHoursBreakdownForDay,
@@ -17,16 +19,16 @@ export type SprintDayHoursPoint = {
   bugHours: number;
   totalHours: number;
   cumulativeHours: number;
+  /** Línea ideal acumulada respetando el % de asignación del usuario. */
   idealCumulativeHours: number;
 };
 
-/** Props del eje X cuando hay un punto por día laborable del sprint. */
 export function sprintDayAxisProps(dayCount: number) {
   const dense = dayCount > 4;
   return {
     interval: 0 as const,
     angle: dense ? -48 : -18,
-    textAnchor: dense ? ("end" as const) : ("end" as const),
+    textAnchor: "end" as const,
     height: dense ? 72 : 56,
     tick: { fontSize: dense ? 8 : 9 },
   };
@@ -41,13 +43,17 @@ export function sprintDayChartMargin(dayCount: number) {
   } as const;
 }
 
-/** Un punto por cada día laborable del sprint (incluye días con 0 h). */
 export function computeSprintHoursSeries(
   workingDays: readonly SprintWorkingDay[],
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
+  segments: readonly AssignmentSegment[] = [],
 ): SprintDayHoursPoint[] {
   if (workingDays.length === 0) return [];
+
+  const dayKeys = workingDays.map((day) => day.value);
+  const { weightedPct } = computeExpectedHours(dayKeys, segments);
+  const idealPerDay = (weightedPct / 100) * HOURS_PER_WORKING_DAY;
 
   let runningTotal = 0;
   return workingDays.map((day, index) => {
@@ -61,7 +67,7 @@ export function computeSprintHoursSeries(
       bugHours: breakdown.bugHours,
       totalHours: totalHoursBreakdown(breakdown),
       cumulativeHours: Math.round(runningTotal * 10) / 10,
-      idealCumulativeHours: (index + 1) * HOURS_PER_WORKING_DAY,
+      idealCumulativeHours: Math.round((index + 1) * idealPerDay * 10) / 10,
     };
   });
 }

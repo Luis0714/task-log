@@ -65,6 +65,7 @@ export function emptyDashboardBundle(
     tasks: [],
     backlogStates: [],
     nonWorkingDates: [],
+    userAssignmentSegments: [],
     error: null,
     ...overrides,
   };

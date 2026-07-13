@@ -1,9 +1,10 @@
+import type { AssignmentSegment } from "@/lib/expected-hours";
+import { computeExpectedHours } from "@/lib/expected-hours";
 import { sumHoursBreakdownForDayKeys } from "@/lib/dashboard/hours-breakdown";
 import { toLocalDateKey, type SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import type { SprintBugHoursSource } from "@/lib/dashboard/bug-hours";
 import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
 import type { SprintWeekMetrics } from "@/lib/dashboard/types";
-import { HOURS_PER_WORKING_DAY } from "@/lib/working-days";
 
 function getMondayOfWeek(date: Date): Date {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -12,7 +13,6 @@ function getMondayOfWeek(date: Date): Date {
   return d;
 }
 
-/** Agrupa los días laborables del sprint por semana calendario (lunes–viernes). */
 export function splitSprintIntoWeeks(
   workingDays: readonly SprintWorkingDay[],
 ): SprintWorkingDay[][] {
@@ -48,6 +48,7 @@ function buildWeekMetrics(
   label: string,
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
+  segments: readonly AssignmentSegment[],
 ): SprintWeekMetrics | null {
   if (days.length === 0) return null;
 
@@ -57,10 +58,12 @@ function buildWeekMetrics(
     ? sumHoursBreakdownForDayKeys(tasks, bugs, dayKeys, weekEndKey)
     : { taskHours: 0, bugHours: 0 };
 
+  const { expectedHours } = computeExpectedHours(dayKeys, segments);
+
   return {
     label,
     hours,
-    hoursTarget: days.length * HOURS_PER_WORKING_DAY,
+    hoursTarget: expectedHours,
     workingDaysCount: days.length,
     dateRangeLabel: formatSprintWeekDateRange(days),
     dayKeys,
@@ -71,10 +74,11 @@ export function computeSprintWeekMetrics(
   workingDays: readonly SprintWorkingDay[],
   tasks: SprintTaskHoursSource[],
   bugs: SprintBugHoursSource[],
+  segments: readonly AssignmentSegment[] = [],
 ): SprintWeekMetrics[] {
   return splitSprintIntoWeeks(workingDays)
     .map((days, index) =>
-      buildWeekMetrics(days, `Semana ${index + 1}`, tasks, bugs),
+      buildWeekMetrics(days, `Semana ${index + 1}`, tasks, bugs, segments),
     )
     .filter((week): week is SprintWeekMetrics => week !== null);
 }

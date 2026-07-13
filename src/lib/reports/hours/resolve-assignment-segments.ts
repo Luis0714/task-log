@@ -1,4 +1,4 @@
-import type { AssignmentSegment } from "@/lib/reports/hours/compute-expected-hours";
+import type { AssignmentSegment } from "@/lib/expected-hours";
 
 export type AssignmentForSegment = {
   assignmentPct: number;

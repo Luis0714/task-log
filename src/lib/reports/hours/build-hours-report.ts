@@ -13,7 +13,7 @@ import {
 } from "@/lib/azure-devops/list-reported-news";
 import { classifyReportedHours, type ReportedTask } from "@/lib/reports/hours/classify-reported-hours";
 import { computeCompliance } from "@/lib/reports/hours/compliance";
-import { computeExpectedHours } from "@/lib/reports/hours/compute-expected-hours";
+import { computeExpectedHours } from "@/lib/expected-hours";
 import { NEWS_DETAIL_DELIMITER } from "@/lib/reports/hours/format-news-detail";
 import { roundHours, roundToDecimals } from "@/lib/number/rounding";
 import { HOURS_PER_WORKING_DAY } from "@/lib/working-days";

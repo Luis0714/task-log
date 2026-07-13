@@ -11,6 +11,7 @@ import {
   loadSprintPeriodBugs,
   loadSprintPeriodTasks,
 } from "@/lib/ado/load-sprint-data";
+import { loadUserAssignmentSegments } from "@/lib/ado/load-user-assignment-segments";
 import { catalogToSprintContext } from "@/lib/ado/sprint-data-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 
@@ -26,7 +27,7 @@ export async function DashboardHoursSectionServer({
   const ctx = catalogToSprintContext(catalog);
   if (!ctx) return null;
 
-  const [tasks, bugs, nonWorkingDates] = await Promise.all([
+  const [tasks, bugs, nonWorkingDates, userAssignmentSegments] = await Promise.all([
     loadSprintPeriodTasks(
       ctx.project,
       ctx.team,
@@ -44,6 +45,11 @@ export async function DashboardHoursSectionServer({
       ctx.assignee,
     ),
     loadSprintNonWorkingDates(ctx.project, ctx.team),
+    loadUserAssignmentSegments({
+      projectId: ctx.project,
+      sprintStartDate: ctx.sprintStartDate,
+      sprintFinishDate: ctx.sprintFinishDate,
+    }),
   ]);
 
   const error = firstSprintDataError(tasks, bugs, nonWorkingDates);
@@ -54,6 +60,7 @@ export async function DashboardHoursSectionServer({
       bugs: bugs.data,
       tasks: tasks.data,
       nonWorkingDates: nonWorkingDates.data,
+      userAssignmentSegments,
     }),
     catalog,
     sprintDayKey,

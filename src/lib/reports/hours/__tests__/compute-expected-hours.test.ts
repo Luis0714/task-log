@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeExpectedHours,
   type AssignmentSegment,
-} from "@/lib/reports/hours/compute-expected-hours";
+} from "@/lib/expected-hours";
 
 /** Genera `count` fechas hábiles consecutivas desde `2026-07-01`. */
 function workingDays(count: number): string[] {

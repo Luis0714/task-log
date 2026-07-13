@@ -1,4 +1,5 @@
 import type { AdoContextSelectFieldsProps } from "@/lib/filters/context-selection-types";
+import type { AssignmentSegment } from "@/lib/expected-hours";
 import type { SprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import type {
   AdoProjectDto,
@@ -54,6 +55,7 @@ export type DashboardSprintBundle = {
   backlogStates: AdoTaskStateDto[];
   bugStates?: AdoTaskStateDto[];
   nonWorkingDates: string[];
+  userAssignmentSegments: readonly AssignmentSegment[];
   error: string | null;
 };
 

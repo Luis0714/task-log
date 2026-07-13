@@ -1,6 +1,5 @@
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import type { DashboardHoursMetrics } from "@/lib/dashboard/types";
-import { computeSprintCapacityHours } from "@/lib/dashboard/sprint-hours";
 import { computeSprintHoursSeries } from "@/lib/dashboard/sprint-hours-series";
 import { computeSprintWeekMetrics } from "@/lib/dashboard/sprint-weeks";
 import {
@@ -15,12 +14,19 @@ import {
   resolveEffectiveSprintDayKey,
 } from "@/lib/dashboard/sprint-days";
 import { computeDashboardMetrics } from "@/lib/dashboard/work-item-selectors";
+import type { AssignmentSegment } from "@/lib/expected-hours";
+import { computeExpectedHours } from "@/lib/expected-hours";
+import {
+  listWorkingDayKeysBetween,
+  type WorkingDayFilterOptions,
+} from "@/lib/working-days";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
 export type BuildDashboardHoursMetricsInput = {
   tasks: AdoWorkItemOptionDto[];
   bugs: AdoWorkItemOptionDto[];
   nonWorkingDates: string[];
+  userAssignmentSegments: readonly AssignmentSegment[];
   catalog: AdoCatalogSnapshot;
   sprintDayKey: string;
 };
@@ -35,11 +41,14 @@ export function buildDashboardHoursMetrics({
   tasks,
   bugs,
   nonWorkingDates,
+  userAssignmentSegments,
   catalog,
   sprintDayKey,
 }: BuildDashboardHoursMetricsInput): BuildDashboardHoursMetricsResult {
   const currentSprint = resolveCurrentSprint(catalog);
-  const workingDayOptions = { nonWorkingDates: new Set(nonWorkingDates) };
+  const workingDayOptions: WorkingDayFilterOptions = {
+    nonWorkingDates: new Set(nonWorkingDates),
+  };
   const sprintWorkingDays = listSprintWorkingDays(
     currentSprint?.startDate,
     currentSprint?.finishDate,
@@ -51,25 +60,36 @@ export function buildDashboardHoursMetrics({
     sprintWorkingDays,
   );
   const hoursDayKey = effectiveSprintDayKey;
-  const sprintEndKey = sprintWorkingDays[sprintWorkingDays.length - 1]?.value ?? "";
+  const sprintEndKey = sprintWorkingDays.at(-1)?.value ?? "";
 
   const hoursToday = sumHoursBreakdownForDay(tasks, bugs, hoursDayKey);
-  const hoursSprintTarget = computeSprintCapacityHours(
-    currentSprint?.startDate,
-    currentSprint?.finishDate,
+  const sprintDayKeys = sprintWorkingDays.map((day) => day.value);
+  const sprintExpected = computeSprintExpectedHours(
+    currentSprint?.startDate ?? null,
+    currentSprint?.finishDate ?? null,
     workingDayOptions,
+    userAssignmentSegments,
   );
-  const allSprintDayKeys = sprintWorkingDays.map((d) => d.value);
   const hoursSprintCurrent =
-    allSprintDayKeys.length > 0
-      ? sumHoursBreakdownForDayKeys(tasks, bugs, allSprintDayKeys, sprintEndKey)
+    sprintDayKeys.length > 0
+      ? sumHoursBreakdownForDayKeys(tasks, bugs, sprintDayKeys, sprintEndKey)
       : { taskHours: 0, bugHours: 0 };
 
   const metrics = computeDashboardMetrics(hoursToday, {
-    sprintHours: { hoursSprintCurrent, hoursSprintTarget },
+    sprintHours: { hoursSprintCurrent, hoursSprintTarget: sprintExpected },
     sprintWorkingDaysCount: sprintWorkingDays.length,
-    hoursByDay: computeSprintHoursSeries(sprintWorkingDays, tasks, bugs),
-    sprintWeeks: computeSprintWeekMetrics(sprintWorkingDays, tasks, bugs),
+    hoursByDay: computeSprintHoursSeries(
+      sprintWorkingDays,
+      tasks,
+      bugs,
+      userAssignmentSegments,
+    ),
+    sprintWeeks: computeSprintWeekMetrics(
+      sprintWorkingDays,
+      tasks,
+      bugs,
+      userAssignmentSegments,
+    ),
   });
 
   const selectedSprintDay =
@@ -82,4 +102,16 @@ export function buildDashboardHoursMetrics({
   })();
 
   return { metrics, effectiveSprintDayKey, hoursDayLabel };
+}
+
+function computeSprintExpectedHours(
+  startDate: string | null,
+  finishDate: string | null,
+  options: WorkingDayFilterOptions,
+  segments: readonly AssignmentSegment[],
+): number {
+  if (!startDate?.trim() || !finishDate?.trim()) return 0;
+  const dayKeys = listWorkingDayKeysBetween(startDate, finishDate, options);
+  if (dayKeys.length === 0) return 0;
+  return computeExpectedHours(dayKeys, segments).expectedHours;
 }
