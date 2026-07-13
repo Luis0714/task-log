@@ -233,19 +233,39 @@ export async function buildHoursReport(
 
 function resolveFromIso(period: BuildHoursReportPeriod): string | null {
   if (period.kind === "range") return period.fromIso;
-  return `${period.monthKey}-01`;
+  const parsed = parseMonthKey(period.monthKey);
+  if (!parsed) return null;
+  return formatIsoDate(parsed.year, parsed.month, 1);
 }
 
 function resolveToIso(period: BuildHoursReportPeriod): string | null {
   if (period.kind === "range") return period.toIso;
-  const match = /^(\d{4})-(\d{2})$/.exec(period.monthKey.trim());
+  const parsed = parseMonthKey(period.monthKey);
+  if (!parsed) return null;
+  return lastDayOfMonthIso(parsed.year, parsed.month);
+}
+
+function parseMonthKey(monthKey: string): { year: number; month: number } | null {
+  const match = /^(\d{4})-(\d{2})$/.exec(monthKey.trim());
   if (!match) return null;
   const year = Number(match[1]);
   const month = Number(match[2]);
+  if (!Number.isInteger(year) || !Number.isInteger(month)) return null;
   if (month < 1 || month > 12) return null;
-  const nextMonth = month === 12 ? 1 : month + 1;
-  const nextYear = month === 12 ? year + 1 : year;
-  return `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+  return { year, month };
+}
+
+function lastDayOfMonthIso(year: number, month: number): string {
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return formatIsoDate(year, month, lastDay);
+}
+
+function formatIsoDate(year: number, month: number, day: number): string {
+  return `${year}-${padTwo(month)}-${padTwo(day)}`;
+}
+
+function padTwo(value: number): string {
+  return String(value).padStart(2, "0");
 }
 
 function toSegmentInputs(rows: readonly PersonProjectAssignmentRow[]) {
