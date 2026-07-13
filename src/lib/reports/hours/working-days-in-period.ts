@@ -1,10 +1,10 @@
 import "server-only";
 
-import { listWorkingDayKeysBetween } from "@/lib/working-days";
 import {
   loadColombianHolidaysForRange,
-  type ColombianHoliday,
-} from "@/lib/holidays/co";
+  type Holiday,
+} from "@/lib/holidays";
+import { listWorkingDayKeysBetween } from "@/lib/working-days";
 
 export async function listWorkingDaysInPeriod(
   fromIso: string,
@@ -17,7 +17,7 @@ export async function listWorkingDaysInPeriod(
 export function filterWorkingDays(
   fromIso: string,
   toIso: string,
-  holidays: readonly ColombianHoliday[],
+  holidays: readonly Holiday[],
 ): string[] {
   const nonWorkingDates = new Set(holidays.map((h) => h.date));
   return listWorkingDayKeysBetween(fromIso, toIso, { nonWorkingDates });

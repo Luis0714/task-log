@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { filterWorkingDays } from "@/lib/reports/hours/working-days-in-period";
-import type { ColombianHoliday } from "@/lib/holidays/co";
+import type { Holiday } from "@/lib/holidays";
 
-const H = (date: string): ColombianHoliday => ({ date, name: "Festivo" });
+const H = (date: string): Holiday => ({ date, name: "Festivo" });
 
 describe("filterWorkingDays", () => {
   it("excluye fines de semana en una semana completa", () => {

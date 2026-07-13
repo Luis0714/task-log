@@ -56,6 +56,9 @@ importers:
       date-fns:
         specifier: ^4.3.0
         version: 4.3.0
+      date-holidays:
+        specifier: ^3.33.0
+        version: 3.33.0
       dompurify:
         specifier: ^3.4.6
         version: 3.4.7
@@ -2440,6 +2443,10 @@ packages:
     resolution: {integrity: sha512-6t10qk83GOG8p0vKmaCr8eiilZwO171AvbROMtvvNiwrTly62t+7XkA8RdIIVbpMhCASAsxgAzdRSwh6nw/5Dg==}
     engines: {node: '>=4'}
 
+  astronomia@4.2.0:
+    resolution: {integrity: sha512-mTvpBGyXB80aSsDhAAiuwza5VqAyqmj5yzhjBrFhRy17DcWDzJrb8Vdl4Sm+g276S+mY7bk/5hi6akZ5RQFeHg==}
+    engines: {node: '>=12.0.0'}
+
   async-function@1.0.0:
     resolution: {integrity: sha512-hsU18Ae8CDTR6Kgu9DYf0EbCr/a5iGL0rytQDobUcdpYOKokk8LEjVphnXkDkgpi0wYVsqrXuP0bZxJaTqdgoA==}
     engines: {node: '>= 0.4'}
@@ -2555,6 +2562,10 @@ packages:
   cac@6.7.14:
     resolution: {integrity: sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ==}
     engines: {node: '>=8'}
+
+  caldate@2.0.5:
+    resolution: {integrity: sha512-JndhrUuDuE975KUhFqJaVR1OQkCHZqpOrJur/CFXEIEhWhBMjxO85cRSK8q4FW+B+yyPq6GYua2u4KvNzTcq0w==}
+    engines: {node: '>=12.0.0'}
 
   call-bind-apply-helpers@1.0.2:
     resolution: {integrity: sha512-Sp1ablJ0ivDkSzjcaJdxEunN5/XvksFJ2sMBFfq6x0ryhQV/2b/KwFe21cMpmHtPOSij8K99/wSfoEuTObmuMQ==}
@@ -2784,8 +2795,29 @@ packages:
     resolution: {integrity: sha512-BS8PfmtDGnrgYdOonGZQdLZslWIeCGFP9tpan0hi1Co2Zr2NKADsvGYA8XxuG/4UWgJ6Cjtv+YJnB6MM69QGlQ==}
     engines: {node: '>= 0.4'}
 
+  date-bengali-revised@2.0.2:
+    resolution: {integrity: sha512-q9iDru4+TSA9k4zfm0CFHJj6nBsxP7AYgWC/qodK/i7oOIlj5K2z5IcQDtESfs/Qwqt/xJYaP86tkazd/vRptg==}
+    engines: {node: '>=12.0.0'}
+
+  date-chinese@2.1.4:
+    resolution: {integrity: sha512-WY+6+Qw92ZGWFvGtStmNQHEYpNa87b8IAQ5T8VKt4wqrn24lBXyyBnWI5jAIyy7h/KVwJZ06bD8l/b7yss82Ww==}
+    engines: {node: '>=12.0.0'}
+
+  date-easter@1.0.3:
+    resolution: {integrity: sha512-aOViyIgpM4W0OWUiLqivznwTtuMlD/rdUWhc5IatYnplhPiWrLv75cnifaKYhmQwUBLAMWLNG4/9mlLIbXoGBQ==}
+    engines: {node: '>=12.0.0'}
+
   date-fns@4.3.0:
     resolution: {integrity: sha512-OYcL+3N/jyWbYdFGqoMAhytDgxP9pbYPUUiRCOgn4Fewaadk9l/Wam4Avciiyp2BgkpfQyBV9B+ehnVJych+eQ==}
+
+  date-holidays-parser@3.4.7:
+    resolution: {integrity: sha512-h09ZEtM6u5cYM6m1bX+1Ny9f+nLO9KVZUKNPEnH7lhbXYTfqZogaGTnhONswGeIJFF91UImIftS3CdM9HLW5oQ==}
+    engines: {node: '>=12.0.0'}
+
+  date-holidays@3.33.0:
+    resolution: {integrity: sha512-1pqbC8hOYlWh6K1XxBvR7uZa+EqUauudJah2SIhPNet7wh8DJGvVY1AziUUpq0+pqhxLW04Jobj6sYer0/6oLw==}
+    engines: {node: '>=12.0.0'}
+    hasBin: true
 
   dayjs@1.11.21:
     resolution: {integrity: sha512-98IT+HOahAisibz/yjKbzuOBwYcjJ7BCLPzARyHiyEBmRz4fatF+KPJszEHXsGYjUG234aH/cOjW1wwTbKUZlA==}
@@ -3823,6 +3855,9 @@ packages:
     resolution: {integrity: sha512-H0dkQoCa3b2VEeKQBOxFph+JAbcrQdE7KC0UkqwpLmv2EC4P41QXP+rqo9wYodACiG5/WM5s9oDApTU8utwj9g==}
     engines: {node: '>= 0.4'}
 
+  jalaali-js@1.2.8:
+    resolution: {integrity: sha512-Jl/EwY84JwjW2wsWqeU4pNd22VNQ7EkjI36bDuLw31wH98WQW4fPjD0+mG7cdCK+Y8D6s9R3zLiQ3LaKu6bD8A==}
+
   jay-peg@1.1.1:
     resolution: {integrity: sha512-D62KEuBxz/ip2gQKOEhk/mx14o7eiFRaU+VNNSP4MOiIkwb/D6B3G1Mfas7C/Fit8EsSV2/IWjZElx/Gs6A4ww==}
 
@@ -3841,6 +3876,10 @@ packages:
 
   js-yaml@4.1.1:
     resolution: {integrity: sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA==}
+    hasBin: true
+
+  js-yaml@5.2.1:
+    resolution: {integrity: sha512-zfLtNfQqxVqq3uaTqSkh4x4hZw3KHobGUA0fJUj4wawW8bsQLTVqpHdXSIzidh7o+4lEW36tANuAGdaFx6Zgnw==}
     hasBin: true
 
   jsesc@3.1.0:
@@ -4048,6 +4087,9 @@ packages:
   lodash.uniq@4.5.0:
     resolution: {integrity: sha512-xfBaXQd9ryd9dlSDvnvI0lvxfLJlYAZzXomUYzLKtUeOQvOP5piqAWuGtrhWeqaXK9hhoM/iyJc5AV+XfsX3HQ==}
 
+  lodash@4.18.1:
+    resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
+
   log-symbols@6.0.0:
     resolution: {integrity: sha512-i24m8rpwhmPIS4zscNzK6MSEhk0DUWa/8iYQWxhffV8jkI4Phvs3F+quL5xvS0gdQR0FyTCMMH33Y78dDTzzIw==}
     engines: {node: '>=18'}
@@ -4129,6 +4171,12 @@ packages:
   mkdirp@0.5.6:
     resolution: {integrity: sha512-FP+p8RB8OWpF3YZBCrP5gtADmtXApB5AMLn+vdyA+PyxCjrCs00mjyUozssO33cwDeT3wNGdLxJ5M//YqtHAJw==}
     hasBin: true
+
+  moment-timezone@0.5.48:
+    resolution: {integrity: sha512-f22b8LV1gbTO2ms2j2z13MuPogNoh5UzxL3nzNAYKGraILnbGc9NEE6dyiiiLv46DGRb8A4kg8UKWLjPthxBHw==}
+
+  moment@2.30.1:
+    resolution: {integrity: sha512-uEmtNhbDOrWPFS+hdjFCBfy9f2YoyzRpwcl+DqpC6taX21FzsTLQVbMV/W7PzNSX6x/bhC1zA3c2UQ5NzH6how==}
 
   motion-dom@12.42.2:
     resolution: {integrity: sha512-5gIMWLp/PycBtJRJWRgjxke5n8dlvkSn2DrYW+tr3XcqAZY1xZh6BJyooJXCM8wdfM7wfMjkBJNLge1CKPUIRA==}
@@ -4435,6 +4483,10 @@ packages:
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
+
+  prepin@1.0.3:
+    resolution: {integrity: sha512-0XL2hreherEEvUy0fiaGEfN/ioXFV+JpImqIzQjxk6iBg4jQ2ARKqvC4+BmRD8w/pnpD+lbxvh0Ub+z7yBEjvA==}
+    hasBin: true
 
   prettier@3.9.5:
     resolution: {integrity: sha512-/FVl766LpUfB5vXgCYOYa0MeV/441Ia99AeICQIQFTY/Nw0roZwULcXpku5i1/m5kt/baz+s4Zogspd839HSMg==}
@@ -7314,6 +7366,8 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  astronomia@4.2.0: {}
+
   async-function@1.0.0: {}
 
   async@3.2.6: {}
@@ -7424,6 +7478,10 @@ snapshots:
   bytes@3.1.2: {}
 
   cac@6.7.14: {}
+
+  caldate@2.0.5:
+    dependencies:
+      moment-timezone: 0.5.48
 
   call-bind-apply-helpers@1.0.2:
     dependencies:
@@ -7628,7 +7686,33 @@ snapshots:
       es-errors: 1.3.0
       is-data-view: 1.0.2
 
+  date-bengali-revised@2.0.2: {}
+
+  date-chinese@2.1.4:
+    dependencies:
+      astronomia: 4.2.0
+
+  date-easter@1.0.3: {}
+
   date-fns@4.3.0: {}
+
+  date-holidays-parser@3.4.7:
+    dependencies:
+      astronomia: 4.2.0
+      caldate: 2.0.5
+      date-bengali-revised: 2.0.2
+      date-chinese: 2.1.4
+      date-easter: 1.0.3
+      deepmerge: 4.3.1
+      jalaali-js: 1.2.8
+      moment-timezone: 0.5.48
+
+  date-holidays@3.33.0:
+    dependencies:
+      date-holidays-parser: 3.4.7
+      js-yaml: 5.2.1
+      lodash: 4.18.1
+      prepin: 1.0.3
 
   dayjs@1.11.21: {}
 
@@ -8813,6 +8897,8 @@ snapshots:
       has-symbols: 1.1.0
       set-function-name: 2.0.2
 
+  jalaali-js@1.2.8: {}
+
   jay-peg@1.1.1:
     dependencies:
       restructure: 3.0.2
@@ -8826,6 +8912,10 @@ snapshots:
   js-tokens@4.0.0: {}
 
   js-yaml@4.1.1:
+    dependencies:
+      argparse: 2.0.1
+
+  js-yaml@5.2.1:
     dependencies:
       argparse: 2.0.1
 
@@ -9008,6 +9098,8 @@ snapshots:
 
   lodash.uniq@4.5.0: {}
 
+  lodash@4.18.1: {}
+
   log-symbols@6.0.0:
     dependencies:
       chalk: 5.6.2
@@ -9075,6 +9167,12 @@ snapshots:
   mkdirp@0.5.6:
     dependencies:
       minimist: 1.2.8
+
+  moment-timezone@0.5.48:
+    dependencies:
+      moment: 2.30.1
+
+  moment@2.30.1: {}
 
   motion-dom@12.42.2:
     dependencies:
@@ -9428,6 +9526,8 @@ snapshots:
   powershell-utils@0.1.0: {}
 
   prelude-ls@1.2.1: {}
+
+  prepin@1.0.3: {}
 
   prettier@3.9.5: {}
 
