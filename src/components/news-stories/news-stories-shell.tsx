@@ -16,13 +16,16 @@ import {
 } from "@/components/news-stories/news-stories-scope-filters";
 import { useNewsStories } from "@/hooks/news-stories/use-news-stories";
 import type { ReportedNewsScope } from "@/lib/azure-devops/list-reported-news";
+import {
+  pruneTeamSelection,
+  teamNamesForProjects,
+} from "@/lib/filters/teams-by-project";
 import type { ProjectTeamNewsStory } from "@/lib/db";
 import { appToast } from "@/lib/toast";
 
 export type NewsStoriesShellProps = Readonly<{
   catalog: AdoCatalogSnapshot;
   projects: ReadonlyArray<string>;
-  teams: ReadonlyArray<string>;
   /** Selección guardada del usuario para el scope `newsStories`. Si vacía,
    *  el selector empieza vacío (modo "Todos"). */
   initialSelectedProjects?: ReadonlyArray<string>;
@@ -44,7 +47,6 @@ export type NewsStoriesShellProps = Readonly<{
 export function NewsStoriesShell({
   catalog,
   projects,
-  teams,
   initialSelectedProjects = [],
   initialSelectedTeams = [],
 }: NewsStoriesShellProps) {
@@ -68,6 +70,25 @@ export function NewsStoriesShell({
   const selectedTeamsArray = useMemo(
     () => Array.from(scopeFilters.selectedTeams),
     [scopeFilters.selectedTeams],
+  );
+
+  // Los equipos ofrecidos dependen de los proyectos seleccionados; al cambiar
+  // la selección se podan los equipos que dejan de estar disponibles.
+  const teams = useMemo(
+    () => teamNamesForProjects(catalog.teamsByProject, selectedProjectsArray),
+    [catalog.teamsByProject, selectedProjectsArray],
+  );
+  const handleScopeFiltersChange = useCallback(
+    (next: NewsStoriesScopeFiltersValue) => {
+      setScopeFilters({
+        selectedProjects: next.selectedProjects,
+        selectedTeams: pruneTeamSelection(
+          next.selectedTeams,
+          teamNamesForProjects(catalog.teamsByProject, next.selectedProjects),
+        ),
+      });
+    },
+    [catalog.teamsByProject],
   );
 
   const {
@@ -130,7 +151,7 @@ export function NewsStoriesShell({
     <div className="flex min-w-0 flex-col gap-6">
       <NewsStoriesScopeFilters
         value={scopeFilters}
-        onChange={setScopeFilters}
+        onChange={handleScopeFiltersChange}
         projects={projects}
         teams={teams}
       />

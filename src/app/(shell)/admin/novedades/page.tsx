@@ -7,7 +7,7 @@ import { getServerAuthBootstrap } from "@/lib/auth/server-state";
 import { loadAssignmentsCatalog } from "@/lib/ado/load-assignments-catalog";
 import { resolveFilterDefaults } from "@/services/user/resolve-filter-defaults";
 import { USER_FILTER_SCOPES } from "@/lib/filters/user-filter-scopes";
-import { resolveSavedScopes } from "@/lib/news-stories/default-scopes";
+import { resolveSavedScopesByProject } from "@/lib/news-stories/default-scopes";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
 
@@ -30,10 +30,9 @@ export default async function AdminNovedadesPage({
   ]);
 
   const catalogProjects = catalog.projects.map((p) => p.name);
-  const catalogTeams = catalog.teams.map((t) => t.name);
-  const savedScopes = resolveSavedScopes(savedFilters, {
+  const savedScopes = resolveSavedScopesByProject(savedFilters, {
     projects: catalogProjects,
-    teams: catalogTeams,
+    teamsByProject: catalog.teamsByProject,
     defaultProject: catalog.defaultProject,
     defaultTeam: catalog.defaultTeam,
   });
@@ -47,7 +46,6 @@ export default async function AdminNovedadesPage({
       <NewsStoriesShell
         catalog={catalog}
         projects={catalogProjects}
-        teams={catalogTeams}
         initialSelectedProjects={savedScopes.selectedProjects}
         initialSelectedTeams={savedScopes.selectedTeams}
       />

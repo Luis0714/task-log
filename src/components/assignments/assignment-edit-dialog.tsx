@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { ControlledSelectField } from "@/components/time-log/fields/controlled-select-field";
@@ -23,6 +23,7 @@ import type {
   EditAssignmentPayload,
 } from "@/services/assignments/assignments.service";
 import type { MultiCheckboxFilterOption } from "@/components/filters/multi-checkbox-filter";
+import type { TeamOptionsByProject } from "@/components/assignments/table/types";
 import { isPctValueValid } from "@/components/assignments/editable-cells";
 import {
   PercentageField,
@@ -35,7 +36,7 @@ export type AssignmentEditDialogProps = Readonly<{
   onOpenChange: (next: boolean) => void;
   assignment: AssignmentDto;
   projectOptions: MultiCheckboxFilterOption[];
-  teamOptions: MultiCheckboxFilterOption[];
+  teamOptionsByProject: TeamOptionsByProject;
   onSubmit: (id: string, patch: EditAssignmentPayload) => Promise<boolean>;
 }>;
 
@@ -50,7 +51,7 @@ export function AssignmentEditDialog({
   onOpenChange,
   assignment,
   projectOptions,
-  teamOptions,
+  teamOptionsByProject,
   onSubmit,
 }: AssignmentEditDialogProps) {
   const [draft, setDraft] = useState({
@@ -65,30 +66,7 @@ export function AssignmentEditDialog({
   });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      setDraft({
-        projectId: assignment.projectId,
-        projectName: assignment.projectName,
-        teamId: assignment.teamId ?? "",
-        teamName: assignment.teamName ?? "",
-        roleId: assignment.roleId ?? "",
-        pct: String(assignment.assignmentPct),
-        validFrom: toDateKey(assignment.validFrom),
-        validTo: toDateKey(assignment.validTo),
-      });
-    }
-  }, [
-    open,
-    assignment.projectId,
-    assignment.projectName,
-    assignment.teamId,
-    assignment.teamName,
-    assignment.roleId,
-    assignment.assignmentPct,
-    assignment.validFrom,
-    assignment.validTo,
-  ]);
+  const teamOptions = teamOptionsByProject[draft.projectId] ?? [];
 
   const pctValid = isPctValueValid(draft.pct);
   const endValid = draft.validTo === "" || draft.validTo >= draft.validFrom;
@@ -182,6 +160,8 @@ export function AssignmentEditDialog({
                   projectName:
                     projectOptions.find((p) => p.value === next)?.label
                       ?.toString() ?? "",
+                  teamId: "",
+                  teamName: "",
                 }))
               }
               disabled={submitting}

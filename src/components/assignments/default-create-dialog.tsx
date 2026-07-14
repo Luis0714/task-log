@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { ControlledSelectField } from "@/components/time-log/fields/controlled-select-field";
@@ -27,7 +27,10 @@ import type {
   EditAssignmentPayload,
 } from "@/services/assignments/assignments.service";
 import type { MultiCheckboxFilterOption } from "@/components/filters/multi-checkbox-filter";
-import type { InferredDefaultRow } from "@/components/assignments/table/types";
+import type {
+  InferredDefaultRow,
+  TeamOptionsByProject,
+} from "@/components/assignments/table/types";
 import { toLocalDateKey } from "@/lib/dashboard/sprint-days";
 
 export type DefaultCreateDialogProps = Readonly<{
@@ -35,7 +38,7 @@ export type DefaultCreateDialogProps = Readonly<{
   onOpenChange: (next: boolean) => void;
   defaultRow: InferredDefaultRow;
   projectOptions: MultiCheckboxFilterOption[];
-  teamOptions: MultiCheckboxFilterOption[];
+  teamOptionsByProject: TeamOptionsByProject;
   onSubmit: (
     row: InferredDefaultRow,
     payload: EditAssignmentPayload,
@@ -57,7 +60,7 @@ export function DefaultCreateDialog({
   onOpenChange,
   defaultRow,
   projectOptions,
-  teamOptions,
+  teamOptionsByProject,
   onSubmit,
 }: DefaultCreateDialogProps) {
   const [draft, setDraft] = useState({
@@ -71,19 +74,7 @@ export function DefaultCreateDialog({
   });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      setDraft({
-        projectId: defaultRow.projectId,
-        projectName: defaultRow.projectName,
-        teamId: defaultRow.teamId ?? "",
-        teamName: defaultRow.teamName ?? "",
-        pct: "100",
-        validFrom: todayKey(),
-        validTo: "",
-      });
-    }
-  }, [open, defaultRow]);
+  const teamOptions = teamOptionsByProject[draft.projectId] ?? [];
 
   const pctValid = isPctValueValid(draft.pct);
   const endValid =
@@ -159,6 +150,8 @@ export function DefaultCreateDialog({
                   projectName:
                     projectOptions.find((p) => p.value === next)?.label
                       ?.toString() ?? "",
+                  teamId: "",
+                  teamName: "",
                 }))
               }
               disabled={submitting}

@@ -4,11 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import type { AssignmentDto } from "@/lib/assignments/build-assignment-row";
-import {
-  AssignmentsTable,
-  type ProjectOption,
-  type TeamOption,
-} from "@/components/assignments/assignments-table";
+import { AssignmentsTable } from "@/components/assignments/assignments-table";
 import {
   AssignmentsFilters,
   type AssignmentsFiltersValue,
@@ -22,6 +18,10 @@ import {
   filterAssignmentRows,
   filterByPersonName,
 } from "@/lib/assignments/filter-assignments";
+import {
+  pruneTeamSelection,
+  teamNamesForProjects,
+} from "@/lib/filters/teams-by-project";
 
 export type AssignmentsShellProps = Readonly<{
   initialAssignments: AssignmentDto[];
@@ -57,12 +57,19 @@ export function AssignmentsShell({
     defaultTeams: defaultTeamNames,
   });
 
-  const [filters, setFilters] = useState<AssignmentsFiltersValue>(() => ({
-    personQuery: "",
-    projects: urlProjects.length > 0 ? [...urlProjects] : [...defaultProjectNames],
-    teams: urlTeams.length > 0 ? [...urlTeams] : [...defaultTeamNames],
-    month: currentMonthKey(),
-  }));
+  const [filters, setFilters] = useState<AssignmentsFiltersValue>(() => {
+    const projects =
+      urlProjects.length > 0 ? [...urlProjects] : [...defaultProjectNames];
+    return {
+      personQuery: "",
+      projects,
+      teams: pruneTeamSelection(
+        urlTeams.length > 0 ? urlTeams : defaultTeamNames,
+        teamNamesForProjects(catalog.teamsByProject, projects),
+      ),
+      month: currentMonthKey(),
+    };
+  });
 
   useEffect(() => {
     if (urlProjects.length === 0 && defaultProjectNames.length > 0) {
@@ -74,33 +81,33 @@ export function AssignmentsShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const projectOptions: ProjectOption[] = useMemo(
-    () =>
-      catalog.projects.map((p) => ({
-        value: p.name,
-        label: p.name,
-        teams: catalog.teams.map<TeamOption>((t) => ({
-          value: t.id ?? t.name,
-          label: t.name,
-        })),
-      })),
-    [catalog.projects, catalog.teams],
-  );
   const projectLabels = useMemo(
-    () => projectOptions.map((p) => p.label),
-    [projectOptions],
+    () => catalog.projects.map((p) => p.name),
+    [catalog.projects],
   );
   const filterProjectOptions = useMemo(
-    () => projectOptions.map((p) => ({ value: p.value, label: p.label })),
-    [projectOptions],
+    () => catalog.projects.map((p) => ({ value: p.name, label: p.name })),
+    [catalog.projects],
+  );
+  // Equipos disponibles según los proyectos filtrados (unión de sus equipos).
+  const availableTeamNames = useMemo(
+    () => teamNamesForProjects(catalog.teamsByProject, filters.projects),
+    [catalog.teamsByProject, filters.projects],
   );
   const filterTeamOptions = useMemo(
-    () => catalog.teams.map((t) => ({ value: t.name, label: t.name })),
-    [catalog.teams],
+    () => availableTeamNames.map((name) => ({ value: name, label: name })),
+    [availableTeamNames],
   );
-  const catalogTeamNames = useMemo(
-    () => catalog.teams.map((t) => t.name),
-    [catalog.teams],
+  // Equipos de cada proyecto para los diálogos de crear/editar asignación.
+  const teamOptionsByProject = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(catalog.teamsByProject).map(([project, teams]) => [
+          project,
+          teams.map((t) => ({ value: t.name, label: t.name })),
+        ]),
+      ),
+    [catalog.teamsByProject],
   );
 
   const slots = useMemo(
@@ -109,9 +116,9 @@ export function AssignmentsShell({
         filters.projects,
         filters.teams,
         projectLabels,
-        catalogTeamNames,
+        availableTeamNames,
       ),
-    [filters.projects, filters.teams, projectLabels, catalogTeamNames],
+    [filters.projects, filters.teams, projectLabels, availableTeamNames],
   );
 
   const { defaults, initialLoading, removeDefault } = useInferredDefaults(slots);
@@ -128,11 +135,20 @@ export function AssignmentsShell({
   );
   const totalVisible = visibleRows.length + visibleDefaults.length;
   const totalAll = rows.length + defaults.length;
+  const totalNoun = totalAll === 1 ? "asignación" : "asignaciones";
 
   function handleFiltersChange(next: AssignmentsFiltersValue) {
-    setFilters(next);
-    persistProjects(next.projects);
-    persistTeams(next.teams);
+    // Cambiar los proyectos poda los equipos que dejan de estar disponibles.
+    const value = {
+      ...next,
+      teams: pruneTeamSelection(
+        next.teams,
+        teamNamesForProjects(catalog.teamsByProject, next.projects),
+      ),
+    };
+    setFilters(value);
+    persistProjects(value.projects);
+    persistTeams(value.teams);
   }
 
   function handleClearFilters() {
@@ -158,16 +174,14 @@ export function AssignmentsShell({
       <p className="text-muted-foreground text-xs">
         {initialLoading
           ? "Cargando asignaciones…"
-          : `Mostrando ${totalVisible} de ${totalAll} ${
-              totalAll === 1 ? "asignación" : "asignaciones"
-            }`}
+          : `Mostrando ${totalVisible} de ${totalAll} ${totalNoun}`}
       </p>
       <AssignmentsTable
         rows={visibleRows}
         defaults={visibleDefaults}
         pendingDefaults={initialLoading}
         projectOptions={filterProjectOptions}
-        teamOptions={filterTeamOptions}
+        teamOptionsByProject={teamOptionsByProject}
         onCellChange={(rowRef, patch) =>
           rowRef.kind === "assignment"
             ? handleCellChange(rowRef.id, patch)

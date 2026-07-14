@@ -12,6 +12,7 @@ import {
   resolveAdoCatalogCacheScope,
   resolveSuggestedTeamCached,
 } from "@/lib/ado/ado-catalog-cache";
+import { loadTeamsByProject } from "@/lib/ado/load-teams-by-project";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import {
   pickProject,
@@ -21,6 +22,7 @@ import {
 export const EMPTY_ASSIGNMENTS_CATALOG: AdoCatalogSnapshot = {
   projects: [],
   teams: [],
+  teamsByProject: {},
   sprints: [],
   defaultProject: null,
   defaultTeam: null,
@@ -109,13 +111,22 @@ export const loadAssignmentsCatalog = cache(async function loadAssignmentsCatalo
   }
 
   let teams = EMPTY_ASSIGNMENTS_CATALOG.teams;
+  let teamsByProject = EMPTY_ASSIGNMENTS_CATALOG.teamsByProject;
   let suggestedTeam: string | null = null;
   let defaultTeam: string | null = savedDefaultTeam;
   let team = "";
 
   try {
     const scopedAuth = withAdoProject(caller.auth, project);
-    teams = await listProjectTeamsCached(scopedAuth, cacheScope);
+    const otherProjects = projects
+      .map((item) => item.name)
+      .filter((name) => name !== project);
+    const [projectTeams, otherTeams] = await Promise.all([
+      listProjectTeamsCached(scopedAuth, cacheScope),
+      loadTeamsByProject(caller.auth, otherProjects, cacheScope),
+    ]);
+    teams = projectTeams;
+    teamsByProject = { ...otherTeams, [project]: projectTeams };
 
     defaultTeam =
       defaultTeam && teams.some((item) => item.name === defaultTeam)
@@ -150,6 +161,7 @@ export const loadAssignmentsCatalog = cache(async function loadAssignmentsCatalo
   return {
     projects,
     teams,
+    teamsByProject,
     sprints: [],
     defaultProject,
     defaultTeam,

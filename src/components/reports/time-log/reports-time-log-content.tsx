@@ -18,6 +18,11 @@ import { AssigneeVisibilityCombobox } from "@/components/sprints/stats/assignee-
 import { useHoursReport } from "@/hooks/reports/use-hours-report";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { normalizePersonName } from "@/lib/filters/person-name";
+import {
+  pruneTeamSelection,
+  teamNamesForProjects,
+  teamsForProjects,
+} from "@/lib/filters/teams-by-project";
 import { filterHoursReportByVisibility } from "@/lib/reports/hours/filter-hours-report-by-visibility";
 import type {
   HoursReportPeriodSchema,
@@ -66,9 +71,11 @@ export function ReportsTimeLogContent({
     () => catalog.projects.map((p) => p.name),
     [catalog.projects],
   );
-  const allTeamNames = useMemo(
-    () => catalog.teams.map((t) => t.name),
-    [catalog.teams],
+  // Los equipos ofrecidos dependen de los proyectos seleccionados (sin
+  // selección, la unión de todos los proyectos del catálogo).
+  const teams = useMemo(
+    () => teamsForProjects(catalog.teamsByProject, projectIds),
+    [catalog.teamsByProject, projectIds],
   );
 
   /**
@@ -92,11 +99,14 @@ export function ReportsTimeLogContent({
         period: periodValue,
         scopes: {
           projectIds: projectIdsValue.length > 0 ? projectIdsValue : allProjectNames,
-          teamIds: teamIdsValue.length > 0 ? teamIdsValue : allTeamNames,
+          teamIds:
+            teamIdsValue.length > 0
+              ? teamIdsValue
+              : teamNamesForProjects(catalog.teamsByProject, projectIdsValue),
         },
       };
     },
-    [period, projectIds, teamIds, allProjectNames, allTeamNames],
+    [period, projectIds, teamIds, allProjectNames, catalog.teamsByProject],
   );
 
   const payload = useMemo(
@@ -222,12 +232,18 @@ export function ReportsTimeLogContent({
 
   const onProjectIdsChange = useCallback(
     (ids: string[]) => {
-      setProjectIds(ids);
+      // Cambiar los proyectos poda los equipos que dejan de estar disponibles.
       // Pasamos los IDs nuevos al markStale para que la comparación detecte
       // el cambio (con el closure solo teníamos los IDs anteriores).
-      hoursReport.markStale(buildPayload({ projectIds: ids }));
+      const prunedTeamIds = pruneTeamSelection(
+        teamIds,
+        teamNamesForProjects(catalog.teamsByProject, ids),
+      );
+      setProjectIds(ids);
+      setTeamIds(prunedTeamIds);
+      hoursReport.markStale(buildPayload({ projectIds: ids, teamIds: prunedTeamIds }));
     },
-    [hoursReport, buildPayload],
+    [hoursReport, buildPayload, teamIds, catalog.teamsByProject],
   );
 
   const onTeamIdsChange = useCallback(
@@ -274,7 +290,7 @@ export function ReportsTimeLogContent({
     <div className="flex flex-col gap-6">
       <ReportsTimeLogFilters
         projects={catalog.projects}
-        teams={catalog.teams}
+        teams={teams}
         period={period}
         year={year}
         monthKey={monthKey}
