@@ -125,7 +125,6 @@ export function makeFakeAssignmentRepo(
       const r = rows.find((row) => row.id === input.id);
       if (!r) return {} as PersonProjectAssignmentRow;
       const { id: _id, ...fields } = input;
-      void _id;
       const patch = Object.fromEntries(
         Object.entries(fields).filter(([, v]) => v !== undefined),
       );

@@ -50,7 +50,7 @@ function parseFlags(rawFlags: unknown): AdoRuleErrorFlags {
   };
 }
 
-const FIELD_LABEL_REGEX = /Rule Error for field\s+(.+?)\./i;
+const FIELD_LABEL_REGEX = /Rule Error for field\s+([^\n.]+)\./i;
 
 function parseLabelFromMessage(message: unknown): string | undefined {
   if (typeof message !== "string") return undefined;

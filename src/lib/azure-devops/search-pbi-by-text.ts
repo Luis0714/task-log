@@ -26,7 +26,7 @@ function matches(title: string, tokens: readonly string[]): boolean {
 }
 
 function sanitizeWiql(query: string): string {
-  return query.replace(/'/g, "''").replace(/[%_]/g, (m) => `[${m}]`).slice(0, 100);
+  return query.replaceAll("'", "''").replace(/[%_]/g, (m) => `[${m}]`).slice(0, 100);
 }
 
 /**

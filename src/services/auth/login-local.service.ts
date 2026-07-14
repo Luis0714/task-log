@@ -11,7 +11,7 @@ export type LoginLocalFailureReason =
   | "microsoft_account";
 
 export type LoginLocalResult =
-  | { ok: true }
+  | { ok: true; landing?: string }
   | { ok: false; errorMessage: string; reason?: LoginLocalFailureReason };
 
 export async function loginLocal(
@@ -23,7 +23,11 @@ export async function loginLocal(
     "No pudimos iniciar sesión. Inténtalo de nuevo.",
   );
 
-  if (result.ok) return { ok: true };
+  if (result.ok) {
+    const landing =
+      typeof result.data.landing === "string" ? result.data.landing : undefined;
+    return { ok: true, landing };
+  }
 
   return {
     ok: false,

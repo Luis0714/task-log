@@ -6,7 +6,7 @@ import type { SVGProps } from "react";
  * Rendered with `currentColor` so it inherits the surrounding text colour;
  * size defaults to 1em so callers control it via font-size or width/height.
  */
-export function OpenAIIcon(props: Omit<SVGProps<SVGSVGElement>, "viewBox">) {
+export function OpenAIIcon(props: Readonly<Omit<SVGProps<SVGSVGElement>, "viewBox">>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

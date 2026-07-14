@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -20,14 +21,22 @@ export function CopilotLogWorkRow({
   onRemove,
   disabled = false,
 }: Readonly<CopilotLogWorkRowProps>) {
+  const workItemIdFieldId = useId();
+  const hoursFieldId = useId();
+  const commentFieldId = useId();
+
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1">
-          <label className="text-muted-foreground mb-1 block text-xs font-medium">
+          <label
+            htmlFor={workItemIdFieldId}
+            className="text-muted-foreground mb-1 block text-xs font-medium"
+          >
             Work item ID
           </label>
           <Input
+            id={workItemIdFieldId}
             type="number"
             min={1}
             value={item.workItemId || ""}
@@ -54,8 +63,9 @@ export function CopilotLogWorkRow({
         </Button>
       </div>
 
-      <Field label="Horas">
+      <Field id={hoursFieldId} label="Horas">
         <Input
+          id={hoursFieldId}
           type="number"
           min={0.5}
           max={24}
@@ -68,8 +78,9 @@ export function CopilotLogWorkRow({
         />
       </Field>
 
-      <Field label="Comentario">
+      <Field id={commentFieldId} label="Comentario">
         <Textarea
+          id={commentFieldId}
           value={item.comment}
           onChange={(e) => onChange({ ...item, comment: e.target.value })}
           disabled={disabled}
@@ -82,15 +93,20 @@ export function CopilotLogWorkRow({
 }
 
 function Field({
+  id,
   label,
   children,
 }: Readonly<{
+  id: string;
   label: string;
   children: React.ReactNode;
 }>) {
   return (
     <div>
-      <label className="text-muted-foreground mb-1 block text-xs font-medium">
+      <label
+        htmlFor={id}
+        className="text-muted-foreground mb-1 block text-xs font-medium"
+      >
         {label}
       </label>
       {children}

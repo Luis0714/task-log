@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
 import { Loader2 } from "lucide-react";
 
 import { SettingsFieldRow } from "@/components/settings/settings-field-row";
+import { SettingsProcessBaseRows } from "@/components/settings/settings-process-base-rows";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,15 +35,13 @@ import {
   TASK_DONE_STATE_COPY,
   TASK_TODO_STATE_COPY,
   TASK_WIT_COPY,
-  TIMEZONE_FIELD_COPY,
-  WORKING_DATE_FIELD_COPY,
 } from "@/lib/settings/settings-field-copy";
 
 export type SettingsAdminProcessPanelProps = {
   data: SettingsPageData;
 };
 
-export function SettingsAdminProcessPanel({ data }: SettingsAdminProcessPanelProps) {
+export function SettingsAdminProcessPanel({ data }: Readonly<SettingsAdminProcessPanelProps>) {
   const {
     profile,
     options,
@@ -84,17 +82,6 @@ export function SettingsAdminProcessPanel({ data }: SettingsAdminProcessPanelPro
     initialOptions: data.taskDateFieldOptions,
   });
 
-  const dateFieldOptions = useMemo(() => {
-    if (options.some((option) => option.referenceName === workingDateField)) {
-      return options;
-    }
-    return [{ referenceName: workingDateField, label: workingDateField }, ...options];
-  }, [options, workingDateField]);
-
-  const selectedOption = dateFieldOptions.find(
-    (option) => option.referenceName === workingDateField,
-  );
-
   const taskStates = data.taskStates ?? [];
 
   return (
@@ -105,42 +92,15 @@ export function SettingsAdminProcessPanel({ data }: SettingsAdminProcessPanelPro
         <CardDescription>{ADMIN_PROCESS_SECTION.description}</CardDescription>
       </CardHeader>
       <CardContent className="divide-y">
-        <SettingsFieldRow
-          copy={WORKING_DATE_FIELD_COPY}
-          source={profile.workingDateFieldSource}
-          referenceName={workingDateField}
-        >
-          <Select
-            value={workingDateField || null}
-            onValueChange={(value) => {
-              if (value) setWorkingDateField(value);
-            }}
-            disabled={busy !== null}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Elige un campo de fecha">
-                {selectedOption?.label ?? workingDateField}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {dateFieldOptions.map((option) => (
-                <SelectItem key={option.referenceName} value={option.referenceName}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </SettingsFieldRow>
-
-        <SettingsFieldRow copy={TIMEZONE_FIELD_COPY}>
-          <Input
-            value={timezone}
-            onChange={(e) => setTimezone(e.target.value)}
-            placeholder="America/Bogota"
-            disabled={busy !== null}
-            spellCheck={false}
-          />
-        </SettingsFieldRow>
+        <SettingsProcessBaseRows
+          workingDateField={workingDateField}
+          onWorkingDateFieldChange={setWorkingDateField}
+          workingDateFieldSource={profile.workingDateFieldSource}
+          options={options}
+          timezone={timezone}
+          onTimezoneChange={setTimezone}
+          disabled={busy !== null}
+        />
 
         <SettingsFieldRow copy={COMPLETED_WORK_FIELD_COPY}>
           <Input

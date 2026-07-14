@@ -19,6 +19,7 @@ import {
 } from "@/services/solicitudes/solicitudes.service";
 import type { SolicitudDto } from "@/lib/novedades/list-my-solicitudes";
 import { useSolicitudCatalog } from "@/hooks/solicitudes/use-solicitud-catalog";
+import { stripHtmlTags } from "@/lib/html/strip-html-tags";
 import type {
   SolicitudNewsStoryOption,
 } from "@/lib/novedades/solicitud-options";
@@ -335,7 +336,7 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
         // los demás campos. Ignoramos las actualizaciones cuyo texto plano
         // siga vacío, así solo marca como edición lo que el usuario tecleó.
         setState((s) => {
-          const stripped = description.replace(/<[^>]*>/g, "").trim();
+          const stripped = stripHtmlTags(description).trim();
           if (!stripped) return s;
           return { ...s, description, descriptionEdited: true };
         }),

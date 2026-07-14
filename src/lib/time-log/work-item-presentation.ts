@@ -23,27 +23,44 @@ export function getWorkItemStatePresentation(_state: string): WorkItemPresentati
   };
 }
 
-export function formatWorkItemTypeAvatarInitials(type: string): string {
-  const normalized = type.trim().toLowerCase();
+type WorkItemTypeRule = {
+  matches: (normalizedType: string) => boolean;
+  initials: string;
+  shortLabel: string;
+};
 
-  if (normalized.includes("product backlog") || normalized === "pbi") {
-    return "HU";
-  }
-  if (normalized.includes("user story") || normalized.includes("historia")) {
-    return "HU";
-  }
-  if (normalized.includes("bug")) {
-    return "BG";
-  }
-  if (normalized.includes("task") || normalized.includes("tarea")) {
-    return "TK";
-  }
-  if (normalized.includes("feature")) {
-    return "FT";
-  }
-  if (normalized.includes("epic")) {
-    return "EP";
-  }
+const WORK_ITEM_TYPE_RULES: ReadonlyArray<WorkItemTypeRule> = [
+  {
+    matches: (type) =>
+      type.includes("product backlog") ||
+      type === "pbi" ||
+      type.includes("user story") ||
+      type.includes("historia"),
+    initials: "HU",
+    shortLabel: "Historia",
+  },
+  { matches: (type) => type.includes("bug"), initials: "BG", shortLabel: "Bug" },
+  {
+    matches: (type) => type.includes("task") || type.includes("tarea"),
+    initials: "TK",
+    shortLabel: "Tarea",
+  },
+  {
+    matches: (type) => type.includes("feature"),
+    initials: "FT",
+    shortLabel: "Característica",
+  },
+  { matches: (type) => type.includes("epic"), initials: "EP", shortLabel: "Épica" },
+];
+
+function findWorkItemTypeRule(type: string): WorkItemTypeRule | undefined {
+  const normalized = type.trim().toLowerCase();
+  return WORK_ITEM_TYPE_RULES.find((rule) => rule.matches(normalized));
+}
+
+export function formatWorkItemTypeAvatarInitials(type: string): string {
+  const rule = findWorkItemTypeRule(type);
+  if (rule) return rule.initials;
 
   const words = type.trim().split(/\s+/).filter(Boolean);
   if (words.length >= 2) {
@@ -54,26 +71,8 @@ export function formatWorkItemTypeAvatarInitials(type: string): string {
 }
 
 export function formatWorkItemTypeShortLabel(type: string): string {
-  const normalized = type.trim().toLowerCase();
-
-  if (normalized.includes("product backlog") || normalized === "pbi") {
-    return "Historia";
-  }
-  if (normalized.includes("user story") || normalized.includes("historia")) {
-    return "Historia";
-  }
-  if (normalized.includes("bug")) {
-    return "Bug";
-  }
-  if (normalized.includes("task") || normalized.includes("tarea")) {
-    return "Tarea";
-  }
-  if (normalized.includes("feature")) {
-    return "Característica";
-  }
-  if (normalized.includes("epic")) {
-    return "Épica";
-  }
+  const rule = findWorkItemTypeRule(type);
+  if (rule) return rule.shortLabel;
 
   const words = type.trim().split(/\s+/).filter(Boolean);
   if (words.length === 1) {

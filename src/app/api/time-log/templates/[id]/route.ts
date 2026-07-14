@@ -1,50 +1,24 @@
 import { NextResponse } from "next/server";
 
-import { getRepositories, isUserPersistenceReady } from "@/lib/db";
-import { isIronSessionConfigured } from "@/lib/auth/session";
-import { getTaskPilotSession } from "@/lib/auth/session";
+import { getRepositories } from "@/lib/db";
 import { updateTimeLogTemplateBodySchema } from "@/lib/schemas/time-log-template";
 import { templateRowToDto } from "@/lib/time-log/template-dto";
 import {
   TimeLogTemplateNotFoundError,
 } from "@/lib/db/ports/time-log-template.repository.port";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
+import {
+  rejectNonAdminIfGlobal,
+  requireTemplateSessionUser,
+} from "@/app/api/time-log/templates/helpers";
 
 export const dynamic = "force-dynamic";
-
-async function requireSessionUser(): Promise<
-  | { ok: true; userId: string; roleName: string | null }
-  | { ok: false; status: number; error: string }
-> {
-  if (!isIronSessionConfigured() || !isUserPersistenceReady()) {
-    return { ok: false, status: 403, error: "No autorizado." };
-  }
-  const session = await getTaskPilotSession();
-  const userId = session.taskPilotUserId?.trim();
-  if (!userId) {
-    return { ok: false, status: 401, error: "No autorizado." };
-  }
-  return { ok: true, userId, roleName: session.userRole ?? null };
-}
-
-function rejectNonAdminIfGlobal(
-  isGlobal: boolean | undefined,
-  roleName: string | null,
-): { ok: true } | { ok: false; status: number; error: string } {
-  if (!isGlobal) return { ok: true };
-  if (roleName === "super_admin") return { ok: true };
-  return {
-    ok: false,
-    status: 403,
-    error: "Solo un super administrador puede crear plantillas globales.",
-  };
-}
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireSessionUser();
+  const auth = await requireTemplateSessionUser();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -104,7 +78,7 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireSessionUser();
+  const auth = await requireTemplateSessionUser();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }

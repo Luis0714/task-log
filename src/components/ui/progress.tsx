@@ -9,7 +9,7 @@ function Progress({
   children,
   value,
   ...props
-}: ProgressPrimitive.Root.Props) {
+}: Readonly<ProgressPrimitive.Root.Props>) {
   return (
     <ProgressPrimitive.Root
       value={value}
@@ -25,7 +25,7 @@ function Progress({
   );
 }
 
-function ProgressTrack({ className, ...props }: ProgressPrimitive.Track.Props) {
+function ProgressTrack({ className, ...props }: Readonly<ProgressPrimitive.Track.Props>) {
   return (
     <ProgressPrimitive.Track
       className={cn(
@@ -41,7 +41,7 @@ function ProgressTrack({ className, ...props }: ProgressPrimitive.Track.Props) {
 function ProgressIndicator({
   className,
   ...props
-}: ProgressPrimitive.Indicator.Props) {
+}: Readonly<ProgressPrimitive.Indicator.Props>) {
   return (
     <ProgressPrimitive.Indicator
       data-slot="progress-indicator"
@@ -51,7 +51,7 @@ function ProgressIndicator({
   );
 }
 
-function ProgressLabel({ className, ...props }: ProgressPrimitive.Label.Props) {
+function ProgressLabel({ className, ...props }: Readonly<ProgressPrimitive.Label.Props>) {
   return (
     <ProgressPrimitive.Label
       className={cn("text-sm font-medium", className)}
@@ -61,7 +61,7 @@ function ProgressLabel({ className, ...props }: ProgressPrimitive.Label.Props) {
   );
 }
 
-function ProgressValue({ className, ...props }: ProgressPrimitive.Value.Props) {
+function ProgressValue({ className, ...props }: Readonly<ProgressPrimitive.Value.Props>) {
   return (
     <ProgressPrimitive.Value
       className={cn(

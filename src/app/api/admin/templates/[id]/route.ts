@@ -2,18 +2,17 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 
-import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
-import {
-  fetchAuthorNames,
-} from "@/lib/db/adapters/drizzle/drizzle-time-log-template.repository";
-import { getRepositories, isUserPersistenceReady } from "@/lib/db";
+import { getRepositories } from "@/lib/db";
 import {
   TimeLogTemplateNotFoundError,
 } from "@/lib/db/ports/time-log-template.repository.port";
 import {
   adminUpdateTimeLogTemplateBodySchema,
 } from "@/lib/schemas/time-log-template";
-import { templateRowToDto } from "@/lib/time-log/template-dto";
+import {
+  requireSuperAdminSession,
+  templateRowToDtoWithAuthor,
+} from "@/app/api/admin/templates/helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -21,15 +20,9 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!isIronSessionConfigured() || !isUserPersistenceReady()) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 403 });
-  }
-  const session = await getTaskPilotSession();
-  if (session.userRole !== "super_admin") {
-    return NextResponse.json({ error: "No autorizado." }, { status: 403 });
-  }
-  const currentAdminId = session.taskPilotUserId;
-  if (!currentAdminId) {
+  const auth = await requireSuperAdminSession();
+  if (!auth.ok) return auth.response;
+  if (!auth.adminId) {
     return NextResponse.json({ error: "Sesión inválida." }, { status: 401 });
   }
 
@@ -55,21 +48,11 @@ export async function PATCH(
 
   try {
     const row = await getRepositories().timeLogTemplate.adminUpdate(
-      currentAdminId,
+      auth.adminId,
       id,
       parsed.data,
     );
-    // adminUpdate puede actuar sobre plantillas personales (con userId),
-    // así que resolvemos el authorName vía un lookup puntual.
-    const authorNames = row.userId
-      ? await fetchAuthorNames([row.userId])
-      : new Map<string, string>();
-    return NextResponse.json({
-      template: templateRowToDto(
-        row,
-        row.userId ? authorNames.get(row.userId) ?? null : null,
-      ),
-    });
+    return NextResponse.json({ template: await templateRowToDtoWithAuthor(row) });
   } catch (err) {
     if (err instanceof TimeLogTemplateNotFoundError) {
       return NextResponse.json({ error: err.message }, { status: 404 });
@@ -85,13 +68,8 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!isIronSessionConfigured() || !isUserPersistenceReady()) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 403 });
-  }
-  const session = await getTaskPilotSession();
-  if (session.userRole !== "super_admin") {
-    return NextResponse.json({ error: "No autorizado." }, { status: 403 });
-  }
+  const auth = await requireSuperAdminSession();
+  if (!auth.ok) return auth.response;
 
   const { id } = await params;
   if (!id) {

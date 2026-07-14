@@ -19,7 +19,7 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const rawYear = url.searchParams.get("year");
-  const year = rawYear ? Number(rawYear) : NaN;
+  const year = rawYear ? Number(rawYear) : Number.NaN;
   if (!isValidYear(year)) {
     return NextResponse.json(
       { error: "Año inválido. Usa un entero entre 1900 y 2200." },

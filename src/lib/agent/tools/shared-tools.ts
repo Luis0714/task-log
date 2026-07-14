@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+import {
+  clarificationCandidateSchema,
+  clarificationQuestionSchema,
+} from "@/lib/agent/tools/needs-clarification-schema";
 import { registerTool, type ToolHandler } from "@/lib/agent/tools/registry";
 import type {
   InfoListPayload,
@@ -63,18 +67,8 @@ export const needsClarificationTool: ToolHandler<
   argsSchema: needsClarificationArgsSchema,
   outputSchema: z.object({
     action: z.literal("needs_clarification"),
-    question: z.string().min(1).max(500),
-    candidates: z
-      .array(
-        z.object({
-          id: z.number().int().positive(),
-          title: z.string().min(1).max(500),
-          state: z.string().min(1).max(100).optional(),
-        }),
-      )
-      .min(1)
-      .max(8)
-      .optional(),
+    question: clarificationQuestionSchema,
+    candidates: z.array(clarificationCandidateSchema).min(1).max(8).optional(),
   }),
   handle: (args): NeedsClarificationPayload => ({
     action: "needs_clarification",
@@ -294,7 +288,7 @@ export const listWorkItemsTool: ToolHandler<
             title: z.string().min(1).max(500),
             state: z.string().optional(),
             assignedTo: z.string().optional(),
-            url: z.string().url().optional(),
+            url: z.url().optional(),
           }),
         )
         .max(20),

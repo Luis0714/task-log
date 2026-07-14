@@ -2,12 +2,13 @@ import "server-only";
 
 import { hydratePatSession } from "@/lib/auth/hydrate-pat-session";
 import { getRepositories } from "@/lib/db";
+import { resolveRoleLanding } from "@/lib/auth/role-landing";
 import { getTaskPilotSession } from "@/lib/auth/session";
 import type { LoginLocalBody } from "@/lib/schemas/login-local";
 import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { verifyPassword } from "@/lib/security";
 
-export type LoginLocalSuccess = { ok: true };
+export type LoginLocalSuccess = { ok: true; landing: string };
 
 export type LoginLocalFailure = {
   ok: false;
@@ -44,7 +45,7 @@ export async function loginLocalUser(
   }
 
   const connection = await adoConnection.loadByUserId(record.userId);
-  if (!connection || connection.authMethod !== "pat") {
+  if (connection?.authMethod !== "pat") {
     return {
       ok: false,
       message: USER_MESSAGES.microsoftUnavailable,
@@ -60,7 +61,8 @@ export async function loginLocalUser(
     team: connection.team ?? undefined,
     taskPilotUserId: record.userId,
   });
+  session.userRole = record.roleName ?? undefined;
   await session.save();
 
-  return { ok: true };
+  return { ok: true, landing: resolveRoleLanding(record.roleName) };
 }

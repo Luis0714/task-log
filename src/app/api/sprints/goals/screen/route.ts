@@ -1,44 +1,23 @@
 import { NextResponse } from "next/server";
 
-import { ADO_SIGN_IN_REQUIRED_MESSAGE } from "@/lib/auth/ado-auth-messages";
-import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
 import {
   apiErrorFromCause,
   apiErrorResponse,
 } from "@/lib/errors/api-error-response";
-import { USER_MESSAGES } from "@/lib/errors/user-messages";
 import { sprintGoalScreenQuerySchema } from "@/lib/schemas/sprint-goal-screen";
 import { loadSprintGoalScreen } from "@/lib/sprints/load-sprint-goal-screen";
+import { resolveSprintScopeRequest } from "@/lib/sprints/resolve-sprint-scope-request";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const parsed = sprintGoalScreenQuerySchema.safeParse({
-    project: url.searchParams.get("project") ?? "",
-    team: url.searchParams.get("team") ?? "",
-    sprintPath: url.searchParams.get("sprintPath") ?? "",
-  });
-
-  if (!parsed.success) {
-    return apiErrorResponse(
-      parsed.error.issues[0]?.message ?? USER_MESSAGES.invalidForm,
-      400,
-    );
-  }
-
-  const caller = await requireAdoCaller();
-  if (!caller.ok) {
-    return apiErrorResponse(ADO_SIGN_IN_REQUIRED_MESSAGE, 401);
+  const resolved = await resolveSprintScopeRequest(req, sprintGoalScreenQuerySchema);
+  if (!resolved.ok) {
+    return resolved.response;
   }
 
   try {
-    const snapshot = await loadSprintGoalScreen({
-      organization: caller.auth.organization,
-      project: parsed.data.project,
-      team: parsed.data.team,
-      sprintPath: parsed.data.sprintPath,
-    });
+    const snapshot = await loadSprintGoalScreen(resolved.scope);
 
     if (snapshot.error) {
       return apiErrorResponse(snapshot.error, 502);

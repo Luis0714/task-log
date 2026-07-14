@@ -61,7 +61,7 @@ export type QuickActionPillsProps = {
 export function QuickActionPills({ onPick, className }: QuickActionPillsProps) {
   return (
     <div
-      role="list"
+      role="group"
       aria-label="Acciones rápidas"
       className={cn(
         "flex flex-wrap items-center justify-center gap-2",
@@ -72,7 +72,6 @@ export function QuickActionPills({ onPick, className }: QuickActionPillsProps) {
         <button
           key={id}
           type="button"
-          role="listitem"
           onClick={() => onPick?.(prompt)}
           aria-label={label}
           className="text-muted-foreground hover:text-foreground hover:bg-muted/60 inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-1.5 text-xs transition-colors sm:text-sm"

@@ -61,11 +61,11 @@ function SidebarProvider({
   style,
   children,
   ...props
-}: React.ComponentProps<"div"> & {
+}: Readonly<React.ComponentProps<"div"> & {
   defaultOpen?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
-}) {
+}>) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = React.useState(false);
 
@@ -157,11 +157,11 @@ function Sidebar({
   children,
   dir,
   ...props
-}: React.ComponentProps<"div"> & {
+}: Readonly<React.ComponentProps<"div"> & {
   side?: "left" | "right"
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
-}) {
+}>) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 
   if (collapsible === "none") {
@@ -230,7 +230,7 @@ function Sidebar({
         data-slot="sidebar-container"
         data-side={side}
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear data-[side=left]:left-0 data-[side=left]:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] data-[side=right]:right-0 data-[side=right]:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] md:flex",
+          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear data-side=left:left-0 data-side=left:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] data-side=right:right-0 data-side=right:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] md:flex",
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
@@ -256,9 +256,9 @@ function SidebarTrigger({
   onClick,
   icon = "panel",
   ...props
-}: React.ComponentProps<typeof Button> & {
+}: Readonly<React.ComponentProps<typeof Button> & {
   icon?: "panel" | "menu"
-}) {
+}>) {
   const { toggleSidebar } = useSidebar();
   const Icon = icon === "menu" ? MenuIcon : PanelLeftIcon;
 
@@ -281,7 +281,7 @@ function SidebarTrigger({
   );
 }
 
-function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
+function SidebarRail({ className, ...props }: Readonly<React.ComponentProps<"button">>) {
   const { toggleSidebar } = useSidebar();
 
   return (
@@ -293,7 +293,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
       onClick={toggleSidebar}
       title="Mostrar u ocultar barra lateral"
       className={cn(
-        "absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 after:w-[2px] hover:after:bg-sidebar-border sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
+        "absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear group-data-side=left:-right-4 group-data-side=right:left-0 after:absolute after:inset-y-0 after:inset-s-1/2 after:w-[2px] hover:after:bg-sidebar-border sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
         "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
         "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar",
@@ -306,7 +306,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
   );
 }
 
-function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
+function SidebarInset({ className, ...props }: Readonly<React.ComponentProps<"main">>) {
   return (
     <main
       data-slot="sidebar-inset"
@@ -322,7 +322,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
 function SidebarInput({
   className,
   ...props
-}: React.ComponentProps<typeof Input>) {
+}: Readonly<React.ComponentProps<typeof Input>>) {
   return (
     <Input
       data-slot="sidebar-input"
@@ -333,7 +333,7 @@ function SidebarInput({
   );
 }
 
-function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
+function SidebarHeader({ className, ...props }: Readonly<React.ComponentProps<"div">>) {
   return (
     <div
       data-slot="sidebar-header"
@@ -344,7 +344,7 @@ function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
+function SidebarFooter({ className, ...props }: Readonly<React.ComponentProps<"div">>) {
   return (
     <div
       data-slot="sidebar-footer"
@@ -358,7 +358,7 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
 function SidebarSeparator({
   className,
   ...props
-}: React.ComponentProps<typeof Separator>) {
+}: Readonly<React.ComponentProps<typeof Separator>>) {
   return (
     <Separator
       data-slot="sidebar-separator"
@@ -369,7 +369,7 @@ function SidebarSeparator({
   );
 }
 
-function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
+function SidebarContent({ className, ...props }: Readonly<React.ComponentProps<"div">>) {
   return (
     <div
       data-slot="sidebar-content"
@@ -383,7 +383,7 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function SidebarGroup({ className, ...props }: React.ComponentProps<"div">) {
+function SidebarGroup({ className, ...props }: Readonly<React.ComponentProps<"div">>) {
   return (
     <div
       data-slot="sidebar-group"
@@ -398,7 +398,7 @@ function SidebarGroupLabel({
   className,
   render,
   ...props
-}: useRender.ComponentProps<"div"> & React.ComponentProps<"div">) {
+}: Readonly<useRender.ComponentProps<"div"> & React.ComponentProps<"div">>) {
   return useRender({
     defaultTagName: "div",
     props: mergeProps<"div">(
@@ -422,7 +422,7 @@ function SidebarGroupAction({
   className,
   render,
   ...props
-}: useRender.ComponentProps<"button"> & React.ComponentProps<"button">) {
+}: Readonly<useRender.ComponentProps<"button"> & React.ComponentProps<"button">>) {
   return useRender({
     defaultTagName: "button",
     props: mergeProps<"button">(
@@ -445,7 +445,7 @@ function SidebarGroupAction({
 function SidebarGroupContent({
   className,
   ...props
-}: React.ComponentProps<"div">) {
+}: Readonly<React.ComponentProps<"div">>) {
   return (
     <div
       data-slot="sidebar-group-content"
@@ -456,7 +456,7 @@ function SidebarGroupContent({
   );
 }
 
-function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
+function SidebarMenu({ className, ...props }: Readonly<React.ComponentProps<"ul">>) {
   return (
     <ul
       data-slot="sidebar-menu"
@@ -467,7 +467,7 @@ function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
   );
 }
 
-function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
+function SidebarMenuItem({ className, ...props }: Readonly<React.ComponentProps<"li">>) {
   return (
     <li
       data-slot="sidebar-menu-item"
@@ -508,11 +508,13 @@ function SidebarMenuButton({
   tooltip,
   className,
   ...props
-}: useRender.ComponentProps<"button"> &
+}: Readonly<
+  useRender.ComponentProps<"button"> &
   React.ComponentProps<"button"> & {
     isActive?: boolean
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
-  } & VariantProps<typeof sidebarMenuButtonVariants>) {
+  } & VariantProps<typeof sidebarMenuButtonVariants>
+>) {
   const { isMobile, state } = useSidebar();
   const comp = useRender({
     defaultTagName: "button",
@@ -559,10 +561,12 @@ function SidebarMenuAction({
   render,
   showOnHover = false,
   ...props
-}: useRender.ComponentProps<"button"> &
+}: Readonly<
+  useRender.ComponentProps<"button"> &
   React.ComponentProps<"button"> & {
     showOnHover?: boolean
-  }) {
+  }
+>) {
   return useRender({
     defaultTagName: "button",
     props: mergeProps<"button">(
@@ -587,7 +591,7 @@ function SidebarMenuAction({
 function SidebarMenuBadge({
   className,
   ...props
-}: React.ComponentProps<"div">) {
+}: Readonly<React.ComponentProps<"div">>) {
   return (
     <div
       data-slot="sidebar-menu-badge"
@@ -605,12 +609,14 @@ function SidebarMenuSkeleton({
   className,
   showIcon = false,
   ...props
-}: React.ComponentProps<"div"> & {
+}: Readonly<React.ComponentProps<"div"> & {
   showIcon?: boolean
-}) {
+}>) {
   // Random width between 50 to 90%.
   const [width] = React.useState(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`;
+    const bytes = new Uint8Array(1);
+    globalThis.crypto.getRandomValues(bytes);
+    return `${50 + (bytes[0]! % 41)}%`;
   });
 
   return (
@@ -639,7 +645,7 @@ function SidebarMenuSkeleton({
   );
 }
 
-function SidebarMenuSub({ className, ...props }: React.ComponentProps<"ul">) {
+function SidebarMenuSub({ className, ...props }: Readonly<React.ComponentProps<"ul">>) {
   return (
     <ul
       data-slot="sidebar-menu-sub"
@@ -656,7 +662,7 @@ function SidebarMenuSub({ className, ...props }: React.ComponentProps<"ul">) {
 function SidebarMenuSubItem({
   className,
   ...props
-}: React.ComponentProps<"li">) {
+}: Readonly<React.ComponentProps<"li">>) {
   return (
     <li
       data-slot="sidebar-menu-sub-item"
@@ -673,11 +679,13 @@ function SidebarMenuSubButton({
   isActive = false,
   className,
   ...props
-}: useRender.ComponentProps<"a"> &
+}: Readonly<
+  useRender.ComponentProps<"a"> &
   React.ComponentProps<"a"> & {
     size?: "sm" | "md"
     isActive?: boolean
-  }) {
+  }
+>) {
   return useRender({
     defaultTagName: "a",
     props: mergeProps<"a">(

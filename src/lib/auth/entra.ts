@@ -129,7 +129,7 @@ export function extractEmailFromIdToken(idToken: string | undefined): string | n
   if (parts.length < 2) return null;
   try {
     const payload = JSON.parse(
-      Buffer.from(parts[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"),
+      Buffer.from(parts[1].replaceAll("-", "+").replaceAll("_", "/"), "base64").toString("utf8"),
     ) as { email?: string; preferred_username?: string; upn?: string };
     return payload.email ?? payload.preferred_username ?? payload.upn ?? null;
   } catch {

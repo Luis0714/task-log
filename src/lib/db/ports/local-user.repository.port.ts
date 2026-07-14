@@ -2,6 +2,7 @@ export type LocalUserWithPatConnection = {
   userId: string;
   username: string;
   passwordHash: string;
+  roleName: string | null;
   organization: string;
   project: string;
   team: string | null;

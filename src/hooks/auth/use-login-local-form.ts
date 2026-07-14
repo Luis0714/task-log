@@ -41,7 +41,7 @@ export function useLoginLocalForm(options?: UseLoginLocalFormOptions) {
       return;
     }
 
-    completeAuthSession(router);
+    completeAuthSession(router, result.landing ?? "/");
     onSuccess?.();
   }, [email, onSuccess, onUserNotFound, password, router]);
 

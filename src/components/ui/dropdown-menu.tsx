@@ -5,15 +5,15 @@ import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 
 import { cn } from "@/lib/utils";
 
-function DropdownMenu({ ...props }: MenuPrimitive.Root.Props) {
+function DropdownMenu({ ...props }: Readonly<MenuPrimitive.Root.Props>) {
   return <MenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
 }
 
-function DropdownMenuTrigger({ ...props }: MenuPrimitive.Trigger.Props) {
+function DropdownMenuTrigger({ ...props }: Readonly<MenuPrimitive.Trigger.Props>) {
   return <MenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props} />;
 }
 
-function DropdownMenuPortal({ ...props }: MenuPrimitive.Portal.Props) {
+function DropdownMenuPortal({ ...props }: Readonly<MenuPrimitive.Portal.Props>) {
   return <MenuPrimitive.Portal data-slot="dropdown-menu-portal" {...props} />;
 }
 
@@ -24,11 +24,13 @@ function DropdownMenuContent({
   side = "bottom",
   sideOffset = 6,
   ...props
-}: MenuPrimitive.Popup.Props &
+}: Readonly<
+  MenuPrimitive.Popup.Props &
   Pick<
     MenuPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset"
-  >) {
+  >
+>) {
   return (
     <MenuPrimitive.Portal>
       <MenuPrimitive.Positioner
@@ -54,14 +56,14 @@ function DropdownMenuContent({
   );
 }
 
-function DropdownMenuGroup({ ...props }: MenuPrimitive.Group.Props) {
+function DropdownMenuGroup({ ...props }: Readonly<MenuPrimitive.Group.Props>) {
   return <MenuPrimitive.Group data-slot="dropdown-menu-group" {...props} />;
 }
 
 function DropdownMenuLabel({
   className,
   ...props
-}: React.ComponentProps<"div">) {
+}: Readonly<React.ComponentProps<"div">>) {
   return (
     <div
       data-slot="dropdown-menu-label"
@@ -78,15 +80,15 @@ function DropdownMenuItem({
   className,
   inset,
   ...props
-}: MenuPrimitive.Item.Props & { inset?: boolean }) {
+}: Readonly<MenuPrimitive.Item.Props & { inset?: boolean }>) {
   return (
     <MenuPrimitive.Item
       data-slot="dropdown-menu-item"
       data-inset={inset || undefined}
       className={cn(
         "relative flex cursor-default select-none items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-hidden transition-colors",
-        "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
-        "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "data-highlighted:bg-accent data-highlighted:text-accent-foreground",
+        "data-disabled:pointer-events-none data-disabled:opacity-50",
         "data-inset:pl-8",
         className,
       )}
@@ -98,7 +100,7 @@ function DropdownMenuItem({
 function DropdownMenuSeparator({
   className,
   ...props
-}: React.ComponentProps<typeof MenuPrimitive.Separator>) {
+}: Readonly<React.ComponentProps<typeof MenuPrimitive.Separator>>) {
   return (
     <MenuPrimitive.Separator
       data-slot="dropdown-menu-separator"

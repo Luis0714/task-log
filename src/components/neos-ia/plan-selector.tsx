@@ -45,13 +45,13 @@ export function PlanSelector() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Seleccionar plan de Neos IA"
-        className="hover:bg-muted/60 text-foreground inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 data-[popup-open]:bg-muted/60"
+        className="hover:bg-muted/60 text-foreground inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 data-popup-open:bg-muted/60"
       >
         Neos IA
         <ChevronDown className="size-3.5 opacity-70" aria-hidden />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" sideOffset={6} className="w-80 p-2">
-        <ul className="flex flex-col gap-1" role="list">
+        <ul className="flex flex-col gap-1">
           {PLANS.map((plan, idx) => (
             <li key={plan.id}>
               <PlanRow

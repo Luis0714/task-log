@@ -17,7 +17,7 @@ function tryParseJson(raw: string): AdoErrorPayload | null {
 function extractEmbeddedErrorMessage(raw: string): string | null {
   const match = raw.match(/"ErrorMessage"\s*:\s*"((?:\\.|[^"\\])*)"/);
   if (!match?.[1]) return null;
-  return match[1].replace(/\\"/g, '"').replace(/\\n/g, " ").trim();
+  return match[1].replaceAll('\\"', '"').replaceAll("\\n", " ").trim();
 }
 
 export type ParsedAdoError = {

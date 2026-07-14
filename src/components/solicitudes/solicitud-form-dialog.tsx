@@ -90,6 +90,27 @@ function useFormSelectOptions(config: SolicitudFormConfig, form: ReturnType<type
   if (values.state && !stateOptions.some((opt) => opt.value === values.state)) {
     stateOptions.unshift({ value: values.state, label: values.state });
   }
+
+  const options = catalog.options;
+  const fieldsDisabled = !form.project || catalog.loading;
+  const membersErrorMessage =
+    options?.membersError && memberOptions.length === 0
+      ? "No se pudieron cargar los miembros del proyecto."
+      : null;
+  const tiposErrorMessage = options?.tiposError
+    ? "No se pudieron cargar los tipos desde Azure."
+    : null;
+  const statesErrorMessage = options?.statesError
+    ? "No se pudieron cargar los estados desde Azure."
+    : null;
+  const newsStoryValue = values.newsStoryId !== null ? String(values.newsStoryId) : "";
+  const selectedNewsStoryTitle = newsStoryOptions.find(
+    (opt) => opt.value === newsStoryValue,
+  )?.label;
+  const selectedMemberLabel = memberOptions.find(
+    (opt) => opt.value === values.assignedTo,
+  )?.label;
+
   return {
     values,
     fields,
@@ -101,7 +122,103 @@ function useFormSelectOptions(config: SolicitudFormConfig, form: ReturnType<type
     memberOptions,
     tipoOptions,
     stateOptions,
+    teamsError: Boolean(options?.teamsError),
+    fieldsDisabled,
+    membersErrorMessage,
+    tiposErrorMessage,
+    statesErrorMessage,
+    selectedNewsStoryTitle,
+    selectedMemberLabel,
   };
+}
+
+type TeamFieldProps = Readonly<{
+  teamsError: boolean;
+  hasTeams: boolean;
+  team: string;
+  options: { value: string; label: string }[];
+  loading: boolean;
+  disabled: boolean;
+  onReload: () => void;
+  onValueChange: (value: string) => void;
+}>;
+
+function TeamField({
+  teamsError,
+  hasTeams,
+  team,
+  options,
+  loading,
+  disabled,
+  onReload,
+  onValueChange,
+}: TeamFieldProps) {
+  if (teamsError) {
+    return (
+      <RetryAlert
+        message="No se pudieron cargar los equipos del proyecto."
+        onRetry={onReload}
+      />
+    );
+  }
+  return (
+    <ControlledSelectField
+      label="Equipo"
+      required={hasTeams}
+      value={team}
+      placeholder="Selecciona un equipo"
+      options={options}
+      loading={loading}
+      disabled={disabled}
+      emptyMessage="Este proyecto no tiene equipos."
+      onValueChange={onValueChange}
+    />
+  );
+}
+
+type NewsStoryFieldProps = Readonly<{
+  noNewsStories: boolean;
+  hasTeams: boolean;
+  isManagement: boolean;
+  team: string;
+  project: string;
+  loading: boolean;
+  newsStoryId: number | null;
+  options: { value: string; label: string }[];
+  displayValue?: string;
+  onValueChange: (id: number) => void;
+}>;
+
+function NewsStoryField({
+  noNewsStories,
+  hasTeams,
+  isManagement,
+  team,
+  project,
+  loading,
+  newsStoryId,
+  options,
+  displayValue,
+  onValueChange,
+}: NewsStoryFieldProps) {
+  if (noNewsStories) {
+    return <NoNewsStoriesAlert hasTeams={hasTeams} isManagement={isManagement} />;
+  }
+  const placeholder =
+    hasTeams && !team ? "Selecciona un equipo primero" : "Selecciona la HU destino";
+  return (
+    <ControlledSelectField
+      label="HU de novedades"
+      required
+      value={newsStoryId !== null ? String(newsStoryId) : ""}
+      placeholder={placeholder}
+      options={options}
+      loading={loading}
+      disabled={!project || loading || (hasTeams && !team)}
+      displayValue={displayValue}
+      onValueChange={(value) => onValueChange(Number(value))}
+    />
+  );
 }
 
 function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
@@ -118,24 +235,31 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
     onSaved: config.onSaved,
   });
 
-  const { values, fields, catalog, isEdit, projectOptions, teamOptions, newsStoryOptions, memberOptions, tipoOptions, stateOptions } =
-    useFormSelectOptions(config, form);
-
-  const selectedNewsStoryTitle = newsStoryOptions.find(
-    (opt) =>
-      opt.value ===
-      (form.values.newsStoryId !== null ? String(form.values.newsStoryId) : ""),
-  )?.label;
-  const selectedMemberLabel = memberOptions.find(
-    (opt) => opt.value === form.values.assignedTo,
-  )?.label;
+  const {
+    values,
+    fields,
+    catalog,
+    isEdit,
+    projectOptions,
+    teamOptions,
+    newsStoryOptions,
+    memberOptions,
+    tipoOptions,
+    stateOptions,
+    teamsError,
+    fieldsDisabled,
+    membersErrorMessage,
+    tiposErrorMessage,
+    statesErrorMessage,
+    selectedNewsStoryTitle,
+    selectedMemberLabel,
+  } = useFormSelectOptions(config, form);
 
   async function handleSubmit() {
     const ok = await form.submit();
     if (ok) onClose();
   }
 
-  const options = catalog.options;
   const statePlaceholder = resolveStatePlaceholder(catalog.loading, stateOptions.length > 0);
   const submitLabel = resolveSubmitLabel(form.submitting, isEdit);
 
@@ -160,51 +284,33 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
           onValueChange={form.setProject}
         />
 
-        {options?.teamsError ? (
-          <RetryAlert
-            message="No se pudieron cargar los equipos del proyecto."
-            onRetry={catalog.reload}
-          />
-        ) : (
-          <ControlledSelectField
-            label="Equipo"
-            required={form.hasTeams}
-            value={form.team}
-            placeholder="Selecciona un equipo"
-            options={teamOptions}
-            loading={catalog.loading}
-            disabled={!form.project || catalog.loading}
-            emptyMessage="Este proyecto no tiene equipos."
-            onValueChange={form.setTeam}
-          />
-        )}
+        <TeamField
+          teamsError={teamsError}
+          hasTeams={form.hasTeams}
+          team={form.team}
+          options={teamOptions}
+          loading={catalog.loading}
+          disabled={fieldsDisabled}
+          onReload={catalog.reload}
+          onValueChange={form.setTeam}
+        />
 
         {catalog.error ? (
           <RetryAlert message={catalog.error} onRetry={catalog.reload} />
         ) : null}
 
-        {form.noNewsStories ? (
-          <NoNewsStoriesAlert
-            hasTeams={form.hasTeams}
-            isManagement={config.isManagement}
-          />
-        ) : (
-          <ControlledSelectField
-            label="HU de novedades"
-            required
-            value={values.newsStoryId !== null ? String(values.newsStoryId) : ""}
-            placeholder={
-              form.hasTeams && !form.team
-                ? "Selecciona un equipo primero"
-                : "Selecciona la HU destino"
-            }
-            options={newsStoryOptions}
-            loading={catalog.loading}
-            disabled={!form.project || catalog.loading || (form.hasTeams && !form.team)}
-            displayValue={selectedNewsStoryTitle}
-            onValueChange={(value) => fields.setNewsStoryId(Number(value))}
-          />
-        )}
+        <NewsStoryField
+          noNewsStories={form.noNewsStories}
+          hasTeams={form.hasTeams}
+          isManagement={config.isManagement}
+          team={form.team}
+          project={form.project}
+          loading={catalog.loading}
+          newsStoryId={values.newsStoryId}
+          options={newsStoryOptions}
+          displayValue={selectedNewsStoryTitle}
+          onValueChange={fields.setNewsStoryId}
+        />
 
         <SelectFieldWithRetry
           label="Persona asignada"
@@ -213,13 +319,9 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
           placeholder="Selecciona la persona"
           options={memberOptions}
           loading={catalog.loading}
-          disabled={!form.project || catalog.loading}
+          disabled={fieldsDisabled}
           displayValue={selectedMemberLabel}
-          errorMessage={
-            options?.membersError && memberOptions.length === 0
-              ? "No se pudieron cargar los miembros del proyecto."
-              : null
-          }
+          errorMessage={membersErrorMessage}
           onValueChange={fields.setAssignedTo}
           onRetry={catalog.reload}
         />
@@ -231,8 +333,8 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
           placeholder="Selecciona el tipo"
           options={tipoOptions}
           loading={catalog.loading}
-          disabled={!form.project || catalog.loading}
-          errorMessage={options?.tiposError ? "No se pudieron cargar los tipos desde Azure." : null}
+          disabled={fieldsDisabled}
+          errorMessage={tiposErrorMessage}
           onValueChange={fields.setTipo}
           onRetry={catalog.reload}
         />
@@ -244,10 +346,8 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
             placeholder={statePlaceholder}
             options={stateOptions}
             loading={catalog.loading}
-            disabled={!form.project || catalog.loading}
-            errorMessage={
-              options?.statesError ? "No se pudieron cargar los estados desde Azure." : null
-            }
+            disabled={fieldsDisabled}
+            errorMessage={statesErrorMessage}
             onValueChange={fields.setState}
             onRetry={catalog.reload}
           />

@@ -1,24 +1,6 @@
 import "server-only";
 
-import {
-  firstSprintDataError,
-  loadSprintBacklogStates,
-  loadSprintHolidayDates,
-  loadSprintPeriodBugs,
-  loadSprintPeriodTasks,
-  loadSprintWorkItems,
-} from "@/lib/ado/load-sprint-data";
-import { isDatabaseConfigured } from "@/lib/db/client";
-import { getRepositories } from "@/lib/db/container";
-import type {
-  SprintGoalScope,
-  SprintStoryGoalRecord,
-} from "@/lib/db/ports/sprint-story-goal.repository.port";
-import { logApiError } from "@/lib/errors/log-api-error";
-import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
-import { loadTeamMembers } from "@/lib/filters/load-team-members";
-import { buildSprintGoalMetrics } from "@/lib/sprints/build-sprint-goal-metrics";
-import { buildSprintOperationalMetrics } from "@/lib/sprints/build-sprint-operational-metrics";
+import type { SprintGoalScope } from "@/lib/db/ports/sprint-story-goal.repository.port";
 import { buildSprintTimesSharePayload } from "@/lib/sprints/build-sprint-times-share-payload";
 import {
   canShareSprintTimes,
@@ -26,7 +8,7 @@ import {
 } from "@/lib/sprints/sprint-times-share-eligibility";
 import { resolveSprintStatsScope, SPRINT_STATS_GOAL_ONLY_DEFAULT } from "@/lib/sprints/filter-sprint-stats-scope";
 import { isSprintScopeFinalized } from "@/lib/sprints/is-sprint-scope-finalized";
-import { loadProjectWorkItemTags } from "@/lib/sprints/load-project-work-item-tags";
+import { loadLiveSprintMetrics } from "@/lib/sprints/load-live-sprint-metrics";
 import { loadSprintSnapshotScreen } from "@/lib/sprints/load-sprint-snapshot-screen";
 import { resolveSnapshotOperationalMetrics } from "@/lib/sprints/parse-sprint-snapshot-stats-payload";
 import { SPRINT_TIMES_SHARE_LABELS } from "@/lib/sprints/sprint-times-share-labels";
@@ -50,88 +32,13 @@ async function loadLiveSprintTimesMetrics(
     sprintFinishDate?: string;
   },
 ): Promise<{ times: SprintTimesMetrics | null; error: string | null }> {
-  const [workItemsPart, bugsPart, tasksPart, backlogStatesPart, tagsPart, nonWorkingDatesPart, assigneeRoster] =
-    await Promise.all([
-      loadSprintWorkItems(scope.project, scope.sprintPath, WORK_ITEM_ASSIGNEE_ALL),
-      loadSprintPeriodBugs(
-        scope.project,
-        scope.team,
-        scope.sprintPath,
-        options.sprintStartDate ?? null,
-        options.sprintFinishDate ?? null,
-        WORK_ITEM_ASSIGNEE_ALL,
-      ),
-      loadSprintPeriodTasks(
-        scope.project,
-        scope.team,
-        scope.sprintPath,
-        options.sprintStartDate ?? null,
-        options.sprintFinishDate ?? null,
-        WORK_ITEM_ASSIGNEE_ALL,
-      ),
-      loadSprintBacklogStates(scope.project),
-      loadProjectWorkItemTags(scope.project),
-      loadSprintHolidayDates(
-        options.sprintStartDate ?? null,
-        options.sprintFinishDate ?? null,
-      ),
-      loadTeamMembers({
-        project: scope.project,
-        team: scope.team,
-      }),
-    ]);
+  const result = await loadLiveSprintMetrics(scope, options);
 
-  const adoError = firstSprintDataError(
-    workItemsPart,
-    bugsPart,
-    tasksPart,
-    backlogStatesPart,
-    nonWorkingDatesPart,
-  );
-  const error = adoError ?? tagsPart.error;
-
-  if (error) {
-    return { times: null, error };
+  if (result.error !== null) {
+    return { times: null, error: result.error };
   }
 
-  let goals: SprintStoryGoalRecord[] = [];
-  let generalObjective = "";
-
-  if (isDatabaseConfigured()) {
-    try {
-      const [storyGoals, sprintGoal] = await Promise.all([
-        getRepositories().sprintStoryGoal.listByScope(scope),
-        getRepositories().sprintGoal.getByScope(scope),
-      ]);
-      goals = storyGoals;
-      generalObjective = sprintGoal?.generalObjective?.trim() ?? "";
-    } catch (cause) {
-      logApiError("loadLiveSprintTimesMetrics/goals", cause);
-    }
-  }
-
-  const goal = buildSprintGoalMetrics({
-    workItems: workItemsPart.data,
-    goals,
-    catalogTags: tagsPart.tags,
-    backlogStateOrder: backlogStatesPart.data.map((state) => state.name),
-    generalObjective,
-  });
-
-  const operational = buildSprintOperationalMetrics({
-    workItems: workItemsPart.data,
-    bugs: bugsPart.data,
-    tasks: tasksPart.data,
-    backlogStates: backlogStatesPart.data,
-    goalWorkItemIds: new Set(goal.goalWorkItemIds),
-    scope: resolveSprintStatsScope(options.goalOnly),
-    sprintStartDate: options.sprintStartDate,
-    sprintFinishDate: options.sprintFinishDate,
-    nonWorkingDates: nonWorkingDatesPart.data,
-    assigneeRoster,
-  });
-
-  return { times: operational.times, error: null };
+  return { times: result.metrics.operational.times, error: null };
 }
 
 async function loadFrozenSprintTimesMetrics(
@@ -172,22 +79,22 @@ export async function loadSprintTimesSharePayloadForRequest(
 
   const goalOnly = query.goalOnly ?? SPRINT_STATS_GOAL_ONLY_DEFAULT;
 
-  const times = query.times
-    ? query.times
-    : await (async () => {
-        const finalized = await isSprintScopeFinalized(scope);
-        const loaded = finalized
-          ? await loadFrozenSprintTimesMetrics(scope, goalOnly)
-          : await loadLiveSprintTimesMetrics(scope, {
-              goalOnly,
-              sprintStartDate: query.sprintStartDate,
-              sprintFinishDate: query.sprintFinishDate,
-            });
-        if (loaded.error) {
-          throw new Error(loaded.error);
-        }
-        return loaded.times;
-      })();
+  const times =
+    query.times ??
+    (await (async () => {
+      const finalized = await isSprintScopeFinalized(scope);
+      const loaded = finalized
+        ? await loadFrozenSprintTimesMetrics(scope, goalOnly)
+        : await loadLiveSprintTimesMetrics(scope, {
+            goalOnly,
+            sprintStartDate: query.sprintStartDate,
+            sprintFinishDate: query.sprintFinishDate,
+          });
+      if (loaded.error) {
+        throw new Error(loaded.error);
+      }
+      return loaded.times;
+    })());
 
   if (!times || !canShareSprintTimes(times)) {
     return {

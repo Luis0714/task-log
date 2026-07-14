@@ -4,10 +4,11 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
+  Rectangle,
   XAxis,
   YAxis,
 } from "recharts";
+import type { BarShapeProps } from "recharts";
 
 import { ConfigChartLegend } from "@/components/dashboard/charts/config-chart-legend";
 import { ConfigChartTooltip } from "@/components/dashboard/charts/config-chart-tooltip";
@@ -31,12 +32,61 @@ import { formatHours } from "@/lib/dashboard/format-hours";
 const DAILY_LEGEND_KEYS = ["taskHours", "bugHours"] as const;
 
 const EMPTY_SEGMENT_OPACITY = 0.28;
+const DIM_BAR_OPACITY = 0.55;
+const TASK_BAR_OPACITY = 0.85;
+const BUG_BAR_OPACITY = 0.9;
 
-export type StackedBarChartProps = {
+type StackedDayBarConfig = {
+  colorVar: string;
+  baseOpacity: number;
+  isEmpty: (point: SprintDayHoursPoint) => boolean;
+};
+
+function resolveBarFillOpacity(
+  empty: boolean,
+  selected: boolean,
+  dim: boolean,
+  baseOpacity: number,
+): number {
+  if (empty) return EMPTY_SEGMENT_OPACITY;
+  if (selected) return 1;
+  if (dim) return DIM_BAR_OPACITY;
+  return baseOpacity;
+}
+
+function resolveBarStroke(selected: boolean, empty: boolean, colorVar: string): string {
+  if (selected && !empty) return colorVar;
+  return "transparent";
+}
+
+function makeStackedDayBarShape(
+  selectedDayKey: string | undefined,
+  maxWorkableTotal: number,
+  config: StackedDayBarConfig,
+) {
+  return function StackedDayBarShape(props: BarShapeProps) {
+    const point = (props as { payload?: SprintDayHoursPoint }).payload;
+    if (!point) return <Rectangle {...props} />;
+    const selected = point.dayKey === selectedDayKey;
+    const dim = point.totalHours < maxWorkableTotal * 0.25 && !selected;
+    const empty = config.isEmpty(point);
+    return (
+      <Rectangle
+        {...props}
+        fill={empty ? CHART_EMPTY_SEGMENT_COLOR : config.colorVar}
+        fillOpacity={resolveBarFillOpacity(empty, selected, dim, config.baseOpacity)}
+        stroke={resolveBarStroke(selected, empty, config.colorVar)}
+        strokeWidth={selected ? 2 : 0}
+      />
+    );
+  };
+}
+
+export type StackedBarChartProps = Readonly<{
   points: readonly SprintDayHoursPoint[];
   selectedDayKey?: string;
   className?: string;
-};
+}>;
 
 export function StackedBarChart({
   points,
@@ -55,6 +105,17 @@ export function StackedBarChart({
     sprintDayAxisProps(dayCount);
   const margin = sprintDayChartMargin(dayCount);
   const yAxisDomain: [number, number] = [0, maxWorkableTotal];
+
+  const taskBarShape = makeStackedDayBarShape(selectedDayKey, maxWorkableTotal, {
+    colorVar: "var(--color-taskHours)",
+    baseOpacity: TASK_BAR_OPACITY,
+    isEmpty: (point) => point.totalHours <= 0,
+  });
+  const bugBarShape = makeStackedDayBarShape(selectedDayKey, maxWorkableTotal, {
+    colorVar: "var(--color-bugHours)",
+    baseOpacity: BUG_BAR_OPACITY,
+    isEmpty: (point) => point.bugHours <= 0,
+  });
 
   return (
     <ChartContainer
@@ -111,26 +172,8 @@ export function StackedBarChart({
           maxBarSize={dense ? 20 : 32}
           minPointSize={3}
           animationDuration={650}
-        >
-          {points.map((point) => {
-            const selected = point.dayKey === selectedDayKey;
-            const dim = point.totalHours < maxWorkableTotal * 0.25 && !selected;
-            const emptyDay = point.totalHours <= 0;
-            return (
-              <Cell
-                key={`task-${point.dayKey}`}
-                fill={emptyDay ? CHART_EMPTY_SEGMENT_COLOR : "var(--color-taskHours)"}
-                fillOpacity={
-                  emptyDay ? EMPTY_SEGMENT_OPACITY : selected ? 1 : dim ? 0.55 : 0.85
-                }
-                stroke={
-                  selected && !emptyDay ? "var(--color-taskHours)" : "transparent"
-                }
-                strokeWidth={selected ? 2 : 0}
-              />
-            );
-          })}
-        </Bar>
+          shape={taskBarShape}
+        />
         <Bar
           dataKey="bugHours"
           name="bugHours"
@@ -140,32 +183,8 @@ export function StackedBarChart({
           maxBarSize={dense ? 20 : 32}
           minPointSize={0}
           animationDuration={750}
-        >
-          {points.map((point) => {
-            const selected = point.dayKey === selectedDayKey;
-            const dim = point.totalHours < maxWorkableTotal * 0.25 && !selected;
-            const noBugHours = point.bugHours <= 0;
-            return (
-              <Cell
-                key={`bug-${point.dayKey}`}
-                fill={noBugHours ? CHART_EMPTY_SEGMENT_COLOR : "var(--color-bugHours)"}
-                fillOpacity={
-                  noBugHours
-                    ? EMPTY_SEGMENT_OPACITY
-                    : selected
-                      ? 1
-                      : dim
-                        ? 0.55
-                        : 0.9
-                }
-                stroke={
-                  selected && !noBugHours ? "var(--color-bugHours)" : "transparent"
-                }
-                strokeWidth={selected ? 2 : 0}
-              />
-            );
-          })}
-        </Bar>
+          shape={bugBarShape}
+        />
       </BarChart>
     </ChartContainer>
   );

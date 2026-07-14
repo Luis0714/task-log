@@ -2,10 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type {
-  NewsStoriesValidationResponse,
-  NewsStoryValidationEntry,
-} from "@/lib/news-stories/types";
+import type { NewsStoryValidationEntry } from "@/lib/news-stories/types";
 import {
   linkNewsStory as linkNewsStoryRequest,
   listNewsStories,
@@ -135,15 +132,16 @@ export function useNewsStories(scope: NewsStoriesScope): UseNewsStoriesResult {
       item: AdoWorkItemOptionDto,
       target: { projectId: string; teamId: string | null },
     ) => {
-      const result = await linkNewsStoryRequest({
+      const created = await linkNewsStoryRequest({
         projectId: target.projectId,
         teamId: target.teamId,
         workItemId: item.id,
         workItemTitle: item.title,
       });
-      if (!result.ok) return result;
-      await refreshLinked();
-      return result;
+      if (created.ok) {
+        await refreshLinked();
+      }
+      return created;
     },
     [refreshLinked],
   );
@@ -151,8 +149,9 @@ export function useNewsStories(scope: NewsStoriesScope): UseNewsStoriesResult {
   const unlink = useCallback(
     async (id: string) => {
       const result = await unlinkNewsStoryRequest(id);
-      if (!result.ok) return result;
-      await refreshLinked();
+      if (result.ok) {
+        await refreshLinked();
+      }
       return result;
     },
     [refreshLinked],
@@ -173,4 +172,4 @@ export function useNewsStories(scope: NewsStoriesScope): UseNewsStoriesResult {
   };
 }
 
-export type { NewsStoriesValidationResponse };
+export type { NewsStoriesValidationResponse } from "@/lib/news-stories/types";

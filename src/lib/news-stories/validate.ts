@@ -48,7 +48,7 @@ export function validateLinkNewsStory(input: {
       ? input.workItemId
       : typeof input.workItemId === "string"
         ? Number(input.workItemId)
-        : NaN;
+        : Number.NaN;
   if (
     !Number.isInteger(numericWorkItemId) ||
     numericWorkItemId <= 0

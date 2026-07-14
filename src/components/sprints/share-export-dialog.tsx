@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-export type ShareExportDialogProps = {
+export type ShareExportDialogProps = Readonly<{
   canShare: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -37,7 +37,7 @@ export type ShareExportDialogProps = {
   onDownload: () => void;
   onShare: () => void;
   onCopyImage?: () => void;
-};
+}>;
 
 export function ShareExportDialog({
   canShare,
@@ -120,7 +120,7 @@ export function ShareExportDialog({
                   type="button"
                   variant="outline"
                   size="icon"
-                  onClick={() => void onDownload()}
+                  onClick={onDownload}
                   disabled={!hasPreview}
                   aria-label={downloadLabel}
                 >
@@ -136,7 +136,7 @@ export function ShareExportDialog({
                 <Button
                   type="button"
                   size="icon"
-                  onClick={() => void onShare()}
+                  onClick={onShare}
                   disabled={!hasPreview}
                   aria-label="Compartir"
                 >

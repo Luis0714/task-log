@@ -1,6 +1,7 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, Cell, LabelList, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, LabelList, Rectangle, XAxis, YAxis } from "recharts";
+import type { BarShapeProps } from "recharts";
 
 import { ConfigChartTooltip } from "@/components/dashboard/charts/config-chart-tooltip";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
@@ -19,7 +20,7 @@ type ItemsTooltipProps = {
   payload?: Array<{ payload?: PbiStateBar }>;
 };
 
-function ItemsTooltip({ active, payload }: ItemsTooltipProps) {
+function ItemsTooltip({ active, payload }: Readonly<ItemsTooltipProps>) {
   if (!active || !payload?.length) return null;
   const bar = payload[0]?.payload;
   if (!bar) return null;
@@ -43,6 +44,53 @@ function ItemsTooltip({ active, payload }: ItemsTooltipProps) {
 }
 
 const MARGIN = { top: 12, right: 28, left: 2, bottom: 0 } as const;
+
+function resolveBarFillOpacity(
+  isDimmed: boolean,
+  isLead: boolean,
+  isSelected: boolean,
+): number {
+  if (isDimmed) return 0.35;
+  if (isLead || isSelected) return 1;
+  return 0.88;
+}
+
+function resolveBarStroke(isSelected: boolean, isLead: boolean, fill: string): string {
+  if (isSelected) return fill;
+  if (isLead) return fill;
+  return "transparent";
+}
+
+function resolveBarStrokeWidth(isSelected: boolean, isLead: boolean): number {
+  if (isSelected) return 2;
+  if (isLead) return 1.5;
+  return 0;
+}
+
+function makePbiBarShape(
+  selectedBarKeys: readonly string[] | null,
+  maxCount: number,
+  lookup: (state: string) => string,
+) {
+  return function PbiBarShape(props: BarShapeProps) {
+    const bar = (props as { payload?: PbiStateBar }).payload;
+    if (!bar) return <Rectangle {...props} />;
+    const isLead = bar.count === maxCount && maxCount > 0;
+    const hasSelection = selectedBarKeys != null && selectedBarKeys.length > 0;
+    const isSelected = hasSelection && selectedBarKeys.includes(bar.state);
+    const isDimmed = hasSelection && !isSelected;
+    const fill = lookup(bar.state);
+    return (
+      <Rectangle
+        {...props}
+        fill={fill}
+        fillOpacity={resolveBarFillOpacity(isDimmed, isLead, isSelected)}
+        stroke={resolveBarStroke(isSelected, isLead, fill)}
+        strokeWidth={resolveBarStrokeWidth(isSelected, isLead)}
+      />
+    );
+  };
+}
 
 export type HorizontalBarChartProps = Readonly<{
   bars: readonly PbiStateBar[];
@@ -77,6 +125,7 @@ export function HorizontalBarChart({
 
   const maxCount = Math.max(...bars.map((b) => b.count), 1);
   const chartHeight = Math.min(220, Math.max(150, bars.length * 28 + 24));
+  const barShape = makePbiBarShape(selectedBarKeys, maxCount, lookup);
 
   return (
     <ChartContainer
@@ -124,23 +173,8 @@ export function HorizontalBarChart({
             const payload = (barData as { payload?: PbiStateBar }).payload;
             if (payload) onBarClick?.(payload);
           }}
+          shape={barShape}
         >
-          {bars.map((bar) => {
-            const isLead = bar.count === maxCount && maxCount > 0;
-            const hasSelection = selectedBarKeys != null && selectedBarKeys.length > 0;
-            const isSelected = hasSelection && selectedBarKeys.includes(bar.state);
-            const isDimmed = hasSelection && !isSelected;
-            const fill = lookup(bar.state);
-            return (
-              <Cell
-                key={bar.state}
-                fill={fill}
-                fillOpacity={isDimmed ? 0.35 : isLead || isSelected ? 1 : 0.88}
-                stroke={isSelected ? fill : isLead ? fill : "transparent"}
-                strokeWidth={isSelected ? 2 : isLead ? 1.5 : 0}
-              />
-            );
-          })}
           <LabelList
             dataKey="count"
             position="right"

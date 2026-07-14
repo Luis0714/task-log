@@ -17,6 +17,8 @@
  * vez de "258439,257633" y no tiene que parsear.
  */
 
+import { isNumericList } from "@/lib/agent/features/log-work/is-numeric-list";
+
 export type SelectionOption = {
   id: string;
   label: string;
@@ -173,13 +175,7 @@ function isBulkConfirmation(input: string): boolean {
   if (EXACT_AFFIRMATIONS.has(normalized)) {
     return true;
   }
-  // Patrones posicionales: "1, 2" / "1, 2, 3" / "1 2 3" → todos
-  // los índices. Usamos regex solo para este caso específico porque
-  // los números como tokens son inequívocos.
-  if (/^\d+(\s*[,\s]\s*\d+)+$/.test(normalized)) {
-    return true;
-  }
-  return false;
+  return isNumericList(normalized);
 }
 
 function matchToken(

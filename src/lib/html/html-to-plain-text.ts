@@ -26,5 +26,5 @@ function decodeHtmlEntities(value: string): string {
     .replace(/&#39;/gi, "'")
     .replace(/&apos;/gi, "'")
     .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)));
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)));
 }

@@ -6,6 +6,7 @@ type AuthJsonFailure = {
 
 type AuthJsonSuccess = {
   ok: true;
+  data: Record<string, unknown>;
 };
 
 export type AuthJsonResult = AuthJsonSuccess | AuthJsonFailure;
@@ -25,10 +26,10 @@ export async function postAuthJson(
     error?: string;
     ok?: boolean;
     reason?: string;
-  };
+  } & Record<string, unknown>;
 
   if (response.ok && body.ok !== false) {
-    return { ok: true };
+    return { ok: true, data: body };
   }
 
   return {
