@@ -38,8 +38,11 @@ function makeNovedad(overrides: Partial<ReportedNewsDetail> = {}): ReportedNewsD
     description: overrides.description ?? null,
     // 2026-06-15 y 16 son lunes y martes → 2 días hábiles por defecto.
     fechaInicio: overrides.fechaInicio ?? "2026-06-15",
+    fechaInicioHora: overrides.fechaInicioHora ?? "08:00",
     fechaFin: overrides.fechaFin ?? "2026-06-16",
+    fechaFinHora: overrides.fechaFinHora ?? "17:00",
     fechaReintegro: overrides.fechaReintegro ?? null,
+    fechaReintegroHora: overrides.fechaReintegroHora ?? null,
     tipoNovedad: overrides.tipoNovedad ?? "Permiso",
     parentId: overrides.parentId ?? 100,
     createdDate: overrides.createdDate ?? null,

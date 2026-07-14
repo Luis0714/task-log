@@ -14,21 +14,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { DatePicker } from "@/components/ui/date-picker";
 import { DatePickerTime } from "@/components/ui/date-picker-time";
+import { RichTextarea } from "@/components/ui/rich-textarea-lazy";
 import { ControlledSelectField } from "@/components/time-log/fields/controlled-select-field";
 import { FormInlineError } from "@/components/time-log/fields/form-inline-error";
-import { useSolicitudForm } from "@/hooks/solicitudes/use-solicitud-form";
+import { useSolicitudForm, type SolicitudFormMode } from "@/hooks/solicitudes/use-solicitud-form";
 import type { SolicitudDto } from "@/lib/novedades/list-my-solicitudes";
 
 export type SolicitudFormConfig = Readonly<{
   projects: readonly string[];
   defaultProject: string;
+  defaultTeam: string;
   currentUserDisplayName: string | null;
   holidayKeys: readonly string[];
   isManagement: boolean;
-  onCreated: (solicitud: SolicitudDto) => void;
+  /** `create` registra una nueva; `edit` requiere `initialSolicitud`. */
+  mode: SolicitudFormMode;
+  initialSolicitud?: SolicitudDto;
+  /** Notifica al shell tras crear/editar correctamente. */
+  onSaved: (solicitud: SolicitudDto) => void;
 }>;
 
 const UNIT_OPTIONS = [
@@ -43,44 +47,69 @@ type SolicitudFormBodyProps = Readonly<{
 
 function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
   const form = useSolicitudForm({
+    mode: config.mode,
     projects: config.projects,
     defaultProject: config.defaultProject,
+    defaultTeam: config.defaultTeam,
     currentUserDisplayName: config.currentUserDisplayName,
     holidayKeys: config.holidayKeys,
-    onCreated: config.onCreated,
+    ...(config.mode === "edit" && config.initialSolicitud
+      ? { initialSolicitud: config.initialSolicitud }
+      : {}),
+    onSaved: config.onSaved,
   });
 
-  const { values, fields, catalog } = form;
+  const { values, fields, catalog, mode } = form;
   const options = catalog.options;
+  const isEdit = mode === "edit";
 
   const projectOptions = config.projects.map((project) => ({ value: project, label: project }));
   const teamOptions = form.teams.map((team) => ({ value: team, label: team }));
   const newsStoryOptions = form.newsStories.map((story) => ({
     value: String(story.workItemId),
-    label: story.title,
+    label: `#${story.workItemId} · ${story.title}`,
   }));
-  const memberOptions =
-    options?.members.map((member) => ({
-      value: member.uniqueName,
-      label: member.displayName,
-    })) ?? [];
+  const memberOptions = form.teamScopedMembers.map((member) => ({
+    value: member.uniqueName,
+    label: member.displayName,
+  }));
   const tipoOptions = options?.tipos.map((tipo) => ({ value: tipo, label: tipo })) ?? [];
+  const stateOptions = (options?.states ?? []).map((state) => ({ value: state, label: state }));
+  // Si el estado actual no viene del catálogo (legacy / estado creado en otra
+  // sesión), lo añadimos como opción para que el select lo muestre en lugar
+  // de quedar vacío.
+  if (values.state && !stateOptions.some((opt) => opt.value === values.state)) {
+    stateOptions.unshift({ value: values.state, label: values.state });
+  }
+
+  // El trigger del select muestra el label legible (título de la HU / nombre
+  // visible de la persona), no el value interno (ID numérico / uniqueName).
+  const selectedNewsStoryTitle =
+    newsStoryOptions.find(
+      (opt) =>
+        opt.value ===
+        (form.values.newsStoryId !== null ? String(form.values.newsStoryId) : ""),
+    )?.label;
+  const selectedMemberLabel =
+    memberOptions.find((opt) => opt.value === form.values.assignedTo)?.label;
 
   async function handleSubmit() {
-    const created = await form.submit();
-    if (created) onClose();
+    const ok = await form.submit();
+    if (ok) onClose();
   }
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Nueva solicitud</DialogTitle>
+        <DialogTitle>{isEdit ? "Editar solicitud" : "Nueva solicitud"}</DialogTitle>
         <DialogDescription>
-          Registra una novedad; se creará como work item en la HU de novedades del proyecto en Azure DevOps.
+          {isEdit
+            ? "Actualiza la novedad; los cambios se guardan sobre el mismo work item en Azure DevOps."
+            : "Registra una novedad; se creará como work item en la HU de novedades del proyecto en Azure DevOps."}
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex max-h-[65vh] flex-col gap-4 overflow-y-auto px-0.5 py-1">
+      <div className="no-scrollbar flex max-h-[65vh] flex-col gap-4 overflow-y-auto px-0.5 py-1">
         <ControlledSelectField
           label="Proyecto"
           required
@@ -97,18 +126,19 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
               Reintentar
             </Button>
           </div>
-        ) : form.hasTeams ? (
+        ) : (
           <ControlledSelectField
             label="Equipo"
-            required
+            required={form.hasTeams}
             value={form.team}
             placeholder="Selecciona un equipo"
             options={teamOptions}
             loading={catalog.loading}
             disabled={!form.project || catalog.loading}
+            emptyMessage="Este proyecto no tiene equipos."
             onValueChange={form.setTeam}
           />
-        ) : null}
+        )}
 
         {catalog.error ? (
           <div className="flex items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-sm">
@@ -147,20 +177,34 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
             options={newsStoryOptions}
             loading={catalog.loading}
             disabled={!form.project || catalog.loading || (form.hasTeams && !form.team)}
+            displayValue={selectedNewsStoryTitle}
             onValueChange={(value) => fields.setNewsStoryId(Number(value))}
           />
         )}
 
-        <ControlledSelectField
-          label="Persona asignada"
-          required
-          value={values.assignedTo}
-          placeholder="Selecciona la persona"
-          options={memberOptions}
-          loading={catalog.loading}
-          disabled={!form.project || catalog.loading}
-          onValueChange={fields.setAssignedTo}
-        />
+        <div className="flex flex-col gap-1.5">
+          <ControlledSelectField
+            label="Persona asignada"
+            required
+            value={values.assignedTo}
+            placeholder="Selecciona la persona"
+            options={memberOptions}
+            loading={catalog.loading}
+            disabled={!form.project || catalog.loading}
+            displayValue={selectedMemberLabel}
+            error={
+              options?.membersError && memberOptions.length === 0
+                ? "No se pudieron cargar los miembros del proyecto."
+                : null
+            }
+            onValueChange={fields.setAssignedTo}
+          />
+          {options?.membersError ? (
+            <Button type="button" variant="outline" size="sm" className="self-start" onClick={catalog.reload}>
+              Reintentar
+            </Button>
+          ) : null}
+        </div>
 
         <div className="flex flex-col gap-1.5">
           <ControlledSelectField
@@ -180,6 +224,32 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
             </Button>
           ) : null}
         </div>
+
+        {isEdit ? (
+          <div className="flex flex-col gap-1.5">
+            <ControlledSelectField
+              label="Estado"
+              value={values.state}
+              placeholder={
+                catalog.loading
+                  ? "Cargando estados…"
+                  : stateOptions.length === 0
+                    ? "Sin estados disponibles"
+                    : "Selecciona el estado"
+              }
+              options={stateOptions}
+              loading={catalog.loading}
+              disabled={!form.project || catalog.loading}
+              error={options?.statesError ? "No se pudieron cargar los estados desde Azure." : null}
+              onValueChange={fields.setState}
+            />
+            {options?.statesError ? (
+              <Button type="button" variant="outline" size="sm" className="self-start" onClick={catalog.reload}>
+                Reintentar
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-[1fr_auto] items-end gap-2">
           <div className="flex flex-col gap-1.5">
@@ -229,25 +299,15 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="solicitud-reintegro" required>
-            Fecha de reintegro
-          </Label>
-          <DatePicker
-            id="solicitud-reintegro"
-            value={values.fechaReintegro}
+          <Label required>Fecha y hora de reintegro</Label>
+          <DatePickerTime
+            dateId="solicitud-reintegro"
+            timeId="solicitud-reintegro-hora"
+            dateValue={values.fechaReintegro}
+            timeValue={values.reintegroTime}
             min={values.endDate || undefined}
-            onChange={fields.setReintegro}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="solicitud-descripcion">Descripción</Label>
-          <Textarea
-            id="solicitud-descripcion"
-            value={values.description}
-            maxLength={500}
-            placeholder="Detalle opcional de la novedad"
-            onChange={(event) => fields.setDescription(event.target.value)}
+            onDateChange={fields.setReintegro}
+            onTimeChange={fields.setReintegroTime}
           />
         </div>
 
@@ -263,13 +323,28 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
           />
         </div>
 
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="solicitud-descripcion">Descripción</Label>
+          <RichTextarea
+            value={values.description}
+            onChange={fields.setDescription}
+            placeholder="Detalle opcional de la novedad"
+          />
+        </div>
+
         <FormInlineError message={form.formError} />
       </div>
 
       <DialogFooter>
         <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>
         <Button type="button" onClick={handleSubmit} disabled={!form.canSubmit}>
-          {form.submitting ? "Guardando…" : "Guardar"}
+          {form.submitting
+            ? isEdit
+              ? "Guardando…"
+              : "Creando…"
+            : isEdit
+              ? "Guardar cambios"
+              : "Crear solicitud"}
         </Button>
       </DialogFooter>
     </>
@@ -285,7 +360,7 @@ export type SolicitudFormDialogProps = Readonly<{
 export function SolicitudFormDialog({ open, onOpenChange, config }: SolicitudFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <SolicitudFormBody config={config} onClose={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>

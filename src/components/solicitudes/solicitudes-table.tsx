@@ -1,31 +1,43 @@
 "use client";
 
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Pencil } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { WorkItemStateBadge } from "@/components/work-items/work-item-state-badge";
-import { formatDateKeyDMY } from "@/lib/solicitudes/time-calc";
+import { DeleteSolicitudDialog } from "@/components/solicitudes/delete-solicitud-dialog";
+import { formatSolicitudDateTime } from "@/lib/solicitudes/time-calc";
 import type { SolicitudDto } from "@/lib/novedades/list-my-solicitudes";
-
-function formatDate(value: string | null): string {
-  if (!value) return "—";
-  return formatDateKeyDMY(value.slice(0, 10));
-}
 
 function formatHours(hours: number | null): string {
   if (hours === null || !Number.isFinite(hours)) return "—";
   return `${hours} h`;
 }
 
+/** Wrapper tolerante a `null` para la columna/línea de cada fecha. */
+function formatDateTime(dateKey: string | null, timeStr: string | null): string {
+  if (!dateKey) return "—";
+  return formatSolicitudDateTime(dateKey, timeStr);
+}
+
 export type SolicitudesTableProps = Readonly<{
   solicitudes: readonly SolicitudDto[];
+  /** Proyecto activo: necesario para autorizar la eliminación en Azure DevOps. */
+  project: string;
+  onEdit: (solicitud: SolicitudDto) => void;
+  onDeleted: (solicitud: SolicitudDto) => void;
 }>;
 
-export function SolicitudesTable({ solicitudes }: SolicitudesTableProps) {
+export function SolicitudesTable({
+  solicitudes,
+  project,
+  onEdit,
+  onDeleted,
+}: SolicitudesTableProps) {
   if (solicitudes.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-8 text-center">
@@ -49,12 +61,36 @@ export function SolicitudesTable({ solicitudes }: SolicitudesTableProps) {
             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
               <Field label="Tipo" value={solicitud.tipo ?? "—"} />
               <Field label="Asignado" value={solicitud.assignedTo ?? "—"} />
-              <Field label="Inicio" value={formatDate(solicitud.fechaInicio)} />
-              <Field label="Fin" value={formatDate(solicitud.fechaFin)} />
-              <Field label="Reintegro" value={formatDate(solicitud.fechaReintegro)} />
+              <Field label="Inicio" value={formatDateTime(solicitud.fechaInicio, solicitud.fechaInicioHora)} />
+              <Field label="Fin" value={formatDateTime(solicitud.fechaFin, solicitud.fechaFinHora)} />
+              <Field label="Reintegro" value={formatDateTime(solicitud.fechaReintegro, solicitud.fechaReintegroHora)} />
               <Field label="Horas" value={formatHours(solicitud.hours)} />
               <Field label="Estado" value={solicitud.state || "—"} />
             </dl>
+            <div className="mt-3 flex items-center justify-end gap-1">
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Editar solicitud #${solicitud.id}`}
+                      onClick={() => onEdit(solicitud)}
+                    />
+                  }
+                >
+                  <Pencil aria-hidden />
+                </TooltipTrigger>
+                <TooltipContent>Editar solicitud</TooltipContent>
+              </Tooltip>
+              <DeleteSolicitudDialog
+                workItemId={solicitud.id}
+                project={project}
+                itemTitle={solicitud.title}
+                onDeleted={() => onDeleted(solicitud)}
+              />
+            </div>
           </li>
         ))}
       </ul>
@@ -64,7 +100,6 @@ export function SolicitudesTable({ solicitudes }: SolicitudesTableProps) {
         <table className="w-full min-w-[960px] text-sm">
           <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 font-medium">Título</th>
               <th className="px-3 py-2 font-medium">Tipo</th>
               <th className="px-3 py-2 font-medium">Asignado</th>
               <th className="px-3 py-2 font-medium">Inicio</th>
@@ -72,23 +107,63 @@ export function SolicitudesTable({ solicitudes }: SolicitudesTableProps) {
               <th className="px-3 py-2 font-medium">Reintegro</th>
               <th className="px-3 py-2 text-right font-medium">Horas</th>
               <th className="px-3 py-2 text-right font-medium">Estado</th>
+              <th className="px-3 py-2 text-right font-medium">Acciones</th>
               <th className="px-3 py-2 text-right font-medium">Azure</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {solicitudes.map((solicitud) => (
               <tr key={solicitud.id} className="hover:bg-muted/30">
-                <td className="max-w-[260px] truncate px-3 py-2" title={solicitud.title}>
-                  {solicitud.title}
+                <td className="max-w-[160px] min-w-[120px] truncate px-3 py-2">
+                  {solicitud.tipo ? (
+                    <Tooltip>
+                      <TooltipTrigger render={<span className="block cursor-default truncate" />}>
+                        {solicitud.tipo}
+                      </TooltipTrigger>
+                      <TooltipContent>{solicitud.tipo}</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    "—"
+                  )}
                 </td>
-                <td className="px-3 py-2">{solicitud.tipo ?? "—"}</td>
-                <td className="px-3 py-2">{solicitud.assignedTo ?? "—"}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{formatDate(solicitud.fechaInicio)}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{formatDate(solicitud.fechaFin)}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{formatDate(solicitud.fechaReintegro)}</td>
+                <td
+                  className="max-w-[220px] min-w-[180px] truncate px-3 py-2"
+                  title={solicitud.assignedTo ?? undefined}
+                >
+                  {solicitud.assignedTo ?? "—"}
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(solicitud.fechaInicio, solicitud.fechaInicioHora)}</td>
+                <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(solicitud.fechaFin, solicitud.fechaFinHora)}</td>
+                <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(solicitud.fechaReintegro, solicitud.fechaReintegroHora)}</td>
                 <td className="px-3 py-2 text-right whitespace-nowrap">{formatHours(solicitud.hours)}</td>
                 <td className="min-w-32 px-3 py-2 text-right">
                   {solicitud.state ? <WorkItemStateBadge state={solicitud.state} /> : "—"}
+                </td>
+                <td className="px-3 py-2 text-right whitespace-nowrap">
+                  <div className="inline-flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Editar solicitud #${solicitud.id}`}
+                            onClick={() => onEdit(solicitud)}
+                          />
+                        }
+                      >
+                        <Pencil aria-hidden />
+                      </TooltipTrigger>
+                      <TooltipContent>Editar solicitud</TooltipContent>
+                    </Tooltip>
+                    <DeleteSolicitudDialog
+                      workItemId={solicitud.id}
+                      project={project}
+                      itemTitle={solicitud.title}
+                      onDeleted={() => onDeleted(solicitud)}
+                    />
+                  </div>
                 </td>
                 <td className="px-3 py-2 text-right">
                 <a

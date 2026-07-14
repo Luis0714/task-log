@@ -1,12 +1,16 @@
 import "server-only";
 
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
-import { listProjectTeamMembers } from "@/lib/azure-devops/team-members";
 import { createNovedadUnderStory } from "@/lib/azure-devops/create-novedad";
 import { getRepositories } from "@/lib/db";
+import { loadProjectRoster } from "@/lib/filters/load-project-roster";
 import { resolveAzureHours } from "@/lib/solicitudes/time-calc";
 import { SOLICITUD_ERROR_CODES } from "@/lib/solicitudes/error-codes";
 import type { CreateSolicitudBody } from "@/lib/schemas/solicitudes";
+import {
+  buildWorkingDateTimeValue,
+  resolveAdoTimeZone,
+} from "@/lib/azure-devops/working-date-field";
 
 /**
  * Valida la membresía del proyecto y la HU destino, convierte el tiempo a horas
@@ -39,13 +43,14 @@ export async function createSolicitud(
     return { ok: false, status: 400, message: SOLICITUD_ERROR_CODES.newsStoryNotLinked };
   }
 
-  const members = await listProjectTeamMembers(auth);
+  const members = await loadProjectRoster(auth);
   const assignee = members.find((member) => member.uniqueName === body.assignedTo);
   if (!assignee) {
     return { ok: false, status: 400, message: SOLICITUD_ERROR_CODES.assigneeNotMember };
   }
 
   const hours = resolveAzureHours(body.value, body.unit);
+  const timeZone = resolveAdoTimeZone();
 
   const result = await createNovedadUnderStory(
     {
@@ -58,7 +63,11 @@ export async function createSolicitud(
       startTime: body.startTime,
       endDate: body.endDate,
       endTime: body.endTime,
-      fechaReintegro: body.fechaReintegro,
+      fechaReintegro: buildWorkingDateTimeValue(
+        body.fechaReintegro,
+        body.reintegroTime,
+        timeZone,
+      ),
       hours,
     },
     auth,

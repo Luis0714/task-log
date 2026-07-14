@@ -15,9 +15,21 @@ export type SolicitudDto = Readonly<{
   title: string;
   tipo: string | null;
   assignedTo: string | null;
+  description: string | null;
+  /** Fecha de inicio como `YYYY-MM-DD` (campo DateTime de ADO, normalizado a clave civil). */
   fechaInicio: string | null;
+  /** Hora de inicio `HH:mm` 24 h; `null` si el campo ADO no trae hora. */
+  fechaInicioHora: string | null;
+  /** Fecha de fin como `YYYY-MM-DD`. */
   fechaFin: string | null;
+  /** Hora de fin `HH:mm` 24 h; `null` si el campo ADO no trae hora. */
+  fechaFinHora: string | null;
+  /** Fecha de reintegro como `YYYY-MM-DD` (campo DateTime de ADO). */
   fechaReintegro: string | null;
+  /** Hora de reintegro `HH:mm` 24 h; `null` para datos legacy de solo fecha. */
+  fechaReintegroHora: string | null;
+  /** ID de la HU de novedades padre (para edición). */
+  parentId: number | null;
   /** Horas de la novedad (Completed Work). */
   hours: number | null;
   state: string;
@@ -58,9 +70,14 @@ export async function listMySolicitudes(auth: AdoCallerAuth): Promise<SolicitudD
     title: item.title,
     tipo: item.tipoNovedad,
     assignedTo: item.assignedTo,
+    description: item.description,
     fechaInicio: item.fechaInicio,
+    fechaInicioHora: item.fechaInicioHora,
     fechaFin: item.fechaFin,
+    fechaFinHora: item.fechaFinHora,
     fechaReintegro: item.fechaReintegro,
+    fechaReintegroHora: item.fechaReintegroHora,
+    parentId: item.parentId,
     hours: item.completedWork,
     state: item.state,
     url: `${editBase}/${item.id}`,

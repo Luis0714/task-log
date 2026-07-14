@@ -44,3 +44,33 @@ export async function createSolicitud(
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return (await res.json()) as CreateSolicitudResponse;
 }
+
+export type UpdateSolicitudResponse = { workItemId: number; url: string };
+
+export async function updateSolicitud(
+  workItemId: number,
+  body: CreateSolicitudBody,
+): Promise<UpdateSolicitudResponse> {
+  const res = await fetch(`/api/solicitudes/${workItemId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return (await res.json()) as UpdateSolicitudResponse;
+}
+
+export type DeleteSolicitudResponse = { ok: true };
+
+export async function deleteSolicitud(
+  workItemId: number,
+  project: string,
+): Promise<DeleteSolicitudResponse> {
+  const res = await fetch(`/api/solicitudes/${workItemId}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return (await res.json()) as DeleteSolicitudResponse;
+}

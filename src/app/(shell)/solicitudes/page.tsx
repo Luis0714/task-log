@@ -34,6 +34,7 @@ export default async function SolicitudesPage({
       initialSolicitudes={initialSolicitudes}
       projects={catalog.projects.map((project) => project.name)}
       defaultProject={catalog.project || catalog.defaultProject || ""}
+      defaultTeam={catalog.team || catalog.defaultTeam || ""}
       currentUserDisplayName={authState.profileDisplayName}
       holidayKeys={holidays.map((holiday) => holiday.date)}
       isManagement={authState.isManagement}

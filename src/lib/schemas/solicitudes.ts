@@ -38,6 +38,8 @@ export const createSolicitudBodySchema = z
     endDate: isoDate,
     endTime: time,
     fechaReintegro: isoDate,
+    reintegroTime: time,
+    state: z.string().trim().max(50).optional().default(""),
     title: z
       .string()
       .trim()
@@ -54,6 +56,14 @@ export const createSolicitudBodySchema = z
   });
 
 export type CreateSolicitudBody = z.infer<typeof createSolicitudBodySchema>;
+
+/**
+ * Body para PATCH /api/solicitudes/[id]. Mismo esquema que la creación; el
+ * server lo aplica sobre el work item existente.
+ */
+export const updateSolicitudBodySchema = createSolicitudBodySchema;
+
+export type UpdateSolicitudBody = CreateSolicitudBody;
 
 export const solicitudOptionsQuerySchema = z.object({
   project: z.string().trim().min(1, SOLICITUD_ERROR_CODES.projectRequired),

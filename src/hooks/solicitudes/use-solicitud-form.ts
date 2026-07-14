@@ -6,28 +6,36 @@ import { appToast } from "@/lib/toast";
 import { createSolicitudBodySchema } from "@/lib/schemas/solicitudes";
 import { SOLICITUD_ERROR_CODES } from "@/lib/solicitudes/error-codes";
 import {
+  buildSolicitudDescription,
   buildSolicitudTitle,
-  computeDurationFromRange,
   computeEndFromDuration,
   computeReintegro,
   resolveAzureHours,
   type TimeUnit,
 } from "@/lib/solicitudes/time-calc";
-import { createSolicitud } from "@/services/solicitudes/solicitudes.service";
+import {
+  createSolicitud,
+  updateSolicitud,
+} from "@/services/solicitudes/solicitudes.service";
 import type { SolicitudDto } from "@/lib/novedades/list-my-solicitudes";
 import { useSolicitudCatalog } from "@/hooks/solicitudes/use-solicitud-catalog";
 import type {
   SolicitudNewsStoryOption,
-  SolicitudOptions,
 } from "@/lib/novedades/solicitud-options";
 
+export type SolicitudFormMode = "create" | "edit";
+
 export type UseSolicitudFormConfig = Readonly<{
+  /** `create` deja el form en blanco; `edit` lo precarga desde `initialSolicitud`. */
+  mode?: SolicitudFormMode;
   projects: readonly string[];
   defaultProject: string;
   defaultTeam: string;
   currentUserDisplayName: string | null;
   holidayKeys: readonly string[];
-  onCreated: (solicitud: SolicitudDto) => void;
+  initialSolicitud?: SolicitudDto;
+  /** Notifica al shell tras crear/editar correctamente. */
+  onSaved: (solicitud: SolicitudDto) => void;
 }>;
 
 type FormState = {
@@ -36,6 +44,7 @@ type FormState = {
   assignedTo: string;
   tipo: string;
   description: string;
+  descriptionEdited: boolean;
   value: string;
   unit: TimeUnit;
   startDate: string;
@@ -43,6 +52,9 @@ type FormState = {
   endDate: string;
   endTime: string;
   fechaReintegro: string;
+  reintegroTime: string;
+  /** Estado actual del work item (solo relevante en edición). */
+  state: string;
   titleValue: string;
   titleEdited: boolean;
 };
@@ -54,6 +66,7 @@ function initialFormState(): FormState {
     assignedTo: "",
     tipo: "",
     description: "",
+    descriptionEdited: false,
     value: "",
     unit: "horas",
     startDate: "",
@@ -61,8 +74,49 @@ function initialFormState(): FormState {
     endDate: "",
     endTime: "08:00",
     fechaReintegro: "",
+    reintegroTime: "08:00",
+    state: "",
     titleValue: "",
     titleEdited: false,
+  };
+}
+
+/** Construye el estado inicial del form en modo edición a partir del DTO.
+ * El proyecto por defecto lo inyecta el shell (todas las solicitudes
+ * listadas pertenecen al proyecto activo del usuario). El equipo se deriva
+ * luego del `teamId` de la HU padre, una vez el catálogo carga. */
+function editInitialState(
+  solicitud: SolicitudDto,
+  defaultProject: string,
+): { state: FormState; project: string } {
+  const startTime = solicitud.fechaInicioHora?.trim() || "08:00";
+  const endTime = solicitud.fechaFinHora?.trim() || "08:00";
+  const reintegroTime = solicitud.fechaReintegroHora?.trim() || endTime;
+  return {
+    project: defaultProject,
+    state: {
+      team: "",
+      newsStoryId: solicitud.parentId,
+      // displayName; se traduce a uniqueName cuando llegue el roster.
+      assignedTo: solicitud.assignedTo ?? "",
+      tipo: solicitud.tipo ?? "",
+      description: solicitud.description ?? "",
+      descriptionEdited: Boolean(solicitud.description),
+      value:
+        solicitud.hours !== null && Number.isFinite(solicitud.hours)
+          ? String(solicitud.hours)
+          : "",
+      unit: "horas",
+      startDate: solicitud.fechaInicio ?? "",
+      startTime,
+      endDate: solicitud.fechaFin ?? "",
+      endTime,
+      fechaReintegro: solicitud.fechaReintegro ?? "",
+      reintegroTime,
+      state: solicitud.state ?? "",
+      titleValue: solicitud.title,
+      titleEdited: true,
+    },
   };
 }
 
@@ -75,18 +129,24 @@ function resolveInitialProject(config: UseSolicitudFormConfig): string {
 
 /** Persona por defecto = usuario logueado; si no está en el roster, el primero. */
 function pickDefaultAssignee(
-  options: SolicitudOptions | null,
+  members: readonly { uniqueName: string; displayName: string }[],
   currentUserDisplayName: string | null,
 ): string {
-  const members = options?.members ?? [];
   if (members.length === 0) return "";
   const me = members.find((member) => member.displayName === currentUserDisplayName);
   return (me ?? members[0]).uniqueName;
 }
 
 export function useSolicitudForm(config: UseSolicitudFormConfig) {
-  const [project, setProject] = useState(() => resolveInitialProject(config));
-  const [state, setState] = useState<FormState>(initialFormState);
+  const initial = useMemo(() => {
+    if (config.mode === "edit" && config.initialSolicitud) {
+      return editInitialState(config.initialSolicitud, config.defaultProject);
+    }
+    return { state: initialFormState(), project: resolveInitialProject(config) };
+  }, [config]);
+
+  const [project, setProject] = useState(initial.project);
+  const [state, setState] = useState<FormState>(initial.state);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -114,6 +174,9 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
 
   // HUs de novedades filtradas por el equipo elegido: las del equipo más las de
   // nivel proyecto (teamId nulo, aplican a todos). Deduplicadas por HU.
+  // En modo edición también incluimos el padre actual aunque no encaje con el
+  // equipo (p. ej. mientras `team` aún se está derivando del catálogo) para que
+  // el `<select>` pueda mostrar el título y no solo el ID.
   const newsStories = useMemo(() => {
     const all = options?.newsStories ?? [];
     const scoped = hasTeams
@@ -125,7 +188,24 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
     for (const story of scoped) {
       if (!seen.has(story.workItemId)) seen.set(story.workItemId, story);
     }
+    if (config.mode === "edit" && config.initialSolicitud?.parentId !== null && config.initialSolicitud) {
+      const parentId = config.initialSolicitud.parentId;
+      if (parentId !== null && !seen.has(parentId)) {
+        const parentInAll = all.find((story) => story.workItemId === parentId);
+        if (parentInAll) seen.set(parentId, parentInAll);
+      }
+    }
     return Array.from(seen.values());
+  }, [options, hasTeams, team, config.mode, config.initialSolicitud]);
+
+  // Miembros filtrados por el equipo elegido: en proyectos con equipos, el
+  // dropdown "Persona asignada" muestra solo los miembros del equipo activo
+  // (mismo criterio que el resto de pantallas). Sin equipos o sin equipo
+  // elegido, expone todo el roster del proyecto.
+  const teamScopedMembers = useMemo(() => {
+    const all = options?.members ?? [];
+    if (!hasTeams || !team) return all;
+    return all.filter((member) => member.teamNames.includes(team));
   }, [options, hasTeams, team]);
 
   // Preselecciones derivadas (sin efectos): HU única (CA-07) y persona por
@@ -135,15 +215,15 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
     [newsStories],
   );
   const autoAssignee = useMemo(
-    () => pickDefaultAssignee(options, config.currentUserDisplayName),
-    [options, config.currentUserDisplayName],
+    () => pickDefaultAssignee(teamScopedMembers, config.currentUserDisplayName),
+    [teamScopedMembers, config.currentUserDisplayName],
   );
 
   const newsStoryId = state.newsStoryId ?? autoNewsStoryId;
   const assignedTo = state.assignedTo || autoAssignee;
 
   const persona = useMemo(() => {
-    const member = options?.members.find((item) => item.uniqueName === assignedTo);
+    const member = (options?.members ?? []).find((item) => item.uniqueName === assignedTo);
     return member?.displayName ?? config.currentUserDisplayName ?? "";
   }, [options, assignedTo, config.currentUserDisplayName]);
 
@@ -172,19 +252,15 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
     [holidays],
   );
 
+  // El campo "Tiempo" es la fuente de verdad del tiempo de la novedad.
+  // Cambiar `endDate`/`endTime` solo refresca el reintegro (que sí depende del
+  // fin); NO recalcula `value`/`unit`, porque eso pisaba lo que el usuario
+  // puso (p. ej. "1 día" se convertía en 2 días al estirar la fecha fin).
   const recomputeFromRange = useCallback(
     (next: FormState): FormState => {
-      if (!next.startDate || !next.endDate) return next;
+      if (!next.endDate) return next;
       const reintegro = computeReintegro(next.endDate, holidays) ?? next.fechaReintegro;
-      const result = computeDurationFromRange({
-        startDate: next.startDate,
-        startTime: next.startTime,
-        endDate: next.endDate,
-        endTime: next.endTime,
-        nonWorkingDates: holidays,
-      });
-      if (!result.ok) return { ...next, fechaReintegro: reintegro };
-      return { ...next, value: String(result.value), unit: result.unit, fechaReintegro: reintegro };
+      return { ...next, fechaReintegro: reintegro };
     },
     [holidays],
   );
@@ -211,17 +287,49 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
     setState((prev) => ({ ...prev, team: "", newsStoryId: null, assignedTo: "", tipo: "" }));
   }, []);
 
-  // Cambiar de equipo limpia la HU: el catálogo de HUs depende del equipo.
-  const changeTeam = useCallback((next: string) => {
-    setState((prev) => ({ ...prev, team: next, newsStoryId: null }));
-  }, []);
+  // Cambiar de equipo limpia la HU y, si la persona asignada no está en el
+  // nuevo equipo, también la limpia. El catálogo de HUs y el de miembros
+  // dependen del equipo.
+  const changeTeam = useCallback(
+    (next: string) => {
+      setState((prev) => {
+        const allMembers = options?.members ?? [];
+        const stillValid =
+          !next || !hasTeams || allMembers.length === 0
+            ? true
+            : allMembers.some(
+                (member) =>
+                  member.uniqueName === prev.assignedTo &&
+                  member.teamNames.includes(next),
+              );
+        return {
+          ...prev,
+          team: next,
+          newsStoryId: null,
+          ...(stillValid ? {} : { assignedTo: "" }),
+        };
+      });
+    },
+    [options, hasTeams],
+  );
 
   const fields = useMemo(
     () => ({
       setNewsStoryId: (id: number) => setState((s) => ({ ...s, newsStoryId: id })),
       setAssignedTo: (uniqueName: string) => setState((s) => ({ ...s, assignedTo: uniqueName })),
       setTipo: (tipo: string) => setState((s) => ({ ...s, tipo })),
-      setDescription: (description: string) => setState((s) => ({ ...s, description })),
+      setDescription: (description: string) =>
+        // El editor dispara `onUpdate` una vez al montarse con el contenido
+        // inicial vacío (`<p></p>` o similar). Si aceptamos eso como edición
+        // manual, `descriptionEdited` se queda en `true` desde el arranque y
+        // la auto-generación no se vuelve a aplicar cuando el usuario llena
+        // los demás campos. Ignoramos las actualizaciones cuyo texto plano
+        // siga vacío, así solo marca como edición lo que el usuario tecleó.
+        setState((s) => {
+          const stripped = description.replace(/<[^>]*>/g, "").trim();
+          if (!stripped) return s;
+          return { ...s, description, descriptionEdited: true };
+        }),
       setValue: (value: string) => setState((s) => recomputeFromDuration({ ...s, value })),
       setUnit: (unit: TimeUnit) => setState((s) => recomputeFromDuration({ ...s, unit })),
       setStartDate: (startDate: string) => setState((s) => recomputeFromDuration({ ...s, startDate })),
@@ -229,6 +337,8 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
       setEndDate: (endDate: string) => setState((s) => recomputeFromRange({ ...s, endDate })),
       setEndTime: (endTime: string) => setState((s) => recomputeFromRange({ ...s, endTime })),
       setReintegro: (fechaReintegro: string) => setState((s) => ({ ...s, fechaReintegro })),
+      setReintegroTime: (reintegroTime: string) => setState((s) => ({ ...s, reintegroTime })),
+      setState: (value: string) => setState((s) => ({ ...s, state: value })),
       setTitle: (value: string) => setState((s) => ({ ...s, titleValue: value, titleEdited: true })),
     }),
     [recomputeFromDuration, recomputeFromRange],
@@ -238,7 +348,18 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
     newsStoryId,
     assignedTo,
     tipo: state.tipo,
-    description: state.description,
+    description: state.descriptionEdited
+      ? state.description
+      : buildSolicitudDescription({
+          tipo: state.tipo,
+          persona,
+          startDate: state.startDate,
+          startTime: state.startTime,
+          endDate: state.endDate,
+          endTime: state.endTime,
+          fechaReintegro: state.fechaReintegro,
+          reintegroTime: state.reintegroTime,
+        }),
     value: state.value,
     unit: state.unit,
     startDate: state.startDate,
@@ -246,6 +367,8 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
     endDate: state.endDate,
     endTime: state.endTime,
     fechaReintegro: state.fechaReintegro,
+    reintegroTime: state.reintegroTime,
+    state: state.state,
   } as const;
 
   // Solo declaramos "sin HUs" una vez resuelto el contexto de equipo (equipo
@@ -276,7 +399,7 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
       newsStoryId: newsStoryId ?? 0,
       assignedTo,
       tipo: state.tipo,
-      description: state.description || undefined,
+      description: values.description.trim() || undefined,
       value: Number(state.value),
       unit: state.unit,
       startDate: state.startDate,
@@ -284,6 +407,8 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
       endDate: state.endDate,
       endTime: state.endTime,
       fechaReintegro: state.fechaReintegro,
+      reintegroTime: state.reintegroTime,
+      state: state.state,
       title: title.trim(),
     };
 
@@ -295,34 +420,58 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
 
     setSubmitting(true);
     try {
-      const response = await createSolicitud(parsed.data);
-      appToast.success("Solicitud creada", {
-        description: `Novedad #${response.workItemId} creada en Azure DevOps.`,
-      });
-      config.onCreated({
+      const isEdit = config.mode === "edit" && config.initialSolicitud;
+      const response = isEdit
+        ? await updateSolicitud(config.initialSolicitud!.id, parsed.data)
+        : await createSolicitud(parsed.data);
+      if (isEdit) {
+        appToast.success("Solicitud actualizada", {
+          description: `Cambios guardados en la novedad #${response.workItemId}.`,
+        });
+      } else {
+        appToast.success("Solicitud creada", {
+          description: `Novedad #${response.workItemId} creada en Azure DevOps.`,
+        });
+      }
+      config.onSaved({
         id: response.workItemId,
         title: parsed.data.title,
         tipo: parsed.data.tipo,
         assignedTo: persona || null,
+        description: parsed.data.description ?? null,
         fechaInicio: parsed.data.startDate,
+        fechaInicioHora: parsed.data.startTime,
         fechaFin: parsed.data.endDate,
+        fechaFinHora: parsed.data.endTime,
         fechaReintegro: parsed.data.fechaReintegro,
+        fechaReintegroHora: parsed.data.reintegroTime,
+        parentId: parsed.data.newsStoryId,
         hours: resolveAzureHours(parsed.data.value, parsed.data.unit),
-        state: "",
+        // Eco del estado que el usuario acaba de guardar (o el original en
+        // creación, cuando no se envió `state`). Antes del fix, en `edit`
+        // siempre se devolvía `initialSolicitud.state`, así que la tabla no
+        // reflejaba el nuevo estado hasta recargar la página.
+        state: parsed.data.state ?? config.initialSolicitud?.state ?? "",
         url: response.url,
       });
       return true;
     } catch (cause) {
-      appToast.error("No se pudo crear la solicitud", {
-        description: cause instanceof Error ? cause.message : undefined,
-      });
+      appToast.error(
+        config.mode === "edit"
+          ? "No se pudo actualizar la solicitud"
+          : "No se pudo crear la solicitud",
+        {
+          description: cause instanceof Error ? cause.message : undefined,
+        },
+      );
       return false;
     } finally {
       setSubmitting(false);
     }
-  }, [project, team, hasTeams, newsStoryId, assignedTo, state, title, persona, config]);
+  }, [project, team, hasTeams, newsStoryId, assignedTo, state, title, persona, values.description, config]);
 
   return {
+    mode: (config.mode ?? "create") as SolicitudFormMode,
     project,
     setProject: changeProject,
     team,
@@ -330,6 +479,8 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
     teams,
     hasTeams,
     newsStories,
+    /** Miembros del proyecto filtrados por el equipo activo. */
+    teamScopedMembers,
     catalog,
     values,
     fields,

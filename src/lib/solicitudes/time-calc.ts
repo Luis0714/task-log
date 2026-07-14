@@ -1,3 +1,7 @@
+import { resolveAdoTimeZone, toWorkingDateKey } from "@/lib/azure-devops/working-date-field";
+import {
+  extractWorkingTimeFromAdoField,
+} from "@/lib/date/ado-datetime";
 import {
   HOURS_PER_WORKING_DAY,
   addWorkingDayKeys,
@@ -149,6 +153,28 @@ export function formatDateKeyDMY(dateKey: string): string {
   return `${match[3]}/${match[2]}/${match[1]}`;
 }
 
+/**
+ * Divide un valor DateTime de ADO (`2026-07-14T13:00:00.000Z`) en una clave
+ * civil `YYYY-MM-DD` y una hora `HH:mm`, ambos en la zona horaria del
+ * proyecto. Es el espejo de `buildWorkingDateTimeValue` y se usa para
+ * hidratar listados (la tabla de "Mis solicitudes", el form de edición).
+ *
+ * Devuelve `null` si el valor no trae `T…` (campo Date legacy) o no se puede
+ * interpretar, para que el caller pueda distinguir "no hay dato" de "dato a
+ * medianoche" (que sí trae `T00:00:00`).
+ */
+export function splitAdoDateTime(
+  raw: string,
+): { dateKey: string; timeStr: string } | null {
+  const trimmed = raw.trim();
+  if (!trimmed.includes("T")) return null;
+  const timeZone = resolveAdoTimeZone();
+  const dateKey = toWorkingDateKey(trimmed, timeZone, { isDateTimeField: true });
+  if (!dateKey) return null;
+  const timeStr = extractWorkingTimeFromAdoField(trimmed, timeZone);
+  return { dateKey, timeStr };
+}
+
 export type BuildTitleInput = Readonly<{
   tipo: string;
   persona: string;
@@ -163,4 +189,102 @@ export function buildSolicitudTitle(input: BuildTitleInput): string {
     formatDateKeyDMY(input.startDate),
   ].filter((part) => part.length > 0);
   return parts.join(" – ");
+}
+
+export type BuildSolicitudDescriptionInput = Readonly<{
+  tipo: string;
+  persona: string;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+  fechaReintegro: string;
+  reintegroTime: string;
+}>;
+
+/**
+ * Descripción auto-generada en lenguaje natural (HTML, los valores van en
+ * negrita). La usa `RichTextarea` (TipTap) como contenido inicial: se guarda
+ * en ADO como HTML, que Azure DevOps renderiza correctamente.
+ *
+ * Devuelve `""` si falta cualquier dato: en ese caso el formulario todavía
+ * no tiene suficiente info para componer la frase.
+ */
+export function buildSolicitudDescription(input: BuildSolicitudDescriptionInput): string {
+  const {
+    tipo,
+    persona,
+    startDate,
+    startTime,
+    endDate,
+    endTime,
+    fechaReintegro,
+    reintegroTime,
+  } = input;
+  if (
+    !tipo.trim() ||
+    !persona.trim() ||
+    !startDate ||
+    !startTime ||
+    !endDate ||
+    !endTime ||
+    !fechaReintegro ||
+    !reintegroTime
+  ) {
+    return "";
+  }
+  const strong = (value: string): string => `<strong>${value}</strong>`;
+  return (
+    `Solicitud de ${strong(tipo.trim())} a nombre de ${strong(persona.trim())} ` +
+    `desde el día ${strong(formatDateKeyDMY(startDate))} a las ${strong(formatTime12h(startTime))} ` +
+    `hasta el día ${strong(formatDateKeyDMY(endDate))} a las ${strong(formatTime12h(endTime))}. ` +
+    `Reintegrándose al equipo el día ${strong(formatDateKeyDMY(fechaReintegro))} ` +
+    `a las ${strong(formatTime12h(reintegroTime))}.`
+  );
+}
+
+const SPANISH_MONTH_ABBR = [
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sep",
+  "oct",
+  "nov",
+  "dic",
+] as const;
+
+/**
+ * Formato largo en español: "10 de jun a las 08:00 AM". Pensado para tablas
+ * y listados donde cada fecha lleva su hora al lado. Si no se pasa hora
+ * devuelve solo la fecha: "10 de jun". Reutilizable fuera de solicitudes.
+ */
+export function formatSolicitudDateTime(dateKey: string, timeStr?: string | null): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey.trim());
+  if (!match) return dateKey;
+  const monthIndex = Number(match[2]) - 1;
+  if (monthIndex < 0 || monthIndex > 11) return dateKey;
+  const day = Number(match[3]);
+  const monthAbbr = SPANISH_MONTH_ABBR[monthIndex];
+  const datePart = `${day} de ${monthAbbr}`;
+  const trimmedTime = timeStr?.trim() ?? "";
+  if (!trimmedTime) return datePart;
+  const formattedTime = formatTime12h(trimmedTime);
+  return `${datePart} a las ${formattedTime}`;
+}
+
+/** "HH:mm" 24h → "hh:mm AM/PM" en español (12:00 AM, 12:00 PM, 01:30 PM). */
+export function formatTime12h(time: string): string {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(time.trim());
+  if (!match) return time;
+  const hours24 = Number(match[1]);
+  const minutes = match[2];
+  if (hours24 > 23) return time;
+  const period = hours24 >= 12 ? "PM" : "AM";
+  const hours12 = hours24 % 12 || 12;
+  return `${String(hours12).padStart(2, "0")}:${minutes} ${period}`;
 }
