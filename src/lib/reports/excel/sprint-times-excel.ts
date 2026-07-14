@@ -7,6 +7,7 @@ import {
   totalHoursBreakdown,
 } from "@/lib/hours/hours-breakdown";
 import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
+import { resolveAdoTimeZone } from "@/lib/azure-devops/working-date-field";
 import {
   lookupMemberOrPlaceholder,
   type MemberInfo,
@@ -397,6 +398,7 @@ function writeTitleRow(
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
+    timeZone: resolveAdoTimeZone(),
   })}`;
   subtitle.value = subtitlePrefix
     ? `${subtitlePrefix} · ${generatedLabel}`
