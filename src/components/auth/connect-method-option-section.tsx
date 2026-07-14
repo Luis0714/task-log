@@ -53,6 +53,7 @@ export function ConnectMethodOptionSection({
           value={method}
           checked={selected}
           disabled={disabled}
+          aria-label={title}
           className="border-input text-primary mt-1 size-4 shrink-0"
           onChange={() => onSelect(method)}
         />

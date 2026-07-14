@@ -106,7 +106,16 @@ export function DraftCard({
           </span>
           <span className="min-w-0 flex-1 truncate text-sm">{summary}</span>
           {status ? (
-            <span className="shrink-0" onClick={(event) => event.stopPropagation()}>
+            <span
+              className="shrink-0"
+              role="presentation"
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.stopPropagation();
+                }
+              }}
+            >
               {status}
             </span>
           ) : null}

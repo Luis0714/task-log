@@ -32,5 +32,5 @@ export async function adoFetch(
 }
 
 export function escapeWiqlString(value: string): string {
-  return value.replace(/'/g, "''");
+  return value.replaceAll("'", "''");
 }

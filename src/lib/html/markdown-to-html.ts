@@ -34,11 +34,11 @@ function proxiedImageUrl(rawUrl: string): string {
 
 function escapeHtml(value: string): string {
   return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 /**
@@ -56,7 +56,11 @@ function renderInline(value: string): string {
   );
   // 2. Enlaces: [texto](url "title opcional")
   text = text.replace(
-    /\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,
+    /\[([^\]]+)\]\(([^)\s]+)\s+"[^"]*"\)/g,
+    (_m, label, url) => `<a href="${escapeHtml(url)}">${label}</a>`,
+  );
+  text = text.replace(
+    /\[([^\]]+)\]\(([^)\s]+)\)/g,
     (_m, label, url) => `<a href="${escapeHtml(url)}">${label}</a>`,
   );
   // 3. Negrita: **x** o __x__
@@ -81,8 +85,8 @@ export function looksLikeMarkdown(input: string): boolean {
   if (/<[a-z][\s\S]*?>/i.test(trimmed)) return false;
 
   return (
-    /^\s*(?:\d+\.|-{1,2}|\*{1,2})\s+/m.test(trimmed) ||
-    /^\s*#{1,6}\s+\S/m.test(trimmed) ||
+    /^\s*(?:\d+\.|--?|\*\*?)\s+/m.test(trimmed) ||
+    /^\s*#{1,6}\s\S/m.test(trimmed) ||
     /!\[[^\]]*\]\([^)]+\)/.test(trimmed) ||
     /\[[^\]]+\]\([^)]+\)/.test(trimmed) ||
     /\*\*[^*\n]+\*\*/.test(trimmed)
@@ -123,7 +127,7 @@ export function markdownToHtml(input: string): string {
   for (const raw of lines) {
     const line = raw.trimEnd();
 
-    const headingMatch = /^(#{1,6})\s+(.*)$/.exec(line);
+    const headingMatch = /^(#{1,6})\s+([^\n]+)$/.exec(line);
     if (headingMatch) {
       flushParagraph(paragraph, out);
       closeList(out, listState);
@@ -132,7 +136,7 @@ export function markdownToHtml(input: string): string {
       continue;
     }
 
-    const olMatch = /^\s*\d+\.\s+(.*)$/.exec(line);
+    const olMatch = /^\s*\d+\.\s+([^\n]+)$/.exec(line);
     if (olMatch) {
       flushParagraph(paragraph, out);
       if (listState.type !== "ol") {
@@ -144,7 +148,7 @@ export function markdownToHtml(input: string): string {
       continue;
     }
 
-    const ulMatch = /^\s*[-*]\s+(.*)$/.exec(line);
+    const ulMatch = /^\s*[-*]\s+([^\n]+)$/.exec(line);
     if (ulMatch) {
       flushParagraph(paragraph, out);
       if (listState.type !== "ul") {

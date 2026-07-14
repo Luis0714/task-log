@@ -9,8 +9,8 @@ export const CREATE_TASKS_BATCH_TOOL_NAME = "create_tasks_batch";
 function parseHours(v: unknown): number {
   if (typeof v === "number") return v;
   if (typeof v === "string") {
-    const n = parseFloat(v.replace(/[^\d.]/g, ""));
-    return isNaN(n) ? -1 : n;
+    const n = Number.parseFloat(v.replace(/[^\d.]/g, ""));
+    return Number.isNaN(n) ? -1 : n;
   }
   return -1;
 }

@@ -51,7 +51,7 @@ export function PlanSelector() {
         <ChevronDown className="size-3.5 opacity-70" aria-hidden />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" sideOffset={6} className="w-80 p-2">
-        <ul className="flex flex-col gap-1" role="list">
+        <ul className="flex flex-col gap-1">
           {PLANS.map((plan, idx) => (
             <li key={plan.id}>
               <PlanRow

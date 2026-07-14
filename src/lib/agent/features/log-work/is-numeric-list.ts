@@ -13,8 +13,7 @@ const SEPARATORS = new Set([" ", "\t", "\n", "\r", ","]);
 function tokenize(input: string): string[] {
   const tokens: string[] = [];
   let buf = "";
-  for (let i = 0; i < input.length; i++) {
-    const ch = input[i]!;
+  for (const ch of input) {
     if (SEPARATORS.has(ch)) {
       if (buf.length > 0) {
         tokens.push(buf);
@@ -30,9 +29,9 @@ function tokenize(input: string): string[] {
 
 function isDigitsOnly(token: string): boolean {
   if (token.length === 0) return false;
-  for (let i = 0; i < token.length; i++) {
-    const code = token.charCodeAt(i);
-    if (code < 48 || code > 57) return false;
+  for (const ch of token) {
+    const code = ch.codePointAt(0);
+    if (code === undefined || code < 48 || code > 57) return false;
   }
   return true;
 }

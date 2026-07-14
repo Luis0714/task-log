@@ -2,10 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type {
-  NewsStoriesValidationResponse,
-  NewsStoryValidationEntry,
-} from "@/lib/news-stories/types";
+import type { NewsStoryValidationEntry } from "@/lib/news-stories/types";
 import {
   linkNewsStory as linkNewsStoryRequest,
   listNewsStories,
@@ -175,4 +172,4 @@ export function useNewsStories(scope: NewsStoriesScope): UseNewsStoriesResult {
   };
 }
 
-export type { NewsStoriesValidationResponse };
+export type { NewsStoriesValidationResponse } from "@/lib/news-stories/types";

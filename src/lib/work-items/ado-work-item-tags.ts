@@ -24,14 +24,16 @@ export function workItemHasTag(tags: readonly string[], target: string): boolean
   return tags.some((tag) => normalizeWorkItemTag(tag) === normalizedTarget);
 }
 
+const compareByString = (a: string, b: string): number => a.localeCompare(b);
+
 export function areWorkItemTagsEqual(
   left: readonly string[],
   right: readonly string[],
 ): boolean {
   if (left.length !== right.length) return false;
 
-  const normalizedLeft = left.map(normalizeWorkItemTag).sort((a, b) => a.localeCompare(b));
-  const normalizedRight = right.map(normalizeWorkItemTag).sort((a, b) => a.localeCompare(b));
+  const normalizedLeft = left.map(normalizeWorkItemTag).sort(compareByString);
+  const normalizedRight = right.map(normalizeWorkItemTag).sort(compareByString);
 
   return normalizedLeft.every((tag, index) => tag === normalizedRight[index]);
 }

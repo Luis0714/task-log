@@ -261,8 +261,8 @@ function extractNumericId(query: string): number | null {
   // Caso 1: la query es solo un número (ej. "258439" o "#258439")
   const exact = /^[#\s]*(\d+)\s*$/.exec(trimmed);
   if (exact) {
-    const id = parseInt(exact[1]!, 10);
-    return isNaN(id) || id <= 0 ? null : id;
+    const id = Number.parseInt(exact[1]!, 10);
+    return Number.isNaN(id) || id <= 0 ? null : id;
   }
 
   // Caso 2: número precedido por palabras clave comunes en español/inglés
@@ -273,8 +273,8 @@ function extractNumericId(query: string): number | null {
     );
   if (embedded) {
     const raw = embedded[1] ?? embedded[2];
-    const id = parseInt(raw!, 10);
-    return isNaN(id) || id <= 0 ? null : id;
+    const id = Number.parseInt(raw!, 10);
+    return Number.isNaN(id) || id <= 0 ? null : id;
   }
 
   return null;

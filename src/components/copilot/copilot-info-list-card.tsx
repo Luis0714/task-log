@@ -78,7 +78,7 @@ export function CopilotInfoListCard({
                     ({group.items.length})
                   </span>
                 </div>
-                <ul className="flex flex-col gap-0.5" role="list">
+                <ul className="flex flex-col gap-0.5">
                   {group.items.map((item) => (
                     <InfoListItemRow key={`${group.key}-${item.id}`} item={item} />
                   ))}

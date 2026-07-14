@@ -130,6 +130,7 @@ export function BugDetailSheetBody({
                 render={
                   <span
                     tabIndex={0}
+                    role="button"
                     aria-label="Fecha de trabajo bloqueada"
                     className="text-muted-foreground inline-flex size-4 cursor-help items-center justify-center"
                   />
@@ -159,6 +160,7 @@ export function BugDetailSheetBody({
                 render={
                   <span
                     tabIndex={0}
+                    role="button"
                     aria-label="Fecha de trabajo bloqueada"
                     className="absolute inset-0 block cursor-not-allowed rounded-md"
                   />

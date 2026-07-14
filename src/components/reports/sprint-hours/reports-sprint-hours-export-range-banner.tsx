@@ -49,16 +49,11 @@ export function ReportsSprintHoursExportRangeBanner({
         Contendra los reportes de tiempos hechos desde el{" "}
         <span className="font-medium text-foreground">{startDate}</span>, día en
         que empezó{" "}
-        <span className="font-medium text-foreground">
-          “{startSprintName}”
-        </span>
+        <span className="font-medium text-foreground">“{startSprintName}”</span>
         , hasta el{" "}
         <span className="font-medium text-foreground">{endDate}</span>, día en
         que finaliza{" "}
-        <span className="font-medium text-foreground">
-          “{endSprintName}”
-        </span>
-        .
+        <span className="font-medium text-foreground">“{endSprintName}”</span>.
       </p>
     </output>
   );

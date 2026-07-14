@@ -4,9 +4,9 @@ import { useCallback, useId, useMemo, useState } from "react";
 
 import { bulkTaskSchema } from "@/lib/schemas/time-log";
 import {
-  getDefaultWorkingDate,
   getDefaultWorkingTime,
 } from "@/lib/time-log/task-constants";
+import { resolveDefaultWorkingDate } from "@/lib/time-log/working-date-default";
 import {
   BULK_GROUP_LIMIT,
   type BulkGroup,
@@ -96,8 +96,7 @@ export type UseBulkGroupsResult = {
 };
 
 function newId(prefix: string): string {
-  const webCrypto =
-    typeof globalThis.crypto !== "undefined" ? globalThis.crypto : undefined;
+  const webCrypto = globalThis.crypto;
   if (!webCrypto) {
     return `${prefix}-${Date.now().toString(36)}-${fallbackCounter++}`;
   }
@@ -127,7 +126,7 @@ function buildEmptyTask(
     hours: "",
     description: "",
     activity: defaultActivity,
-    workingDate: getDefaultWorkingDate(),
+    workingDate: resolveDefaultWorkingDate(),
     workingTime: getDefaultWorkingTime(),
     taskState: defaultTaskState,
     markAsDone: !isTaskCreationMode,
@@ -313,6 +312,128 @@ function parseHours(raw: string): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function reconcileOpenGroupId(
+  current: string | null,
+  next: ReadonlyArray<BulkGroup>,
+): string | null {
+  if (current && next.some((group) => group.id === current)) return current;
+  return next[0]?.id ?? null;
+}
+
+function reconcileOpenTaskId(
+  current: string | null,
+  next: ReadonlyArray<BulkGroup>,
+): string | null {
+  const firstTaskId = next[0]?.tasks[0]?.id ?? null;
+  if (!current) return firstTaskId;
+  if (next.some((group) => group.tasks.some((task) => task.id === current))) {
+    return current;
+  }
+  return firstTaskId;
+}
+
+function reconcileOpenTaskIdAfterGroupRemoved(
+  current: string | null,
+  groups: ReadonlyArray<BulkGroup>,
+): string | null {
+  if (
+    current &&
+    groups.some((group) => group.tasks.some((task) => task.id === current))
+  ) {
+    return current;
+  }
+  return null;
+}
+
+function applyTaskPatch(
+  task: BulkTask,
+  taskId: string,
+  patch: Partial<BulkTask>,
+): BulkTask {
+  if (task.id !== taskId) return task;
+  const clearedErrors: Record<string, string | undefined> = { ...task.errors };
+  for (const key of Object.keys(patch)) {
+    if (key === "id" || key === "errors" || key === "result") continue;
+    if (Object.hasOwn(clearedErrors, key)) {
+      clearedErrors[key] = undefined;
+    }
+  }
+  return { ...task, ...patch, errors: clearedErrors };
+}
+
+function applyTaskPatchToGroup(
+  group: BulkGroup,
+  groupId: string,
+  taskId: string,
+  patch: Partial<BulkTask>,
+): BulkGroup {
+  if (group.id !== groupId) return group;
+  return {
+    ...group,
+    tasks: group.tasks.map((task) => applyTaskPatch(task, taskId, patch)),
+  };
+}
+
+function applyTaskField<K extends keyof BulkTask>(
+  task: BulkTask,
+  taskId: string,
+  key: K,
+  value: BulkTask[K],
+): BulkTask {
+  if (task.id !== taskId) return task;
+  const nextErrors = { ...task.errors };
+  if (
+    key !== "result" &&
+    key !== "errors" &&
+    key !== "id" &&
+    Object.hasOwn(nextErrors, key)
+  ) {
+    nextErrors[key as keyof typeof nextErrors] = undefined;
+  }
+  return {
+    ...task,
+    [key]: value,
+    errors: nextErrors,
+  };
+}
+
+function applyTaskFieldToGroup<K extends keyof BulkTask>(
+  group: BulkGroup,
+  groupId: string,
+  taskId: string,
+  key: K,
+  value: BulkTask[K],
+): BulkGroup {
+  if (group.id !== groupId) return group;
+  return {
+    ...group,
+    tasks: group.tasks.map((task) =>
+      applyTaskField(task, taskId, key, value),
+    ),
+  };
+}
+
+function applyTaskResult(
+  task: BulkTask,
+  taskId: string,
+  result: BulkTaskResult,
+): BulkTask {
+  return task.id === taskId ? { ...task, result } : task;
+}
+
+function applyTaskResultToGroup(
+  group: BulkGroup,
+  groupId: string,
+  taskId: string,
+  result: BulkTaskResult,
+): BulkGroup {
+  if (group.id !== groupId) return group;
+  return {
+    ...group,
+    tasks: group.tasks.map((task) => applyTaskResult(task, taskId, result)),
+  };
+}
+
 /**
  * Helper para que el caller detecte si una tarea concreta es válida (mismo
  * criterio que `validTaskCount`) sin re-correr el schema en cada render.
@@ -359,7 +480,7 @@ export function useBulkGroups({
   // Pre-computamos el grupo y tarea iniciales una sola vez por render del
   // hook. Esto evita leer refs durante render y mantiene `groups`,
   // `openGroupId` y `openTaskId` sincronizados en el primer render.
-  const [initialGroup] = useState<BulkGroup>(() =>
+  const [groups, setGroups] = useState<BulkGroup[]>(() => [
     buildEmptyGroup(
       isTaskCreationMode,
       defaultTaskState,
@@ -367,8 +488,8 @@ export function useBulkGroups({
       `bulk-group-${reactId}`,
       `bulk-task-${reactId}`,
     ),
-  );
-  const [groups, setGroups] = useState<BulkGroup[]>(() => [initialGroup]);
+  ]);
+  const initialGroup = groups[0]!;
   const [openGroupId, setOpenGroupId] = useState<string | null>(
     () => initialGroup.id,
   );
@@ -389,16 +510,8 @@ export function useBulkGroups({
 
   const replaceGroups = useCallback((next: BulkGroup[]) => {
     setGroups(next);
-    setOpenGroupId((current) => {
-      if (current && next.some((group) => group.id === current)) return current;
-      return next[0]?.id ?? null;
-    });
-    setOpenTaskIdRaw((current) => {
-      if (!current) return next[0]?.tasks[0]?.id ?? null;
-      const found = next.find((g) => g.tasks.some((t) => t.id === current));
-      if (found) return current;
-      return next[0]?.tasks[0]?.id ?? null;
-    });
+    setOpenGroupId((current) => reconcileOpenGroupId(current, next));
+    setOpenTaskIdRaw((current) => reconcileOpenTaskId(current, next));
   }, []);
 
   const tryAddTask = useCallback<UseBulkGroupsResult["tryAddTask"]>(
@@ -486,7 +599,6 @@ export function useBulkGroups({
     setGroups((current) => {
       if (current.length <= 1) return current;
       const next = current.filter((g) => g.id !== id);
-      // Si dejamos el array vacío, reponemos un grupo vacío.
       if (next.length === 0) {
         const newGroupId = newId("bulk-group");
         const newTaskId = newId("bulk-task");
@@ -503,10 +615,9 @@ export function useBulkGroups({
       return next;
     });
     setOpenGroupId((current) => (current === id ? null : current));
-    setOpenTaskIdRaw((current) => {
-      const stillExists = groups.some((g) => g.tasks.some((t) => t.id === current));
-      return stillExists ? current : null;
-    });
+    setOpenTaskIdRaw((current) =>
+      reconcileOpenTaskIdAfterGroupRemoved(current, groups),
+    );
   }, [defaultActivity, defaultTaskState, groups, isTaskCreationMode]);
 
   const removeTask = useCallback((groupId: string, taskId: string) => {
@@ -515,7 +626,6 @@ export function useBulkGroups({
       if (idx < 0) return current;
       const group = current[idx]!;
       const remaining = group.tasks.filter((t) => t.id !== taskId);
-      // Si era la única tarea, eliminamos el grupo entero.
       if (remaining.length === 0) {
         const nextGroups = current.filter((_, i) => i !== idx);
         if (nextGroups.length === 0) {
@@ -552,25 +662,9 @@ export function useBulkGroups({
   const updateTask = useCallback(
     (groupId: string, taskId: string, patch: Partial<BulkTask>) => {
       setGroups((current) =>
-        current.map((g) => {
-          if (g.id !== groupId) return g;
-          return {
-            ...g,
-            tasks: g.tasks.map((t) => {
-              if (t.id !== taskId) return t;
-              const clearedErrors: Record<string, string | undefined> = {
-                ...t.errors,
-              };
-              for (const k of Object.keys(patch)) {
-                if (k === "id" || k === "errors" || k === "result") continue;
-                if (Object.hasOwn(clearedErrors, k)) {
-                  clearedErrors[k] = undefined;
-                }
-              }
-              return { ...t, ...patch, errors: clearedErrors };
-            }),
-          };
-        }),
+        current.map((group) =>
+          applyTaskPatchToGroup(group, groupId, taskId, patch),
+        ),
       );
     },
     [],
@@ -584,32 +678,9 @@ export function useBulkGroups({
       value: BulkTask[K],
     ) => {
       setGroups((current) =>
-        current.map((g) => {
-          if (g.id !== groupId) return g;
-          return {
-            ...g,
-            tasks: g.tasks.map((t) => {
-              if (t.id !== taskId) return t;
-              const nextErrors = { ...t.errors };
-              // Sólo limpiamos el error si la clave también es una clave
-              // válida de `errors`. Campos como `templateId` no tienen
-              // entrada en errors y deben ignorarse aquí.
-              if (
-                key !== "result" &&
-                key !== "errors" &&
-                key !== "id" &&
-                Object.hasOwn(nextErrors, key)
-              ) {
-                nextErrors[key as keyof typeof nextErrors] = undefined;
-              }
-              return {
-                ...t,
-                [key]: value,
-                errors: nextErrors,
-              };
-            }),
-          };
-        }),
+        current.map((group) =>
+          applyTaskFieldToGroup(group, groupId, taskId, key, value),
+        ),
       );
     },
     [],
@@ -618,13 +689,9 @@ export function useBulkGroups({
   const setTaskResult = useCallback(
     (groupId: string, taskId: string, result: BulkTaskResult) => {
       setGroups((current) =>
-        current.map((g) => {
-          if (g.id !== groupId) return g;
-          return {
-            ...g,
-            tasks: g.tasks.map((t) => (t.id === taskId ? { ...t, result } : t)),
-          };
-        }),
+        current.map((group) =>
+          applyTaskResultToGroup(group, groupId, taskId, result),
+        ),
       );
     },
     [],
