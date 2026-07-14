@@ -96,11 +96,23 @@ export type UseBulkGroupsResult = {
 };
 
 function newId(prefix: string): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`;
+  const webCrypto =
+    typeof globalThis.crypto !== "undefined" ? globalThis.crypto : undefined;
+  if (!webCrypto) {
+    return `${prefix}-${Date.now().toString(36)}-${fallbackCounter++}`;
   }
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  if (typeof webCrypto.randomUUID === "function") {
+    return `${prefix}-${webCrypto.randomUUID()}`;
+  }
+  const bytes = new Uint8Array(8);
+  webCrypto.getRandomValues(bytes);
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(
+    "",
+  );
+  return `${prefix}-${Date.now().toString(36)}-${hex}`;
 }
+
+let fallbackCounter = 0;
 
 function buildEmptyTask(
   isTaskCreationMode: boolean,

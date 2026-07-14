@@ -7,11 +7,38 @@
  * token por token para evitar regex con cuantificadores anidados, que
  * son vulnerables a backtracking exponencial (Sonar S5852 ReDoS).
  */
+
+const SEPARATORS = new Set([" ", "\t", "\n", "\r", ","]);
+
+function tokenize(input: string): string[] {
+  const tokens: string[] = [];
+  let buf = "";
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i]!;
+    if (SEPARATORS.has(ch)) {
+      if (buf.length > 0) {
+        tokens.push(buf);
+        buf = "";
+      }
+    } else {
+      buf += ch;
+    }
+  }
+  if (buf.length > 0) tokens.push(buf);
+  return tokens;
+}
+
+function isDigitsOnly(token: string): boolean {
+  if (token.length === 0) return false;
+  for (let i = 0; i < token.length; i++) {
+    const code = token.charCodeAt(i);
+    if (code < 48 || code > 57) return false;
+  }
+  return true;
+}
+
 export function isNumericList(input: string): boolean {
-  const tokens = input
-    .split(/[\s,]+/)
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0);
+  const tokens = tokenize(input);
   if (tokens.length < 2) return false;
-  return tokens.every((t) => /^\d+$/.test(t));
+  return tokens.every(isDigitsOnly);
 }

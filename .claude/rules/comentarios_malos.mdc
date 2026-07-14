@@ -1,0 +1,19 @@
+---
+description: Avoid explanatory comments inside implementation code
+globs:
+alwaysApply: true
+---
+
+# Clean Code - Comments
+
+## Avoid explanatory comments
+
+Do not add comments whose only purpose is to explain what a block of code, condition, variable, or function is doing.
+
+Bad example:
+
+```ts
+if (created.ok) {
+  // Only refresh if the link was created successfully.
+  await refreshLinked();
+}
