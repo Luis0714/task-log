@@ -108,7 +108,6 @@ export function DraftCard({
           {status ? (
             <span
               className="shrink-0"
-              role="presentation"
               onClick={(event) => event.stopPropagation()}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -144,7 +143,7 @@ export function DraftCard({
         id={`draft-card-${id}-panel`}
         className={cn(
           "grid transition-[grid-template-rows] duration-200 ease-out",
-          "data-[open]:grid-rows-[1fr] data-[closed]:grid-rows-[0fr]",
+          "data-open:grid-rows-[1fr] data-closed:grid-rows-[0fr]",
         )}
       >
         <div className="overflow-hidden">

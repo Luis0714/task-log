@@ -45,7 +45,7 @@ export function PlanSelector() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Seleccionar plan de Neos IA"
-        className="hover:bg-muted/60 text-foreground inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 data-[popup-open]:bg-muted/60"
+        className="hover:bg-muted/60 text-foreground inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 data-popup-open:bg-muted/60"
       >
         Neos IA
         <ChevronDown className="size-3.5 opacity-70" aria-hidden />
