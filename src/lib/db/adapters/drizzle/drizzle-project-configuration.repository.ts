@@ -10,6 +10,34 @@ import type {
 } from "@/lib/db/ports/project-configuration.repository.port";
 import { projectConfigurations } from "@/lib/db/schema";
 
+type ResponsableFieldConfig = {
+  key: string;
+  referenceName: string;
+  label: string;
+  defaultToCurrentUser: boolean;
+};
+
+function mapConfigToColumns(config: ProjectConfigInput) {
+  return {
+    workingDateField: config.workingDateField,
+    timezone: config.timezone,
+    completedWorkField: config.completedWorkField,
+    originalEstimateField: config.originalEstimateField,
+    activityField: config.activityField,
+    remainingWorkField: config.remainingWorkField,
+    taskWorkItemType: config.taskWorkItemType,
+    bugWorkItemType: config.bugWorkItemType,
+    backlogItemType: config.backlogItemType,
+    taskTodoState: config.taskTodoState,
+    taskDoneState: config.taskDoneState,
+    responsableFields: config.responsableFields
+      ? (structuredClone(config.responsableFields) as ResponsableFieldConfig[])
+      : [],
+    configSource: config.configSource,
+    discoveredAt: config.discoveredAt,
+  };
+}
+
 export const drizzleProjectConfigurationRepository: ProjectConfigurationRepository = {
   async findByOrgAndProject(organization, project): Promise<ProjectConfigRow | null> {
     const rows = await getDb()
@@ -54,52 +82,12 @@ export const drizzleProjectConfigurationRepository: ProjectConfigurationReposito
       .values({
         organization,
         project,
-        workingDateField: config.workingDateField,
-        timezone: config.timezone,
-        completedWorkField: config.completedWorkField,
-        originalEstimateField: config.originalEstimateField,
-        activityField: config.activityField,
-        remainingWorkField: config.remainingWorkField,
-        taskWorkItemType: config.taskWorkItemType,
-        bugWorkItemType: config.bugWorkItemType,
-        backlogItemType: config.backlogItemType,
-        taskTodoState: config.taskTodoState,
-        taskDoneState: config.taskDoneState,
-        responsableFields: config.responsableFields
-          ? (JSON.parse(JSON.stringify(config.responsableFields)) as Array<{
-              key: string;
-              referenceName: string;
-              label: string;
-              defaultToCurrentUser: boolean;
-            }>)
-          : [],
-        configSource: config.configSource,
-        discoveredAt: config.discoveredAt,
+        ...mapConfigToColumns(config),
       })
       .onConflictDoUpdate({
         target: [projectConfigurations.organization, projectConfigurations.project],
         set: {
-          workingDateField: config.workingDateField,
-          timezone: config.timezone,
-          completedWorkField: config.completedWorkField,
-          originalEstimateField: config.originalEstimateField,
-          activityField: config.activityField,
-          remainingWorkField: config.remainingWorkField,
-          taskWorkItemType: config.taskWorkItemType,
-          bugWorkItemType: config.bugWorkItemType,
-          backlogItemType: config.backlogItemType,
-          taskTodoState: config.taskTodoState,
-          taskDoneState: config.taskDoneState,
-          responsableFields: config.responsableFields
-            ? (JSON.parse(JSON.stringify(config.responsableFields)) as Array<{
-                key: string;
-                referenceName: string;
-                label: string;
-                defaultToCurrentUser: boolean;
-              }>)
-            : [],
-          configSource: config.configSource,
-          discoveredAt: config.discoveredAt,
+          ...mapConfigToColumns(config),
           updatedAt: new Date(),
         },
       });

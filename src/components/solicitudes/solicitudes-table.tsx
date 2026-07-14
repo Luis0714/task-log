@@ -68,27 +68,11 @@ export function SolicitudesTable({
               <Field label="Estado" value={solicitud.state || "—"} />
             </dl>
             <div className="mt-3 flex items-center justify-end gap-1">
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Editar solicitud #${solicitud.id}`}
-                      onClick={() => onEdit(solicitud)}
-                    />
-                  }
-                >
-                  <Pencil aria-hidden />
-                </TooltipTrigger>
-                <TooltipContent>Editar solicitud</TooltipContent>
-              </Tooltip>
-              <DeleteSolicitudDialog
-                workItemId={solicitud.id}
+              <SolicitudActions
+                solicitud={solicitud}
                 project={project}
-                itemTitle={solicitud.title}
-                onDeleted={() => onDeleted(solicitud)}
+                onEdit={onEdit}
+                onDeleted={onDeleted}
               />
             </div>
           </li>
@@ -141,27 +125,11 @@ export function SolicitudesTable({
                 </td>
                 <td className="px-3 py-2 text-right whitespace-nowrap">
                   <div className="inline-flex items-center gap-1">
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Editar solicitud #${solicitud.id}`}
-                            onClick={() => onEdit(solicitud)}
-                          />
-                        }
-                      >
-                        <Pencil aria-hidden />
-                      </TooltipTrigger>
-                      <TooltipContent>Editar solicitud</TooltipContent>
-                    </Tooltip>
-                    <DeleteSolicitudDialog
-                      workItemId={solicitud.id}
+                    <SolicitudActions
+                      solicitud={solicitud}
                       project={project}
-                      itemTitle={solicitud.title}
-                      onDeleted={() => onDeleted(solicitud)}
+                      onEdit={onEdit}
+                      onDeleted={onDeleted}
                     />
                   </div>
                 </td>
@@ -182,6 +150,45 @@ export function SolicitudesTable({
           </tbody>
         </table>
       </div>
+    </>
+  );
+}
+
+function SolicitudActions({
+  solicitud,
+  project,
+  onEdit,
+  onDeleted,
+}: Readonly<{
+  solicitud: SolicitudDto;
+  project: string;
+  onEdit: (solicitud: SolicitudDto) => void;
+  onDeleted: (solicitud: SolicitudDto) => void;
+}>) {
+  return (
+    <>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={`Editar solicitud #${solicitud.id}`}
+              onClick={() => onEdit(solicitud)}
+            />
+          }
+        >
+          <Pencil aria-hidden />
+        </TooltipTrigger>
+        <TooltipContent>Editar solicitud</TooltipContent>
+      </Tooltip>
+      <DeleteSolicitudDialog
+        workItemId={solicitud.id}
+        project={project}
+        itemTitle={solicitud.title}
+        onDeleted={() => onDeleted(solicitud)}
+      />
     </>
   );
 }

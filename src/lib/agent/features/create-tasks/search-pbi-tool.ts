@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { searchPbiByText, type PbiSearchHit } from "@/lib/azure-devops/search-pbi-by-text";
+import {
+  clarificationCandidateSchema,
+  clarificationQuestionSchema,
+} from "@/lib/agent/tools/needs-clarification-schema";
 import type { ToolExecutionContext, ToolHandler } from "@/lib/agent/tools/types";
 import type { NeedsClarificationPayload } from "@/lib/schemas/agent";
 
@@ -40,16 +44,8 @@ export function buildSearchPbiTool(
     argsSchema: searchPbiArgsSchema,
     outputSchema: z.object({
       action: z.literal("needs_clarification"),
-      question: z.string().min(1).max(500),
-      candidates: z
-        .array(
-          z.object({
-            id: z.number().int().positive(),
-            title: z.string().min(1).max(500),
-            state: z.string().min(1).max(100).optional(),
-          }),
-        )
-        .max(8),
+      question: clarificationQuestionSchema,
+      candidates: z.array(clarificationCandidateSchema).max(8),
     }),
     handle: async (
       args,

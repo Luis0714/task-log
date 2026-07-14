@@ -2,8 +2,11 @@ import "server-only";
 
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { createNovedadUnderStory } from "@/lib/azure-devops/create-novedad";
-import { getRepositories } from "@/lib/db";
 import { loadProjectRoster } from "@/lib/filters/load-project-roster";
+import {
+  isNewsStoryLinked,
+  type SolicitudMutationResult,
+} from "@/lib/novedades/news-story-link";
 import { resolveAzureHours } from "@/lib/solicitudes/time-calc";
 import { SOLICITUD_ERROR_CODES } from "@/lib/solicitudes/error-codes";
 import type { CreateSolicitudBody } from "@/lib/schemas/solicitudes";
@@ -16,23 +19,7 @@ import {
  * Valida la membresía del proyecto y la HU destino, convierte el tiempo a horas
  * (CA-21) y crea la novedad en Azure (CA-28). Sin reintentos ni idempotencia.
  */
-export type CreateSolicitudResult =
-  | { ok: true; workItemId: number; url: string }
-  | { ok: false; status: number; message: string };
-
-async function isNewsStoryLinked(
-  projectId: string,
-  teamId: string | null,
-  workItemId: number,
-): Promise<boolean> {
-  // Con equipo, el repo incluye también las HUs a nivel proyecto (teamId nulo),
-  // que aplican a todos los equipos.
-  const rows = await getRepositories().newsStories.list({
-    projectIds: [projectId],
-    teamIds: teamId ? [teamId] : undefined,
-  });
-  return rows.some((row) => row.workItemId === workItemId);
-}
+export type CreateSolicitudResult = SolicitudMutationResult;
 
 export async function createSolicitud(
   auth: AdoCallerAuth,

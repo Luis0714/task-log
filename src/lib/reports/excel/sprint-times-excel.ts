@@ -9,120 +9,28 @@ import {
 import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import { resolveAdoTimeZone } from "@/lib/azure-devops/working-date-field";
 import {
+  COLOR,
+  buildHoursCell,
+  buildPersonaCell,
+  buildRolCell,
+  centerAlign,
+  leftAlign,
+  styleCell,
+  type BorderStyle,
+  type CellFont,
+} from "@/lib/reports/excel/excel-styles";
+import {
   lookupMemberOrPlaceholder,
   type MemberInfo,
 } from "@/lib/reports/excel/member-info";
 import type { SprintTimesMetrics } from "@/lib/sprints/sprint-stats-types";
+import {
+  sumSprintBreakdowns,
+  sumWeekBreakdowns,
+} from "@/lib/sprints/sum-hours-breakdowns";
 import { formatSprintDateRange } from "@/lib/time-log/format-options";
 
-// ── App brand palette (light theme, purple accent) ──────────────────────────────
-const COLOR = {
-  headerBg: "FF8B5CF6",
-  headerFg: "FFFFFFFF",
-  subHeaderBg: "FFEDE9FE",
-  subHeaderFg: "FF4C1D95",
-  cardBg: "FFF8F8FA",
-  foreground: "FF101013",
-  mutedFg: "FF6B7280",
-  border: "FFE5E7EB",
-  weekOddBg: "FFF3EEFF",
-  weekEvenBg: "FFFFFFFF",
-  totalBg: "FFEDE9FE",
-  totalFg: "FF4C1D95",
-  accent: "FF7C3AED",
-  bugAccent: "FFEF4444",
-  placeholderFg: "FFB4B4C2",
-} as const;
-
-type BorderStyle = "thin" | "medium";
-type BorderSide = "top" | "right" | "bottom" | "left";
-
-type CellStyle = {
-  fill?: string;
-  font?: { bold?: boolean; italic?: boolean; color?: string; size?: number };
-  alignment?: {
-    horizontal: "left" | "center";
-    vertical: "middle";
-    wrapText?: boolean;
-    indent?: number;
-  };
-  /** Estilo aplicado a los 4 lados del borde. */
-  borderStyle?: BorderStyle;
-  /** Si true, omite el borde derecho (útil para la última celda antes de una zona sin borde). */
-  skipRightBorder?: boolean;
-  /** NumFmt de Excel (ej. `"0.0\"h\""`). */
-  numFmt?: string;
-};
-
-function styleCell(cell: ExcelJS.Cell, style: CellStyle): void {
-  if (style.fill) {
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: style.fill } };
-  }
-  if (style.font) {
-    cell.font = {
-      name: "Calibri",
-      bold: style.font.bold ?? false,
-      italic: style.font.italic ?? false,
-      color: style.font.color ? { argb: style.font.color } : undefined,
-      size: style.font.size ?? 10,
-    };
-  }
-  if (style.alignment) {
-    cell.alignment = style.alignment;
-  }
-  if (style.borderStyle) {
-    const sides: Partial<Record<BorderSide, ExcelJS.Border>> = {
-      top: { style: style.borderStyle, color: { argb: COLOR.border } },
-      left: { style: style.borderStyle, color: { argb: COLOR.border } },
-      bottom: { style: style.borderStyle, color: { argb: COLOR.border } },
-    };
-    if (!style.skipRightBorder) {
-      sides.right = { style: style.borderStyle, color: { argb: COLOR.border } };
-    }
-    cell.border = sides;
-  }
-  if (style.numFmt) {
-    cell.numFmt = style.numFmt;
-  }
-}
-
-function centerAlign(wrap = false): CellStyle["alignment"] {
-  return { horizontal: "center", vertical: "middle", wrapText: wrap };
-}
-
-function leftAlign(indent = 1, wrap = false): CellStyle["alignment"] {
-  return { horizontal: "left", vertical: "middle", wrapText: wrap, indent };
-}
-
 // ── Domain helpers ────────────────────────────────────────────────────────────
-
-function sumWeekBreakdowns(
-  rows: readonly { weeks: readonly HoursBreakdown[] }[],
-  weekIndex: number,
-): HoursBreakdown {
-  return rows.reduce<HoursBreakdown>(
-    (acc, row) => {
-      const w = row.weeks[weekIndex] ?? EMPTY_HOURS_BREAKDOWN;
-      return {
-        taskHours: acc.taskHours + w.taskHours,
-        bugHours: acc.bugHours + w.bugHours,
-      };
-    },
-    { ...EMPTY_HOURS_BREAKDOWN },
-  );
-}
-
-function sumSprintBreakdowns(
-  rows: readonly { sprint: HoursBreakdown }[],
-): HoursBreakdown {
-  return rows.reduce<HoursBreakdown>(
-    (acc, row) => ({
-      taskHours: acc.taskHours + row.sprint.taskHours,
-      bugHours: acc.bugHours + row.sprint.bugHours,
-    }),
-    { ...EMPTY_HOURS_BREAKDOWN },
-  );
-}
 
 function weekStripingBg(weekIndex: number): string {
   return weekIndex % 2 === 0 ? COLOR.weekOddBg : COLOR.weekEvenBg;
@@ -221,12 +129,23 @@ const WEEK_SUB_COL_WIDTH = 10;
 const SPRINT_TIER_COL_WIDTH = 14;
 const WEEK_SUB_COLS = 3;
 const SPRINT_TIER_COLS = 3;
-const HOURS_NUMFMT = `0.0"h"`;
 
-function buildColumnLayout(weekCount: number): Partial<ExcelJS.Column>[] {
+const GROUP_HEADER_ROW = 6;
+const SUB_HEADER_ROW = 7;
+const DATA_START_ROW = 8;
+
+const GROUP_HEADER_FONT: CellFont = {
+  bold: true,
+  color: COLOR.subHeaderFg,
+  size: 11,
+};
+
+function buildColumnLayout(
+  weekCount: number,
+  leadingWidths: readonly number[] = [PERSONA_COL_WIDTH, ROL_COL_WIDTH],
+): Partial<ExcelJS.Column>[] {
   return [
-    { width: PERSONA_COL_WIDTH },
-    { width: ROL_COL_WIDTH },
+    ...leadingWidths.map((width) => ({ width })),
     ...Array.from({ length: weekCount * WEEK_SUB_COLS }, () => ({
       width: WEEK_SUB_COL_WIDTH,
     })),
@@ -234,6 +153,16 @@ function buildColumnLayout(weekCount: number): Partial<ExcelJS.Column>[] {
       width: SPRINT_TIER_COL_WIDTH,
     })),
   ];
+}
+
+function applyHeaderRowHeights(ws: ExcelJS.Worksheet, groupHeaderHeight = 30): void {
+  ws.getRow(1).height = 36;
+  ws.getRow(2).height = 22;
+  ws.getRow(3).height = 22;
+  ws.getRow(4).height = 22;
+  ws.getRow(5).height = 8;
+  ws.getRow(GROUP_HEADER_ROW).height = groupHeaderHeight;
+  ws.getRow(SUB_HEADER_ROW).height = 20;
 }
 
 /** 1-based column index del primer sub-col (Desarrollo) de una semana. */
@@ -246,129 +175,148 @@ function sprintTierStartColumn(weekCount: number): number {
   return 3 + weekCount * WEEK_SUB_COLS;
 }
 
-function sprintDevColumn(weekCount: number): number {
-  return sprintTierStartColumn(weekCount);
-}
-
-function sprintBugColumn(weekCount: number): number {
-  return sprintTierStartColumn(weekCount) + 1;
-}
-
-function sprintTotalColumn(weekCount: number): number {
-  return sprintTierStartColumn(weekCount) + 2;
-}
-
 function totalColumnCount(weekCount: number): number {
-  return sprintTotalColumn(weekCount);
+  return sprintTierStartColumn(weekCount) + SPRINT_TIER_COLS - 1;
 }
 
-// ── Cell builders (SRP: cada uno construye UNA celda) ──────────────────────────
-
-function buildPersonaCell(
-  cell: ExcelJS.Cell,
-  displayName: string,
-  email: string,
-): void {
-  cell.value = {
-    richText: [
-      {
-        text: displayName,
-        font: { bold: true, color: { argb: COLOR.foreground }, size: 10 },
-      },
-      {
-        text: `\n${email}`,
-        font: { color: { argb: COLOR.mutedFg }, size: 9 },
-      },
-    ],
-  };
-  styleCell(cell, {
-    fill: COLOR.cardBg,
-    alignment: leftAlign(1, true),
-    borderStyle: "thin",
-    skipRightBorder: true,
-  });
+// En el layout combinado existe la columna "Sprint" adicional, por lo que las
+// columnas semanales y el tier empiezan una posición después.
+function combinedWeekStartColumn(weekIdx: number): number {
+  return 4 + weekIdx * WEEK_SUB_COLS;
 }
 
-function buildRolCell(cell: ExcelJS.Cell, role: string): void {
-  cell.value = role;
-  styleCell(cell, {
-    fill: COLOR.cardBg,
-    font: { color: COLOR.mutedFg, size: 10 },
-    alignment: leftAlign(1),
-    borderStyle: "thin",
-    skipRightBorder: true,
-  });
+function combinedTierStartColumn(weekCount: number): number {
+  return 4 + weekCount * WEEK_SUB_COLS;
 }
 
-function buildHoursCell(
-  cell: ExcelJS.Cell,
-  value: number,
-  opts: { fill: string; color: string; bold?: boolean; skipRightBorder?: boolean },
-): void {
-  cell.value = value;
-  styleCell(cell, {
-    fill: opts.fill,
-    font: { color: opts.color, bold: opts.bold ?? false, size: 10 },
-    alignment: centerAlign(),
-    borderStyle: "thin",
-    skipRightBorder: opts.skipRightBorder,
-    numFmt: HOURS_NUMFMT,
-  });
-}
+// ── Cell builders (SRP: cada uno construye UNA zona de la fila) ────────────────
 
-function buildWeekRow(
+function buildWeekCells(
   ws: ExcelJS.Worksheet,
   excelRow: number,
   breakdown: HoursBreakdown,
   weekIdx: number,
+  startColumn: number,
   borderStyle: BorderStyle = "thin",
 ): void {
   const bg = weekStripingBg(weekIdx);
-  const start = weekStartColumn(weekIdx);
   const isMedium = borderStyle === "medium";
   const fg = isMedium ? COLOR.totalFg : COLOR.foreground;
 
-  buildHoursCell(ws.getCell(excelRow, start), breakdown.taskHours, {
+  buildHoursCell(ws.getCell(excelRow, startColumn), breakdown.taskHours, {
     fill: bg,
     color: COLOR.accent,
     bold: isMedium,
   });
-  buildHoursCell(ws.getCell(excelRow, start + 1), totalHoursBreakdown(breakdown), {
+  buildHoursCell(ws.getCell(excelRow, startColumn + 1), totalHoursBreakdown(breakdown), {
     fill: bg,
     color: fg,
     bold: true,
   });
-  buildHoursCell(ws.getCell(excelRow, start + 2), breakdown.bugHours, {
+  buildHoursCell(ws.getCell(excelRow, startColumn + 2), breakdown.bugHours, {
     fill: bg,
     color: COLOR.bugAccent,
     bold: isMedium,
   });
 }
 
-function buildSprintTierCells(
+function buildTierCells(
   ws: ExcelJS.Worksheet,
   excelRow: number,
   breakdown: HoursBreakdown,
-  weekCount: number,
-  opts: { fill: string; fg: string; bold?: boolean },
+  tierStart: number,
+  opts: { fill: string; bold?: boolean },
 ): void {
   const isMedium = opts.bold ?? false;
-  const accent = isMedium ? COLOR.totalFg : COLOR.foreground;
-  buildHoursCell(ws.getCell(excelRow, sprintDevColumn(weekCount)), breakdown.taskHours, {
+  const totalColor = isMedium ? COLOR.totalFg : COLOR.foreground;
+  buildHoursCell(ws.getCell(excelRow, tierStart), breakdown.taskHours, {
     fill: opts.fill,
     color: COLOR.accent,
     bold: isMedium,
   });
-  buildHoursCell(ws.getCell(excelRow, sprintBugColumn(weekCount)), breakdown.bugHours, {
+  buildHoursCell(ws.getCell(excelRow, tierStart + 1), breakdown.bugHours, {
     fill: opts.fill,
     color: COLOR.bugAccent,
     bold: isMedium,
   });
-  buildHoursCell(ws.getCell(excelRow, sprintTotalColumn(weekCount)), totalHoursBreakdown(breakdown), {
+  buildHoursCell(ws.getCell(excelRow, tierStart + 2), totalHoursBreakdown(breakdown), {
     fill: opts.fill,
-    color: accent,
+    color: totalColor,
     bold: true,
   });
+}
+
+// ── Header builders ───────────────────────────────────────────────────────────
+
+function writeFixedHeaderCells(
+  ws: ExcelJS.Worksheet,
+  row: number,
+  labels: readonly string[],
+  opts: { skipLastRightBorder?: boolean } = {},
+): void {
+  labels.forEach((label, idx) => {
+    const col = idx + 1;
+    const isLast = idx === labels.length - 1;
+    styleCell(ws.getCell(row, col), {
+      fill: COLOR.subHeaderBg,
+      font: GROUP_HEADER_FONT,
+      alignment: centerAlign(),
+      borderStyle: "thin",
+      skipRightBorder: isLast ? (opts.skipLastRightBorder ?? true) : true,
+    });
+    ws.getCell(row, col).value = label;
+  });
+}
+
+function writeGroupHeaderCell(
+  ws: ExcelJS.Worksheet,
+  row: number,
+  start: number,
+  value: ExcelJS.CellValue,
+  opts: { colSpan?: number; wrap?: boolean; font?: CellFont } = {},
+): void {
+  const end = start + (opts.colSpan ?? WEEK_SUB_COLS) - 1;
+  ws.mergeCells(row, start, row, end);
+  const cell = ws.getCell(row, start);
+  cell.value = value;
+  styleCell(cell, {
+    fill: COLOR.subHeaderBg,
+    font: opts.font,
+    alignment: centerAlign(opts.wrap ?? false),
+    borderStyle: "thin",
+  });
+  for (let c = start; c <= end; c++) {
+    styleCell(ws.getCell(row, c), {
+      fill: COLOR.subHeaderBg,
+      borderStyle: "thin",
+    });
+  }
+}
+
+function writeTierHeaderCell(
+  ws: ExcelJS.Worksheet,
+  row: number,
+  tierStart: number,
+): void {
+  writeGroupHeaderCell(ws, row, tierStart, "Tiempos totales", {
+    colSpan: SPRINT_TIER_COLS,
+    font: GROUP_HEADER_FONT,
+  });
+}
+
+function twoLineHeaderValue(title: string, subtitle: string): ExcelJS.CellValue {
+  return {
+    richText: [
+      {
+        text: title,
+        font: { bold: true, color: { argb: COLOR.subHeaderFg }, size: 11 },
+      },
+      {
+        text: `\n${subtitle}`,
+        font: { color: { argb: COLOR.mutedFg }, size: 9, italic: true },
+      },
+    ],
+  };
 }
 
 // ── Section builders ──────────────────────────────────────────────────────────
@@ -410,45 +358,37 @@ function writeTitleRow(
   });
 }
 
+type MetadataLabels = {
+  project: string;
+  team: string;
+  sprintLabel: string;
+  scopeLabel: string;
+};
+
 function writeMetadataRows(
   ws: ExcelJS.Worksheet,
   startRow: number,
   colCount: number,
-  meta: { project: string; team: string; sprintName: string; scopeLabel: string },
+  meta: MetadataLabels,
 ): void {
   const midCol = Math.ceil(colCount / 2);
+  const cells = [
+    { row: startRow, from: 1, to: midCol, text: `Proyecto: ${meta.project}` },
+    { row: startRow, from: midCol + 1, to: colCount, text: `Equipo: ${meta.team}` },
+    { row: startRow + 1, from: 1, to: midCol, text: meta.sprintLabel },
+    { row: startRow + 1, from: midCol + 1, to: colCount, text: meta.scopeLabel },
+  ];
 
-  ws.mergeCells(startRow, 1, startRow, midCol);
-  styleCell(ws.getCell(startRow, 1), {
-    fill: COLOR.cardBg,
-    font: { color: COLOR.foreground, size: 10 },
-    alignment: leftAlign(1),
-  });
-  ws.getCell(startRow, 1).value = `Proyecto: ${meta.project}`;
-
-  ws.mergeCells(startRow, midCol + 1, startRow, colCount);
-  styleCell(ws.getCell(startRow, midCol + 1), {
-    fill: COLOR.cardBg,
-    font: { color: COLOR.foreground, size: 10 },
-    alignment: leftAlign(1),
-  });
-  ws.getCell(startRow, midCol + 1).value = `Equipo: ${meta.team}`;
-
-  ws.mergeCells(startRow + 1, 1, startRow + 1, midCol);
-  styleCell(ws.getCell(startRow + 1, 1), {
-    fill: COLOR.cardBg,
-    font: { color: COLOR.foreground, size: 10 },
-    alignment: leftAlign(1),
-  });
-  ws.getCell(startRow + 1, 1).value = `Sprint: ${meta.sprintName}`;
-
-  ws.mergeCells(startRow + 1, midCol + 1, startRow + 1, colCount);
-  styleCell(ws.getCell(startRow + 1, midCol + 1), {
-    fill: COLOR.cardBg,
-    font: { color: COLOR.foreground, size: 10 },
-    alignment: leftAlign(1),
-  });
-  ws.getCell(startRow + 1, midCol + 1).value = meta.scopeLabel;
+  for (const { row, from, to, text } of cells) {
+    ws.mergeCells(row, from, row, to);
+    const cell = ws.getCell(row, from);
+    styleCell(cell, {
+      fill: COLOR.cardBg,
+      font: { color: COLOR.foreground, size: 10 },
+      alignment: leftAlign(1),
+    });
+    cell.value = text;
+  }
 }
 
 function writeHeaderRow(
@@ -456,72 +396,19 @@ function writeHeaderRow(
   row: number,
   weekLabels: ReadonlyArray<{ label: string; dateRangeLabel: string }>,
 ): void {
-  // Persona | Rol (sin borde derecho)
-  styleCell(ws.getCell(row, 1), {
-    fill: COLOR.subHeaderBg,
-    font: { bold: true, color: COLOR.subHeaderFg, size: 11 },
-    alignment: centerAlign(),
-    borderStyle: "thin",
-    skipRightBorder: true,
-  });
-  ws.getCell(row, 1).value = "Persona";
+  writeFixedHeaderCells(ws, row, ["Persona", "Rol"]);
 
-  styleCell(ws.getCell(row, 2), {
-    fill: COLOR.subHeaderBg,
-    font: { bold: true, color: COLOR.subHeaderFg, size: 11 },
-    alignment: centerAlign(),
-    borderStyle: "thin",
-    skipRightBorder: true,
-  });
-  ws.getCell(row, 2).value = "Rol";
-
-  // Por cada semana: merge 3 columnas
   weekLabels.forEach((week, idx) => {
-    const start = weekStartColumn(idx);
-    const end = start + WEEK_SUB_COLS - 1;
-    ws.mergeCells(row, start, row, end);
-    const cell = ws.getCell(row, start);
-    cell.value = {
-      richText: [
-        {
-          text: week.label,
-          font: { bold: true, color: { argb: COLOR.subHeaderFg }, size: 11 },
-        },
-        {
-          text: `\n${week.dateRangeLabel}`,
-          font: { color: { argb: COLOR.mutedFg }, size: 9, italic: true },
-        },
-      ],
-    };
-    styleCell(cell, {
-      fill: COLOR.subHeaderBg,
-      alignment: centerAlign(true),
-      borderStyle: "thin",
-    });
-    for (let c = start; c <= end; c++) {
-      styleCell(ws.getCell(row, c), {
-        fill: COLOR.subHeaderBg,
-        borderStyle: "thin",
-      });
-    }
+    writeGroupHeaderCell(
+      ws,
+      row,
+      weekStartColumn(idx),
+      twoLineHeaderValue(week.label, week.dateRangeLabel),
+      { wrap: true },
+    );
   });
 
-  // "Tiempos totales" merged 3 cols
-  const tierStart = sprintTierStartColumn(weekLabels.length);
-  ws.mergeCells(row, tierStart, row, tierStart + SPRINT_TIER_COLS - 1);
-  styleCell(ws.getCell(row, tierStart), {
-    fill: COLOR.subHeaderBg,
-    font: { bold: true, color: COLOR.subHeaderFg, size: 11 },
-    alignment: centerAlign(),
-    borderStyle: "thin",
-  });
-  ws.getCell(row, tierStart).value = "Tiempos totales";
-  for (let c = tierStart; c < tierStart + SPRINT_TIER_COLS; c++) {
-    styleCell(ws.getCell(row, c), {
-      fill: COLOR.subHeaderBg,
-      borderStyle: "thin",
-    });
-  }
+  writeTierHeaderCell(ws, row, sprintTierStartColumn(weekLabels.length));
 }
 
 function writeSubHeaderRow(
@@ -540,11 +427,19 @@ function writeSubHeaderRow(
     });
   }
 
+  const writeSubLabel = (col: number, text: string, color: string): void => {
+    const cell = ws.getCell(row, col);
+    cell.value = text;
+    styleCell(cell, {
+      fill: COLOR.subHeaderBg,
+      font: { color, bold: true, size: 9 },
+      alignment: centerAlign(),
+      borderStyle: "thin",
+    });
+  };
+
   // Offset del primer bloque semanal: cols `fixedColCount + 1` en adelante.
   // (Para Persona+Rol = col 4; para Sprint+Persona+Rol = col 5.)
-  // Antes este helper siempre usaba `weekStartColumn = 3`, lo que dejaba
-  // las sub-cabeceras una columna a la izquierda de los valores en el
-  // workbook combinado (los valores usan `combinedWeekStartColumn = 4`).
   const firstWeekStartCol = fixedColCount + 1;
   const firstTierStartCol = firstWeekStartCol + weekCount * WEEK_SUB_COLS;
 
@@ -557,32 +452,17 @@ function writeSubHeaderRow(
   for (let idx = 0; idx < weekCount; idx++) {
     const start = firstWeekStartCol + idx * WEEK_SUB_COLS;
     subLabels.forEach((label, subIdx) => {
-      const cell = ws.getCell(row, start + subIdx);
-      cell.value = label.text;
-      styleCell(cell, {
-        fill: COLOR.subHeaderBg,
-        font: { color: label.color, bold: true, size: 9 },
-        alignment: centerAlign(),
-        borderStyle: "thin",
-      });
+      writeSubLabel(start + subIdx, label.text, label.color);
     });
   }
 
-  // Sub-headers de Tiempos totales
   const tierLabels: Array<{ text: string; color: string }> = [
     { text: "T. Desarrollo", color: COLOR.accent },
     { text: "T. Bugs", color: COLOR.bugAccent },
     { text: "T. Sprint", color: COLOR.foreground },
   ];
   tierLabels.forEach((label, idx) => {
-    const cell = ws.getCell(row, firstTierStartCol + idx);
-    cell.value = label.text;
-    styleCell(cell, {
-      fill: COLOR.subHeaderBg,
-      font: { color: label.color, bold: true, size: 9 },
-      alignment: centerAlign(),
-      borderStyle: "thin",
-    });
+    writeSubLabel(firstTierStartCol + idx, label.text, label.color);
   });
 }
 
@@ -598,13 +478,36 @@ function writePersonRow(
 
   weekColumns.forEach((_, idx) => {
     const breakdown = row.weeks[idx] ?? EMPTY_HOURS_BREAKDOWN;
-    buildWeekRow(ws, excelRow, breakdown, idx);
+    buildWeekCells(ws, excelRow, breakdown, idx, weekStartColumn(idx));
   });
 
-  buildSprintTierCells(ws, excelRow, row.sprint, weekColumns.length, {
+  buildTierCells(ws, excelRow, row.sprint, sprintTierStartColumn(weekColumns.length), {
     fill: COLOR.cardBg,
-    fg: COLOR.foreground,
   });
+}
+
+function writeTotalLabelCells(
+  ws: ExcelJS.Worksheet,
+  excelRow: number,
+  label: string,
+  fixedColCount: number,
+): void {
+  styleCell(ws.getCell(excelRow, 1), {
+    fill: COLOR.totalBg,
+    font: { bold: true, color: COLOR.totalFg, size: 11 },
+    alignment: leftAlign(1),
+    borderStyle: "medium",
+    skipRightBorder: true,
+  });
+  ws.getCell(excelRow, 1).value = label;
+
+  for (let c = 2; c <= fixedColCount; c++) {
+    styleCell(ws.getCell(excelRow, c), {
+      fill: COLOR.totalBg,
+      borderStyle: "medium",
+      skipRightBorder: true,
+    });
+  }
 }
 
 function writeTotalsRow(
@@ -613,30 +516,14 @@ function writeTotalsRow(
   weekTotals: readonly HoursBreakdown[],
   sprintTotal: HoursBreakdown,
 ): void {
-  // Celda "Persona" del Total equipo
-  styleCell(ws.getCell(excelRow, 1), {
-    fill: COLOR.totalBg,
-    font: { bold: true, color: COLOR.totalFg, size: 11 },
-    alignment: leftAlign(1),
-    borderStyle: "medium",
-    skipRightBorder: true,
-  });
-  ws.getCell(excelRow, 1).value = "Total equipo";
-
-  // Celda "Rol" vacía
-  styleCell(ws.getCell(excelRow, 2), {
-    fill: COLOR.totalBg,
-    borderStyle: "medium",
-    skipRightBorder: true,
-  });
+  writeTotalLabelCells(ws, excelRow, "Total equipo", 2);
 
   weekTotals.forEach((breakdown, idx) => {
-    buildWeekRow(ws, excelRow, breakdown, idx, "medium");
+    buildWeekCells(ws, excelRow, breakdown, idx, weekStartColumn(idx), "medium");
   });
 
-  buildSprintTierCells(ws, excelRow, sprintTotal, weekTotals.length, {
+  buildTierCells(ws, excelRow, sprintTotal, sprintTierStartColumn(weekTotals.length), {
     fill: COLOR.totalBg,
-    fg: COLOR.totalFg,
     bold: true,
   });
 }
@@ -670,33 +557,23 @@ export async function buildSprintTimesExcel(
 
   const ws = workbook.addWorksheet("Tiempos registrados");
   ws.columns = buildColumnLayout(weekCount);
+  applyHeaderRowHeights(ws);
 
-  // Alturas de las filas de cabecera/metadata
-  ws.getRow(1).height = 36;
-  ws.getRow(2).height = 22;
-  ws.getRow(3).height = 22;
-  ws.getRow(4).height = 22;
-  ws.getRow(5).height = 8;
-  const GROUP_HEADER_ROW = 6;
-  const SUB_HEADER_ROW = 7;
-  ws.getRow(GROUP_HEADER_ROW).height = 30;
-  ws.getRow(SUB_HEADER_ROW).height = 20;
-
-  // Título + subtítulo
   writeTitleRow(ws, 1, colCount, generatedAt);
 
-  // Metadata
   const scopeLabel = isWeekScope
     ? `Alcance: Semana ${(weekIndex ?? 0) + 1} — ${times.weeks[weekIndex ?? 0]?.dateRangeLabel ?? ""}`
     : "Alcance: Sprint completo";
-  writeMetadataRows(ws, 3, colCount, { project, team, sprintName, scopeLabel });
+  writeMetadataRows(ws, 3, colCount, {
+    project,
+    team,
+    sprintLabel: `Sprint: ${sprintName}`,
+    scopeLabel,
+  });
 
-  // Cabeceras
   writeHeaderRow(ws, GROUP_HEADER_ROW, weekColumns ?? []);
   writeSubHeaderRow(ws, SUB_HEADER_ROW, weekCount);
 
-  // Datos
-  const DATA_START_ROW = 8;
   let dataRowIdx = 0;
   for (const row of times.rows) {
     const excelRow = DATA_START_ROW + dataRowIdx;
@@ -706,7 +583,6 @@ export async function buildSprintTimesExcel(
     dataRowIdx++;
   }
 
-  // Fila Total equipo
   const weekTotals: HoursBreakdown[] = isWeekScope
     ? [sumWeekBreakdowns(times.rows, weekIndex)]
     : Array.from({ length: weekCount }, (_, idx) => sumWeekBreakdowns(times.rows, idx));
@@ -790,44 +666,25 @@ export async function buildCombinedSprintTimesExcel(
   });
 
   // Layout: Sprint | Persona | Rol | (3 sub-cols × weekCount) | (3 tier cols)
-  const COMBINED_FIXED_COLS = 3;
-  const COMBINED_DATA_START_ROW = 8;
-  const totalCols =
-    COMBINED_FIXED_COLS + weekCount * WEEK_SUB_COLS + SPRINT_TIER_COLS;
-  ws.columns = [
-    { width: SPRINT_COL_WIDTH },
-    { width: PERSONA_COL_WIDTH },
-    { width: ROL_COL_WIDTH },
-    ...Array.from({ length: weekCount * WEEK_SUB_COLS }, () => ({
-      width: WEEK_SUB_COL_WIDTH,
-    })),
-    ...Array.from({ length: SPRINT_TIER_COLS }, () => ({
-      width: SPRINT_TIER_COL_WIDTH,
-    })),
-  ];
+  ws.columns = buildColumnLayout(weekCount, [
+    SPRINT_COL_WIDTH,
+    PERSONA_COL_WIDTH,
+    ROL_COL_WIDTH,
+  ]);
+  applyHeaderRowHeights(ws);
 
-  ws.getRow(1).height = 36;
-  ws.getRow(2).height = 22;
-  ws.getRow(3).height = 22;
-  ws.getRow(4).height = 22;
-  ws.getRow(5).height = 8;
-  const GROUP_HEADER_ROW = 6;
-  const SUB_HEADER_ROW = 7;
-  ws.getRow(GROUP_HEADER_ROW).height = 30;
-  ws.getRow(SUB_HEADER_ROW).height = 20;
+  const totalCols = combinedTierStartColumn(weekCount) + SPRINT_TIER_COLS - 1;
 
-  // Título + subtítulo (incluye rango si hay al menos un sprint)
   writeCombinedTitleRow(ws, 1, totalCols, generatedAt, sortedSprints.length);
 
-  // Metadata con lista de sprints incluidos
-  writeCombinedMetadataRows(ws, 3, totalCols, {
+  writeMetadataRows(ws, 3, totalCols, {
     project,
     team,
-    sprintNames: sortedSprints.map((s) => s.sprintName),
-    count: sortedSprints.length,
+    sprintLabel: combinedSprintLabel(sortedSprints.map((s) => s.sprintName)),
+    scopeLabel:
+      sortedSprints.length === 1 ? "Alcance: Sprint completo" : "Alcance: Combinado",
   });
 
-  // Cabeceras
   writeCombinedHeaderRow(ws, GROUP_HEADER_ROW, weekCount);
   writeSubHeaderRow(ws, SUB_HEADER_ROW, weekCount, 3);
 
@@ -844,7 +701,7 @@ export async function buildCombinedSprintTimesExcel(
     const sprintWeeks = sprintEntry.times.weeks;
 
     for (const personRow of sprintEntry.times.rows) {
-      const excelRow = COMBINED_DATA_START_ROW + dataRowIdx;
+      const excelRow = DATA_START_ROW + dataRowIdx;
       ws.getRow(excelRow).height = 32;
       const memberInfo = lookupMemberOrPlaceholder(memberRoles, personRow.assignee);
       writeCombinedPersonRow(ws, excelRow, sprintName, personRow, memberInfo, weekCount);
@@ -859,7 +716,7 @@ export async function buildCombinedSprintTimesExcel(
     const sprintTotal = sumSprintBreakdowns(sprintEntry.times.rows);
     sprintGroupTotals.push({ weekTotals: sprintWeekTotals, sprintTotal });
 
-    const subtotalRow = COMBINED_DATA_START_ROW + dataRowIdx;
+    const subtotalRow = DATA_START_ROW + dataRowIdx;
     ws.getRow(subtotalRow).height = 26;
     writeCombinedSprintSubtotalRow(
       ws,
@@ -885,7 +742,7 @@ export async function buildCombinedSprintTimesExcel(
       }),
       { ...EMPTY_HOURS_BREAKDOWN },
     );
-    const totalRow = COMBINED_DATA_START_ROW + dataRowIdx;
+    const totalRow = DATA_START_ROW + dataRowIdx;
     ws.getRow(totalRow).height = 28;
     writeCombinedGrandTotalRow(
       ws,
@@ -901,12 +758,10 @@ export async function buildCombinedSprintTimesExcel(
 
 // ── Combined sheet builders ───────────────────────────────────────────────────
 
-function combinedWeekStartColumn(weekIdx: number): number {
-  return 4 + weekIdx * WEEK_SUB_COLS;
-}
-
-function combinedTierStartColumn(weekCount: number): number {
-  return 4 + weekCount * WEEK_SUB_COLS;
+function combinedSprintLabel(sprintNames: readonly string[]): string {
+  return sprintNames.length === 1
+    ? `Sprint: ${sprintNames[0] ?? ""}`
+    : `Sprints (${sprintNames.length}): ${sprintNames.join(", ")}`;
 }
 
 function writeCombinedTitleRow(
@@ -923,108 +778,22 @@ function writeCombinedTitleRow(
   writeTitleRow(ws, row, colCount, generatedAt, subtitlePrefix);
 }
 
-function writeCombinedMetadataRows(
-  ws: ExcelJS.Worksheet,
-  startRow: number,
-  colCount: number,
-  meta: { project: string; team: string; sprintNames: readonly string[]; count: number },
-): void {
-  const midCol = Math.ceil(colCount / 2);
-
-  ws.mergeCells(startRow, 1, startRow, midCol);
-  styleCell(ws.getCell(startRow, 1), {
-    fill: COLOR.cardBg,
-    font: { color: COLOR.foreground, size: 10 },
-    alignment: leftAlign(1),
-  });
-  ws.getCell(startRow, 1).value = `Proyecto: ${meta.project}`;
-
-  ws.mergeCells(startRow, midCol + 1, startRow, colCount);
-  styleCell(ws.getCell(startRow, midCol + 1), {
-    fill: COLOR.cardBg,
-    font: { color: COLOR.foreground, size: 10 },
-    alignment: leftAlign(1),
-  });
-  ws.getCell(startRow, midCol + 1).value = `Equipo: ${meta.team}`;
-
-  ws.mergeCells(startRow + 1, 1, startRow + 1, midCol);
-  styleCell(ws.getCell(startRow + 1, 1), {
-    fill: COLOR.cardBg,
-    font: { color: COLOR.foreground, size: 10 },
-    alignment: leftAlign(1),
-  });
-  ws.getCell(startRow + 1, 1).value =
-    meta.count === 1
-      ? `Sprint: ${meta.sprintNames[0] ?? ""}`
-      : `Sprints (${meta.count}): ${meta.sprintNames.join(", ")}`;
-
-  ws.mergeCells(startRow + 1, midCol + 1, startRow + 1, colCount);
-  styleCell(ws.getCell(startRow + 1, midCol + 1), {
-    fill: COLOR.cardBg,
-    font: { color: COLOR.foreground, size: 10 },
-    alignment: leftAlign(1),
-  });
-  ws.getCell(startRow + 1, midCol + 1).value =
-    meta.count === 1 ? "Alcance: Sprint completo" : "Alcance: Combinado";
-}
-
 function writeCombinedHeaderRow(
   ws: ExcelJS.Worksheet,
   row: number,
   weekCount: number,
 ): void {
-  // Sprint | Persona | Rol (sin borde derecho)
-  for (let c = 1; c <= 3; c++) {
-    styleCell(ws.getCell(row, c), {
-      fill: COLOR.subHeaderBg,
-      font: { bold: true, color: COLOR.subHeaderFg, size: 11 },
-      alignment: centerAlign(),
-      borderStyle: "thin",
-      skipRightBorder: c < 3,
-    });
-  }
-  ws.getCell(row, 1).value = "Sprint";
-  ws.getCell(row, 2).value = "Persona";
-  ws.getCell(row, 3).value = "Rol";
-
-  // Cada semana ocupa 3 sub-columnas (Desarrollo / Total / Bugs), con su
-  // cabecera merged igual que en el layout single-sprint.
-  for (let idx = 0; idx < weekCount; idx++) {
-    const start = combinedWeekStartColumn(idx);
-    const end = start + WEEK_SUB_COLS - 1;
-    ws.mergeCells(row, start, row, end);
-    const cell = ws.getCell(row, start);
-    cell.value = `Semana ${idx + 1}`;
-    styleCell(cell, {
-      fill: COLOR.subHeaderBg,
-      font: { bold: true, color: COLOR.subHeaderFg, size: 11 },
-      alignment: centerAlign(),
-      borderStyle: "thin",
-    });
-    for (let c = start; c <= end; c++) {
-      styleCell(ws.getCell(row, c), {
-        fill: COLOR.subHeaderBg,
-        borderStyle: "thin",
-      });
-    }
-  }
-
-  // "Tiempos totales" merged 3 cols
-  const tierStart = combinedTierStartColumn(weekCount);
-  ws.mergeCells(row, tierStart, row, tierStart + SPRINT_TIER_COLS - 1);
-  styleCell(ws.getCell(row, tierStart), {
-    fill: COLOR.subHeaderBg,
-    font: { bold: true, color: COLOR.subHeaderFg, size: 11 },
-    alignment: centerAlign(),
-    borderStyle: "thin",
+  writeFixedHeaderCells(ws, row, ["Sprint", "Persona", "Rol"], {
+    skipLastRightBorder: false,
   });
-  ws.getCell(row, tierStart).value = "Tiempos totales";
-  for (let c = tierStart; c < tierStart + SPRINT_TIER_COLS; c++) {
-    styleCell(ws.getCell(row, c), {
-      fill: COLOR.subHeaderBg,
-      borderStyle: "thin",
+
+  for (let idx = 0; idx < weekCount; idx++) {
+    writeGroupHeaderCell(ws, row, combinedWeekStartColumn(idx), `Semana ${idx + 1}`, {
+      font: GROUP_HEADER_FONT,
     });
   }
+
+  writeTierHeaderCell(ws, row, combinedTierStartColumn(weekCount));
 }
 
 function writeCombinedPersonRow(
@@ -1035,7 +804,6 @@ function writeCombinedPersonRow(
   memberInfo: MemberInfo,
   weekCount: number,
 ): void {
-  // Sprint
   styleCell(ws.getCell(excelRow, 1), {
     fill: COLOR.cardBg,
     font: { color: COLOR.accent, bold: true, size: 10 },
@@ -1050,75 +818,12 @@ function writeCombinedPersonRow(
   // Semanas: si el sprint tiene menos semanas que weekCount, escribir EMPTY.
   for (let idx = 0; idx < weekCount; idx++) {
     const breakdown = row.weeks[idx] ?? EMPTY_HOURS_BREAKDOWN;
-    buildCombinedWeekCells(ws, excelRow, breakdown, idx);
+    buildWeekCells(ws, excelRow, breakdown, idx, combinedWeekStartColumn(idx));
   }
 
-  buildCombinedSprintTierCells(ws, excelRow, row.sprint, weekCount, {
+  buildTierCells(ws, excelRow, row.sprint, combinedTierStartColumn(weekCount), {
     fill: COLOR.cardBg,
-    fg: COLOR.foreground,
   });
-}
-
-function buildCombinedWeekCells(
-  ws: ExcelJS.Worksheet,
-  excelRow: number,
-  breakdown: HoursBreakdown,
-  weekIdx: number,
-  borderStyle: BorderStyle = "thin",
-): void {
-  // En el layout combinado, las columnas semanales empiezan una posición
-  // después que en el single-sprint (existe la columna "Sprint" adicional).
-  const start = combinedWeekStartColumn(weekIdx);
-  const bg = weekStripingBg(weekIdx);
-  const isMedium = borderStyle === "medium";
-  const fg = isMedium ? COLOR.totalFg : COLOR.foreground;
-
-  buildHoursCell(ws.getCell(excelRow, start), breakdown.taskHours, {
-    fill: bg,
-    color: COLOR.accent,
-    bold: isMedium,
-  });
-  buildHoursCell(ws.getCell(excelRow, start + 1), totalHoursBreakdown(breakdown), {
-    fill: bg,
-    color: fg,
-    bold: true,
-  });
-  buildHoursCell(ws.getCell(excelRow, start + 2), breakdown.bugHours, {
-    fill: bg,
-    color: COLOR.bugAccent,
-    bold: isMedium,
-  });
-}
-
-function buildCombinedSprintTierCells(
-  ws: ExcelJS.Worksheet,
-  excelRow: number,
-  breakdown: HoursBreakdown,
-  weekCount: number,
-  opts: { fill: string; fg: string; bold?: boolean },
-): void {
-  const isMedium = opts.bold ?? false;
-  const accent = isMedium ? COLOR.totalFg : COLOR.foreground;
-  const tierStart = combinedTierStartColumn(weekCount);
-  buildHoursCell(ws.getCell(excelRow, tierStart), breakdown.taskHours, {
-    fill: opts.fill,
-    color: COLOR.accent,
-    bold: isMedium,
-  });
-  buildHoursCell(ws.getCell(excelRow, tierStart + 1), breakdown.bugHours, {
-    fill: opts.fill,
-    color: COLOR.bugAccent,
-    bold: isMedium,
-  });
-  buildHoursCell(
-    ws.getCell(excelRow, tierStart + 2),
-    totalHoursBreakdown(breakdown),
-    {
-      fill: opts.fill,
-      color: accent,
-      bold: true,
-    },
-  );
 }
 
 function writeCombinedSprintSubtotalRow(
@@ -1137,26 +842,21 @@ function writeCombinedSprintSubtotalRow(
   });
   ws.getCell(excelRow, 1).value = `Subtotal ${sprintName}`;
 
-  // Persona y Rol vacías con borde medio
-  styleCell(ws.getCell(excelRow, 2), {
-    fill: COLOR.subHeaderBg,
-    borderStyle: "medium",
-    skipRightBorder: true,
-  });
-  styleCell(ws.getCell(excelRow, 3), {
-    fill: COLOR.subHeaderBg,
-    borderStyle: "medium",
-    skipRightBorder: true,
-  });
+  for (let c = 2; c <= 3; c++) {
+    styleCell(ws.getCell(excelRow, c), {
+      fill: COLOR.subHeaderBg,
+      borderStyle: "medium",
+      skipRightBorder: true,
+    });
+  }
 
   for (let idx = 0; idx < weekCount; idx++) {
     const breakdown = weekTotals[idx] ?? EMPTY_HOURS_BREAKDOWN;
-    buildCombinedWeekCells(ws, excelRow, breakdown, idx, "medium");
+    buildWeekCells(ws, excelRow, breakdown, idx, combinedWeekStartColumn(idx), "medium");
   }
 
-  buildCombinedSprintTierCells(ws, excelRow, sprintTotal, weekCount, {
+  buildTierCells(ws, excelRow, sprintTotal, combinedTierStartColumn(weekCount), {
     fill: COLOR.subHeaderBg,
-    fg: COLOR.subHeaderFg,
     bold: true,
   });
 }
@@ -1168,34 +868,15 @@ function writeCombinedGrandTotalRow(
   sprintTotal: HoursBreakdown,
   weekCount: number,
 ): void {
-  styleCell(ws.getCell(excelRow, 1), {
-    fill: COLOR.totalBg,
-    font: { bold: true, color: COLOR.totalFg, size: 11 },
-    alignment: leftAlign(1),
-    borderStyle: "medium",
-    skipRightBorder: true,
-  });
-  ws.getCell(excelRow, 1).value = "Total general";
-
-  styleCell(ws.getCell(excelRow, 2), {
-    fill: COLOR.totalBg,
-    borderStyle: "medium",
-    skipRightBorder: true,
-  });
-  styleCell(ws.getCell(excelRow, 3), {
-    fill: COLOR.totalBg,
-    borderStyle: "medium",
-    skipRightBorder: true,
-  });
+  writeTotalLabelCells(ws, excelRow, "Total general", 3);
 
   for (let idx = 0; idx < weekCount; idx++) {
     const breakdown = weekTotals[idx] ?? EMPTY_HOURS_BREAKDOWN;
-    buildCombinedWeekCells(ws, excelRow, breakdown, idx, "medium");
+    buildWeekCells(ws, excelRow, breakdown, idx, combinedWeekStartColumn(idx), "medium");
   }
 
-  buildCombinedSprintTierCells(ws, excelRow, sprintTotal, weekCount, {
+  buildTierCells(ws, excelRow, sprintTotal, combinedTierStartColumn(weekCount), {
     fill: COLOR.totalBg,
-    fg: COLOR.totalFg,
     bold: true,
   });
 }
@@ -1214,6 +895,12 @@ type WriteSummarySheetInput = {
   }>;
 };
 
+type SummarySprintMeta = {
+  name: string;
+  /** Rango ya formateado (p. ej. "10 mar – 23 mar"). `null` si faltan fechas. */
+  dateRangeLabel: string | null;
+};
+
 function resolveSprintMeta(sprint: {
   sprintName: string;
   startDate?: string | null;
@@ -1228,12 +915,6 @@ function resolveSprintMeta(sprint: {
   };
 }
 
-type SummarySprintMeta = {
-  name: string;
-  /** Rango ya formateado (p. ej. "10 mar – 23 mar"). `null` si faltan fechas. */
-  dateRangeLabel: string | null;
-};
-
 function writeSummarySheet(
   workbook: ExcelJS.Workbook,
   input: WriteSummarySheetInput,
@@ -1244,30 +925,10 @@ function writeSummarySheet(
 
   const ws = workbook.addWorksheet("Resumen");
   // Layout: Persona | Rol | (3 sub-cols × sprintCount) | (3 tier cols)
-  const SUMMARY_FIXED_COLS = 2;
-  const SUMMARY_DATA_START_ROW = 8;
-  const totalCols =
-    SUMMARY_FIXED_COLS + sprintCount * WEEK_SUB_COLS + SPRINT_TIER_COLS;
-  ws.columns = [
-    { width: PERSONA_COL_WIDTH },
-    { width: ROL_COL_WIDTH },
-    ...Array.from({ length: sprintCount * WEEK_SUB_COLS }, () => ({
-      width: WEEK_SUB_COL_WIDTH,
-    })),
-    ...Array.from({ length: SPRINT_TIER_COLS }, () => ({
-      width: SPRINT_TIER_COL_WIDTH,
-    })),
-  ];
+  ws.columns = buildColumnLayout(sprintCount);
+  applyHeaderRowHeights(ws, 36);
 
-  ws.getRow(1).height = 36;
-  ws.getRow(2).height = 22;
-  ws.getRow(3).height = 22;
-  ws.getRow(4).height = 22;
-  ws.getRow(5).height = 8;
-  const GROUP_HEADER_ROW = 6;
-  const SUB_HEADER_ROW = 7;
-  ws.getRow(GROUP_HEADER_ROW).height = 36;
-  ws.getRow(SUB_HEADER_ROW).height = 20;
+  const totalCols = totalColumnCount(sprintCount);
 
   writeTitleRow(
     ws,
@@ -1280,7 +941,7 @@ function writeSummarySheet(
   writeMetadataRows(ws, 3, totalCols, {
     project,
     team,
-    sprintName: "Resumen combinado",
+    sprintLabel: "Sprint: Resumen combinado",
     scopeLabel: "Alcance: Horas por sprint, sumadas por persona",
   });
 
@@ -1295,7 +956,7 @@ function writeSummarySheet(
 
   let dataRowIdx = 0;
   for (const aggregate of aggregates) {
-    const excelRow = SUMMARY_DATA_START_ROW + dataRowIdx;
+    const excelRow = DATA_START_ROW + dataRowIdx;
     ws.getRow(excelRow).height = 32;
     writePersonRow(
       ws,
@@ -1320,7 +981,7 @@ function writeSummarySheet(
     sumWeekBreakdowns(adaptedAggregates, idx),
   );
   const sprintTotal = sumSprintBreakdowns(aggregates);
-  const totalRow = SUMMARY_DATA_START_ROW + dataRowIdx;
+  const totalRow = DATA_START_ROW + dataRowIdx;
   ws.getRow(totalRow).height = 26;
   writeTotalsRow(ws, totalRow, sprintColTotals, sprintTotal);
 }
@@ -1335,74 +996,14 @@ function writeSummaryHeaderRow(
   row: number,
   sprintsMeta: ReadonlyArray<SummarySprintMeta>,
 ): void {
-  styleCell(ws.getCell(row, 1), {
-    fill: COLOR.subHeaderBg,
-    font: { bold: true, color: COLOR.subHeaderFg, size: 11 },
-    alignment: centerAlign(),
-    borderStyle: "thin",
-    skipRightBorder: true,
-  });
-  ws.getCell(row, 1).value = "Persona";
-
-  styleCell(ws.getCell(row, 2), {
-    fill: COLOR.subHeaderBg,
-    font: { bold: true, color: COLOR.subHeaderFg, size: 11 },
-    alignment: centerAlign(),
-    borderStyle: "thin",
-    skipRightBorder: true,
-  });
-  ws.getCell(row, 2).value = "Rol";
+  writeFixedHeaderCells(ws, row, ["Persona", "Rol"]);
 
   sprintsMeta.forEach((sprint, idx) => {
-    const start = weekStartColumn(idx);
-    const end = start + WEEK_SUB_COLS - 1;
-    ws.mergeCells(row, start, row, end);
-    const cell = ws.getCell(row, start);
-    cell.value = sprint.dateRangeLabel
-      ? {
-          richText: [
-            {
-              text: sprint.name,
-              font: { bold: true, color: { argb: COLOR.subHeaderFg }, size: 11 },
-            },
-            {
-              text: `\n${sprint.dateRangeLabel}`,
-              font: { color: { argb: COLOR.mutedFg }, size: 9, italic: true },
-            },
-          ],
-        }
+    const value = sprint.dateRangeLabel
+      ? twoLineHeaderValue(sprint.name, sprint.dateRangeLabel)
       : sprint.name;
-    styleCell(cell, {
-      fill: COLOR.subHeaderBg,
-      alignment: centerAlign(true),
-      borderStyle: "thin",
-    });
-    for (let c = start; c <= end; c++) {
-      styleCell(ws.getCell(row, c), {
-        fill: COLOR.subHeaderBg,
-        borderStyle: "thin",
-      });
-    }
+    writeGroupHeaderCell(ws, row, weekStartColumn(idx), value, { wrap: true });
   });
 
-  const tierStart = sprintTierStartColumn(sprintsMeta.length);
-  ws.mergeCells(row, tierStart, row, tierStart + SPRINT_TIER_COLS - 1);
-  styleCell(ws.getCell(row, tierStart), {
-    fill: COLOR.subHeaderBg,
-    font: { bold: true, color: COLOR.subHeaderFg, size: 11 },
-    alignment: centerAlign(),
-    borderStyle: "thin",
-  });
-  ws.getCell(row, tierStart).value = "Tiempos totales";
-  for (let c = tierStart; c < tierStart + SPRINT_TIER_COLS; c++) {
-    styleCell(ws.getCell(row, c), {
-      fill: COLOR.subHeaderBg,
-      borderStyle: "thin",
-    });
-  }
+  writeTierHeaderCell(ws, row, sprintTierStartColumn(sprintsMeta.length));
 }
-
-/**
- * Sub-cabeceras "Desarrollo | Total | Bugs" repetidas por cada sprint.
- * Reutiliza `writeSubHeaderRow` con `fixedColCount = 2` (Persona | Rol).
- */

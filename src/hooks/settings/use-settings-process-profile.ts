@@ -3,6 +3,10 @@
 import { useCallback, useState } from "react";
 
 import type { AdoProcessProfile } from "@/lib/azure-devops/process-profile-types";
+import {
+  rediscoverProcessProfile,
+  saveProcessProfile,
+} from "@/lib/settings/process-profile-client";
 import type { TaskDateFieldOption } from "@/lib/settings/task-date-field-options";
 import { appToast } from "@/lib/toast/app-toast";
 
@@ -10,11 +14,6 @@ type UseSettingsProcessProfileOptions = {
   project: string;
   initialProfile: AdoProcessProfile;
   initialOptions: TaskDateFieldOption[];
-};
-
-type ApiProfileResponse = {
-  profile: AdoProcessProfile;
-  taskDateFieldOptions?: TaskDateFieldOption[];
 };
 
 type TestResponse = {
@@ -43,15 +42,7 @@ export function useSettingsProcessProfile({
   const save = useCallback(async () => {
     setBusy("save");
     try {
-      const res = await fetch("/api/settings/process-profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ project, workingDateField, timezone }),
-      });
-      const data = (await res.json()) as ApiProfileResponse & { error?: string };
-      if (!res.ok) {
-        throw new Error(data.error ?? "No se pudo guardar.");
-      }
+      const data = await saveProcessProfile({ project, workingDateField, timezone });
       syncFromProfile(data.profile);
       appToast.success("Preferencias guardadas.");
     } catch (cause) {
@@ -64,15 +55,7 @@ export function useSettingsProcessProfile({
   const rediscover = useCallback(async () => {
     setBusy("rediscover");
     try {
-      const res = await fetch("/api/settings/process-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ project }),
-      });
-      const data = (await res.json()) as ApiProfileResponse & { error?: string };
-      if (!res.ok) {
-        throw new Error(data.error ?? "No se pudo actualizar.");
-      }
+      const data = await rediscoverProcessProfile(project);
       syncFromProfile(data.profile, data.taskDateFieldOptions);
       appToast.success("Configuración actualizada desde Azure DevOps.");
     } catch (cause) {

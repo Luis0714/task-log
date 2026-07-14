@@ -1,11 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { ChevronDownIcon } from "lucide-react";
 import { es as esDayPicker } from "react-day-picker/locale";
-import type { Matcher } from "react-day-picker";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -13,6 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { parseLocalDateKey, toLocalDateKey } from "@/lib/dashboard/sprint-days";
+import {
+  buildDisabledMatcher,
+  formatPickerLabel,
+} from "@/lib/date/date-picker-format";
 import { cn } from "@/lib/utils";
 
 export type DatePickerTimeProps = {
@@ -30,21 +31,6 @@ export type DatePickerTimeProps = {
   datePlaceholder?: string;
   className?: string;
 };
-
-function formatPickerLabel(dateKey: string): string {
-  const date = parseLocalDateKey(dateKey);
-  if (!date) return dateKey;
-  return format(date, "PPP", { locale: es });
-}
-
-function buildDisabledMatcher(min?: string, max?: string): Matcher | undefined {
-  const minDate = min ? (parseLocalDateKey(min) ?? undefined) : undefined;
-  const maxDate = max ? (parseLocalDateKey(max) ?? undefined) : undefined;
-  if (minDate && maxDate) return { before: minDate, after: maxDate };
-  if (minDate) return { before: minDate };
-  if (maxDate) return { after: maxDate };
-  return undefined;
-}
 
 function normalizeTimeInput(value: string): string {
   const trimmed = value.trim();
@@ -65,7 +51,7 @@ export function DatePickerTime({
   disabled = false,
   datePlaceholder = "Selecciona fecha",
   className,
-}: DatePickerTimeProps) {
+}: Readonly<DatePickerTimeProps>) {
   const [open, setOpen] = React.useState(false);
   const selectedDate = React.useMemo(
     () => (dateValue ? (parseLocalDateKey(dateValue) ?? undefined) : undefined),

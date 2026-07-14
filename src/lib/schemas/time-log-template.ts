@@ -30,7 +30,7 @@ const defaultHoursField = z
  * `.default()`) para que callers no necesiten enviarlo cuando quieren una
  * plantilla personal — el server trata la ausencia como `false`.
  */
-export const createTimeLogTemplateBodySchema = z.object({
+const templateFieldsSchema = z.object({
   name: z.string().trim().min(1, "Ingresa un nombre para la plantilla.").max(80),
   defaultTitle: z
     .string()
@@ -49,6 +49,9 @@ export const createTimeLogTemplateBodySchema = z.object({
     .optional()
     .or(z.literal("").transform(() => undefined)),
   defaultHours: defaultHoursField,
+});
+
+export const createTimeLogTemplateBodySchema = templateFieldsSchema.extend({
   isGlobal: z.boolean().optional(),
 });
 
@@ -92,25 +95,7 @@ export type AdminTemplateScope = (typeof ADMIN_TEMPLATE_SCOPES)[number];
  * explícito. El server mapea `scope` a `isSystem=true` + `seedKey=scope`
  * y persiste con `user_id = NULL` (o `user_id = admin` si scope = "personal").
  */
-export const adminCreateTimeLogTemplateBodySchema = z.object({
-  name: z.string().trim().min(1, "Ingresa un nombre para la plantilla.").max(80),
-  defaultTitle: z
-    .string()
-    .trim()
-    .min(1, "Ingresa el título por defecto.")
-    .max(256, "Máximo 256 caracteres."),
-  defaultDescription: z
-    .string()
-    .trim()
-    .min(1, "Ingresa la descripción por defecto.")
-    .max(2000, "Máximo 2000 caracteres."),
-  defaultActivity: z
-    .string()
-    .trim()
-    .max(80, "Máximo 80 caracteres.")
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
-  defaultHours: defaultHoursField,
+export const adminCreateTimeLogTemplateBodySchema = templateFieldsSchema.extend({
   scope: z.enum(ADMIN_TEMPLATE_SCOPES),
 });
 

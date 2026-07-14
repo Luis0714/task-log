@@ -23,6 +23,18 @@ export type AdoFiltersSectionProps = {
   className?: string;
 };
 
+function AdoFiltersFields({
+  context,
+  workItems,
+}: Readonly<Pick<AdoFiltersSectionProps, "context" | "workItems">>) {
+  return (
+    <>
+      <AdoContextSelectFields {...context} />
+      {workItems ? <WorkItemFiltersPanel {...workItems} /> : null}
+    </>
+  );
+}
+
 export function AdoFiltersSection({
   context,
   workItems = null,
@@ -31,7 +43,7 @@ export function AdoFiltersSection({
   defaultOpen = false,
   collapsibleTitle = "Filtros",
   className,
-}: AdoFiltersSectionProps) {
+}: Readonly<AdoFiltersSectionProps>) {
   const summary = buildAdoFiltersSummary({
     project: context.project || undefined,
     team: context.team || undefined,
@@ -49,57 +61,26 @@ export function AdoFiltersSection({
       defaultOpen={defaultOpen}
       className={className}
     >
-      <AdoContextSelectFields {...context} />
-      {workItems ? (
-        <WorkItemFiltersPanel
-          filters={workItems.filters}
-          states={workItems.states}
-          members={workItems.members}
-          membersLoading={workItems.membersLoading}
-          membersError={workItems.membersError}
-          filteredCount={workItems.filteredCount}
-          totalCount={workItems.totalCount}
-          disabled={workItems.disabled}
-          title={workItems.title}
-          onSearchChange={workItems.onSearchChange}
-          onAssigneeChange={workItems.onAssigneeChange}
-          onStatesChange={workItems.onStatesChange}
-          onSaveAsDefaults={workItems.onSaveAsDefaults}
-        />
-      ) : null}
+      <AdoFiltersFields context={context} workItems={workItems} />
       {extra}
     </AdoFiltersCollapsible>
   );
 }
 
 /** Variante sin colapsar (p. ej. dashboard con sección propia). */
-export type AdoFiltersBlockProps = AdoFiltersSectionProps;
+export type AdoFiltersBlockProps = Pick<
+  AdoFiltersSectionProps,
+  "context" | "workItems" | "className"
+>;
 
 export function AdoFiltersBlock({
   context,
   workItems = null,
   className,
-}: AdoFiltersBlockProps) {
+}: Readonly<AdoFiltersBlockProps>) {
   return (
     <div className={cn("flex flex-col gap-4", className)}>
-      <AdoContextSelectFields {...context} />
-      {workItems ? (
-        <WorkItemFiltersPanel
-          filters={workItems.filters}
-          states={workItems.states}
-          members={workItems.members}
-          membersLoading={workItems.membersLoading}
-          membersError={workItems.membersError}
-          filteredCount={workItems.filteredCount}
-          totalCount={workItems.totalCount}
-          disabled={workItems.disabled}
-          title={workItems.title}
-          onSearchChange={workItems.onSearchChange}
-          onAssigneeChange={workItems.onAssigneeChange}
-          onStatesChange={workItems.onStatesChange}
-          onSaveAsDefaults={workItems.onSaveAsDefaults}
-        />
-      ) : null}
+      <AdoFiltersFields context={context} workItems={workItems} />
     </div>
   );
 }

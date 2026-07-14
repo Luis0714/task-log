@@ -1,4 +1,4 @@
-import { EMPTY_HOURS_BREAKDOWN, type HoursBreakdown } from "@/lib/hours/hours-breakdown";
+import { EMPTY_HOURS_BREAKDOWN } from "@/lib/hours/hours-breakdown";
 import { SITE_NAME } from "@/lib/seo/site";
 import { formatSprintDateRange } from "@/lib/time-log/format-options";
 import { SPRINT_TIMES_SHARE_LABELS } from "@/lib/sprints/sprint-times-share-labels";
@@ -17,33 +17,14 @@ import {
   type SprintTimesShareVariant,
 } from "@/lib/sprints/sprint-times-share-variant";
 import { filterSprintTimesByVisibility } from "@/lib/sprints/filter-sprint-times-by-visibility";
+import {
+  sumSprintBreakdowns,
+  sumWeekBreakdowns,
+} from "@/lib/sprints/sum-hours-breakdowns";
 import type {
   SprintTimesMetrics,
   SprintTimesPersonRow,
 } from "@/lib/sprints/sprint-stats-types";
-
-function sumWeekBreakdowns(
-  rows: readonly SprintTimesPersonRow[],
-  weekIndex: number,
-): HoursBreakdown {
-  return rows.reduce(
-    (acc, row) => {
-      const w = row.weeks[weekIndex] ?? EMPTY_HOURS_BREAKDOWN;
-      return { taskHours: acc.taskHours + w.taskHours, bugHours: acc.bugHours + w.bugHours };
-    },
-    { ...EMPTY_HOURS_BREAKDOWN },
-  );
-}
-
-function sumSprintBreakdowns(rows: readonly SprintTimesPersonRow[]): HoursBreakdown {
-  return rows.reduce(
-    (acc, row) => ({
-      taskHours: acc.taskHours + row.sprint.taskHours,
-      bugHours: acc.bugHours + row.sprint.bugHours,
-    }),
-    { ...EMPTY_HOURS_BREAKDOWN },
-  );
-}
 
 function buildScopeLabel(context: SprintTimesShareContext): string {
   const scopePrefix = context.goalOnly

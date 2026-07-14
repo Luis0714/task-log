@@ -1,16 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { CalendarIcon, X } from "lucide-react";
 import { es as esDayPicker } from "react-day-picker/locale";
-import type { Matcher } from "react-day-picker";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { parseLocalDateKey, toLocalDateKey } from "@/lib/dashboard/sprint-days";
+import {
+  buildDisabledMatcher,
+  formatPickerLabel,
+} from "@/lib/date/date-picker-format";
 import { cn } from "@/lib/utils";
 
 export type DatePickerProps = {
@@ -26,21 +27,6 @@ export type DatePickerProps = {
   clearable?: boolean;
 };
 
-function formatPickerLabel(dateKey: string): string {
-  const date = parseLocalDateKey(dateKey);
-  if (!date) return dateKey;
-  return format(date, "PPP", { locale: es });
-}
-
-function buildDisabledMatcher(min?: string, max?: string): Matcher | undefined {
-  const minDate = min ? (parseLocalDateKey(min) ?? undefined) : undefined;
-  const maxDate = max ? (parseLocalDateKey(max) ?? undefined) : undefined;
-  if (minDate && maxDate) return { before: minDate, after: maxDate };
-  if (minDate) return { before: minDate };
-  if (maxDate) return { after: maxDate };
-  return undefined;
-}
-
 export function DatePicker({
   id,
   value,
@@ -51,7 +37,7 @@ export function DatePicker({
   placeholder = "Selecciona una fecha",
   className,
   clearable = false,
-}: DatePickerProps) {
+}: Readonly<DatePickerProps>) {
   const [open, setOpen] = useState(false);
   const selectedDate = useMemo(
     () => (value ? (parseLocalDateKey(value) ?? undefined) : undefined),

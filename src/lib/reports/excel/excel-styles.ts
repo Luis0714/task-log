@@ -25,9 +25,16 @@ export { COLOR };
 export type BorderStyle = "thin" | "medium";
 export type BorderSide = "top" | "right" | "bottom" | "left";
 
+export type CellFont = {
+  bold?: boolean;
+  italic?: boolean;
+  color?: string;
+  size?: number;
+};
+
 export type CellStyle = {
   fill?: string;
-  font?: { bold?: boolean; italic?: boolean; color?: string; size?: number };
+  font?: CellFont;
   alignment?: {
     horizontal: "left" | "center";
     vertical: "middle";

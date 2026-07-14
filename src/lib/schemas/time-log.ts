@@ -1,10 +1,8 @@
 import { z } from "zod";
 
 import { WORKING_TIME_PATTERN } from "@/lib/date/ado-datetime";
-import {
-  getDefaultWorkingDate,
-  getDefaultWorkingTime,
-} from "@/lib/time-log/task-constants";
+import { getDefaultWorkingTime } from "@/lib/time-log/task-constants";
+import { resolveDefaultWorkingDate } from "@/lib/time-log/working-date-default";
 import type { CreateTaskBatchItem } from "@/lib/schemas/agent";
 
 const hoursField = z
@@ -32,7 +30,11 @@ export const timeLogContextStepSchema = z.object({
   pbiId: pbiIdField,
 });
 
-export const timeLogTaskStepSchema = z.object({
+/**
+ * Campos de detalle de una tarea, compartidos entre el formulario paso a paso
+ * (`timeLogTaskStepSchema`) y el registro masivo (`bulkTaskSchema`).
+ */
+const taskDetailsSchema = z.object({
   taskTitle: z
     .string()
     .trim()
@@ -60,10 +62,29 @@ export const timeLogTaskStepSchema = z.object({
     .min(1, "Indica la hora de trabajo.")
     .regex(WORKING_TIME_PATTERN, "Hora inválida (usa formato 24 h, p. ej. 09:30)."),
   taskState: z.string().trim().min(1, "Selecciona un estado."),
+});
+
+type TaskDetailsValues = z.infer<typeof taskDetailsSchema>;
+
+function mapTaskDetails(values: TaskDetailsValues) {
+  return {
+    title: values.taskTitle.trim(),
+    hours: Number.parseFloat(values.hours.replace(",", ".")),
+    description: values.description.trim(),
+    activity: values.activity.trim(),
+    workingDate: values.workingDate,
+    workingTime: values.workingTime,
+    state: values.taskState,
+  };
+}
+
+export const timeLogTaskStepSchema = taskDetailsSchema.extend({
   autoMarkAsDone: z.boolean(),
 });
 
-export const timeLogFormSchema = timeLogContextStepSchema.merge(timeLogTaskStepSchema);
+export const timeLogFormSchema = timeLogContextStepSchema.extend(
+  timeLogTaskStepSchema.shape,
+);
 
 export type TimeLogFormValues = z.infer<typeof timeLogFormSchema>;
 
@@ -97,7 +118,7 @@ export function createTimeLogFormDefaults(
     hours: "",
     description: "",
     activity: "",
-    workingDate: getDefaultWorkingDate(),
+    workingDate: resolveDefaultWorkingDate(),
     workingTime: getDefaultWorkingTime(),
     taskState: "",
     autoMarkAsDone: true,
@@ -119,7 +140,7 @@ export const TIME_LOG_TASK_STEP_DEFAULTS: Pick<
   hours: "",
   description: "",
   activity: "",
-  workingDate: getDefaultWorkingDate(),
+  workingDate: resolveDefaultWorkingDate(),
   workingTime: getDefaultWorkingTime(),
   taskState: "",
   autoMarkAsDone: true,
@@ -136,13 +157,7 @@ export function mapTimeLogFormToPayload(
     sprintPath: values.sprintPath.trim(),
     pbiId: Number.parseInt(values.pbiId, 10),
     pbiTitle,
-    title: values.taskTitle.trim(),
-    hours: Number.parseFloat(values.hours.replace(",", ".")),
-    description: values.description.trim(),
-    activity: values.activity.trim(),
-    workingDate: values.workingDate,
-    workingTime: values.workingTime,
-    state: values.taskState,
+    ...mapTaskDetails(values),
     markAsDone: values.autoMarkAsDone,
   };
 }
@@ -152,34 +167,7 @@ export function mapTimeLogFormToPayload(
  * porque ese dato vive en el `BulkGroup` padre; el mapper lo inyecta desde
  * el contexto al construir el payload final.
  */
-export const bulkTaskSchema = z.object({
-  taskTitle: z
-    .string()
-    .trim()
-    .min(1, "Ingresa el título de la tarea.")
-    .max(256, "Máximo 256 caracteres."),
-  hours: hoursField,
-  description: z
-    .string()
-    .trim()
-    .min(1, "Ingresa la descripción de lo realizado.")
-    .max(2000, "Máximo 2000 caracteres."),
-  activity: z
-    .string()
-    .trim()
-    .min(1, "Selecciona una actividad.")
-    .max(100),
-  workingDate: z
-    .string()
-    .trim()
-    .min(1, "Selecciona la fecha de trabajo.")
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida."),
-  workingTime: z
-    .string()
-    .trim()
-    .min(1, "Indica la hora de trabajo.")
-    .regex(WORKING_TIME_PATTERN, "Hora inválida (usa formato 24 h, p. ej. 09:30)."),
-  taskState: z.string().trim().min(1, "Selecciona un estado."),
+export const bulkTaskSchema = taskDetailsSchema.extend({
   markAsDone: z.boolean(),
 });
 
@@ -207,13 +195,7 @@ export function mapBulkTaskToTaskItem(
   return {
     pbiId: Number.parseInt(ctx.pbiId, 10),
     pbiTitle: ctx.pbiTitle,
-    title: values.taskTitle.trim(),
-    hours: Number.parseFloat(values.hours.replace(",", ".")),
-    description: values.description.trim(),
-    activity: values.activity.trim(),
-    workingDate: values.workingDate,
-    workingTime: values.workingTime,
-    state: values.taskState,
+    ...mapTaskDetails(values),
     markAsDone: values.markAsDone,
     sprintPath: ctx.sprintPath.trim(),
     team: ctx.team.trim(),

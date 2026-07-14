@@ -6,6 +6,10 @@ import type {
   AdoProcessProfile,
   AdoProcessProfileResponsableField,
 } from "@/lib/azure-devops/process-profile-types";
+import {
+  rediscoverProcessProfile,
+  saveProcessProfile,
+} from "@/lib/settings/process-profile-client";
 import type { TaskDateFieldOption } from "@/lib/settings/task-date-field-options";
 import { appToast } from "@/lib/toast/app-toast";
 
@@ -13,11 +17,6 @@ type UseSettingsAdminProcessProfileOptions = {
   project: string;
   initialProfile: AdoProcessProfile;
   initialOptions: TaskDateFieldOption[];
-};
-
-type ApiProfileResponse = {
-  profile: AdoProcessProfile;
-  taskDateFieldOptions?: TaskDateFieldOption[];
 };
 
 type ResponsableCandidate = { referenceName: string; name: string };
@@ -93,34 +92,26 @@ export function useSettingsAdminProcessProfile({
   const save = useCallback(async () => {
     setBusy("save");
     try {
-      const res = await fetch("/api/settings/process-profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          project,
-          workingDateField,
-          timezone,
-          completedWorkField: completedWorkField.trim() || null,
-          originalEstimateField: originalEstimateField.trim() || null,
-          remainingWorkField: remainingWorkField.trim() || null,
-          activityField: activityField.trim() || null,
-          taskWorkItemType,
-          bugWorkItemType,
-          backlogItemType,
-          taskTodoState,
-          taskDoneState,
-          responsableFields: responsableFields.map((f) => ({
-            key: f.referenceName,
-            referenceName: f.referenceName,
-            label: f.label,
-            defaultToCurrentUser: f.defaultToCurrentUser,
-          })),
-        }),
+      const data = await saveProcessProfile({
+        project,
+        workingDateField,
+        timezone,
+        completedWorkField: completedWorkField.trim() || null,
+        originalEstimateField: originalEstimateField.trim() || null,
+        remainingWorkField: remainingWorkField.trim() || null,
+        activityField: activityField.trim() || null,
+        taskWorkItemType,
+        bugWorkItemType,
+        backlogItemType,
+        taskTodoState,
+        taskDoneState,
+        responsableFields: responsableFields.map((f) => ({
+          key: f.referenceName,
+          referenceName: f.referenceName,
+          label: f.label,
+          defaultToCurrentUser: f.defaultToCurrentUser,
+        })),
       });
-      const data = (await res.json()) as ApiProfileResponse & { error?: string };
-      if (!res.ok) {
-        throw new Error(data.error ?? "No se pudo guardar.");
-      }
       syncFromProfile(data.profile);
       appToast.success("Configuración guardada para todos los usuarios del proyecto.");
     } catch (cause) {
@@ -148,15 +139,7 @@ export function useSettingsAdminProcessProfile({
   const rediscover = useCallback(async () => {
     setBusy("rediscover");
     try {
-      const res = await fetch("/api/settings/process-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ project }),
-      });
-      const data = (await res.json()) as ApiProfileResponse & { error?: string };
-      if (!res.ok) {
-        throw new Error(data.error ?? "No se pudo actualizar.");
-      }
+      const data = await rediscoverProcessProfile(project);
       syncFromProfile(data.profile, data.taskDateFieldOptions);
       setResponsableCandidates([]); // candidates vuelan a cambiar después del rediscover
       appToast.success("Configuración re-detectada desde Azure DevOps.");

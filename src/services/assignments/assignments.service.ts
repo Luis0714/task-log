@@ -82,6 +82,32 @@ async function parseError(res: Response): Promise<AssignmentErrorPayload> {
   }
 }
 
+async function throwAssignmentError(res: Response): Promise<never> {
+  const err = await parseError(res);
+  throw Object.assign(new Error(err.error), {
+    code: err.code,
+    currentTotal: err.currentTotal,
+    conflictingPct: err.conflictingPct,
+  });
+}
+
+async function requestAssignmentMutation(
+  url: string,
+  method: "POST" | "PATCH",
+  input: unknown,
+): Promise<AssignmentDto> {
+  const res = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    await throwAssignmentError(res);
+  }
+  const body = (await res.json()) as { assignment: AssignmentDto };
+  return body.assignment;
+}
+
 function toQuery(filter: AssignmentFilter): string {
   const params = new URLSearchParams();
   if (filter.personAdoId) params.set("personAdoId", filter.personAdoId);
@@ -97,12 +123,7 @@ export async function listAssignments(
     cache: "no-store",
   });
   if (!res.ok) {
-    const err = await parseError(res);
-    throw Object.assign(new Error(err.error), {
-      code: err.code,
-      currentTotal: err.currentTotal,
-      conflictingPct: err.conflictingPct,
-    });
+    await throwAssignmentError(res);
   }
   const body = (await res.json()) as { assignments: AssignmentDto[] };
   return body.assignments;
@@ -122,12 +143,7 @@ export async function createAssignment(
     body: JSON.stringify(input),
   });
   if (!res.ok) {
-    const err = await parseError(res);
-    throw Object.assign(new Error(err.error), {
-      code: err.code,
-      currentTotal: err.currentTotal,
-      conflictingPct: err.conflictingPct,
-    });
+    await throwAssignmentError(res);
   }
   const body = (await res.json()) as
     | { assignment: AssignmentDto; createdCount?: number }
@@ -148,59 +164,21 @@ export async function editAssignment(
   id: string,
   input: EditAssignmentPayload,
 ): Promise<AssignmentDto> {
-  const res = await fetch(`/api/assignments/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  if (!res.ok) {
-    const err = await parseError(res);
-    throw Object.assign(new Error(err.error), {
-      code: err.code,
-      currentTotal: err.currentTotal,
-      conflictingPct: err.conflictingPct,
-    });
-  }
-  const body = (await res.json()) as { assignment: AssignmentDto };
-  return body.assignment;
+  return requestAssignmentMutation(`/api/assignments/${id}`, "PATCH", input);
 }
 
 export async function changeAssignment(
   id: string,
   input: ChangeAssignmentPayload,
 ): Promise<AssignmentDto> {
-  const res = await fetch(`/api/assignments/${id}/change`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  if (!res.ok) {
-    const err = await parseError(res);
-    throw Object.assign(new Error(err.error), {
-      code: err.code,
-      currentTotal: err.currentTotal,
-      conflictingPct: err.conflictingPct,
-    });
-  }
-  const body = (await res.json()) as { assignment: AssignmentDto };
-  return body.assignment;
+  return requestAssignmentMutation(`/api/assignments/${id}/change`, "POST", input);
 }
 
 export async function closeAssignment(
   id: string,
   input: CloseAssignmentPayload,
 ): Promise<AssignmentDto> {
-  const res = await fetch(`/api/assignments/${id}/close`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  if (!res.ok) {
-    const err = await parseError(res);
-    throw Object.assign(new Error(err.error), { code: err.code });
-  }
-  const body = (await res.json()) as { assignment: AssignmentDto };
-  return body.assignment;
+  return requestAssignmentMutation(`/api/assignments/${id}/close`, "POST", input);
 }
 
 export async function updateAssignmentPct(

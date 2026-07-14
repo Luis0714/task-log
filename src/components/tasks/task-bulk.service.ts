@@ -25,25 +25,31 @@ export type BulkReassignParentPayload = {
   newParentId: number;
 };
 
+type BulkResponseBody = {
+  ok?: boolean;
+  expected?: number;
+  deleted?: number;
+  updated?: number;
+  failed?: number[];
+  error?: string;
+};
+
 /**
- * Elimina varias tareas en una sola llamada. Si una falla, las demás se siguen
- * intentando; el servidor devuelve el total esperado y el realmente eliminado.
+ * Ejecuta una operación bulk sobre work items. Si un item falla, los demás se
+ * siguen intentando; el servidor devuelve el total esperado y el procesado
+ * (`deleted` o `updated`, según la operación).
  */
-export async function bulkDeleteWorkItems(
-  payload: BulkDeletePayload,
+async function postBulkWorkItems(
+  endpoint: string,
+  payload: { ids: number[] },
+  fallbackErrorMessage: string,
 ): Promise<BulkWorkItemResult> {
-  const response = await fetch("/api/ado/work-items/bulk-delete", {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const body = (await response.json()) as {
-    ok?: boolean;
-    expected?: number;
-    deleted?: number;
-    failed?: number[];
-    error?: string;
-  };
+  const body = (await response.json()) as BulkResponseBody;
 
   if (!response.ok || !body.ok) {
     return {
@@ -51,86 +57,44 @@ export async function bulkDeleteWorkItems(
       expected: payload.ids.length,
       processed: 0,
       failed: payload.ids,
-      errorMessage: body.error ?? "No se pudo eliminar las tareas.",
+      errorMessage: body.error ?? fallbackErrorMessage,
     };
   }
 
   return {
     ok: true,
     expected: body.expected ?? payload.ids.length,
-    processed: body.deleted ?? 0,
+    processed: body.deleted ?? body.updated ?? 0,
     failed: body.failed ?? [],
   };
 }
 
-/**
- * Cambia el estado de varias tareas en una sola llamada. Misma resiliencia que
- * bulkDeleteWorkItems: si una tarea falla, las demás se siguen intentando.
- */
+export async function bulkDeleteWorkItems(
+  payload: BulkDeletePayload,
+): Promise<BulkWorkItemResult> {
+  return postBulkWorkItems(
+    "/api/ado/work-items/bulk-delete",
+    payload,
+    "No se pudo eliminar las tareas.",
+  );
+}
+
 export async function bulkUpdateWorkItemsState(
   payload: BulkUpdateStatePayload,
 ): Promise<BulkWorkItemResult> {
-  const response = await fetch("/api/ado/work-items/bulk-update-state", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const body = (await response.json()) as {
-    ok?: boolean;
-    expected?: number;
-    updated?: number;
-    failed?: number[];
-    error?: string;
-  };
-
-  if (!response.ok || !body.ok) {
-    return {
-      ok: false,
-      expected: payload.ids.length,
-      processed: 0,
-      failed: payload.ids,
-      errorMessage: body.error ?? "No se pudo cambiar el estado de las tareas.",
-    };
-  }
-
-  return {
-    ok: true,
-    expected: body.expected ?? payload.ids.length,
-    processed: body.updated ?? 0,
-    failed: body.failed ?? [],
-  };
+  return postBulkWorkItems(
+    "/api/ado/work-items/bulk-update-state",
+    payload,
+    "No se pudo cambiar el estado de las tareas.",
+  );
 }
 
 export async function bulkReassignWorkItemsParent(
   payload: BulkReassignParentPayload,
 ): Promise<BulkWorkItemResult> {
-  const response = await fetch("/api/ado/work-items/bulk-reassign-parent", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const body = (await response.json()) as {
-    ok?: boolean;
-    expected?: number;
-    updated?: number;
-    failed?: number[];
-    error?: string;
-  };
-
-  if (!response.ok || !body.ok) {
-    return {
-      ok: false,
-      expected: payload.ids.length,
-      processed: 0,
-      failed: payload.ids,
-      errorMessage: body.error ?? "No se pudo re-asignar la HU padre de las tareas.",
-    };
-  }
-
-  return {
-    ok: true,
-    expected: body.expected ?? payload.ids.length,
-    processed: body.updated ?? 0,
-    failed: body.failed ?? [],
-  };
+  return postBulkWorkItems(
+    "/api/ado/work-items/bulk-reassign-parent",
+    payload,
+    "No se pudo re-asignar la HU padre de las tareas.",
+  );
 }

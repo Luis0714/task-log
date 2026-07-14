@@ -4,8 +4,11 @@ import { adoFetch, adoOrgBase, adoProjectBase } from "@/lib/azure-devops/client"
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
 import { formatIdentityPatchValue } from "@/lib/azure-devops/identity-field";
-import { getRepositories } from "@/lib/db";
 import { loadProjectRoster } from "@/lib/filters/load-project-roster";
+import {
+  isNewsStoryLinked,
+  type SolicitudMutationResult,
+} from "@/lib/novedades/news-story-link";
 import { resolveAzureHours } from "@/lib/solicitudes/time-calc";
 import { SOLICITUD_ERROR_CODES } from "@/lib/solicitudes/error-codes";
 import type { CreateSolicitudBody } from "@/lib/schemas/solicitudes";
@@ -25,21 +28,10 @@ import {
  * creación). Conserva state/área/iteración de la HU actual para no mover el
  * ítem de contexto.
  */
-export type UpdateSolicitudResult =
-  | { ok: true; workItemId: number; url: string }
-  | { ok: false; status: number; message: string };
+export type UpdateSolicitudResult = SolicitudMutationResult;
 
-async function isNewsStoryLinked(
-  projectId: string,
-  teamId: string | null,
-  workItemId: number,
-): Promise<boolean> {
-  const rows = await getRepositories().newsStories.list({
-    projectIds: [projectId],
-    teamIds: teamId ? [teamId] : undefined,
-  });
-  return rows.some((row) => row.workItemId === workItemId);
-}
+/** Valor de un campo de work item de ADO. */
+type FieldValue = string | number | undefined;
 
 async function resolveAssignee(
   auth: AdoCallerAuth,
@@ -58,7 +50,9 @@ async function resolveAssignee(
   // usuario logueado aunque no aparezca en el roster.
   const profile = await resolveAdoProfile(auth).catch(() => null);
   const profileName = profile?.displayName?.trim();
-  if (profileName && profileName.toLowerCase() === assignedTo.trim().toLowerCase()) {
+  const matchesProfile =
+    profileName?.toLowerCase() === assignedTo.trim().toLowerCase();
+  if (matchesProfile && profileName) {
     return formatIdentityPatchValue(profileName);
   }
   return formatIdentityPatchValue(assignedTo.trim());
@@ -67,11 +61,11 @@ async function resolveAssignee(
 async function fetchCurrentFields(
   auth: AdoCallerAuth,
   workItemId: number,
-): Promise<Record<string, string | number | undefined> | null> {
+): Promise<Record<string, FieldValue> | null> {
   const url = `${adoProjectBase(auth)}/_apis/wit/workitems/${workItemId}?api-version=7.1`;
   const res = await adoFetch(auth, url);
   if (!res.ok) return null;
-  const data = (await res.json()) as { fields?: Record<string, string | number | undefined> };
+  const data = (await res.json()) as { fields?: Record<string, FieldValue> };
   return data.fields ?? {};
 }
 
@@ -81,6 +75,72 @@ function patchOp(
   value: string | number,
 ): { op: "add" | "replace"; path: string; value: string | number } {
   return { op: hadValue ? "replace" : "add", path, value };
+}
+
+type PatchOp =
+  | { op: "add" | "replace"; path: string; value: string | number }
+  | { op: "add" | "replace"; path: string; value: { rel: string; url: string } };
+
+/** Op de estado solo si el cliente pide uno distinto al actual. */
+function buildStatePatchOp(
+  requestedStateRaw: string | undefined,
+  currentFields: Record<string, FieldValue>,
+): PatchOp | null {
+  const requestedState = requestedStateRaw?.trim() ?? "";
+  if (!requestedState) return null;
+  const currentState =
+    typeof currentFields[NOVEDAD_FIELDS.state] === "string"
+      ? (currentFields[NOVEDAD_FIELDS.state] as string).trim()
+      : "";
+  if (requestedState === currentState) return null;
+  return patchOp(
+    Boolean(currentState),
+    `/fields/${NOVEDAD_FIELDS.state}`,
+    requestedState,
+  );
+}
+
+type ParentRelationResult =
+  | { ok: true; op: PatchOp | null }
+  | { ok: false; status: number; message: string };
+
+/** Resuelve el op de relación padre (cambio de HU) o null si no cambia. */
+async function resolveParentRelationOp(
+  auth: AdoCallerAuth,
+  workItemId: number,
+  currentFields: Record<string, FieldValue>,
+  newsStoryId: number,
+): Promise<ParentRelationResult> {
+  const currentParentId =
+    typeof currentFields["System.Parent"] === "number"
+      ? (currentFields["System.Parent"] as number)
+      : null;
+  if (currentParentId === newsStoryId) return { ok: true, op: null };
+
+  const relationsUrl = `${adoProjectBase(auth)}/_apis/wit/workitems/${workItemId}?$expand=relations&api-version=7.1`;
+  const relationsRes = await adoFetch(auth, relationsUrl);
+  if (!relationsRes.ok) {
+    return {
+      ok: false,
+      status: 502,
+      message: "No se pudo leer la relación padre de la novedad.",
+    };
+  }
+  const relationsBody = (await relationsRes.json()) as {
+    relations?: Array<{ rel: string }>;
+  };
+  const parentIndex = (relationsBody.relations ?? []).findIndex(
+    (relation) => relation.rel === "System.LinkTypes.Hierarchy-Reverse",
+  );
+  const parentUrl = `${adoOrgBase(auth)}/_apis/wit/workitems/${newsStoryId}`;
+  const value = { rel: "System.LinkTypes.Hierarchy-Reverse", url: parentUrl };
+  return {
+    ok: true,
+    op:
+      parentIndex >= 0
+        ? { op: "replace", path: `/relations/${parentIndex}`, value }
+        : { op: "add", path: "/relations/-", value },
+  };
 }
 
 export async function updateSolicitud(
@@ -111,30 +171,13 @@ export async function updateSolicitud(
   const timeZone = resolveAdoTimeZone();
   const tiempoFieldRef = await resolveTiempoNovedadFieldRef(auth);
 
-  const ops: Array<
-    | { op: "add" | "replace"; path: string; value: string | number }
-    | { op: "add" | "replace"; path: string; value: { rel: string; url: string } }
-  > = [];
+  const ops: PatchOp[] = [];
 
   // Estado: solo parchear si el cliente envía uno distinto al actual. Sin
   // esto, ADO no permite PATCH sobre `System.State` para usuarios sin
   // permisos de transición y devolvería 400.
-  const requestedState = body.state?.trim() ?? "";
-  if (requestedState) {
-    const currentState =
-      typeof currentFields[NOVEDAD_FIELDS.state] === "string"
-        ? (currentFields[NOVEDAD_FIELDS.state] as string).trim()
-        : "";
-    if (requestedState !== currentState) {
-      ops.push(
-        patchOp(
-          Boolean(currentState),
-          `/fields/${NOVEDAD_FIELDS.state}`,
-          requestedState,
-        ),
-      );
-    }
-  }
+  const stateOp = buildStatePatchOp(body.state, currentFields);
+  if (stateOp) ops.push(stateOp);
 
   ops.push(
     patchOp(
@@ -195,41 +238,20 @@ export async function updateSolicitud(
   );
 
   // Cambio de HU padre: parchear la relación existente o agregar una nueva.
-  const currentParentId =
-    typeof currentFields["System.Parent"] === "number"
-      ? (currentFields["System.Parent"] as number)
-      : null;
-  if (currentParentId !== body.newsStoryId) {
-    const relationsUrl = `${adoProjectBase(auth)}/_apis/wit/workitems/${workItemId}?$expand=relations&api-version=7.1`;
-    const relationsRes = await adoFetch(auth, relationsUrl);
-    if (!relationsRes.ok) {
-      return {
-        ok: false,
-        status: 502,
-        message: "No se pudo leer la relación padre de la novedad.",
-      };
-    }
-    const relationsBody = (await relationsRes.json()) as {
-      relations?: Array<{ rel: string }>;
+  const parentRelation = await resolveParentRelationOp(
+    auth,
+    workItemId,
+    currentFields,
+    body.newsStoryId,
+  );
+  if (!parentRelation.ok) {
+    return {
+      ok: false,
+      status: parentRelation.status,
+      message: parentRelation.message,
     };
-    const parentIndex = (relationsBody.relations ?? []).findIndex(
-      (relation) => relation.rel === "System.LinkTypes.Hierarchy-Reverse",
-    );
-    const parentUrl = `${adoOrgBase(auth)}/_apis/wit/workitems/${body.newsStoryId}`;
-    if (parentIndex >= 0) {
-      ops.push({
-        op: "replace",
-        path: `/relations/${parentIndex}`,
-        value: { rel: "System.LinkTypes.Hierarchy-Reverse", url: parentUrl },
-      });
-    } else {
-      ops.push({
-        op: "add",
-        path: "/relations/-",
-        value: { rel: "System.LinkTypes.Hierarchy-Reverse", url: parentUrl },
-      });
-    }
   }
+  if (parentRelation.op) ops.push(parentRelation.op);
 
   const url = `${adoProjectBase(auth)}/_apis/wit/workitems/${workItemId}?api-version=7.1`;
   const res = await adoFetch(auth, url, {

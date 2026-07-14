@@ -14,80 +14,38 @@ export type SeedTemplate = {
 
 export const GLOBAL_TEMPLATE_SEED_KEY = "global";
 
-export const DEFAULT_TEMPLATES: ReadonlyArray<SeedTemplate> = [
-  // ---------- Developer ----------
-  {
-    seedKey: "developer",
-    name: "Desarrollo",
-    defaultTitle: "Desarrollo de funcionalidad",
-    defaultDescription:
-      "Implementación, ajuste o mejora de funcionalidades asignadas dentro del sprint.",
-  },
-  {
-    seedKey: "developer",
-    name: "Corrección de Bug",
-    defaultTitle: "Corrección de incidencia",
-    defaultDescription:
-      "Análisis, corrección y validación de errores reportados en el sistema.",
-  },
-
-  // ---------- QA ----------
-  {
-    seedKey: "qa",
-    name: "Ejecución de Pruebas",
-    defaultTitle: "Ejecución de pruebas funcionales",
-    defaultDescription:
-      "Validación de funcionalidades desarrolladas y verificación de criterios de aceptación.",
-  },
-  {
-    seedKey: "qa",
-    name: "Reporte de Bug",
-    defaultTitle: "Análisis y reporte de incidencia",
-    defaultDescription:
-      "Identificación, documentación y seguimiento de errores encontrados durante las pruebas.",
-  },
-
-  // ---------- Diseñador ----------
-  {
-    seedKey: "designer",
-    name: "Diseño de Interfaz",
-    defaultTitle: "Diseño de experiencia e interfaz",
-    defaultDescription:
-      "Creación o ajuste de diseños, flujos y componentes visuales de la aplicación.",
-  },
-  {
-    seedKey: "designer",
-    name: "Revisión de Diseño",
-    defaultTitle: "Revisión y validación de propuesta visual",
-    defaultDescription:
-      "Análisis de experiencia de usuario, consistencia visual y validación de requerimientos de diseño.",
-  },
-
-  // ---------- Product Owner ----------
-  {
-    seedKey: "product-owner",
-    name: "Refinamiento de Backlog",
-    defaultTitle: "Refinamiento de backlog",
-    defaultDescription:
-      "Análisis, definición y ajuste de historias de usuario para próximas iteraciones.",
-  },
-  {
-    seedKey: "product-owner",
-    name: "Gestión Funcional",
-    defaultTitle: "Gestión y seguimiento funcional",
-    defaultDescription:
-      "Revisión de avances, validación funcional y coordinación de requerimientos con el equipo.",
-  },
-
-  // ---------- Global (todos los roles) ----------
-  {
-    seedKey: GLOBAL_TEMPLATE_SEED_KEY,
-    name: "Reunión",
-    defaultTitle: "Participación en reunión",
-    defaultDescription:
-      "Participación en sesiones de seguimiento, planeación, refinamiento, retrospectiva o coordinación del proyecto.",
-  },
+type SeedTemplateRow = [
+  seedKey: string,
+  name: string,
+  defaultTitle: string,
+  defaultDescription: string,
 ];
+
+const TEMPLATE_ROWS: ReadonlyArray<SeedTemplateRow> = [
+  // Developer
+  ["developer", "Desarrollo", "Desarrollo de funcionalidad", "Implementación, ajuste o mejora de funcionalidades asignadas dentro del sprint."],
+  ["developer", "Corrección de Bug", "Corrección de incidencia", "Análisis, corrección y validación de errores reportados en el sistema."],
+  // QA
+  ["qa", "Ejecución de Pruebas", "Ejecución de pruebas funcionales", "Validación de funcionalidades desarrolladas y verificación de criterios de aceptación."],
+  ["qa", "Reporte de Bug", "Análisis y reporte de incidencia", "Identificación, documentación y seguimiento de errores encontrados durante las pruebas."],
+  // Diseñador
+  ["designer", "Diseño de Interfaz", "Diseño de experiencia e interfaz", "Creación o ajuste de diseños, flujos y componentes visuales de la aplicación."],
+  ["designer", "Revisión de Diseño", "Revisión y validación de propuesta visual", "Análisis de experiencia de usuario, consistencia visual y validación de requerimientos de diseño."],
+  // Product Owner
+  ["product-owner", "Refinamiento de Backlog", "Refinamiento de backlog", "Análisis, definición y ajuste de historias de usuario para próximas iteraciones."],
+  ["product-owner", "Gestión Funcional", "Gestión y seguimiento funcional", "Revisión de avances, validación funcional y coordinación de requerimientos con el equipo."],
+  // Global (todos los roles)
+  [GLOBAL_TEMPLATE_SEED_KEY, "Reunión", "Participación en reunión", "Participación en sesiones de seguimiento, planeación, refinamiento, retrospectiva o coordinación del proyecto."],
+];
+
+export const DEFAULT_TEMPLATES: ReadonlyArray<SeedTemplate> = TEMPLATE_ROWS.map(
+  ([seedKey, name, defaultTitle, defaultDescription]) => ({
+    seedKey,
+    name,
+    defaultTitle,
+    defaultDescription,
+  }),
+);
 
 /**
  * Mapea el nombre interno del rol (almacenado en `roles.name` en la DB)
