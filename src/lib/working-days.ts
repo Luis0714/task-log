@@ -81,6 +81,46 @@ export function resolveLastWorkingDayKey(
   return null;
 }
 
+/**
+ * Avanza `count` días hábiles desde `fromIso` (inclusive de `fromIso` como
+ * día 0 de referencia) y devuelve la clave `YYYY-MM-DD` resultante.
+ *
+ * `count` es la cantidad de días hábiles a sumar: `addWorkingDayKeys(lunes, 1)`
+ * devuelve el martes (si es hábil). Salta fines de semana y festivos. Un
+ * `count <= 0` devuelve la misma clave `fromIso` sin avanzar. Devuelve `null`
+ * si `fromIso` no es una fecha válida.
+ */
+export function addWorkingDayKeys(
+  fromIso: string,
+  count: number,
+  options: WorkingDayFilterOptions = {},
+): string | null {
+  const start = parseLocalDateKey(fromIso);
+  if (!start) return null;
+
+  const steps = Math.trunc(count);
+  if (steps <= 0) return toLocalDateKey(start);
+
+  const cursor = new Date(start);
+  let remaining = steps;
+  while (remaining > 0) {
+    cursor.setDate(cursor.getDate() + 1);
+    if (isWorkingDayKey(toLocalDateKey(cursor), options)) remaining -= 1;
+  }
+  return toLocalDateKey(cursor);
+}
+
+/**
+ * Primer día hábil estrictamente posterior a `fromIso`. Salta fines de semana
+ * y festivos. Devuelve `null` si `fromIso` no es una fecha válida.
+ */
+export function nextWorkingDayKey(
+  fromIso: string,
+  options: WorkingDayFilterOptions = {},
+): string | null {
+  return addWorkingDayKeys(fromIso, 1, options);
+}
+
 export function parseLocalDateKey(key: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key.trim());
   if (!match) return null;

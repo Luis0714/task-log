@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  addWorkingDayKeys,
   countWorkingDayKeysBetween,
   filterWorkingDayKeys,
   isWeekendKey,
   isWorkingDayKey,
   listWorkingDayKeysBetween,
+  nextWorkingDayKey,
   parseLocalDateKey,
   resolveLastWorkingDayKey,
   toLocalDateKey,
@@ -143,6 +145,61 @@ describe("parseLocalDateKey + toLocalDateKey", () => {
     expect(parseLocalDateKey("")).toBeNull();
     expect(parseLocalDateKey("2026-6-1")).toBeNull();
     expect(parseLocalDateKey("abc")).toBeNull();
+  });
+});
+
+describe("addWorkingDayKeys", () => {
+  it("count <= 0 devuelve la misma fecha", () => {
+    expect(addWorkingDayKeys("2026-06-01", 0)).toBe("2026-06-01");
+    expect(addWorkingDayKeys("2026-06-01", -3)).toBe("2026-06-01");
+  });
+
+  it("avanza un día hábil dentro de la semana", () => {
+    // Lunes 1 + 1 día hábil = martes 2.
+    expect(addWorkingDayKeys("2026-06-01", 1)).toBe("2026-06-02");
+  });
+
+  it("salta el fin de semana", () => {
+    // Viernes 5 + 1 día hábil = lunes 8.
+    expect(addWorkingDayKeys("2026-06-05", 1)).toBe("2026-06-08");
+  });
+
+  it("salta festivos entre semana además de fines de semana", () => {
+    // Viernes 5 + 1 día hábil, con lunes 8 festivo = martes 9.
+    expect(
+      addWorkingDayKeys("2026-06-05", 1, {
+        nonWorkingDates: new Set(["2026-06-08"]),
+      }),
+    ).toBe("2026-06-09");
+  });
+
+  it("CA-18: inicio 15/06/2026 + 3 días hábiles (festivo intermedio) = 18/06", () => {
+    // Lunes 15 como día 0; +3 hábiles saltando festivo lunes 15 no aplica
+    // (arranca en 15). 16, 17, 18 son hábiles => 18.
+    expect(addWorkingDayKeys("2026-06-15", 3)).toBe("2026-06-18");
+  });
+
+  it("devuelve null si la fecha es inválida", () => {
+    expect(addWorkingDayKeys("nope", 2)).toBeNull();
+  });
+});
+
+describe("nextWorkingDayKey", () => {
+  it("siguiente hábil de un viernes es el lunes", () => {
+    expect(nextWorkingDayKey("2026-06-05")).toBe("2026-06-08");
+  });
+
+  it("salta festivo para caer en el siguiente hábil", () => {
+    // Viernes 5 -> lunes 8 festivo -> martes 9.
+    expect(
+      nextWorkingDayKey("2026-06-05", {
+        nonWorkingDates: new Set(["2026-06-08"]),
+      }),
+    ).toBe("2026-06-09");
+  });
+
+  it("siguiente hábil de un día entre semana es el día siguiente", () => {
+    expect(nextWorkingDayKey("2026-06-02")).toBe("2026-06-03");
   });
 });
 

@@ -7,11 +7,35 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [tsconfigPaths()],
+
   test: {
     environment: "node",
-    include: ["src/**/__tests__/**/*.test.ts"],
+
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+
     globals: false,
+
+    coverage: {
+      provider: "v8",
+
+      reporter: [
+        "text",
+        "html",
+        "lcov",
+      ],
+
+      reportsDirectory: "./coverage",
+
+      exclude: [
+        "coverage/**",
+        ".next/**",
+        "node_modules/**",
+        "**/*.d.ts",
+        "**/__tests__/**",
+      ],
+    },
   },
+
   resolve: {
     alias: {
       "@": resolve(here, "src"),
