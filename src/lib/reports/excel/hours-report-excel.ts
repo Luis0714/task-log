@@ -10,6 +10,7 @@ import {
   leftAlign,
   styleCell,
 } from "@/lib/reports/excel/excel-styles";
+import { resolveAdoTimeZone } from "@/lib/azure-devops/working-date-field";
 import type { BuildHoursReportPeriod } from "@/lib/reports/hours/build-hours-report";
 import type {
   HoursReportResult,
@@ -151,6 +152,7 @@ function writeTitleRow(ws: ExcelJS.Worksheet, input: BuildHoursReportExcelInput)
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
+    timeZone: resolveAdoTimeZone(),
   });
   subtitle.value = `Periodo: ${input.periodLabel} · Proyectos: ${projectsLabel} · Generado por NeosView · ${generatedAt}`;
   styleCell(subtitle, {
