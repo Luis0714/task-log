@@ -14,7 +14,7 @@ import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 export type WorkItemAssigneeFilterProps = {
   id: string;
   assignee: string;
-  members: AdoTeamMemberDto[];
+  members: readonly AdoTeamMemberDto[];
   membersLoading?: boolean;
   membersError?: string | null;
   disabled?: boolean;

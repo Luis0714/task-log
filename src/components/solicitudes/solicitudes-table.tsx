@@ -53,7 +53,7 @@ export function SolicitudesTable({
         {solicitudes.map((solicitud) => (
           <li key={solicitud.id} className="rounded-xl border p-4">
             <div className="flex items-start justify-between gap-3">
-              <p className="min-w-0 flex-1 font-medium break-words" title={solicitud.title}>
+              <p className="min-w-0 flex-1 font-medium wrap-break-word" title={solicitud.title}>
                 {solicitud.title}
               </p>
               <AzureLink solicitud={solicitud} />

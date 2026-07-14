@@ -63,8 +63,6 @@ export type CreateSolicitudBody = z.infer<typeof createSolicitudBodySchema>;
  */
 export const updateSolicitudBodySchema = createSolicitudBodySchema;
 
-export type UpdateSolicitudBody = CreateSolicitudBody;
-
 export const solicitudOptionsQuerySchema = z.object({
   project: z.string().trim().min(1, SOLICITUD_ERROR_CODES.projectRequired),
 });

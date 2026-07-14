@@ -8,7 +8,7 @@ import { getRepositories } from "@/lib/db";
 import { loadProjectRoster } from "@/lib/filters/load-project-roster";
 import { resolveAzureHours } from "@/lib/solicitudes/time-calc";
 import { SOLICITUD_ERROR_CODES } from "@/lib/solicitudes/error-codes";
-import type { UpdateSolicitudBody } from "@/lib/schemas/solicitudes";
+import type { CreateSolicitudBody } from "@/lib/schemas/solicitudes";
 import {
   COMPLETED_WORK_FIELD,
   NOVEDAD_FIELDS,
@@ -86,7 +86,7 @@ function patchOp(
 export async function updateSolicitud(
   auth: AdoCallerAuth,
   workItemId: number,
-  body: UpdateSolicitudBody,
+  body: CreateSolicitudBody,
 ): Promise<UpdateSolicitudResult> {
   const team = body.team?.trim() || null;
   if (!(await isNewsStoryLinked(auth.project, team, body.newsStoryId))) {

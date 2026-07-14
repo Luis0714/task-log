@@ -46,9 +46,9 @@ export function ReportsTimeLogTable({ rows }: Readonly<ReportsTimeLogTableProps>
             key={`${row.projectId}-${row.teamId ?? "none"}-${row.personDisplayName}-${idx}`}
             className="border-b last:border-b-0 hover:bg-muted/30"
           >
-            <td className="px-3 py-2 min-w-[12rem]">{row.projectName}</td>
-            <td className="px-3 py-2 min-w-[12rem]">{row.teamName ?? "—"}</td>
-            <td className="px-3 py-2 min-w-[14rem] font-medium">{row.personDisplayName}</td>
+            <td className="px-3 py-2 min-w-48">{row.projectName}</td>
+            <td className="px-3 py-2 min-w-48">{row.teamName ?? "—"}</td>
+            <td className="px-3 py-2 min-w-56 font-medium">{row.personDisplayName}</td>
             <td className="px-3 py-2 text-center">{formatAssignmentPct(row)}</td>
             <td className="px-3 py-2 text-center tabular-nums">{row.developmentHours.toFixed(1)}</td>
             <td className="px-3 py-2 text-center tabular-nums">{row.bugHours.toFixed(1)}</td>
@@ -69,8 +69,8 @@ export function ReportsTimeLogTable({ rows }: Readonly<ReportsTimeLogTableProps>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-sm">
                     <ol className="list-inside list-decimal space-y-0.5 text-left">
-                      {(row.newsDetails ?? []).map((detail, i) => (
-                        <li key={i}>{detail}</li>
+                      {(row.newsDetails ?? []).map((detail) => (
+                        <li key={detail}>{detail}</li>
                       ))}
                     </ol>
                   </TooltipContent>
@@ -100,8 +100,8 @@ export function ReportsTimeLogTableSkeleton({
   return (
     <TableShell>
       <tbody>
-        {Array.from({ length: rowCount }).map((_, rowIdx) => (
-          <tr key={rowIdx} className="border-b last:border-b-0">
+        {Array.from({ length: rowCount }, (_, i) => `skeleton-row-${i}`).map((rowKey) => (
+          <tr key={rowKey} className="border-b last:border-b-0">
             {COLUMNS.map((col) => (
               <td key={col.label} className={cn("px-3 py-2", col.cellClassName)}>
                 <Skeleton className="h-4 w-full" />

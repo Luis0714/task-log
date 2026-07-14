@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 import {
@@ -45,6 +46,64 @@ type SolicitudFormBodyProps = Readonly<{
   onClose: () => void;
 }>;
 
+function resolveStatePlaceholder(
+  isLoading: boolean,
+  hasOptions: boolean,
+): string {
+  if (isLoading) return "Cargando estados…";
+  if (!hasOptions) return "Sin estados disponibles";
+  return "Selecciona el estado";
+}
+
+function resolveSubmitLabel(submitting: boolean, isEdit: boolean): string {
+  if (submitting) return isEdit ? "Guardando…" : "Creando…";
+  return isEdit ? "Guardar cambios" : "Crear solicitud";
+}
+
+function useFormSelectOptions(config: SolicitudFormConfig, form: ReturnType<typeof useSolicitudForm>) {
+  const { values, fields, catalog, mode } = form;
+  const isEdit = mode === "edit";
+  const projectOptions = config.projects.map((project) => ({
+    value: project,
+    label: project,
+  }));
+  const teamOptions = form.teams.map((team) => ({ value: team, label: team }));
+  const newsStoryOptions = form.newsStories.map((story) => ({
+    value: String(story.workItemId),
+    label: `#${story.workItemId} · ${story.title}`,
+  }));
+  const memberOptions = form.teamScopedMembers.map((member) => ({
+    value: member.uniqueName,
+    label: member.displayName,
+  }));
+  const tipoOptions = (catalog.options?.tipos ?? []).map((tipo) => ({
+    value: tipo,
+    label: tipo,
+  }));
+  const stateOptions = [...(catalog.options?.states ?? []).map((state) => ({
+    value: state,
+    label: state,
+  }))];
+  // Si el estado actual no viene del catálogo (legacy / estado creado en otra
+  // sesión), lo añadimos como opción para que el select lo muestre en lugar
+  // de quedar vacío.
+  if (values.state && !stateOptions.some((opt) => opt.value === values.state)) {
+    stateOptions.unshift({ value: values.state, label: values.state });
+  }
+  return {
+    values,
+    fields,
+    catalog,
+    isEdit,
+    projectOptions,
+    teamOptions,
+    newsStoryOptions,
+    memberOptions,
+    tipoOptions,
+    stateOptions,
+  };
+}
+
 function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
   const form = useSolicitudForm({
     mode: config.mode,
@@ -59,44 +118,26 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
     onSaved: config.onSaved,
   });
 
-  const { values, fields, catalog, mode } = form;
-  const options = catalog.options;
-  const isEdit = mode === "edit";
+  const { values, fields, catalog, isEdit, projectOptions, teamOptions, newsStoryOptions, memberOptions, tipoOptions, stateOptions } =
+    useFormSelectOptions(config, form);
 
-  const projectOptions = config.projects.map((project) => ({ value: project, label: project }));
-  const teamOptions = form.teams.map((team) => ({ value: team, label: team }));
-  const newsStoryOptions = form.newsStories.map((story) => ({
-    value: String(story.workItemId),
-    label: `#${story.workItemId} · ${story.title}`,
-  }));
-  const memberOptions = form.teamScopedMembers.map((member) => ({
-    value: member.uniqueName,
-    label: member.displayName,
-  }));
-  const tipoOptions = options?.tipos.map((tipo) => ({ value: tipo, label: tipo })) ?? [];
-  const stateOptions = (options?.states ?? []).map((state) => ({ value: state, label: state }));
-  // Si el estado actual no viene del catálogo (legacy / estado creado en otra
-  // sesión), lo añadimos como opción para que el select lo muestre en lugar
-  // de quedar vacío.
-  if (values.state && !stateOptions.some((opt) => opt.value === values.state)) {
-    stateOptions.unshift({ value: values.state, label: values.state });
-  }
-
-  // El trigger del select muestra el label legible (título de la HU / nombre
-  // visible de la persona), no el value interno (ID numérico / uniqueName).
-  const selectedNewsStoryTitle =
-    newsStoryOptions.find(
-      (opt) =>
-        opt.value ===
-        (form.values.newsStoryId !== null ? String(form.values.newsStoryId) : ""),
-    )?.label;
-  const selectedMemberLabel =
-    memberOptions.find((opt) => opt.value === form.values.assignedTo)?.label;
+  const selectedNewsStoryTitle = newsStoryOptions.find(
+    (opt) =>
+      opt.value ===
+      (form.values.newsStoryId !== null ? String(form.values.newsStoryId) : ""),
+  )?.label;
+  const selectedMemberLabel = memberOptions.find(
+    (opt) => opt.value === form.values.assignedTo,
+  )?.label;
 
   async function handleSubmit() {
     const ok = await form.submit();
     if (ok) onClose();
   }
+
+  const options = catalog.options;
+  const statePlaceholder = resolveStatePlaceholder(catalog.loading, stateOptions.length > 0);
+  const submitLabel = resolveSubmitLabel(form.submitting, isEdit);
 
   return (
     <>
@@ -120,12 +161,10 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
         />
 
         {options?.teamsError ? (
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-sm">
-            <span>No se pudieron cargar los equipos del proyecto.</span>
-            <Button type="button" variant="outline" size="sm" onClick={catalog.reload}>
-              Reintentar
-            </Button>
-          </div>
+          <RetryAlert
+            message="No se pudieron cargar los equipos del proyecto."
+            onRetry={catalog.reload}
+          />
         ) : (
           <ControlledSelectField
             label="Equipo"
@@ -141,38 +180,23 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
         )}
 
         {catalog.error ? (
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-sm">
-            <span>{catalog.error}</span>
-            <Button type="button" variant="outline" size="sm" onClick={catalog.reload}>
-              Reintentar
-            </Button>
-          </div>
+          <RetryAlert message={catalog.error} onRetry={catalog.reload} />
         ) : null}
 
         {form.noNewsStories ? (
-          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-            <p className="font-medium">
-              {form.hasTeams
-                ? "Este equipo no tiene historias de novedades configuradas."
-                : "Este proyecto no tiene historias de novedades configuradas."}
-            </p>
-            {config.isManagement ? (
-              <Link href="/admin/novedades" className="mt-1 inline-block underline underline-offset-2">
-                Configurar novedades
-              </Link>
-            ) : (
-              <p className="text-muted-foreground mt-1">
-                Pide a un rol de gestión que configure las novedades del proyecto.
-              </p>
-            )}
-          </div>
+          <NoNewsStoriesAlert
+            hasTeams={form.hasTeams}
+            isManagement={config.isManagement}
+          />
         ) : (
           <ControlledSelectField
             label="HU de novedades"
             required
             value={values.newsStoryId !== null ? String(values.newsStoryId) : ""}
             placeholder={
-              form.hasTeams && !form.team ? "Selecciona un equipo primero" : "Selecciona la HU destino"
+              form.hasTeams && !form.team
+                ? "Selecciona un equipo primero"
+                : "Selecciona la HU destino"
             }
             options={newsStoryOptions}
             loading={catalog.loading}
@@ -182,99 +206,60 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
           />
         )}
 
-        <div className="flex flex-col gap-1.5">
-          <ControlledSelectField
-            label="Persona asignada"
-            required
-            value={values.assignedTo}
-            placeholder="Selecciona la persona"
-            options={memberOptions}
-            loading={catalog.loading}
-            disabled={!form.project || catalog.loading}
-            displayValue={selectedMemberLabel}
-            error={
-              options?.membersError && memberOptions.length === 0
-                ? "No se pudieron cargar los miembros del proyecto."
-                : null
-            }
-            onValueChange={fields.setAssignedTo}
-          />
-          {options?.membersError ? (
-            <Button type="button" variant="outline" size="sm" className="self-start" onClick={catalog.reload}>
-              Reintentar
-            </Button>
-          ) : null}
-        </div>
+        <SelectFieldWithRetry
+          label="Persona asignada"
+          required
+          value={values.assignedTo}
+          placeholder="Selecciona la persona"
+          options={memberOptions}
+          loading={catalog.loading}
+          disabled={!form.project || catalog.loading}
+          displayValue={selectedMemberLabel}
+          errorMessage={
+            options?.membersError && memberOptions.length === 0
+              ? "No se pudieron cargar los miembros del proyecto."
+              : null
+          }
+          onValueChange={fields.setAssignedTo}
+          onRetry={catalog.reload}
+        />
 
-        <div className="flex flex-col gap-1.5">
-          <ControlledSelectField
-            label="Tipo de solicitud"
-            required
-            value={values.tipo}
-            placeholder="Selecciona el tipo"
-            options={tipoOptions}
-            loading={catalog.loading}
-            disabled={!form.project || catalog.loading}
-            error={options?.tiposError ? "No se pudieron cargar los tipos desde Azure." : null}
-            onValueChange={fields.setTipo}
-          />
-          {options?.tiposError ? (
-            <Button type="button" variant="outline" size="sm" className="self-start" onClick={catalog.reload}>
-              Reintentar
-            </Button>
-          ) : null}
-        </div>
+        <SelectFieldWithRetry
+          label="Tipo de solicitud"
+          required
+          value={values.tipo}
+          placeholder="Selecciona el tipo"
+          options={tipoOptions}
+          loading={catalog.loading}
+          disabled={!form.project || catalog.loading}
+          errorMessage={options?.tiposError ? "No se pudieron cargar los tipos desde Azure." : null}
+          onValueChange={fields.setTipo}
+          onRetry={catalog.reload}
+        />
 
         {isEdit ? (
-          <div className="flex flex-col gap-1.5">
-            <ControlledSelectField
-              label="Estado"
-              value={values.state}
-              placeholder={
-                catalog.loading
-                  ? "Cargando estados…"
-                  : stateOptions.length === 0
-                    ? "Sin estados disponibles"
-                    : "Selecciona el estado"
-              }
-              options={stateOptions}
-              loading={catalog.loading}
-              disabled={!form.project || catalog.loading}
-              error={options?.statesError ? "No se pudieron cargar los estados desde Azure." : null}
-              onValueChange={fields.setState}
-            />
-            {options?.statesError ? (
-              <Button type="button" variant="outline" size="sm" className="self-start" onClick={catalog.reload}>
-                Reintentar
-              </Button>
-            ) : null}
-          </div>
+          <SelectFieldWithRetry
+            label="Estado"
+            value={values.state}
+            placeholder={statePlaceholder}
+            options={stateOptions}
+            loading={catalog.loading}
+            disabled={!form.project || catalog.loading}
+            errorMessage={
+              options?.statesError ? "No se pudieron cargar los estados desde Azure." : null
+            }
+            onValueChange={fields.setState}
+            onRetry={catalog.reload}
+          />
         ) : null}
 
-        <div className="grid grid-cols-[1fr_auto] items-end gap-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="solicitud-tiempo" required>
-              Tiempo
-            </Label>
-            <Input
-              id="solicitud-tiempo"
-              type="number"
-              min={0}
-              step="0.5"
-              value={values.value}
-              placeholder="0"
-              onChange={(event) => fields.setValue(event.target.value)}
-            />
-          </div>
-          <ControlledSelectField
-            label="Unidad"
-            value={values.unit}
-            placeholder="Unidad"
-            options={UNIT_OPTIONS}
-            triggerClassName="w-28"
-            onValueChange={(value) => fields.setUnit(value === "dias" ? "dias" : "horas")}
-          />
-        </div>
+        <TiempoRow
+          value={values.value}
+          unit={values.unit}
+          onValueChange={fields.setValue}
+          onUnitChange={fields.setUnit}
+        />
+
         <FormInlineError message={form.durationError} />
 
         <div className="flex flex-col gap-1.5">
@@ -338,16 +323,133 @@ function SolicitudFormBody({ config, onClose }: SolicitudFormBodyProps) {
       <DialogFooter>
         <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>
         <Button type="button" onClick={handleSubmit} disabled={!form.canSubmit}>
-          {form.submitting
-            ? isEdit
-              ? "Guardando…"
-              : "Creando…"
-            : isEdit
-              ? "Guardar cambios"
-              : "Crear solicitud"}
+          {submitLabel}
         </Button>
       </DialogFooter>
     </>
+  );
+}
+
+function RetryAlert({
+  message,
+  onRetry,
+}: Readonly<{ message: string; onRetry: () => void }>) {
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-sm">
+      <span>{message}</span>
+      <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+        Reintentar
+      </Button>
+    </div>
+  );
+}
+
+function NoNewsStoriesAlert({
+  hasTeams,
+  isManagement,
+}: Readonly<{ hasTeams: boolean; isManagement: boolean }>) {
+  return (
+    <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+      <p className="font-medium">
+        {hasTeams
+          ? "Este equipo no tiene historias de novedades configuradas."
+          : "Este proyecto no tiene historias de novedades configuradas."}
+      </p>
+      {isManagement ? (
+        <Link href="/admin/novedades" className="mt-1 inline-block underline underline-offset-2">
+          Configurar novedades
+        </Link>
+      ) : (
+        <p className="text-muted-foreground mt-1">
+          Pide a un rol de gestión que configure las novedades del proyecto.
+        </p>
+      )}
+    </div>
+  );
+}
+
+type SelectFieldWithRetryProps = Readonly<{
+  label: string;
+  required?: boolean;
+  value: string;
+  placeholder: string;
+  options: ReadonlyArray<{ value: string; label: ReactNode; key?: string }>;
+  loading: boolean;
+  disabled: boolean;
+  displayValue?: string;
+  errorMessage?: string | null;
+  onValueChange: (value: string) => void;
+  onRetry: () => void;
+}>;
+
+function SelectFieldWithRetry(props: SelectFieldWithRetryProps) {
+  const error = props.errorMessage ?? null;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <ControlledSelectField
+        label={props.label}
+        required={props.required}
+        value={props.value}
+        placeholder={props.placeholder}
+        options={props.options as Array<{ value: string; label: ReactNode; key?: string }>}
+        loading={props.loading}
+        disabled={props.disabled}
+        displayValue={props.displayValue}
+        error={error}
+        onValueChange={props.onValueChange}
+      />
+      {error ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="self-start"
+          onClick={props.onRetry}
+        >
+          Reintentar
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function TiempoRow({
+  value,
+  unit,
+  onValueChange,
+  onUnitChange,
+}: Readonly<{
+  value: string;
+  unit: string;
+  onValueChange: (value: string) => void;
+  onUnitChange: (unit: "horas" | "dias") => void;
+}>) {
+  return (
+    <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="solicitud-tiempo" required>
+          Tiempo
+        </Label>
+        <Input
+          id="solicitud-tiempo"
+          type="number"
+          min={0}
+          step="0.5"
+          value={value}
+          placeholder="0"
+          onChange={(event) => onValueChange(event.target.value)}
+        />
+      </div>
+      <ControlledSelectField
+        label="Unidad"
+        value={unit}
+        placeholder="Unidad"
+        options={UNIT_OPTIONS}
+        triggerClassName="w-28"
+        onValueChange={(next) => onUnitChange(next === "dias" ? "dias" : "horas")}
+      />
+    </div>
   );
 }
 

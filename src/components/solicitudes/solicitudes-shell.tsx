@@ -10,6 +10,11 @@ import { SolicitudFormDialog } from "@/components/solicitudes/solicitud-form-dia
 import { SolicitudesFiltersBar } from "@/components/solicitudes/solicitudes-filters-bar";
 import { useSolicitudCatalog } from "@/hooks/solicitudes/use-solicitud-catalog";
 import type { SolicitudDto } from "@/lib/novedades/list-my-solicitudes";
+import {
+  WORK_ITEM_ASSIGNEE_ME,
+  parseAssigneeFilter,
+} from "@/lib/schemas/work-item-filters";
+import { findTeamMemberByAssigneeName } from "@/lib/filters/person-name";
 
 export type SolicitudesShellProps = Readonly<{
   initialSolicitudes: readonly SolicitudDto[];
@@ -26,6 +31,50 @@ function normalize(value: string | null | undefined): string {
   return (value ?? "").toLocaleLowerCase("es");
 }
 
+/**
+ * ¿El solicitante coincide con el filtro de asignado? Parseamos el formato
+ * estándar `all` / `me` / `name|name|...` y comparamos por displayName /
+ * uniqueName. La lógica vive aquí (en el shell) porque las solicitudes no
+ * tienen un identificador de persona estable, solo el `assignedTo` que ADO
+ * guarda como `DisplayName <uniqueName>` o `DisplayName`.
+ *
+ * Para `includeMe` necesitamos saber quién es el usuario logueado: lo
+ * recibimos como `currentUserDisplayName` y resolvemos contra el roster del
+ * proyecto (no asumimos que el primer miembro con `uniqueName` sea "yo").
+ */
+function matchesAssigneeFilter(
+  solicitud: SolicitudDto,
+  filter: string,
+  members: readonly { displayName: string; uniqueName?: string }[],
+  currentUserDisplayName: string | null,
+): boolean {
+  const parsed = parseAssigneeFilter(filter);
+  if (parsed.kind === "all") return true;
+
+  const member = findTeamMemberByAssigneeName(members, solicitud.assignedTo ?? "");
+  const memberName = member?.displayName ?? solicitud.assignedTo ?? "";
+  if (!memberName) return false;
+
+  if (parsed.includeMe && currentUserDisplayName) {
+    const me = members.find(
+      (m) => normalize(m.displayName) === normalize(currentUserDisplayName),
+    );
+    if (me && normalize(memberName) === normalize(me.displayName)) return true;
+  }
+  return parsed.names.some((name) => normalize(name) === normalize(memberName));
+}
+
+/** `[]` = "sin selección, todos seleccionados" (mismo criterio que el reporte
+ * de horas por periodo). Se cruza con `available` para ignorar IDs obsoletos. */
+function effectiveSelection(
+  selected: readonly string[],
+  available: readonly string[],
+): string[] {
+  if (selected.length === 0) return [...available];
+  const valid = new Set(available);
+  return selected.filter((id) => valid.has(id));
+}
+
 export function SolicitudesShell({
   initialSolicitudes,
   projects,
@@ -40,15 +89,28 @@ export function SolicitudesShell({
   const [dialogMode, setDialogMode] = useState<"create" | "edit" | null>(null);
   const [editingSolicitud, setEditingSolicitud] = useState<SolicitudDto | null>(null);
 
-  // Filtros del listado. Por defecto el asignado soy yo (espejo del patrón
-  // de "Historias de usuario"): el resto de filtros arrancan en blanco/Todos.
-  const [projectFilter, setProjectFilter] = useState(defaultProject);
-  const [teamFilter, setTeamFilter] = useState("");
-  const [assigneeFilter, setAssigneeFilter] = useState(currentUserDisplayName ?? "");
+  // Filtros del listado — defaults idénticos a /admin/novedades: el proyecto
+  // y equipo predeterminados del catálogo (no "todos"). Si no hay defaultTeam
+  // (p. ej. proyecto sin equipos), el filtro de equipo queda en "todos".
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>(() =>
+    defaultProject ? [defaultProject] : [],
+  );
+  const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>(() =>
+    defaultTeam ? [defaultTeam] : [],
+  );
+  const [assigneeFilter, setAssigneeFilter] = useState<string>(WORK_ITEM_ASSIGNEE_ME);
 
-  // Catálogo del proyecto seleccionado: alimenta el select de equipo y el
-  // mapeo parentId → teamId necesario para filtrar por equipo.
-  const catalog = useSolicitudCatalog(projectFilter);
+  const catalog = useSolicitudCatalog(defaultProject);
+  const members = useMemo(() => catalog.options?.members ?? [], [catalog.options]);
+  const teams = useMemo(() => catalog.options?.teams ?? [], [catalog.options]);
+  const effectiveProjects = useMemo(
+    () => effectiveSelection(selectedProjectIds, projects),
+    [selectedProjectIds, projects],
+  );
+  const effectiveTeams = useMemo(
+    () => effectiveSelection(selectedTeamIds, teams),
+    [selectedTeamIds, teams],
+  );
 
   // Map parentId → teamId para resolver el equipo de cada solicitud.
   const parentTeamById = useMemo(() => {
@@ -60,21 +122,17 @@ export function SolicitudesShell({
   }, [catalog.options]);
 
   const filteredSolicitudes = useMemo(() => {
-    const assigneeQuery = normalize(assigneeFilter);
+    const teamSet = new Set(effectiveTeams);
     return solicitudes.filter((solicitud) => {
-      if (teamFilter) {
-        const teamId = solicitud.parentId !== null
-          ? parentTeamById.get(solicitud.parentId)
-          : null;
-        // teamId null (HU a nivel proyecto) muestra en cualquier equipo.
-        if (teamId !== null && teamId !== teamFilter) return false;
+      if (teamSet.size > 0) {
+        const teamId =
+          solicitud.parentId !== null ? parentTeamById.get(solicitud.parentId) : null;
+        if (teamId !== null && teamId !== undefined && !teamSet.has(teamId)) return false;
       }
-      if (assigneeQuery && !normalize(solicitud.assignedTo).includes(assigneeQuery)) {
-        return false;
-      }
+      if (!matchesAssigneeFilter(solicitud, assigneeFilter, members, currentUserDisplayName)) return false;
       return true;
     });
-  }, [solicitudes, teamFilter, assigneeFilter, parentTeamById]);
+  }, [solicitudes, effectiveTeams, parentTeamById, assigneeFilter, members, currentUserDisplayName]);
 
   const handleSaved = useCallback((saved: SolicitudDto) => {
     setSolicitudes((prev) => [saved, ...prev.filter((item) => item.id !== saved.id)]);
@@ -118,19 +176,21 @@ export function SolicitudesShell({
 
       <SolicitudesFiltersBar
         projects={projects}
-        projectValue={projectFilter}
-        onProjectChange={setProjectFilter}
-        teams={catalog.options?.teams ?? []}
-        teamValue={teamFilter}
-        onTeamChange={setTeamFilter}
+        selectedProjectIds={effectiveProjects}
+        onProjectIdsChange={setSelectedProjectIds}
+        teams={teams}
+        selectedTeamIds={effectiveTeams}
+        onTeamIdsChange={setSelectedTeamIds}
         assigneeValue={assigneeFilter}
         onAssigneeChange={setAssigneeFilter}
-        currentUserDisplayName={currentUserDisplayName}
+        members={members}
+        membersLoading={catalog.loading}
+        membersError={null}
       />
 
       <SolicitudesTable
         solicitudes={filteredSolicitudes}
-        project={projectFilter || defaultProject}
+        project={defaultProject}
         onEdit={handleEdit}
         onDeleted={handleDeleted}
       />
@@ -140,7 +200,7 @@ export function SolicitudesShell({
         onOpenChange={handleOpenChange}
         config={{
           projects,
-          defaultProject: projectFilter || defaultProject,
+          defaultProject,
           defaultTeam,
           currentUserDisplayName,
           holidayKeys,

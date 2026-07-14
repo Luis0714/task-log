@@ -139,7 +139,7 @@ export function workItemMatchesStates(
 
 export function resolveWorkItemAssigneeLabel(
   assignee: string,
-  members: Array<{ displayName: string }>,
+  members: ReadonlyArray<{ displayName: string }>,
 ): string {
   const filter = parseAssigneeFilter(assignee);
 

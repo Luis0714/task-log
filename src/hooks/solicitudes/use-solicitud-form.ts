@@ -127,6 +127,19 @@ function resolveInitialProject(config: UseSolicitudFormConfig): string {
   return config.projects.length === 1 ? config.projects[0] : "";
 }
 
+/** HUs visibles según el contexto de equipo: sin equipos, todas; con equipos
+ * pero sin equipo elegido, ninguna; con equipo, las suyas más las de nivel
+ * proyecto (teamId nulo, aplican a todos). */
+function scopeNewsStoriesByTeam(
+  all: readonly SolicitudNewsStoryOption[],
+  hasTeams: boolean,
+  team: string,
+): readonly SolicitudNewsStoryOption[] {
+  if (!hasTeams) return all;
+  if (!team) return [];
+  return all.filter((story) => story.teamId === team || story.teamId === null);
+}
+
 /** Persona por defecto = usuario logueado; si no está en el roster, el primero. */
 function pickDefaultAssignee(
   members: readonly { uniqueName: string; displayName: string }[],
@@ -179,11 +192,7 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
   // el `<select>` pueda mostrar el título y no solo el ID.
   const newsStories = useMemo(() => {
     const all = options?.newsStories ?? [];
-    const scoped = hasTeams
-      ? team
-        ? all.filter((story) => story.teamId === team || story.teamId === null)
-        : []
-      : all;
+    const scoped = scopeNewsStoriesByTeam(all, hasTeams, team);
     const seen = new Map<number, SolicitudNewsStoryOption>();
     for (const story of scoped) {
       if (!seen.has(story.workItemId)) seen.set(story.workItemId, story);
@@ -201,7 +210,7 @@ export function useSolicitudForm(config: UseSolicitudFormConfig) {
   // Miembros filtrados por el equipo elegido: en proyectos con equipos, el
   // dropdown "Persona asignada" muestra solo los miembros del equipo activo
   // (mismo criterio que el resto de pantallas). Sin equipos o sin equipo
-  // elegido, expone todo el roster del proyecto.
+  // elegido, expone TODOS el roster del proyecto.
   const teamScopedMembers = useMemo(() => {
     const all = options?.members ?? [];
     if (!hasTeams || !team) return all;
