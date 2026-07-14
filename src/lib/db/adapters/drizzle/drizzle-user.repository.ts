@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 
 import { getDb } from "@/lib/db/client";
 import type { UpdateUserInput, UserRepository } from "@/lib/db/ports/user.repository.port";
-import { roles, users } from "@/lib/db/schema";
+import { adoConnections, roles, users } from "@/lib/db/schema";
 
 export const drizzleUserRepository: UserRepository = {
   async listAllWithRoles() {
@@ -17,11 +17,14 @@ export const drizzleUserRepository: UserRepository = {
         roleId: users.roleId,
         roleName: roles.name,
         roleDisplayName: roles.displayName,
+        project: adoConnections.project,
+        adoOrganization: adoConnections.organization,
         isActive: users.isActive,
         createdAt: users.createdAt,
       })
       .from(users)
       .leftJoin(roles, eq(users.roleId, roles.id))
+      .leftJoin(adoConnections, eq(adoConnections.userId, users.id))
       .orderBy(users.displayName);
 
     return rows.map((r) => ({
@@ -32,6 +35,8 @@ export const drizzleUserRepository: UserRepository = {
       roleId: r.roleId ?? null,
       roleName: r.roleName ?? null,
       roleDisplayName: r.roleDisplayName ?? null,
+      project: r.project ?? null,
+      adoOrganization: r.adoOrganization ?? null,
       isActive: r.isActive,
       createdAt: r.createdAt.toISOString(),
     }));
