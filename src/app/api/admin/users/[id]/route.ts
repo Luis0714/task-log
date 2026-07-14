@@ -3,49 +3,37 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
-import { getRepositories, isUserPersistenceReady } from "@/lib/db";
+import { requireSuperAdminSession } from "@/app/api/admin/_shared/super-admin-session";
+import { getRepositories } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 const patchBodySchema = z
   .object({
-    roleId: z.string().uuid().optional(),
+    roleId: z.uuid().optional(),
     isActive: z.boolean().optional(),
   })
   .refine((d) => d.roleId !== undefined || d.isActive !== undefined, {
     message: "Indica al menos un campo a actualizar.",
   });
 
+type PatchBody = z.infer<typeof patchBodySchema>;
+
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!isIronSessionConfigured() || !isUserPersistenceReady()) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 403 });
-  }
-  const session = await getTaskPilotSession();
-  if (session.userRole !== "super_admin") {
-    return NextResponse.json({ error: "No autorizado." }, { status: 403 });
-  }
+  const auth = await requireSuperAdminSession();
+  if (!auth.ok) return auth.response;
 
   const { id } = await params;
+  const selfBlock = preventSelfEdit(id, auth.adminId);
+  if (selfBlock) return selfBlock;
 
-  if (id === session.taskPilotUserId) {
-    return NextResponse.json(
-      { error: "No puedes modificar tu propio usuario." },
-      { status: 400 },
-    );
-  }
+  const bodyResult = await parseJsonBody(req);
+  if (!bodyResult.ok) return bodyResult.response;
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
-  }
-
-  const parsed = patchBodySchema.safeParse(body);
+  const parsed = patchBodySchema.safeParse(bodyResult.data);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Datos inválidos." },
@@ -53,48 +41,67 @@ export async function PATCH(
     );
   }
 
-  const wouldChangeRole =
-    parsed.data.roleId !== undefined;
-  const wouldChangeActive = parsed.data.isActive !== undefined;
-
-  if (wouldChangeRole || wouldChangeActive) {
-    const allUsers = await getRepositories().user.listAllWithRoles();
-    const target = allUsers.find((u) => u.id === id);
-
-    if (!target) {
-      return NextResponse.json(
-        { error: "Usuario no encontrado." },
-        { status: 404 },
-      );
-    }
-
-    const isTargetSuperAdmin = target.roleName === "super_admin";
-    if (isTargetSuperAdmin) {
-      const isDemoting =
-        wouldChangeRole && target.roleId !== parsed.data.roleId;
-      const isDisabling =
-        wouldChangeActive && parsed.data.isActive === false && target.isActive;
-
-      if (isDemoting || isDisabling) {
-        const activeSuperAdminCount = allUsers.filter(
-          (u) => u.roleName === "super_admin" && u.isActive,
-        ).length;
-
-        if (activeSuperAdminCount <= 1) {
-          return NextResponse.json(
-            {
-              error:
-                "No puedes deshabilitar ni cambiar el rol del único SuperAdmin activo.",
-            },
-            { status: 400 },
-          );
-        }
-      }
-    }
+  if (parsed.data.roleId !== undefined || parsed.data.isActive !== undefined) {
+    const protectionError = await ensureCanModifyTarget(id, parsed.data);
+    if (protectionError) return protectionError;
   }
 
+  return updateUserSafely(id, parsed.data);
+}
+
+function preventSelfEdit(id: string, adminId: string | null): NextResponse | null {
+  if (id !== adminId) return null;
+  return NextResponse.json(
+    { error: "No puedes modificar tu propio usuario." },
+    { status: 400 },
+  );
+}
+
+type JsonBodyResult = { ok: true; data: unknown } | { ok: false; response: NextResponse };
+
+async function parseJsonBody(req: Request): Promise<JsonBodyResult> {
   try {
-    await getRepositories().user.updateUser(id, parsed.data);
+    return { ok: true, data: await req.json() };
+  } catch {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "JSON inválido." }, { status: 400 }),
+    };
+  }
+}
+
+async function ensureCanModifyTarget(
+  id: string,
+  patch: PatchBody,
+): Promise<NextResponse | null> {
+  const allUsers = await getRepositories().user.listAllWithRoles();
+  const target = allUsers.find((u) => u.id === id);
+  if (!target) {
+    return NextResponse.json({ error: "Usuario no encontrado." }, { status: 404 });
+  }
+  if (target.roleName !== "super_admin") return null;
+
+  const wouldDemote = patch.roleId !== undefined && target.roleId !== patch.roleId;
+  const wouldDisable = patch.isActive === false && target.isActive;
+  if (!wouldDemote && !wouldDisable) return null;
+
+  const activeSuperAdmins = allUsers.filter(
+    (u) => u.roleName === "super_admin" && u.isActive,
+  ).length;
+  if (activeSuperAdmins <= 1) {
+    return NextResponse.json(
+      {
+        error: "No puedes deshabilitar ni cambiar el rol del único SuperAdmin activo.",
+      },
+      { status: 400 },
+    );
+  }
+  return null;
+}
+
+async function updateUserSafely(id: string, patch: PatchBody): Promise<NextResponse> {
+  try {
+    await getRepositories().user.updateUser(id, patch);
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json(

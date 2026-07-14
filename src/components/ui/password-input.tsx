@@ -12,7 +12,7 @@ export type PasswordInputProps = Omit<
   "type"
 >;
 
-export function PasswordInput({ className, disabled, ...props }: PasswordInputProps) {
+export function PasswordInput({ className, disabled, ...props }: Readonly<PasswordInputProps>) {
   const [visible, setVisible] = useState(false);
 
   return (

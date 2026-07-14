@@ -98,7 +98,7 @@ export const infoListItemSchema = z.object({
   title: z.string().min(1).max(500),
   state: z.string().optional(),
   assignedTo: z.string().optional(),
-  url: z.string().url().optional(),
+  url: z.url().optional(),
 });
 export type InfoListItem = z.infer<typeof infoListItemSchema>;
 

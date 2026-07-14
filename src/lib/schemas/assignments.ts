@@ -19,7 +19,7 @@ const baseBody = z.object({
   projectName: z.string().trim().min(1),
   teamId: z.string().trim().max(128).nullable().optional(),
   teamName: z.string().trim().max(256).nullable().optional(),
-  roleId: z.string().uuid(ASSIGNMENT_ERROR_CODES.roleRequired).nullable().optional(),
+  roleId: z.uuid({ error: ASSIGNMENT_ERROR_CODES.roleRequired }).nullable().optional(),
   assignmentPct: z
     .number({ message: ASSIGNMENT_ERROR_CODES.pctRequired })
     .int(ASSIGNMENT_ERROR_CODES.pctInteger)
@@ -55,7 +55,7 @@ export const editAssignmentBodySchema = z.object({
   projectName: z.string().trim().max(256).optional(),
   teamId: z.string().trim().max(128).nullable().optional(),
   teamName: z.string().trim().max(256).nullable().optional(),
-  roleId: z.string().uuid(ASSIGNMENT_ERROR_CODES.roleRequired).nullable().optional(),
+  roleId: z.uuid({ error: ASSIGNMENT_ERROR_CODES.roleRequired }).nullable().optional(),
   assignmentPct: baseBody.shape.assignmentPct.optional(),
   validFrom: isoDateAny.optional(),
   validTo: z
@@ -69,8 +69,7 @@ export type EditAssignmentBody = z.infer<typeof editAssignmentBodySchema>;
 export const changeAssignmentBodySchema = z.object({
   newAssignmentPct: baseBody.shape.assignmentPct,
   newRoleId: z
-    .string()
-    .uuid(ASSIGNMENT_ERROR_CODES.roleRequired)
+    .uuid({ error: ASSIGNMENT_ERROR_CODES.roleRequired })
     .nullable()
     .optional(),
   validFrom: isoDateAny,

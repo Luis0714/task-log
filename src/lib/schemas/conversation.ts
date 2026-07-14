@@ -3,8 +3,8 @@ import { z } from "zod";
 import { previewResultSchema } from "./agent";
 
 const baseMessage = z.object({
-  id: z.string().uuid(),
-  at: z.string().datetime(),
+  id: z.uuid(),
+  at: z.iso.datetime(),
 });
 
 const userMessageSchema = baseMessage.extend({

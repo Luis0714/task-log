@@ -1,7 +1,7 @@
 "use client";
 
 import { Bug, ListChecks } from "lucide-react";
-import { Cell, Pie, PieChart } from "recharts";
+import { Pie, PieChart } from "recharts";
 
 import { HoursMixMetricColumn } from "@/components/dashboard/charts/hours-mix-metric-column";
 import { ConfigChartTooltip } from "@/components/dashboard/charts/config-chart-tooltip";
@@ -19,10 +19,10 @@ import {
 } from "@/lib/dashboard/chart-config";
 import { cn } from "@/lib/utils";
 
-export type HoursMixChartProps = {
+export type HoursMixChartProps = Readonly<{
   breakdown: HoursBreakdown;
   className?: string;
-};
+}>;
 
 export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
   const total = totalHoursBreakdown(breakdown);
@@ -31,8 +31,8 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
   }
 
   const slices = [
-    { key: "taskHours", value: breakdown.taskHours },
-    { key: "bugHours", value: breakdown.bugHours },
+    { key: "taskHours", value: breakdown.taskHours, fill: "var(--color-taskHours)" },
+    { key: "bugHours", value: breakdown.bugHours, fill: "var(--color-bugHours)" },
   ].filter((slice) => slice.value > 0);
 
   const taskPercent = Math.round((breakdown.taskHours / total) * 100);
@@ -65,11 +65,7 @@ export function HoursMixChart({ breakdown, className }: HoursMixChartProps) {
                 />
               }
             />
-            <Pie data={slices} dataKey="value" nameKey="key" {...INLINE_PIE_RING}>
-              {slices.map((slice) => (
-                <Cell key={slice.key} fill={`var(--color-${slice.key})`} />
-              ))}
-            </Pie>
+            <Pie data={slices} dataKey="value" nameKey="key" {...INLINE_PIE_RING} />
           </PieChart>
         </ChartContainer>
       </div>

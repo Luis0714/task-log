@@ -9,5 +9,5 @@ export const taskPilotEmailSchema = z
   .string()
   .trim()
   .min(1, "Indica tu correo.")
-  .email("Indica un correo válido.")
+  .pipe(z.email({ error: "Indica un correo válido." }))
   .transform(normalizeTaskPilotEmail);

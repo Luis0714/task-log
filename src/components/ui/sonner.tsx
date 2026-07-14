@@ -9,7 +9,7 @@ type ToasterProps = React.ComponentProps<typeof SileoToaster>;
  * Wrapper del `Toaster` de sileo que sincroniza el tema con `next-themes`.
  * Los iconos por estado se definen por-toast en `@/lib/toast` (appToast).
  */
-function Toaster(props: ToasterProps) {
+function Toaster(props: Readonly<ToasterProps>) {
   const { resolvedTheme } = useTheme();
 
   return (

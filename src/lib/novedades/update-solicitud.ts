@@ -2,25 +2,21 @@ import "server-only";
 
 import { adoFetch, adoOrgBase, adoProjectBase } from "@/lib/azure-devops/client";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
-import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
-import { formatIdentityPatchValue } from "@/lib/azure-devops/identity-field";
-import { loadProjectRoster } from "@/lib/filters/load-project-roster";
-import {
-  isNewsStoryLinked,
-  type SolicitudMutationResult,
-} from "@/lib/novedades/news-story-link";
-import { resolveAzureHours } from "@/lib/solicitudes/time-calc";
-import { SOLICITUD_ERROR_CODES } from "@/lib/solicitudes/error-codes";
-import type { CreateSolicitudBody } from "@/lib/schemas/solicitudes";
 import {
   COMPLETED_WORK_FIELD,
   NOVEDAD_FIELDS,
   resolveTiempoNovedadFieldRef,
 } from "@/lib/azure-devops/novedad-fields";
+import { buildWorkingDateTimeValue } from "@/lib/azure-devops/working-date-field";
 import {
-  buildWorkingDateTimeValue,
-  resolveAdoTimeZone,
-} from "@/lib/azure-devops/working-date-field";
+  assertSolicitudContext,
+  mapAdoFailureToSolicitud,
+  resolveAssigneeFromRoster,
+  resolveSolicitudTiming,
+} from "@/lib/novedades/solicitud-context";
+import type { SolicitudMutationResult } from "@/lib/novedades/news-story-link";
+import { SOLICITUD_ERROR_CODES } from "@/lib/solicitudes/error-codes";
+import type { CreateSolicitudBody } from "@/lib/schemas/solicitudes";
 
 /**
  * Edita una novedad existente en Azure DevOps. Valida pertenencia al
@@ -32,31 +28,6 @@ export type UpdateSolicitudResult = SolicitudMutationResult;
 
 /** Valor de un campo de work item de ADO. */
 type FieldValue = string | number | undefined;
-
-async function resolveAssignee(
-  auth: AdoCallerAuth,
-  assignedTo: string,
-): Promise<string> {
-  const members = await loadProjectRoster(auth);
-  const match = members.find(
-    (member) =>
-      member.displayName.trim().toLowerCase() === assignedTo.trim().toLowerCase() ||
-      member.uniqueName.toLowerCase() === assignedTo.trim().toLowerCase(),
-  );
-  if (match) {
-    return formatIdentityPatchValue(match.displayName, match.uniqueName);
-  }
-  // Mismo fallback "asignarme" que la creación: aceptar el displayName del
-  // usuario logueado aunque no aparezca en el roster.
-  const profile = await resolveAdoProfile(auth).catch(() => null);
-  const profileName = profile?.displayName?.trim();
-  const matchesProfile =
-    profileName?.toLowerCase() === assignedTo.trim().toLowerCase();
-  if (matchesProfile && profileName) {
-    return formatIdentityPatchValue(profileName);
-  }
-  return formatIdentityPatchValue(assignedTo.trim());
-}
 
 async function fetchCurrentFields(
   auth: AdoCallerAuth,
@@ -148,10 +119,8 @@ export async function updateSolicitud(
   workItemId: number,
   body: CreateSolicitudBody,
 ): Promise<UpdateSolicitudResult> {
-  const team = body.team?.trim() || null;
-  if (!(await isNewsStoryLinked(auth.project, team, body.newsStoryId))) {
-    return { ok: false, status: 400, message: SOLICITUD_ERROR_CODES.newsStoryNotLinked };
-  }
+  const context = await assertSolicitudContext(auth, body);
+  if (!context.ok) return context;
 
   const currentFields = await fetchCurrentFields(auth, workItemId);
   if (!currentFields) {
@@ -162,13 +131,16 @@ export async function updateSolicitud(
     };
   }
 
-  const resolvedAssignee = await resolveAssignee(auth, body.assignedTo);
+  const resolvedAssignee = await resolveAssigneeFromRoster(
+    auth,
+    context.members,
+    body.assignedTo,
+  );
   if (!resolvedAssignee) {
     return { ok: false, status: 400, message: SOLICITUD_ERROR_CODES.assigneeNotMember };
   }
 
-  const hours = resolveAzureHours(body.value, body.unit);
-  const timeZone = resolveAdoTimeZone();
+  const { hours, timeZone, fechaReintegro } = resolveSolicitudTiming(body);
   const tiempoFieldRef = await resolveTiempoNovedadFieldRef(auth);
 
   const ops: PatchOp[] = [];
@@ -208,7 +180,7 @@ export async function updateSolicitud(
     patchOp(
       Boolean(currentFields[NOVEDAD_FIELDS.fechaReintegro]),
       `/fields/${NOVEDAD_FIELDS.fechaReintegro}`,
-      buildWorkingDateTimeValue(body.fechaReintegro, body.reintegroTime, timeZone),
+      fechaReintegro,
     ),
     patchOp(
       Boolean(currentFields[tiempoFieldRef]),
@@ -261,9 +233,8 @@ export async function updateSolicitud(
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    const status = res.status === 403 ? 403 : 502;
-    return { ok: false, status, message: body.slice(0, 500) };
+    const failure = await res.text();
+    return mapAdoFailureToSolicitud(res.status, failure.slice(0, 500));
   }
 
   return {

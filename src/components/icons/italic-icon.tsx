@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-export function ItalicIcon(props: Omit<SVGProps<SVGSVGElement>, "viewBox">) {
+export function ItalicIcon(props: Readonly<Omit<SVGProps<SVGSVGElement>, "viewBox">>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

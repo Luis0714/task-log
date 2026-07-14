@@ -24,6 +24,27 @@ function formatDateTime(dateKey: string | null, timeStr: string | null): string 
   return formatSolicitudDateTime(dateKey, timeStr);
 }
 
+/**
+ * Listado maestro de campos que muestran ambas vistas (móvil/escritorio) de la
+ * tabla. Cada entry indica cómo extraer el valor ya formateado; las vistas
+ * sólo eligen el layout (lista o celdas). Mantener una sola fuente de verdad
+ * aquí evita que las dos vistas se desincronicen al añadir un campo nuevo.
+ */
+type SolicitudField = Readonly<{
+  key: string;
+  label: string;
+  getValue: (solicitud: SolicitudDto) => string;
+}>;
+
+const SOLICITUD_FIELDS: readonly SolicitudField[] = [
+  { key: "tipo", label: "Tipo", getValue: (s) => s.tipo ?? "—" },
+  { key: "assignedTo", label: "Asignado", getValue: (s) => s.assignedTo ?? "—" },
+  { key: "fechaInicio", label: "Inicio", getValue: (s) => formatDateTime(s.fechaInicio, s.fechaInicioHora) },
+  { key: "fechaFin", label: "Fin", getValue: (s) => formatDateTime(s.fechaFin, s.fechaFinHora) },
+  { key: "fechaReintegro", label: "Reintegro", getValue: (s) => formatDateTime(s.fechaReintegro, s.fechaReintegroHora) },
+  { key: "hours", label: "Horas", getValue: (s) => formatHours(s.hours) },
+];
+
 export type SolicitudesTableProps = Readonly<{
   solicitudes: readonly SolicitudDto[];
   /** Proyecto activo: necesario para autorizar la eliminación en Azure DevOps. */
@@ -56,15 +77,16 @@ export function SolicitudesTable({
               <p className="min-w-0 flex-1 font-medium wrap-break-word" title={solicitud.title}>
                 {solicitud.title}
               </p>
-              <AzureLink solicitud={solicitud} />
+              <AzureDevOpsLink solicitud={solicitud} variant="icon" />
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
-              <Field label="Tipo" value={solicitud.tipo ?? "—"} />
-              <Field label="Asignado" value={solicitud.assignedTo ?? "—"} />
-              <Field label="Inicio" value={formatDateTime(solicitud.fechaInicio, solicitud.fechaInicioHora)} />
-              <Field label="Fin" value={formatDateTime(solicitud.fechaFin, solicitud.fechaFinHora)} />
-              <Field label="Reintegro" value={formatDateTime(solicitud.fechaReintegro, solicitud.fechaReintegroHora)} />
-              <Field label="Horas" value={formatHours(solicitud.hours)} />
+              {SOLICITUD_FIELDS.map((field) => (
+                <Field
+                  key={field.key}
+                  label={field.label}
+                  value={field.getValue(solicitud)}
+                />
+              ))}
               <Field label="Estado" value={solicitud.state || "—"} />
             </dl>
             <div className="mt-3 flex items-center justify-end gap-1">
@@ -84,13 +106,12 @@ export function SolicitudesTable({
         <table className="w-full min-w-[960px] text-sm">
           <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 font-medium">Tipo</th>
-              <th className="px-3 py-2 font-medium">Asignado</th>
-              <th className="px-3 py-2 font-medium">Inicio</th>
-              <th className="px-3 py-2 font-medium">Fin</th>
-              <th className="px-3 py-2 font-medium">Reintegro</th>
-              <th className="px-3 py-2 text-right font-medium">Horas</th>
-              <th className="px-3 py-2 text-right font-medium">Estado</th>
+              {SOLICITUD_FIELDS.map((field) => (
+                <th key={field.key} className="px-3 py-2 font-medium">
+                  {field.label}
+                </th>
+              ))}
+              <th className="px-3 py-2 font-medium">Estado</th>
               <th className="px-3 py-2 text-right font-medium">Acciones</th>
               <th className="px-3 py-2 text-right font-medium">Azure</th>
             </tr>
@@ -98,28 +119,13 @@ export function SolicitudesTable({
           <tbody className="divide-y">
             {solicitudes.map((solicitud) => (
               <tr key={solicitud.id} className="hover:bg-muted/30">
-                <td className="max-w-[160px] min-w-[120px] truncate px-3 py-2">
-                  {solicitud.tipo ? (
-                    <Tooltip>
-                      <TooltipTrigger render={<span className="block cursor-default truncate" />}>
-                        {solicitud.tipo}
-                      </TooltipTrigger>
-                      <TooltipContent>{solicitud.tipo}</TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td
-                  className="max-w-[220px] min-w-[180px] truncate px-3 py-2"
-                  title={solicitud.assignedTo ?? undefined}
-                >
-                  {solicitud.assignedTo ?? "—"}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(solicitud.fechaInicio, solicitud.fechaInicioHora)}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(solicitud.fechaFin, solicitud.fechaFinHora)}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(solicitud.fechaReintegro, solicitud.fechaReintegroHora)}</td>
-                <td className="px-3 py-2 text-right whitespace-nowrap">{formatHours(solicitud.hours)}</td>
+                {SOLICITUD_FIELDS.map((field) => (
+                  <SolicitudFieldCell
+                    key={field.key}
+                    field={field}
+                    solicitud={solicitud}
+                  />
+                ))}
                 <td className="min-w-32 px-3 py-2 text-right">
                   {solicitud.state ? <WorkItemStateBadge state={solicitud.state} /> : "—"}
                 </td>
@@ -134,16 +140,7 @@ export function SolicitudesTable({
                   </div>
                 </td>
                 <td className="px-3 py-2 text-right">
-                <a
-                  href={solicitud.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
-                  title={`Abrir novedad #${solicitud.id} en Azure DevOps`}
-                >
-                  #{solicitud.id}
-                  <ExternalLink className="size-3.5" aria-hidden />
-                </a>
+                  <AzureDevOpsLink solicitud={solicitud} variant="compact-with-id" />
                 </td>
               </tr>
             ))}
@@ -152,6 +149,49 @@ export function SolicitudesTable({
       </div>
     </>
   );
+}
+
+function SolicitudFieldCell({
+  field,
+  solicitud,
+}: Readonly<{
+  field: SolicitudField;
+  solicitud: SolicitudDto;
+}>) {
+  const value = field.getValue(solicitud);
+  // "Tipo" suele ser largo: tooltip con el valor completo cuando se trunca.
+  if (field.key === "tipo") {
+    return (
+      <td className="max-w-[160px] min-w-[120px] truncate px-3 py-2">
+        {solicitud.tipo ? (
+          <Tooltip>
+            <TooltipTrigger render={<span className="block cursor-default truncate" />}>
+              {value}
+            </TooltipTrigger>
+            <TooltipContent>{value}</TooltipContent>
+          </Tooltip>
+        ) : (
+          value
+        )}
+      </td>
+    );
+  }
+  if (field.key === "assignedTo") {
+    return (
+      <td
+        className="max-w-[220px] min-w-[180px] truncate px-3 py-2"
+        title={solicitud.assignedTo ?? undefined}
+      >
+        {value}
+      </td>
+    );
+  }
+  if (field.key === "hours") {
+    return (
+      <td className="px-3 py-2 text-right whitespace-nowrap">{value}</td>
+    );
+  }
+  return <td className="px-3 py-2 whitespace-nowrap">{value}</td>;
 }
 
 function SolicitudActions({
@@ -193,7 +233,31 @@ function SolicitudActions({
   );
 }
 
-function AzureLink({ solicitud }: Readonly<{ solicitud: SolicitudDto }>) {
+function AzureDevOpsLink({
+  solicitud,
+  variant,
+}: Readonly<{
+  solicitud: SolicitudDto;
+  variant: "icon" | "compact-with-id";
+}>) {
+  const ariaLabel = `Abrir novedad #${solicitud.id} en Azure DevOps`;
+  const tooltipText = `Abrir novedad #${solicitud.id} en Azure DevOps`;
+
+  if (variant === "compact-with-id") {
+    return (
+      <a
+        href={solicitud.url}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
+        title={tooltipText}
+        aria-label={ariaLabel}
+      >
+        #{solicitud.id}
+        <ExternalLink className="size-3.5" aria-hidden />
+      </a>
+    );
+  }
   return (
     <Tooltip>
       <TooltipTrigger
@@ -203,13 +267,13 @@ function AzureLink({ solicitud }: Readonly<{ solicitud: SolicitudDto }>) {
             target="_blank"
             rel="noreferrer"
             className="text-muted-foreground hover:text-foreground inline-flex shrink-0 items-center"
-            aria-label={`Abrir novedad #${solicitud.id} en Azure DevOps`}
+            aria-label={ariaLabel}
           >
             <ExternalLink className="size-4" aria-hidden />
           </a>
         }
       />
-      <TooltipContent>Abrir novedad #{solicitud.id} en Azure DevOps</TooltipContent>
+      <TooltipContent>{tooltipText}</TooltipContent>
     </Tooltip>
   );
 }
