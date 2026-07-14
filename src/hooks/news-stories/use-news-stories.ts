@@ -135,15 +135,16 @@ export function useNewsStories(scope: NewsStoriesScope): UseNewsStoriesResult {
       item: AdoWorkItemOptionDto,
       target: { projectId: string; teamId: string | null },
     ) => {
-      const result = await linkNewsStoryRequest({
+      const created = await linkNewsStoryRequest({
         projectId: target.projectId,
         teamId: target.teamId,
         workItemId: item.id,
         workItemTitle: item.title,
       });
-      if (!result.ok) return result;
-      await refreshLinked();
-      return result;
+      if (created.ok) {
+        await refreshLinked();
+      }
+      return created;
     },
     [refreshLinked],
   );
@@ -151,8 +152,9 @@ export function useNewsStories(scope: NewsStoriesScope): UseNewsStoriesResult {
   const unlink = useCallback(
     async (id: string) => {
       const result = await unlinkNewsStoryRequest(id);
-      if (!result.ok) return result;
-      await refreshLinked();
+      if (result.ok) {
+        await refreshLinked();
+      }
       return result;
     },
     [refreshLinked],

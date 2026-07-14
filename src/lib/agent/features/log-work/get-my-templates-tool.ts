@@ -85,10 +85,6 @@ export async function handleGetMyTemplates(
   let allTemplates: TimeLogTemplateDto[];
   try {
     const roleName = await getRoleNameForUser(ctx.userId);
-    // `userRole` del contexto es el rol de Azure DevOps (p.ej. "super_admin");
-    // lo que necesitamos aquí es el `name` del rol en la tabla `roles` para
-    // resolver el seedKey, así que siempre lo derivamos del usuario.
-    void ctx.userRole;
     allTemplates = await getTemplatesForUser(ctx.userId, roleName);
   } catch (err) {
     return {

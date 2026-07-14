@@ -30,8 +30,8 @@ export function areWorkItemTagsEqual(
 ): boolean {
   if (left.length !== right.length) return false;
 
-  const normalizedLeft = left.map(normalizeWorkItemTag).sort();
-  const normalizedRight = right.map(normalizeWorkItemTag).sort();
+  const normalizedLeft = left.map(normalizeWorkItemTag).sort((a, b) => a.localeCompare(b));
+  const normalizedRight = right.map(normalizeWorkItemTag).sort((a, b) => a.localeCompare(b));
 
   return normalizedLeft.every((tag, index) => tag === normalizedRight[index]);
 }

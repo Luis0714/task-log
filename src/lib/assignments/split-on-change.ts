@@ -46,8 +46,7 @@ export async function splitAssignmentOnChange(
   };
 
   const db = getDb();
-  return db.transaction(async (tx) => {
-    void tx;
+  return db.transaction(async (_tx) => {
     const closed = await repo.updateEnd({
       id: input.existing.id,
       validTo: previousEnd,

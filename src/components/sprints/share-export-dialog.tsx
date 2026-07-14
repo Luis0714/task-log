@@ -120,7 +120,7 @@ export function ShareExportDialog({
                   type="button"
                   variant="outline"
                   size="icon"
-                  onClick={() => void onDownload()}
+                  onClick={onDownload}
                   disabled={!hasPreview}
                   aria-label={downloadLabel}
                 >
@@ -136,7 +136,7 @@ export function ShareExportDialog({
                 <Button
                   type="button"
                   size="icon"
-                  onClick={() => void onShare()}
+                  onClick={onShare}
                   disabled={!hasPreview}
                   aria-label="Compartir"
                 >
