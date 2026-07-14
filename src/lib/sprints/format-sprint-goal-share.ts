@@ -1,5 +1,6 @@
 import type { SprintGoalShareFormat } from "@/lib/sprints/sprint-goal-share-format";
 import { getSprintGoalShareFileExtension } from "@/lib/sprints/sprint-goal-share-format";
+import { toLocalDateKey } from "@/lib/working-days";
 
 const shareDateFormatter = new Intl.DateTimeFormat("es", {
   day: "numeric",
@@ -46,7 +47,7 @@ export function buildSprintGoalShareDownloadFilename(
   format: SprintGoalShareFormat,
   generatedAt: Date = new Date(),
 ): string {
-  const datePart = generatedAt.toISOString().slice(0, 10);
+  const datePart = toLocalDateKey(generatedAt);
   const extension = getSprintGoalShareFileExtension(format);
   return `${sanitizeSprintGoalShareFilename(sprintName)}-${datePart}.${extension}`;
 }

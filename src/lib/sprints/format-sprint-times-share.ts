@@ -4,6 +4,7 @@ import {
   type SprintTimesShareVariant,
 } from "@/lib/sprints/sprint-times-share-variant";
 import { sanitizeSprintGoalShareFilename } from "@/lib/sprints/format-sprint-goal-share";
+import { toLocalDateKey } from "@/lib/working-days";
 
 function resolveVariantFilenamePart(variant: SprintTimesShareVariant): string {
   if (isFullSprintTimesShareVariant(variant)) return "completo";
@@ -16,7 +17,7 @@ export function buildSprintTimesShareDownloadFilename(
   variant: SprintTimesShareVariant,
   generatedAt: Date = new Date(),
 ): string {
-  const datePart = generatedAt.toISOString().slice(0, 10);
+  const datePart = toLocalDateKey(generatedAt);
   const sprintPart = sanitizeSprintGoalShareFilename(sprintName);
   const variantPart = resolveVariantFilenamePart(variant);
   return `${sprintPart}-tiempos-${variantPart}-${datePart}.png`;

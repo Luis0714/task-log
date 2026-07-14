@@ -8,6 +8,10 @@ import { loadAssignmentsCatalog } from "@/lib/ado/load-assignments-catalog";
 import { resolveFilterDefaults } from "@/services/user/resolve-filter-defaults";
 import { USER_FILTER_SCOPES } from "@/lib/filters/user-filter-scopes";
 import { resolveSavedScopes } from "@/lib/news-stories/default-scopes";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import { PAGE_SEO } from "@/lib/seo/pages";
+
+export const metadata = buildPageMetadata(PAGE_SEO.novedades);
 
 export const dynamic = "force-dynamic";
 

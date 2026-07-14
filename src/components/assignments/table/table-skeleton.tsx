@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 const COLUMN_COUNT = 7;
-const PLACEHOLDER_ROW_COUNT = 8;
+const PLACEHOLDER_ROW_COUNT = 15;
 
 export function TableSkeleton() {
   return (
