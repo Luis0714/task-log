@@ -1,32 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useState } from "react";
 
-import { ControlledSelectField } from "@/components/time-log/fields/controlled-select-field";
-import { FormInlineError } from "@/components/time-log/fields/form-inline-error";
-import { Button } from "@/components/ui/button";
-import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { appToast } from "@/lib/toast";
 import type { AssignmentDto } from "@/lib/assignments/build-assignment-row";
 import type {
   EditAssignmentPayload,
 } from "@/services/assignments/assignments.service";
 import type { MultiCheckboxFilterOption } from "@/components/filters/multi-checkbox-filter";
-import { isPctValueValid } from "@/components/assignments/editable-cells";
+import type { TeamOptionsByProject } from "@/components/assignments/table/types";
 import {
+  AssignmentDialogFooter,
   PercentageField,
+  ProjectTeamFields,
   SectionLabel,
+  ValidityFields,
+  validateAssignmentDraft,
 } from "@/components/assignments/assignment-form-fields";
 import { toLocalDateKey } from "@/lib/dashboard/sprint-days";
 
@@ -35,7 +31,7 @@ export type AssignmentEditDialogProps = Readonly<{
   onOpenChange: (next: boolean) => void;
   assignment: AssignmentDto;
   projectOptions: MultiCheckboxFilterOption[];
-  teamOptions: MultiCheckboxFilterOption[];
+  teamOptionsByProject: TeamOptionsByProject;
   onSubmit: (id: string, patch: EditAssignmentPayload) => Promise<boolean>;
 }>;
 
@@ -50,7 +46,7 @@ export function AssignmentEditDialog({
   onOpenChange,
   assignment,
   projectOptions,
-  teamOptions,
+  teamOptionsByProject,
   onSubmit,
 }: AssignmentEditDialogProps) {
   const [draft, setDraft] = useState({
@@ -65,41 +61,9 @@ export function AssignmentEditDialog({
   });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      setDraft({
-        projectId: assignment.projectId,
-        projectName: assignment.projectName,
-        teamId: assignment.teamId ?? "",
-        teamName: assignment.teamName ?? "",
-        roleId: assignment.roleId ?? "",
-        pct: String(assignment.assignmentPct),
-        validFrom: toDateKey(assignment.validFrom),
-        validTo: toDateKey(assignment.validTo),
-      });
-    }
-  }, [
-    open,
-    assignment.projectId,
-    assignment.projectName,
-    assignment.teamId,
-    assignment.teamName,
-    assignment.roleId,
-    assignment.assignmentPct,
-    assignment.validFrom,
-    assignment.validTo,
-  ]);
-
-  const pctValid = isPctValueValid(draft.pct);
-  const endValid = draft.validTo === "" || draft.validTo >= draft.validFrom;
-  const projectValid = draft.projectId.trim() !== "";
-  const canSubmit = pctValid && endValid && projectValid;
-
-  const pctError = !pctValid ? "Debe ser un número entre 1 y 100." : null;
-  const endError = !endValid
-    ? "La fecha de fin debe ser igual o posterior a la fecha de inicio."
-    : null;
-  const projectError = !projectValid ? "Selecciona un proyecto." : null;
+  const teamOptions = teamOptionsByProject[draft.projectId] ?? [];
+  const { pctValid, canSubmit, pctError, endError, projectError } =
+    validateAssignmentDraft(draft);
 
   function buildPatch(): EditAssignmentPayload {
     const patch: EditAssignmentPayload = {};
@@ -166,83 +130,23 @@ export function AssignmentEditDialog({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
           <SectionLabel>Asignación</SectionLabel>
 
-          <div className="flex min-w-0 flex-col gap-1.5 sm:col-span-2">
-            <Label htmlFor="edit-project">
-              Proyecto <span className="text-destructive">*</span>
-            </Label>
-            <ControlledSelectField
-              label=""
-              value={draft.projectId}
-              placeholder="Selecciona un proyecto"
-              options={projectOptions}
-              onValueChange={(next) =>
-                setDraft((d) => ({
-                  ...d,
-                  projectId: next,
-                  projectName:
-                    projectOptions.find((p) => p.value === next)?.label
-                      ?.toString() ?? "",
-                }))
-              }
-              disabled={submitting}
-              error={projectError}
-            />
-          </div>
+          <ProjectTeamFields
+            idPrefix="edit"
+            draft={draft}
+            onDraftChange={setDraft}
+            projectOptions={projectOptions}
+            teamOptions={teamOptions}
+            disabled={submitting}
+            projectError={projectError}
+          />
 
-          <div className="flex min-w-0 flex-col gap-1.5 sm:col-span-2">
-            <Label htmlFor="edit-team">Equipo</Label>
-            <ControlledSelectField
-              label=""
-              value={draft.teamId}
-              placeholder="Sin equipo"
-              options={[
-                { value: "", label: "Sin equipo", key: "__none__" },
-                ...teamOptions,
-              ]}
-              onValueChange={(next) =>
-                setDraft((d) => ({
-                  ...d,
-                  teamId: next,
-                  teamName:
-                    teamOptions.find((t) => t.value === next)?.label
-                      ?.toString() ?? "",
-                }))
-              }
-              disabled={submitting}
-            />
-          </div>
-
-          <SectionLabel>Vigencia</SectionLabel>
-
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <Label htmlFor="edit-valid-from">
-              Fecha inicio <span className="text-destructive">*</span>
-            </Label>
-            <DatePicker
-              id="edit-valid-from"
-              value={draft.validFrom}
-              disabled={submitting}
-              onChange={(v) => setDraft((d) => ({ ...d, validFrom: v }))}
-            />
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <Label htmlFor="edit-valid-to">Fecha fin (opcional)</Label>
-            <DatePicker
-              id="edit-valid-to"
-              value={draft.validTo}
-              min={draft.validFrom}
-              disabled={submitting}
-              clearable
-              onChange={(v) => setDraft((d) => ({ ...d, validTo: v }))}
-            />
-            <FormInlineError message={endError} />
-          </div>
-
-          <p className="text-muted-foreground sm:col-span-2 text-xs">
-            Si no indicás fecha fin, la asignación queda vigente hasta que se
-            cierre manualmente.
-          </p>
+          <ValidityFields
+            idPrefix="edit"
+            draft={draft}
+            onDraftChange={setDraft}
+            disabled={submitting}
+            endError={endError}
+          />
 
           <PercentageField
             value={draft.pct}
@@ -253,23 +157,12 @@ export function AssignmentEditDialog({
           />
         </div>
 
-        <DialogFooter>
-          <DialogClose
-            render={<Button variant="outline" disabled={submitting} />}
-          >
-            Cancelar
-          </DialogClose>
-          <Button
-            type="button"
-            onClick={() => void onSave()}
-            disabled={!canSubmit || submitting}
-          >
-            {submitting ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : null}
-            Guardar cambios
-          </Button>
-        </DialogFooter>
+        <AssignmentDialogFooter
+          submitting={submitting}
+          canSubmit={canSubmit}
+          submitLabel="Guardar cambios"
+          onSave={onSave}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -15,10 +15,16 @@ import {
   parseAssigneeFilter,
 } from "@/lib/schemas/work-item-filters";
 import { findTeamMemberByAssigneeName } from "@/lib/filters/person-name";
+import {
+  teamNamesForProjects,
+  type TeamsByProject,
+} from "@/lib/filters/teams-by-project";
 
 export type SolicitudesShellProps = Readonly<{
   initialSolicitudes: readonly SolicitudDto[];
   projects: readonly string[];
+  /** Equipos de cada proyecto del catálogo (origen: catálogo de la página). */
+  teamsByProject: TeamsByProject;
   defaultProject: string;
   /** Equipo por defecto del catálogo (mismo origen que /admin/novedades). */
   defaultTeam: string;
@@ -78,6 +84,7 @@ function effectiveSelection(
 export function SolicitudesShell({
   initialSolicitudes,
   projects,
+  teamsByProject,
   defaultProject,
   defaultTeam,
   currentUserDisplayName,
@@ -102,10 +109,14 @@ export function SolicitudesShell({
 
   const catalog = useSolicitudCatalog(defaultProject);
   const members = useMemo(() => catalog.options?.members ?? [], [catalog.options]);
-  const teams = useMemo(() => catalog.options?.teams ?? [], [catalog.options]);
   const effectiveProjects = useMemo(
     () => effectiveSelection(selectedProjectIds, projects),
     [selectedProjectIds, projects],
+  );
+  // Los equipos ofrecidos dependen de los proyectos seleccionados.
+  const teams = useMemo(
+    () => teamNamesForProjects(teamsByProject, effectiveProjects),
+    [teamsByProject, effectiveProjects],
   );
   const effectiveTeams = useMemo(
     () => effectiveSelection(selectedTeamIds, teams),

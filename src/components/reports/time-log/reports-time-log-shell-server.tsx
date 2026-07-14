@@ -4,7 +4,7 @@ import type { AdoContextSearchParams } from "@/lib/ado/types";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
 import { getRepositories } from "@/lib/db";
 import { USER_FILTER_SCOPES } from "@/lib/filters/user-filter-scopes";
-import { resolveSavedScopes } from "@/lib/news-stories/default-scopes";
+import { resolveSavedScopesByProject } from "@/lib/news-stories/default-scopes";
 
 export type ReportsTimeLogShellServerProps = Readonly<{
   sp: AdoContextSearchParams;
@@ -19,13 +19,10 @@ export async function ReportsTimeLogShellServer({
 }: ReportsTimeLogShellServerProps) {
   const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp);
 
-  const projectsList = catalog.projects.map((p) => p.name);
-  const teamsList = catalog.teams.map((t) => t.name);
-
   const saved = await loadSavedFilters();
-  const savedScopes = resolveSavedScopes(saved, {
-    projects: projectsList,
-    teams: teamsList,
+  const savedScopes = resolveSavedScopesByProject(saved, {
+    projects: catalog.projects.map((p) => p.name),
+    teamsByProject: catalog.teamsByProject,
     defaultProject: catalog.defaultProject ?? null,
     defaultTeam: catalog.defaultTeam ?? null,
   });

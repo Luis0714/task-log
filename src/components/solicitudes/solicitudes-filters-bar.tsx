@@ -11,7 +11,7 @@ export type SolicitudesFiltersBarProps = Readonly<{
   selectedProjectIds: readonly string[];
   onProjectIdsChange: (ids: string[]) => void;
 
-  /** Equipos del proyecto activo (origen: `useSolicitudCatalog`). */
+  /** Equipos de los proyectos seleccionados (origen: catálogo de la página). */
   teams: readonly string[];
   /** IDs de equipos seleccionados (`[]` = todos). */
   selectedTeamIds: readonly string[];

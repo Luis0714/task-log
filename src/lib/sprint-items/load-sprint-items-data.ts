@@ -29,6 +29,7 @@ export const loadSprintItemsData = cache(async function loadSprintItemsData(
     sprintPath: input.sprintPath,
     projects: [],
     teams: [],
+    teamsByProject: {},
     sprints: [],
     defaultProject: null,
     defaultTeam: null,

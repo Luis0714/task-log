@@ -33,6 +33,7 @@ export default async function SolicitudesPage({
     <SolicitudesShell
       initialSolicitudes={initialSolicitudes}
       projects={catalog.projects.map((project) => project.name)}
+      teamsByProject={catalog.teamsByProject}
       defaultProject={catalog.project || catalog.defaultProject || ""}
       defaultTeam={catalog.team || catalog.defaultTeam || ""}
       currentUserDisplayName={authState.profileDisplayName}

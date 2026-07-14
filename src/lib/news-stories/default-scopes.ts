@@ -1,3 +1,8 @@
+import {
+  pruneTeamSelection,
+  teamNamesForProjects,
+  type TeamsByProject,
+} from "@/lib/filters/teams-by-project";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 
 /**
@@ -48,5 +53,38 @@ export function resolveSavedScopes(
     catalog.teams.includes(catalog.defaultTeam)
       ? [catalog.defaultTeam]
       : [],
+  };
+}
+
+/**
+ * Variante de `resolveSavedScopes` para pantallas donde los equipos dependen
+ * de los proyectos seleccionados: valida los equipos guardados contra la
+ * unión del catálogo y descarta los que no pertenecen a ningún proyecto de la
+ * selección resultante.
+ */
+export function resolveSavedScopesByProject(
+  saved: WorkItemFilters | null | undefined,
+  catalog: {
+    projects: ReadonlyArray<string>;
+    teamsByProject: TeamsByProject;
+    defaultProject: string | null;
+    defaultTeam: string | null;
+  },
+): {
+  selectedProjects: ReadonlyArray<string>;
+  selectedTeams: ReadonlyArray<string>;
+} {
+  const scopes = resolveSavedScopes(saved, {
+    projects: catalog.projects,
+    teams: teamNamesForProjects(catalog.teamsByProject, []),
+    defaultProject: catalog.defaultProject,
+    defaultTeam: catalog.defaultTeam,
+  });
+  return {
+    selectedProjects: scopes.selectedProjects,
+    selectedTeams: pruneTeamSelection(
+      scopes.selectedTeams,
+      teamNamesForProjects(catalog.teamsByProject, scopes.selectedProjects),
+    ),
   };
 }

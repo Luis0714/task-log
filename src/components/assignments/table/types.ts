@@ -2,13 +2,9 @@ import type { AssignmentRow } from "@/hooks/assignments/use-assignments";
 import type { EditAssignmentPayload } from "@/services/assignments/assignments.service";
 import type { MultiCheckboxFilterOption } from "@/components/filters/multi-checkbox-filter";
 
-export type TeamOption = Readonly<{ value: string; label: string }>;
-
-export type ProjectOption = Readonly<{
-  value: string;
-  label: string;
-  teams: TeamOption[];
-}>;
+export type TeamOptionsByProject = Readonly<
+  Record<string, MultiCheckboxFilterOption[]>
+>;
 
 export type OpResult = Promise<{ ok: boolean; message?: string }>;
 
@@ -31,7 +27,7 @@ export type AssignmentsTableProps = Readonly<{
   defaults?: InferredDefaultRow[];
   pendingDefaults?: boolean;
   projectOptions: MultiCheckboxFilterOption[];
-  teamOptions: MultiCheckboxFilterOption[];
+  teamOptionsByProject: TeamOptionsByProject;
   onCellChange: (row: EditableRowRef, patch: EditAssignmentPayload) => OpResult;
   onDefaultCreate: (
     row: InferredDefaultRow,

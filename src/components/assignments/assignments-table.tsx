@@ -16,8 +16,6 @@ export type {
   EditableRowRef,
   InferredDefaultRow,
   OpResult,
-  ProjectOption,
-  TeamOption,
 } from "./table/types";
 
 export function AssignmentsTable({
@@ -25,7 +23,7 @@ export function AssignmentsTable({
   defaults = [],
   pendingDefaults = false,
   projectOptions,
-  teamOptions,
+  teamOptionsByProject,
   onCellChange,
   onDefaultCreate,
   onDelete,
@@ -52,13 +50,14 @@ export function AssignmentsTable({
     <>
       {editTarget ? (
         <AssignmentEditDialog
+          key={editTarget.id}
           open
           onOpenChange={(next) => {
             if (!next) setEditTarget(null);
           }}
           assignment={editTarget}
           projectOptions={projectOptions}
-          teamOptions={teamOptions}
+          teamOptionsByProject={teamOptionsByProject}
           onSubmit={async (id, patch) => {
             const result = await onCellChange({ kind: "assignment", id }, patch);
             if (result.ok) setEditTarget(null);
@@ -68,13 +67,14 @@ export function AssignmentsTable({
       ) : null}
       {createTarget ? (
         <DefaultCreateDialog
+          key={createTarget.defaultKey}
           open
           onOpenChange={(next) => {
             if (!next) setCreateTarget(null);
           }}
           defaultRow={createTarget}
           projectOptions={projectOptions}
-          teamOptions={teamOptions}
+          teamOptionsByProject={teamOptionsByProject}
           onSubmit={async (row, payload) => {
             const result = await onDefaultCreate(row, payload);
             if (result.ok) setCreateTarget(null);

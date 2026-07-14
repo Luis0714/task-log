@@ -19,6 +19,8 @@ export type AdoCatalogErrors = {
 export type AdoCatalogSnapshot = {
   projects: AdoProjectDto[];
   teams: AdoTeamDto[];
+  /** Equipos de cada proyecto del catálogo, indexados por nombre de proyecto. */
+  teamsByProject: Record<string, AdoTeamDto[]>;
   sprints: AdoSprintDto[];
   defaultProject: string | null;
   defaultTeam: string | null;
