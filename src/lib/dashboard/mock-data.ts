@@ -89,9 +89,13 @@ export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
   hoursSprintCurrent: { taskHours: 28, bugHours: 4 },
   hoursSprintTarget: 40,
   hoursRemaining: 8,
+  hoursDayTarget: 8,
+  hoursDayPending: 3,
+  hoursDayAssignmentPct: 100,
   storyPointsAssigned: 19,
   storyPointsDeveloped: 9,
   sprintWorkingDaysCount: 10,
+  sprintDateRangeLabel: "3 mar – 14 mar",
   sprintWeeks: [
     {
       label: "1ª semana",
@@ -119,6 +123,7 @@ export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
       totalHours: 8,
       cumulativeHours: 8,
       idealCumulativeHours: 8,
+      isHoliday: false,
     },
     {
       dayKey: "2026-03-04",
@@ -128,6 +133,7 @@ export const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
       totalHours: 5,
       cumulativeHours: 13,
       idealCumulativeHours: 16,
+      isHoliday: false,
     },
   ],
   pbiStateGroups: [

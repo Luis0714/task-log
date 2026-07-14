@@ -1,9 +1,7 @@
 import type { AssignmentSegment } from "@/lib/expected-hours";
 import { computeExpectedHours } from "@/lib/expected-hours";
-import { sumHoursBreakdownForDayKeys } from "@/lib/dashboard/hours-breakdown";
+import { computeHoursBreakdown, type WorkedHoursItem } from "@/lib/hours/aggregate-hours";
 import { toLocalDateKey, type SprintWorkingDay } from "@/lib/dashboard/sprint-days";
-import type { SprintBugHoursSource } from "@/lib/dashboard/bug-hours";
-import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
 import type { SprintWeekMetrics } from "@/lib/dashboard/types";
 
 function getMondayOfWeek(date: Date): Date {
@@ -46,17 +44,14 @@ export function formatSprintWeekDateRange(days: readonly SprintWorkingDay[]): st
 function buildWeekMetrics(
   days: readonly SprintWorkingDay[],
   label: string,
-  tasks: SprintTaskHoursSource[],
-  bugs: SprintBugHoursSource[],
+  tasks: readonly WorkedHoursItem[],
+  bugs: readonly WorkedHoursItem[],
   segments: readonly AssignmentSegment[],
 ): SprintWeekMetrics | null {
   if (days.length === 0) return null;
 
   const dayKeys = days.map((day) => day.value);
-  const weekEndKey = dayKeys[dayKeys.length - 1] ?? "";
-  const hours = weekEndKey
-    ? sumHoursBreakdownForDayKeys(tasks, bugs, dayKeys, weekEndKey)
-    : { taskHours: 0, bugHours: 0 };
+  const hours = computeHoursBreakdown({ tasks, bugs, workingDayKeys: new Set(dayKeys) });
 
   const { expectedHours } = computeExpectedHours(dayKeys, segments);
 
@@ -72,8 +67,8 @@ function buildWeekMetrics(
 
 export function computeSprintWeekMetrics(
   workingDays: readonly SprintWorkingDay[],
-  tasks: SprintTaskHoursSource[],
-  bugs: SprintBugHoursSource[],
+  tasks: readonly WorkedHoursItem[],
+  bugs: readonly WorkedHoursItem[],
   segments: readonly AssignmentSegment[] = [],
 ): SprintWeekMetrics[] {
   return splitSprintIntoWeeks(workingDays)

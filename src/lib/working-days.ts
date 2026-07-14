@@ -55,6 +55,32 @@ export function countWorkingDayKeysBetween(
   return listWorkingDayKeysBetween(fromIso, toIso, options).length;
 }
 
+/**
+ * Última clave `YYYY-MM-DD` laborable del rango inclusivo [fromIso, toIso].
+ * Típicamente se invoca con (startDate, hoy) para obtener el último día en
+ * que el usuario debió registrar horas (hoy si es laborable; viernes si hoy
+ * es sábado/domingo; el hábil anterior si hoy es festivo; retrocede sobre
+ * festivos consecutivos). Devuelve `null` si no hay ningún laborable en el
+ * rango (p. ej. solo fines de semana, sin semana colindante).
+ */
+export function resolveLastWorkingDayKey(
+  fromIso: string,
+  toIso: string,
+  options: WorkingDayFilterOptions = {},
+): string | null {
+  const end = parseLocalDateKey(toIso);
+  const lowerBound = parseLocalDateKey(fromIso);
+  if (!end || !lowerBound || end < lowerBound) return null;
+
+  const cursor = new Date(end);
+  while (cursor >= lowerBound) {
+    const key = toLocalDateKey(cursor);
+    if (isWorkingDayKey(key, options)) return key;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return null;
+}
+
 export function parseLocalDateKey(key: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key.trim());
   if (!match) return null;

@@ -11,7 +11,8 @@ import {
   type ReportedNewsDetail,
   type ReportedNewsScope,
 } from "@/lib/azure-devops/list-reported-news";
-import { classifyReportedHours, type ReportedTask } from "@/lib/reports/hours/classify-reported-hours";
+import { computeHoursByPerson } from "@/lib/hours/aggregate-hours";
+import { EMPTY_HOURS_BREAKDOWN } from "@/lib/hours/hours-breakdown";
 import { computeCompliance } from "@/lib/reports/hours/compliance";
 import { computeExpectedHours } from "@/lib/expected-hours";
 import { NEWS_DETAIL_DELIMITER } from "@/lib/reports/hours/format-news-detail";
@@ -24,7 +25,7 @@ import type {
   HoursReportRow,
 } from "@/lib/reports/hours/hours-report-types";
 import { resolveAssignmentSegments } from "@/lib/reports/hours/resolve-assignment-segments";
-import { listWorkingDaysInPeriod } from "@/lib/reports/hours/working-days-in-period";
+import { loadWorkingDayKeysInRange } from "@/lib/hours/load-working-day-keys";
 import type { NewsStoriesRepository } from "@/lib/db/ports/news-stories.repository.port";
 import type {
   PersonProjectAssignmentRow,
@@ -58,7 +59,7 @@ export type BuildHoursReportDeps = {
    * calculan como días hábiles del rango (∩ periodo) × 8 × % asignación.
    */
   listReportedNews?: typeof listReportedNews;
-  listWorkingDays?: typeof listWorkingDaysInPeriod;
+  listWorkingDays?: typeof loadWorkingDayKeysInRange;
   /**
    * Roster oficial del (proyecto, equipo) del scope. Sus miembros sin
    * excepción en BD se tratan como 100% por defecto (D17/D18, CA-18). Si no
@@ -85,7 +86,7 @@ export async function buildHoursReport(
   const listTasks = deps.listTasks ?? listTasksInWorkingDateRange;
   const listBugs = deps.listBugs ?? listBugsInWorkingDateRange;
   const listNews = deps.listReportedNews ?? listReportedNews;
-  const listWorkingDays = deps.listWorkingDays ?? listWorkingDaysInPeriod;
+  const listWorkingDays = deps.listWorkingDays ?? loadWorkingDayKeysInRange;
   const now = deps.now ?? (() => new Date());
 
   const newsDateFilter = toNewsDateFilter(period);
@@ -116,6 +117,13 @@ export async function buildHoursReport(
           )
         : Promise.resolve<ReportedNewsDetail[]>([]),
     ]);
+
+    // Horas dev/bug por persona del motor central (regla 2: solo días hábiles).
+    const workingDayKeys = new Set(workingDays);
+    const hoursByPerson = computeHoursByPerson(
+      { tasks, bugs, workingDayKeys },
+      (assignedTo) => assignedTo?.trim() || null,
+    );
 
     // Novedades agrupadas por persona (assignedTo, mismo displayName de ADO).
     const novedadesByPerson = new Map<string, ReportedNewsDetail[]>();
@@ -178,14 +186,7 @@ export async function buildHoursReport(
 
       // Todas las tasks (con Completed Work) de la persona son desarrollo; los
       // bugs van aparte. Las novedades ya NO salen de tasks: son items propios.
-      const personTasks: ReportedTask[] = tasks
-        .filter((t) => t.assignedTo === person.displayName)
-        .map((t) => ({ hours: t.loggedHours ?? 0, parentId: t.parentId ?? null }));
-      const personBugs = bugs
-        .filter((b) => b.assignedTo === person.displayName)
-        .map((b) => ({ hours: b.loggedHours ?? 0 }));
-
-      const classified = classifyReportedHours(personTasks, personBugs, EMPTY_NEWS_IDS);
+      const worked = hoursByPerson.get(person.displayName) ?? EMPTY_HOURS_BREAKDOWN;
 
       // Horas novedades = Completed Work reportado en las novedades de la
       // persona; los días equivalen a horas / 8 (jornada laboral de 8 h).
@@ -196,7 +197,7 @@ export async function buildHoursReport(
       const newsDays = roundToDecimals(newsHours / HOURS_PER_WORKING_DAY, 2);
       const newsEntries = novedadesDetailEntries(personNovedades);
 
-      const total = classified.developmentHours + classified.bugHours + newsHours;
+      const total = worked.taskHours + worked.bugHours + newsHours;
       const compliance = computeCompliance(total, expected.expectedHours);
 
       rows.push({
@@ -208,8 +209,8 @@ export async function buildHoursReport(
         assignmentPct: buildAssignmentLabel(hasException, personAssignments),
         workingDays: expected.workingDays,
         expectedHours: expected.expectedHours,
-        developmentHours: classified.developmentHours,
-        bugHours: classified.bugHours,
+        developmentHours: worked.taskHours,
+        bugHours: worked.bugHours,
         newsHours,
         totalHours: total,
         newsCount: personNovedades.length,
@@ -293,9 +294,6 @@ function buildAssignmentLabel(
   // Sin excepción en BD ⇒ 100% por defecto (nunca "sin configurar").
   return { kind: "default" };
 }
-
-/** Ninguna task se clasifica como novedad: las novedades son items propios. */
-const EMPTY_NEWS_IDS: ReadonlySet<number> = new Set<number>();
 
 function toNewsDateFilter(period: BuildHoursReportPeriod): ReportedNewsDateFilter {
   if (period.kind === "month") return { kind: "month", monthKey: period.monthKey };

@@ -99,6 +99,63 @@ describe("buildHoursReport", () => {
     expect(row.semaforo).toBe("verde");
   });
 
+  it("horas reportadas en día no hábil (sábado) no suman (regla de días hábiles)", async () => {
+    // 2026-06-20 es sábado: la task y el bug de ese día quedan fuera; solo
+    // cuenta la task del lunes 2026-06-15.
+    const result = await buildHoursReport(
+      {
+        scopes: [makeScope()],
+        period: { kind: "month", monthKey: "2026-06" },
+      },
+      {
+        auth: fakeAuth,
+        assignmentRepo: makeFakeAssignmentRepo([]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+        listTasks: async () => [
+          makeTask({ id: 1, loggedHours: 8, workingDate: "2026-06-15", parentId: 500 }),
+          makeTask({ id: 2, loggedHours: 6, workingDate: "2026-06-20", parentId: 501 }),
+        ],
+        listBugs: async () => [
+          makeBug({ id: 200, loggedHours: 4, workingDate: "2026-06-20" }),
+        ],
+        listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
+        loadTeamMembers: async () => [
+          { personAdoId: "user-1", personDisplayName: "Juan Pérez" },
+        ],
+        now: fixedNow,
+      },
+    );
+
+    const row = result.rows.find((r) => r.personDisplayName === "Juan Pérez");
+    expect(row?.developmentHours).toBe(8);
+    expect(row?.bugHours).toBe(0);
+  });
+
+  it("tasks con horas cuentan en cualquier estado, no solo Done", async () => {
+    const result = await buildHoursReport(
+      {
+        scopes: [makeScope()],
+        period: { kind: "month", monthKey: "2026-06" },
+      },
+      {
+        auth: fakeAuth,
+        assignmentRepo: makeFakeAssignmentRepo([]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+        listTasks: async () => [
+          makeTask({ id: 1, loggedHours: 5, state: "In Progress", parentId: 500 }),
+        ],
+        listBugs: async () => [],
+        listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
+        loadTeamMembers: async () => [
+          { personAdoId: "user-1", personDisplayName: "Juan Pérez" },
+        ],
+        now: fixedNow,
+      },
+    );
+
+    expect(result.rows[0]?.developmentHours).toBe(5);
+  });
+
   it("novedades: horas = Completed Work, días = horas / 8", async () => {
     // Ana con dos novedades: 8 h + 4 h = 12 h → 1.5 días.
     const result = await buildHoursReport(

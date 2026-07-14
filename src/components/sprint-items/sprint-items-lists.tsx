@@ -16,7 +16,7 @@ import type { SprintItemsKind } from "@/lib/sprint-items/types";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
-import { sumTaskLoggedHours } from "@/lib/dashboard/task-hours";
+import { sumLoggedHours } from "@/lib/hours/aggregate-hours";
 
 // Los sheets de detalle (incluyen el editor tiptap) solo se cargan y montan
 // cuando el usuario abre un ítem, para no engordar el bundle inicial de la página.
@@ -79,7 +79,7 @@ export function SprintItemsLists({
     useSprintItemsSort(filteredItems);
   const copy = COPY[kind];
   const totalTaskHours = useMemo(
-    () => (kind === "tasks" ? sumTaskLoggedHours(processedItems) : 0),
+    () => (kind === "tasks" ? sumLoggedHours(processedItems) : 0),
     [kind, processedItems],
   );
 

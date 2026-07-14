@@ -1,9 +1,17 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { ConfigChartLegend } from "@/components/dashboard/charts/config-chart-legend";
 import { ConfigChartTooltip } from "@/components/dashboard/charts/config-chart-tooltip";
+import { makeSprintDayAxisTick } from "@/components/dashboard/charts/sprint-day-axis-tick";
 import { ChartContainer, ChartLegend, ChartTooltip } from "@/components/ui/chart";
 import type { SprintDayHoursPoint } from "@/lib/dashboard/sprint-hours-series";
 import {
@@ -37,11 +45,16 @@ export function StackedBarChart({
 }: StackedBarChartProps) {
   if (points.length === 0) return null;
 
-  const maxTotal = Math.max(...points.map((p) => p.totalHours), 1);
+  const maxWorkableTotal = Math.max(
+    ...points.filter((p) => !p.isHoliday).map((p) => p.totalHours),
+    1,
+  );
   const dayCount = points.length;
   const dense = dayCount > 6;
-  const xAxis = sprintDayAxisProps(dayCount);
+  const { tick: axisTick, angle, textAnchor, ...axisRest } =
+    sprintDayAxisProps(dayCount);
   const margin = sprintDayChartMargin(dayCount);
+  const yAxisDomain: [number, number] = [0, maxWorkableTotal];
 
   return (
     <ChartContainer
@@ -61,11 +74,17 @@ export function StackedBarChart({
           tickLine={false}
           axisLine={false}
           tickMargin={dense ? 4 : 6}
-          {...xAxis}
+          {...axisRest}
+          tick={makeSprintDayAxisTick(points, {
+            angle,
+            textAnchor,
+            fontSize: axisTick.fontSize,
+          })}
         />
         <YAxis
           tickLine={false}
           axisLine={false}
+          domain={yAxisDomain}
           width={28}
           tick={{ fontSize: 10 }}
           tickFormatter={(v) => `${v}h`}
@@ -95,7 +114,7 @@ export function StackedBarChart({
         >
           {points.map((point) => {
             const selected = point.dayKey === selectedDayKey;
-            const dim = point.totalHours < maxTotal * 0.25 && !selected;
+            const dim = point.totalHours < maxWorkableTotal * 0.25 && !selected;
             const emptyDay = point.totalHours <= 0;
             return (
               <Cell
@@ -124,7 +143,7 @@ export function StackedBarChart({
         >
           {points.map((point) => {
             const selected = point.dayKey === selectedDayKey;
-            const dim = point.totalHours < maxTotal * 0.25 && !selected;
+            const dim = point.totalHours < maxWorkableTotal * 0.25 && !selected;
             const noBugHours = point.bugHours <= 0;
             return (
               <Cell

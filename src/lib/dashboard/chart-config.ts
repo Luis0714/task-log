@@ -69,6 +69,9 @@ export const hoursTrendChartConfig = {
 /** Segmento vacío en barras apiladas (0 h de bugs o día sin registro). */
 export const CHART_EMPTY_SEGMENT_COLOR = "var(--muted-foreground)";
 
+/** Color de la etiqueta del eje X para días festivos (se resalta en negrita). */
+export const CHART_HOLIDAY_LABEL_COLOR = "var(--chart-4)";
+
 export const hoursDailyChartConfig = {
   taskHours: { label: "Tareas", color: "var(--chart-1)" },
   bugHours: { label: "Bugs", color: BUG_CHART_OPEN_COLOR },

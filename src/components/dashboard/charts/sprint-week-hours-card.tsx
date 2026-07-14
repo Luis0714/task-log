@@ -4,7 +4,7 @@ import { HoursBreakdownStrip } from "@/components/dashboard/charts/hours-breakdo
 import { ProgressBar } from "@/components/dashboard/metrics/progress-bar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatHours } from "@/lib/dashboard/format-hours";
-import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import { totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
 import type { SprintWeekMetrics } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils";
 

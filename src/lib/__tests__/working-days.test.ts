@@ -7,6 +7,7 @@ import {
   isWorkingDayKey,
   listWorkingDayKeysBetween,
   parseLocalDateKey,
+  resolveLastWorkingDayKey,
   toLocalDateKey,
 } from "@/lib/working-days";
 
@@ -142,5 +143,53 @@ describe("parseLocalDateKey + toLocalDateKey", () => {
     expect(parseLocalDateKey("")).toBeNull();
     expect(parseLocalDateKey("2026-6-1")).toBeNull();
     expect(parseLocalDateKey("abc")).toBeNull();
+  });
+});
+
+describe("resolveLastWorkingDayKey", () => {
+  it("devuelve el mismo día si es laborable", () => {
+    expect(resolveLastWorkingDayKey("2026-06-08", "2026-06-12")).toBe("2026-06-12");
+  });
+
+  it("retrocede al viernes cuando el último día es sábado o domingo", () => {
+    expect(resolveLastWorkingDayKey("2026-06-08", "2026-06-13")).toBe("2026-06-12");
+    expect(resolveLastWorkingDayKey("2026-06-08", "2026-06-14")).toBe("2026-06-12");
+  });
+
+  it("ignora festivos entre semana y cae al último hábil", () => {
+    // Lunes 8 es festivo, retrocede al viernes 5.
+    expect(
+      resolveLastWorkingDayKey("2026-06-01", "2026-06-08", {
+        nonWorkingDates: new Set(["2026-06-08"]),
+      }),
+    ).toBe("2026-06-05");
+  });
+
+  it("atraviesa festivos consecutivos y retrocede hasta el último hábil", () => {
+    // Lunes 8 y martes 9 son festivos. El día "actual" cae en martes festivo,
+    // así que retrocede hasta el viernes 5 anterior.
+    expect(
+      resolveLastWorkingDayKey("2026-06-01", "2026-06-09", {
+        nonWorkingDates: new Set(["2026-06-08", "2026-06-09"]),
+      }),
+    ).toBe("2026-06-05");
+  });
+
+  it("devuelve null si no hay ningún laborable en el rango", () => {
+    expect(resolveLastWorkingDayKey("2026-06-06", "2026-06-07")).toBeNull();
+  });
+
+  it("devuelve null si el rango está invertido", () => {
+    expect(resolveLastWorkingDayKey("2026-06-10", "2026-06-01")).toBeNull();
+  });
+
+  it("respeta la cota inferior: nunca devuelve un día anterior al fromIso", () => {
+    // fromIso es el lunes festivo: no debe devolver nada porque no hay
+    // laborable dentro del rango [lunes festivo, martes festivo].
+    expect(
+      resolveLastWorkingDayKey("2026-06-08", "2026-06-09", {
+        nonWorkingDates: new Set(["2026-06-08", "2026-06-09"]),
+      }),
+    ).toBeNull();
   });
 });

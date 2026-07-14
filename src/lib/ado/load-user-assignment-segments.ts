@@ -56,8 +56,8 @@ export const loadUserAssignmentSegments = cache(
 
     return resolveAssignmentSegments({
       assignments,
-      periodStart: input.sprintStartDate,
-      periodEnd: input.sprintFinishDate,
+      periodStart: input.sprintStartDate.slice(0, 10),
+      periodEnd: input.sprintFinishDate.slice(0, 10),
       hasInferredDefault: true,
     });
   },

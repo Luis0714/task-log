@@ -1,11 +1,8 @@
 import type { AdoCatalogSnapshot, DashboardSprintBundle } from "@/lib/ado/types";
-import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
 import { buildDashboardMetrics } from "@/lib/dashboard/build-dashboard-metrics";
 import {
   formatSprintDayShortLabel,
   isSameLocalDay,
-  listSprintWorkingDays,
-  resolveEffectiveSprintDayKey,
 } from "@/lib/dashboard/sprint-days";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
 
@@ -26,22 +23,10 @@ export function buildDashboardSectionMetrics({
   catalog,
   sprintDayKey,
 }: DashboardSectionMetricsInput): DashboardSectionMetricsResult {
-  const currentSprint = resolveCurrentSprint(catalog);
-  const sprintWorkingDays = listSprintWorkingDays(
-    currentSprint?.startDate,
-    currentSprint?.finishDate,
-    { nonWorkingDates: new Set(bundle.nonWorkingDates) },
-  );
-
-  const effectiveSprintDayKey = resolveEffectiveSprintDayKey(
-    sprintDayKey,
-    sprintWorkingDays,
-  );
-
-  const { metrics } = buildDashboardMetrics({
+  const { metrics, sprintWorkingDays, effectiveSprintDayKey } = buildDashboardMetrics({
     bundle,
     catalog,
-    selectedSprintDayKey: effectiveSprintDayKey,
+    selectedSprintDayKey: sprintDayKey,
   });
 
   const selectedSprintDay =

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { filterWorkingDays } from "@/lib/reports/hours/working-days-in-period";
+import { filterWorkingDays } from "@/lib/hours/load-working-day-keys";
 import type { Holiday } from "@/lib/holidays";
 
 const H = (date: string): Holiday => ({ date, name: "Festivo" });

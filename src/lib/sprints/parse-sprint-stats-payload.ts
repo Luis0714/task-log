@@ -1,4 +1,4 @@
-import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import type {
   SprintPbiProgress,
   SprintStatusOverview,

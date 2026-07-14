@@ -1,19 +1,24 @@
 import type { AssignmentSegment } from "@/lib/expected-hours";
 import { computeExpectedHours } from "@/lib/expected-hours";
-import type { SprintBugHoursSource } from "@/lib/dashboard/bug-hours";
+import { computeHoursByDay, type WorkedHoursItem } from "@/lib/hours/aggregate-hours";
 import {
-  sumHoursBreakdownForDay,
+  EMPTY_HOURS_BREAKDOWN,
   totalHoursBreakdown,
-} from "@/lib/dashboard/hours-breakdown";
+} from "@/lib/hours/hours-breakdown";
 import {
   formatSprintDayChartLabel,
   type SprintWorkingDay,
 } from "@/lib/dashboard/sprint-days";
-import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
-import { HOURS_PER_WORKING_DAY } from "@/lib/working-days";
+import {
+  HOURS_PER_WORKING_DAY,
+  isWorkingDayKey,
+  type WorkingDayFilterOptions,
+} from "@/lib/working-days";
 
 export type SprintDayHoursPoint = {
   dayKey: string;
+  /** Etiqueta del eje X (fecha normal). Los festivos usan la misma fecha que
+   *  los demás días; se distinguen por estilo vía `isHoliday`, no por texto. */
   label: string;
   taskHours: number;
   bugHours: number;
@@ -21,6 +26,8 @@ export type SprintDayHoursPoint = {
   cumulativeHours: number;
   /** Línea ideal acumulada respetando el % de asignación del usuario. */
   idealCumulativeHours: number;
+  /** true cuando el día cae en festivo entre semana. La curva/ideal NO avanzan. */
+  isHoliday: boolean;
 };
 
 export function sprintDayAxisProps(dayCount: number) {
@@ -43,31 +50,68 @@ export function sprintDayChartMargin(dayCount: number) {
   } as const;
 }
 
+/**
+ * Serie de horas por día del sprint. Acepta el calendario completo (laborables
+ * + festivos entre semana; los fines de semana NO entran) y emite un punto
+ * por cada día: los festivos se renderizan en el eje X con su fecha normal
+ * (se distinguen por estilo, no por texto) y NO modifican el cálculo (curva y
+ * línea ideal se mantienen planas a lo largo del festivo).
+ */
 export function computeSprintHoursSeries(
-  workingDays: readonly SprintWorkingDay[],
-  tasks: SprintTaskHoursSource[],
-  bugs: SprintBugHoursSource[],
+  calendarDays: readonly SprintWorkingDay[],
+  tasks: readonly WorkedHoursItem[],
+  bugs: readonly WorkedHoursItem[],
   segments: readonly AssignmentSegment[] = [],
+  options: WorkingDayFilterOptions = {},
 ): SprintDayHoursPoint[] {
-  if (workingDays.length === 0) return [];
+  if (calendarDays.length === 0) return [];
 
-  const dayKeys = workingDays.map((day) => day.value);
-  const { weightedPct } = computeExpectedHours(dayKeys, segments);
+  // Solo los laborables suman al cálculo de horas esperadas; los festivos
+  // tampoco entran al denominador del `weightedPct`.
+  const workingDayKeys = calendarDays
+    .filter((day) => isWorkingDayKey(day.value, options))
+    .map((day) => day.value);
+  const { weightedPct } = computeExpectedHours(workingDayKeys, segments);
   const idealPerDay = (weightedPct / 100) * HOURS_PER_WORKING_DAY;
 
+  const byDay = computeHoursByDay({
+    tasks,
+    bugs,
+    workingDayKeys: new Set(workingDayKeys),
+  });
+
   let runningTotal = 0;
-  return workingDays.map((day, index) => {
-    const breakdown = sumHoursBreakdownForDay(tasks, bugs, day.value);
-    runningTotal += totalHoursBreakdown(breakdown);
+  let idealRunning = 0;
+  let workingDayIndex = 0;
+  return calendarDays.map((day) => {
+    if (isWorkingDayKey(day.value, options)) {
+      const breakdown = byDay.get(day.value) ?? EMPTY_HOURS_BREAKDOWN;
+      const total = totalHoursBreakdown(breakdown);
+      runningTotal += total;
+      workingDayIndex += 1;
+      idealRunning = workingDayIndex * idealPerDay;
+
+      return {
+        dayKey: day.value,
+        label: formatSprintDayChartLabel(day),
+        taskHours: breakdown.taskHours,
+        bugHours: breakdown.bugHours,
+        totalHours: total,
+        cumulativeHours: Math.round(runningTotal * 10) / 10,
+        idealCumulativeHours: Math.round(idealRunning * 10) / 10,
+        isHoliday: false,
+      };
+    }
 
     return {
       dayKey: day.value,
       label: formatSprintDayChartLabel(day),
-      taskHours: breakdown.taskHours,
-      bugHours: breakdown.bugHours,
-      totalHours: totalHoursBreakdown(breakdown),
+      taskHours: 0,
+      bugHours: 0,
+      totalHours: 0,
       cumulativeHours: Math.round(runningTotal * 10) / 10,
-      idealCumulativeHours: Math.round((index + 1) * idealPerDay * 10) / 10,
+      idealCumulativeHours: Math.round(idealRunning * 10) / 10,
+      isHoliday: true,
     };
   });
 }

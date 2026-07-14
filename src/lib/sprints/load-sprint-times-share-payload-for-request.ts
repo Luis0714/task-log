@@ -3,7 +3,7 @@ import "server-only";
 import {
   firstSprintDataError,
   loadSprintBacklogStates,
-  loadSprintNonWorkingDates,
+  loadSprintHolidayDates,
   loadSprintPeriodBugs,
   loadSprintPeriodTasks,
   loadSprintWorkItems,
@@ -71,7 +71,10 @@ async function loadLiveSprintTimesMetrics(
       ),
       loadSprintBacklogStates(scope.project),
       loadProjectWorkItemTags(scope.project),
-      loadSprintNonWorkingDates(scope.project, scope.team),
+      loadSprintHolidayDates(
+        options.sprintStartDate ?? null,
+        options.sprintFinishDate ?? null,
+      ),
       loadTeamMembers({
         project: scope.project,
         team: scope.team,

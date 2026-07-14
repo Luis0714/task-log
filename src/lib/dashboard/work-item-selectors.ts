@@ -1,6 +1,7 @@
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
 import { DEFAULT_SPRINT_HOURS_TARGET } from "@/lib/dashboard/constants";
+import { HOURS_PER_WORKING_DAY } from "@/lib/working-days";
 import {
   stateMatchesCategory,
   stateMatchesCompletedState,
@@ -15,15 +16,15 @@ import {
   EMPTY_HOURS_BREAKDOWN,
   totalHoursBreakdown,
   type HoursBreakdown,
-} from "@/lib/dashboard/hours-breakdown";
+} from "@/lib/hours/hours-breakdown";
 import type {
   DashboardMetrics,
   DashboardWorkItem,
   SprintPbiProgress,
   SprintStatusOverview,
+  SprintWeekMetrics,
 } from "@/lib/dashboard/types";
 import type { SprintDayHoursPoint } from "@/lib/dashboard/sprint-hours-series";
-import type { SprintWeekMetrics } from "@/lib/dashboard/types";
 import {
   isCommittedPbiState as isCommittedPbiStateFromLib,
   selectInProgressWorkItems,
@@ -163,9 +164,17 @@ export type DashboardMetricsInput = {
   pbiProgress?: SprintPbiProgress;
   sprintStatusOverview?: SprintStatusOverview;
   sprintWorkingDaysCount?: number;
+  sprintDateRangeLabel?: string;
   hoursByDay?: SprintDayHoursPoint[];
   sprintWeeks?: SprintWeekMetrics[];
+  hoursDayTarget?: number;
+  hoursDayAssignmentPct?: number;
 };
+
+/** Horas pendientes contra una meta: nunca negativas, redondeadas a 0.1. */
+function pendingHours(target: number, reported: number): number {
+  return Math.max(0, Math.round((target - reported) * 10) / 10);
+}
 
 export function computeDashboardMetrics(
   hoursToday: HoursBreakdown,
@@ -176,19 +185,29 @@ export function computeDashboardMetrics(
   const hoursSprintTarget = Math.round(
     (sprintHours.hoursSprintTarget ?? DEFAULT_SPRINT_HOURS_TARGET) * 10,
   ) / 10;
-  const hoursRemaining = Math.max(
-    0,
-    Math.round((hoursSprintTarget - totalHoursBreakdown(hoursSprintCurrent)) * 10) / 10,
+  const hoursRemaining = pendingHours(
+    hoursSprintTarget,
+    totalHoursBreakdown(hoursSprintCurrent),
   );
+  // Capacidad del día: 8 × %asignación. Si no viene (sin sprint), jornada
+  // completa como fallback histórico.
+  const hoursDayTarget =
+    input.hoursDayTarget !== undefined && input.hoursDayTarget > 0
+      ? input.hoursDayTarget
+      : HOURS_PER_WORKING_DAY;
 
   return {
     hoursToday,
     hoursSprintCurrent,
     hoursSprintTarget,
     hoursRemaining,
+    hoursDayTarget,
+    hoursDayPending: pendingHours(hoursDayTarget, totalHoursBreakdown(hoursToday)),
+    hoursDayAssignmentPct: input.hoursDayAssignmentPct ?? 100,
     storyPointsAssigned: input.storyPointsAssigned ?? 0,
     storyPointsDeveloped: input.storyPointsDeveloped ?? 0,
     sprintWorkingDaysCount: input.sprintWorkingDaysCount ?? 0,
+    sprintDateRangeLabel: input.sprintDateRangeLabel ?? "",
     hoursByDay: input.hoursByDay ?? [],
     sprintWeeks: input.sprintWeeks ?? [],
     pbiStateGroups: input.pbiStateGroups ?? [],

@@ -7,13 +7,12 @@ import { LineSeriesChart } from "@/components/dashboard/charts/line-series-chart
 import { SprintWeekHoursPanel } from "@/components/dashboard/charts/sprint-week-hours-panel";
 import { StackedBarChart } from "@/components/dashboard/charts/stacked-bar-chart";
 import { formatHours } from "@/lib/dashboard/format-hours";
-import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import { totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
 import { getHoursPaceStatus } from "@/lib/dashboard/hours-pace";
 import { kpiProgressPercent, resolveHoursKpiVariant } from "@/lib/dashboard/kpi-variant";
 import type { DashboardMetrics } from "@/lib/dashboard/types";
 import type { DashboardKpiVariant } from "@/components/dashboard/charts/dashboard-kpi";
 import type { KpiVariant } from "@/lib/dashboard/kpi-variant";
-import { HOURS_PER_WORKING_DAY } from "@/lib/working-days";
 import { cn } from "@/lib/utils";
 
 export type SprintHoursSectionProps = {
@@ -33,27 +32,17 @@ export function SprintHoursSection({
 }: SprintHoursSectionProps) {
   const hoursToday = totalHoursBreakdown(metrics.hoursToday);
   const hoursSprint = totalHoursBreakdown(metrics.hoursSprintCurrent);
-  const hoursDayPending = Math.max(
-    0,
-    Math.round((HOURS_PER_WORKING_DAY - hoursToday) * 10) / 10,
-  );
   const hasDaySeries = metrics.hoursByDay.length > 0;
+  const hasHolidaySeries = metrics.hoursByDay.some((point) => point.isHoliday);
   const pace = getHoursPaceStatus(metrics.hoursByDay);
   const todayVariant: DashboardKpiVariant = resolveHoursKpiVariant(
     hoursToday,
-    HOURS_PER_WORKING_DAY,
+    metrics.hoursDayTarget,
   );
   const sprintVariantBase: KpiVariant = resolveHoursKpiVariant(
     hoursSprint,
     metrics.hoursSprintTarget,
   );
-  if (sprintVariantBase === "primary" || sprintVariantBase === "warning") {
-    if (pace === "behind") {
-      // Mantener warning si el ritmo del sprint va retrasado.
-    } else if (pace === "ahead" && sprintVariantBase === "primary") {
-      // sprintVariant se sobrescribe abajo
-    }
-  }
 
   const sprintVariantResolved: DashboardKpiVariant =
     sprintVariantBase === "destructive" || sprintVariantBase === "success"
@@ -64,6 +53,11 @@ export function SprintHoursSection({
           ? "accent"
           : sprintVariantBase;
 
+  const sprintDayLabel = `${metrics.sprintWorkingDaysCount} ${
+    metrics.sprintWorkingDaysCount === 1 ? "día laborable" : "días laborables"
+  }`;
+  const dayAssignmentHint = `Asignación ${metrics.hoursDayAssignmentPct}%`;
+
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-12">
@@ -71,19 +65,23 @@ export function SprintHoursSection({
           size="compact"
           layout="stack"
           label={hoursDayLabel}
-          value={`${formatHours(hoursToday)} / ${HOURS_PER_WORKING_DAY}h`}
-          progress={kpiProgressPercent(hoursToday, HOURS_PER_WORKING_DAY)}
+          value={`${formatHours(hoursToday)} / ${formatHours(metrics.hoursDayTarget)}`}
+          progress={kpiProgressPercent(hoursToday, metrics.hoursDayTarget)}
           hoursBreakdown={metrics.hoursToday}
-          hoursPending={hoursDayPending}
+          hoursPending={metrics.hoursDayPending}
           variant={todayVariant}
           highlight={todayVariant === "success" || todayVariant === "destructive"}
           className="min-w-0 lg:col-span-4"
           loading={loading}
+          hint={dayAssignmentHint}
+          hintPlacement="top"
         />
         <DashboardKpi
           size="compact"
           layout="stack"
-          label="Horas sprint"
+          label="Sprint completo"
+          labelClassName="uppercase tracking-wide"
+          sublabel={metrics.sprintDateRangeLabel}
           value={`${formatHours(hoursSprint)} / ${formatHours(metrics.hoursSprintTarget)}`}
           progress={kpiProgressPercent(hoursSprint, metrics.hoursSprintTarget)}
           hoursBreakdown={metrics.hoursSprintCurrent}
@@ -92,6 +90,8 @@ export function SprintHoursSection({
           highlight={sprintVariantResolved === "destructive" || sprintVariantResolved === "success"}
           className="min-w-0 lg:col-span-4"
           loading={loading}
+          hint={sprintDayLabel}
+          hintPlacement="top"
         />
         <ChartPanel
           title="Mezcla tarea / Bug"
@@ -135,6 +135,12 @@ export function SprintHoursSection({
           />
         </ChartPanel>
       </div>
+      {hasHolidaySeries ? (
+        <p className="text-muted-foreground text-[11px]">
+          Los días <strong>festivos</strong> (resaltados en negrita) no afectan el
+          ritmo acumulado ni las horas esperadas del sprint.
+        </p>
+      ) : null}
     </div>
   );
 }

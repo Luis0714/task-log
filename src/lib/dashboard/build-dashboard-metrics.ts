@@ -1,9 +1,6 @@
 import { computeSprintHoursSeries } from "@/lib/dashboard/sprint-hours-series";
-import { computeSprintWeekMetrics } from "@/lib/dashboard/sprint-weeks";
-import {
-  sumHoursBreakdownForDay,
-  sumHoursBreakdownForDayKeys,
-} from "@/lib/dashboard/hours-breakdown";
+import { computeSprintWeekMetrics, formatSprintWeekDateRange } from "@/lib/dashboard/sprint-weeks";
+import { computeHoursBreakdown } from "@/lib/hours/aggregate-hours";
 import { buildSprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import { computeSprintStatusOverview } from "@/lib/dashboard/sprint-status-overview";
 import {
@@ -12,13 +9,13 @@ import {
   computeDashboardMetrics,
   computeSprintPbiProgress,
   mapToDashboardWorkItems,
-  selectInProgressItems,
 } from "@/lib/dashboard/work-item-selectors";
 import {
   collectWorkItemStates,
   groupWorkItemsByStates,
 } from "@/lib/time-log/filter-work-items";
 import {
+  listSprintCalendarDays,
   listSprintWorkingDays,
   resolveEffectiveSprintDayKey,
   type SprintWorkingDay,
@@ -27,11 +24,12 @@ import type { AdoCatalogSnapshot, DashboardSprintBundle } from "@/lib/ado/types"
 import type { DashboardMetrics } from "@/lib/dashboard/types";
 import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
 import type { AssignmentSegment } from "@/lib/expected-hours";
-import { computeExpectedHours } from "@/lib/expected-hours";
 import {
-  listWorkingDayKeysBetween,
-  type WorkingDayFilterOptions,
-} from "@/lib/working-days";
+  computeExpectedHours,
+  expectedHoursForDay,
+  resolveAssignmentPct,
+} from "@/lib/expected-hours";
+import { type WorkingDayFilterOptions } from "@/lib/working-days";
 
 export type BuildDashboardMetricsInput = {
   bundle: DashboardSprintBundle;
@@ -39,16 +37,17 @@ export type BuildDashboardMetricsInput = {
   selectedSprintDayKey: string;
 };
 
+export type BuildDashboardMetricsResult = {
+  metrics: DashboardMetrics;
+  sprintWorkingDays: SprintWorkingDay[];
+  effectiveSprintDayKey: string;
+};
+
 export function buildDashboardMetrics({
   bundle,
   catalog,
   selectedSprintDayKey,
-}: BuildDashboardMetricsInput): {
-  metrics: DashboardMetrics;
-  sprintWorkingDays: SprintWorkingDay[];
-  assigned: ReturnType<typeof mapToDashboardWorkItems>;
-  inProgress: ReturnType<typeof mapToDashboardWorkItems>;
-} {
+}: BuildDashboardMetricsInput): BuildDashboardMetricsResult {
   const currentSprint = resolveCurrentSprint(catalog);
   const workingDayOptions: WorkingDayFilterOptions = {
     nonWorkingDates: new Set(bundle.nonWorkingDates),
@@ -69,6 +68,11 @@ export function buildDashboardMetrics({
     currentSprint?.finishDate,
     workingDayOptions,
   );
+  const sprintCalendarDays = listSprintCalendarDays(
+    currentSprint?.startDate,
+    currentSprint?.finishDate,
+    workingDayOptions,
+  );
 
   const userStoryMapping = buildSprintStatusMapping(bundle.backlogStates);
   const bugMapping = buildSprintStatusMapping(bundle.bugStates ?? bundle.backlogStates);
@@ -85,25 +89,28 @@ export function buildDashboardMetrics({
     selectedSprintDayKey,
     sprintWorkingDays,
   );
-  const sprintEndKey = sprintWorkingDays.at(-1)?.value ?? "";
 
-  const hoursToday = sumHoursBreakdownForDay(bundle.tasks, bundle.bugs, hoursDayKey);
-  const hoursSprintTarget = computeSprintExpectedHours(
-    currentSprint?.startDate ?? null,
-    currentSprint?.finishDate ?? null,
-    workingDayOptions,
-    segments,
-  );
+  const hoursToday = computeHoursBreakdown({
+    tasks: bundle.tasks,
+    bugs: bundle.bugs,
+    workingDayKeys: new Set([hoursDayKey]),
+  });
   const allSprintDayKeys = sprintWorkingDays.map((d) => d.value);
-  const hoursSprintCurrent =
+  const hoursSprintTarget =
     allSprintDayKeys.length > 0
-      ? sumHoursBreakdownForDayKeys(bundle.tasks, bundle.bugs, allSprintDayKeys, sprintEndKey)
-      : { taskHours: 0, bugHours: 0 };
+      ? computeExpectedHours(allSprintDayKeys, segments).expectedHours
+      : 0;
+  const hoursSprintCurrent = computeHoursBreakdown({
+    tasks: bundle.tasks,
+    bugs: bundle.bugs,
+    workingDayKeys: new Set(allSprintDayKeys),
+  });
   const hoursByDay = computeSprintHoursSeries(
-    sprintWorkingDays,
+    sprintCalendarDays,
     bundle.tasks,
     bundle.bugs,
     segments,
+    workingDayOptions,
   );
   const sprintWeeks = computeSprintWeekMetrics(
     sprintWorkingDays,
@@ -111,6 +118,13 @@ export function buildDashboardMetrics({
     bundle.bugs,
     segments,
   );
+
+  const hoursDayAssignmentPct = hoursDayKey
+    ? resolveAssignmentPct(hoursDayKey, segments)
+    : undefined;
+  const hoursDayTarget = hoursDayKey
+    ? expectedHoursForDay(hoursDayKey, segments)
+    : undefined;
 
   const metrics = computeDashboardMetrics(hoursToday, {
     sprintHours: { hoursSprintCurrent, hoursSprintTarget },
@@ -120,23 +134,16 @@ export function buildDashboardMetrics({
     pbiProgress,
     sprintStatusOverview,
     sprintWorkingDaysCount: sprintWorkingDays.length,
+    sprintDateRangeLabel: formatSprintWeekDateRange(sprintWorkingDays),
     hoursByDay,
     sprintWeeks,
+    hoursDayTarget,
+    hoursDayAssignmentPct,
   });
 
-  const inProgress = selectInProgressItems(assigned, userStoryMapping);
-
-  return { metrics, sprintWorkingDays, assigned, inProgress };
-}
-
-function computeSprintExpectedHours(
-  startDate: string | null,
-  finishDate: string | null,
-  options: WorkingDayFilterOptions,
-  segments: readonly AssignmentSegment[],
-): number {
-  if (!startDate?.trim() || !finishDate?.trim()) return 0;
-  const dayKeys = listWorkingDayKeysBetween(startDate, finishDate, options);
-  if (dayKeys.length === 0) return 0;
-  return computeExpectedHours(dayKeys, segments).expectedHours;
+  return {
+    metrics,
+    sprintWorkingDays,
+    effectiveSprintDayKey: hoursDayKey,
+  };
 }

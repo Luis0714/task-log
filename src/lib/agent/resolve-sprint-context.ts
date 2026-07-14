@@ -2,9 +2,8 @@ import "server-only";
 
 import type { SprintContext } from "@/lib/agent/features/create-tasks";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
-import { loadSprintNonWorkingDates } from "@/lib/ado/load-sprint-data";
+import { firstSprintDataError, loadSprintHolidayDates } from "@/lib/ado/load-sprint-data";
 import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
-import { firstSprintDataError } from "@/lib/ado/load-sprint-data";
 
 export type ResolvedSprintContext =
   | { ok: true; context: SprintContext }
@@ -18,9 +17,9 @@ export async function resolveSprintContextForCopilot(
     return { ok: false, error: "No hay un sprint activo con fechas en el catálogo." };
   }
 
-  const nonWorkingPart = await loadSprintNonWorkingDates(
-    catalog.project,
-    catalog.team,
+  const nonWorkingPart = await loadSprintHolidayDates(
+    sprint.startDate,
+    sprint.finishDate,
   );
   const nonWorkingError = firstSprintDataError(nonWorkingPart);
   if (nonWorkingError) {

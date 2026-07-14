@@ -1,4 +1,4 @@
-import { EMPTY_HOURS_BREAKDOWN, type HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import { EMPTY_HOURS_BREAKDOWN, type HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import { SITE_NAME } from "@/lib/seo/site";
 import { formatSprintDateRange } from "@/lib/time-log/format-options";
 import { SPRINT_TIMES_SHARE_LABELS } from "@/lib/sprints/sprint-times-share-labels";

@@ -1,9 +1,18 @@
 "use client";
 
-import { Area, AreaChart, CartesianGrid, Line, ReferenceDot, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Line,
+  ReferenceDot,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { ConfigChartLegend } from "@/components/dashboard/charts/config-chart-legend";
 import { ConfigChartTooltip } from "@/components/dashboard/charts/config-chart-tooltip";
+import { makeSprintDayAxisTick } from "@/components/dashboard/charts/sprint-day-axis-tick";
 import { ChartContainer, ChartLegend, ChartTooltip } from "@/components/ui/chart";
 import type { SprintDayHoursPoint } from "@/lib/dashboard/sprint-hours-series";
 import {
@@ -31,9 +40,19 @@ export function LineSeriesChart({ points, className }: LineSeriesChartProps) {
   if (points.length === 0) return null;
 
   const pace = getHoursPaceStatus(points);
-  const last = points[points.length - 1];
+  // Si el último día es festivo, el ritmo acumulado real no cambia; caemos al
+  // último laborable para colocar el ReferenceDot correctamente.
+  const lastWorkableIndex = (() => {
+    for (let i = points.length - 1; i >= 0; i -= 1) {
+      if (!points[i].isHoliday) return i;
+    }
+    return -1;
+  })();
+  const last = lastWorkableIndex >= 0 ? points[lastWorkableIndex] : null;
   const behind = pace === "behind";
-  const xAxis = sprintDayAxisProps(points.length);
+  const { tick: axisTick, angle, textAnchor, ...axisRest } = sprintDayAxisProps(
+    points.length,
+  );
   const margin = sprintDayChartMargin(points.length);
 
   return (
@@ -55,7 +74,12 @@ export function LineSeriesChart({ points, className }: LineSeriesChartProps) {
           tickLine={false}
           axisLine={false}
           tickMargin={points.length > 6 ? 4 : 6}
-          {...xAxis}
+          {...axisRest}
+          tick={makeSprintDayAxisTick(points, {
+            angle,
+            textAnchor,
+            fontSize: axisTick.fontSize,
+          })}
         />
         <YAxis
           allowDecimals={false}

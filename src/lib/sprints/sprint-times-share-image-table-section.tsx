@@ -1,4 +1,4 @@
-import { totalHoursBreakdown, type HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import { totalHoursBreakdown, type HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import { SPRINT_GOAL_SHARE_FONT_FAMILY } from "@/lib/sprints/load-sprint-goal-share-fonts";
 import { sprintTimesShareImageColors } from "@/lib/sprints/sprint-times-share-image-colors";
 import {

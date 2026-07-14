@@ -7,7 +7,7 @@ import {
 } from "@/lib/dashboard/build-dashboard-section-metrics";
 import {
   firstSprintDataError,
-  loadSprintNonWorkingDates,
+  loadSprintHolidayDates,
   loadSprintPeriodBugs,
   loadSprintPeriodTasks,
 } from "@/lib/ado/load-sprint-data";
@@ -44,7 +44,7 @@ export async function DashboardHoursSectionServer({
       ctx.sprintFinishDate,
       ctx.assignee,
     ),
-    loadSprintNonWorkingDates(ctx.project, ctx.team),
+    loadSprintHolidayDates(ctx.sprintStartDate, ctx.sprintFinishDate),
     loadUserAssignmentSegments({
       projectId: ctx.project,
       sprintStartDate: ctx.sprintStartDate,

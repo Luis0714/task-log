@@ -5,7 +5,7 @@ import { cache } from "react";
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
 import { listBacklogItemStates, listBugStates } from "@/lib/azure-devops/work-item-type-states";
 import { withAdoProject } from "@/lib/azure-devops/projects";
-import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
+import { loadHolidayDateKeysInRange } from "@/lib/hours/load-working-day-keys";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import {
   listBugItemsInSprint,
@@ -242,12 +242,18 @@ export const loadSprintBugStates = cache(async function loadSprintBugStates(
   }
 });
 
-export const loadSprintNonWorkingDates = cache(async function loadSprintNonWorkingDates(
-  project: string,
-  team: string,
+/**
+ * Festivos del calendario único (holiday service) para el rango del sprint.
+ * No depende de ADO: la fuente de días no hábiles es festivos + fin de
+ * semana en toda la plataforma.
+ */
+export const loadSprintHolidayDates = cache(async function loadSprintHolidayDates(
+  startDate: string | null,
+  finishDate: string | null,
 ): Promise<SprintDataPart<string[]>> {
+  if (!startDate || !finishDate) return { data: [], error: null };
   try {
-    const data = await loadNonWorkingDates(project, team);
+    const data = await loadHolidayDateKeysInRange(startDate, finishDate);
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };

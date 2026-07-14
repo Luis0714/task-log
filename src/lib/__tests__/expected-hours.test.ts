@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   computeExpectedHours,
+  expectedHoursForDay,
+  resolveAssignmentPct,
   type AssignmentSegment,
 } from "@/lib/expected-hours";
 
@@ -102,5 +104,47 @@ describe("computeExpectedHours", () => {
     ];
     const result = computeExpectedHours(fullWeek, segments);
     expect(result.expectedHours).toBe(0);
+  });
+});
+
+describe("resolveAssignmentPct", () => {
+  it("sin tramos → 100 por defecto (regla D17/D18)", () => {
+    expect(resolveAssignmentPct([])).toBe(100);
+  });
+
+  it("devuelve el pct del único tramo vigente", () => {
+    expect(resolveAssignmentPct([{ pct: 50, from: "2026-06-01", to: null }])).toBe(50);
+  });
+
+  it("devuelve el pct del último tramo cuando hay varios", () => {
+    const segments: AssignmentSegment[] = [
+      { pct: 50, from: "2026-05-01", to: "2026-05-31" },
+      { pct: 75, from: "2026-06-01", to: null },
+    ];
+    expect(resolveAssignmentPct(segments)).toBe(75);
+  });
+});
+
+describe("expectedHoursForDay", () => {
+  it("100% → 8h", () => {
+    expect(
+      expectedHoursForDay([{ pct: 100, from: "2026-06-01", to: null }]),
+    ).toBe(8);
+  });
+
+  it("75% → 6h", () => {
+    expect(
+      expectedHoursForDay([{ pct: 75, from: "2026-06-01", to: null }]),
+    ).toBe(6);
+  });
+
+  it("50% → 4h", () => {
+    expect(
+      expectedHoursForDay([{ pct: 50, from: "2026-06-01", to: null }]),
+    ).toBe(4);
+  });
+
+  it("sin tramos → 8h (100% por defecto)", () => {
+    expect(expectedHoursForDay([])).toBe(8);
   });
 });

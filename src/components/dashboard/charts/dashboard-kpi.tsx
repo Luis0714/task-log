@@ -3,7 +3,7 @@ import { DASHBOARD_KPI_VARIANT_STYLES } from "@/components/dashboard/charts/dash
 import { DashboardKpiProgress } from "@/components/dashboard/charts/dashboard-kpi-progress";
 import { buildDashboardKpiViewModel } from "@/components/dashboard/charts/dashboard-kpi.viewmodel";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import { cn } from "@/lib/utils";
 
 export type DashboardKpiVariant =
@@ -21,7 +21,11 @@ export type DashboardKpiLayout = "stack" | "inline";
 export type DashboardKpiProps = {
   label: string;
   value: string;
+  /** Línea secundaria bajo la etiqueta (p. ej. rango de fechas). Solo en layout stack. */
+  sublabel?: string;
   hint?: string;
+  /** top: hint junto a la etiqueta (fila superior). bottom (por defecto): bajo el valor */
+  hintPlacement?: "top" | "bottom";
   loading?: boolean;
   /** 0–100: barra de progreso bajo el valor */
   progress?: number;
@@ -43,7 +47,9 @@ export type DashboardKpiProps = {
 export function DashboardKpi({
   label,
   value,
+  sublabel,
   hint,
+  hintPlacement = "bottom",
   loading = false,
   progress,
   variant = "default",
@@ -89,8 +95,10 @@ export function DashboardKpi({
       />
     ) : null;
 
+  const showTopHint = Boolean(hint) && !viewModel.inline && hintPlacement === "top";
+
   const hintEl =
-    hint && !loading ? (
+    hint && !loading && !showTopHint ? (
       <p
         className={cn(
           "text-muted-foreground leading-tight",
@@ -138,17 +146,36 @@ export function DashboardKpi({
         </>
       ) : (
         <>
-          <p
+          <div
             className={cn(
-              "text-muted-foreground font-medium leading-tight",
-              viewModel.featuredLabelClass,
-              viewModel.compact && !viewModel.featured ? "line-clamp-2 text-[10px]" : null,
-              !viewModel.featured && !viewModel.compact ? "text-[11px]" : null,
-              labelClassName,
+              showTopHint ? "flex items-start justify-between gap-2" : undefined,
             )}
           >
-            {label}
-          </p>
+            <div className={showTopHint ? "min-w-0" : undefined}>
+              <p
+                className={cn(
+                  "text-muted-foreground font-medium leading-tight",
+                  viewModel.featuredLabelClass,
+                  viewModel.compact && !viewModel.featured ? "line-clamp-2 text-[10px]" : null,
+                  !viewModel.featured && !viewModel.compact ? "text-[11px]" : null,
+                  showTopHint ? "min-w-0 truncate" : null,
+                  labelClassName,
+                )}
+              >
+                {label}
+              </p>
+              {sublabel ? (
+                <p className="text-muted-foreground truncate text-[10px] leading-tight">
+                  {sublabel}
+                </p>
+              ) : null}
+            </div>
+            {showTopHint && !loading ? (
+              <span className="text-muted-foreground shrink-0 text-[10px] leading-tight tabular-nums">
+                {hint}
+              </span>
+            ) : null}
+          </div>
           {loading ? (
             <Skeleton
               className={cn(

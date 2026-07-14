@@ -1,5 +1,6 @@
 import { DashboardPageShell } from "@/components/dashboard/dashboard-page-shell";
-import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
+import { loadSprintHolidayDates } from "@/lib/ado/load-sprint-data";
+import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
 import { resolvePageCatalog } from "@/lib/ado/resolve-page-catalog";
 import type { AdoContextSearchParams } from "@/lib/ado/types";
 import type { ConnectAuthOptions } from "@/lib/auth/auth-method";
@@ -30,10 +31,15 @@ export async function DashboardShellServer({
   const canLoadCatalog = userSessionActive && adoExecutionReady;
   const catalog = await resolvePageCatalog(canLoadCatalog, defaultProject, sp);
 
-  const nonWorkingDates =
-    canLoadCatalog && catalog.project && catalog.team
-      ? await loadNonWorkingDates(catalog.project, catalog.team)
-      : [];
+  const currentSprint = resolveCurrentSprint(catalog);
+  const nonWorkingDates = canLoadCatalog
+    ? (
+        await loadSprintHolidayDates(
+          currentSprint?.startDate ?? null,
+          currentSprint?.finishDate ?? null,
+        )
+      ).data
+    : [];
 
   return (
     <DashboardPageShell

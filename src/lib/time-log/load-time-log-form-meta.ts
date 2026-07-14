@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
-import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
+import { loadHolidayDateKeysAroundToday } from "@/lib/hours/load-working-day-keys";
 import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
 import { loadTeamMembers } from "@/lib/filters/load-team-members";
 import {
@@ -51,7 +51,7 @@ export const loadTimeLogFormMeta = cache(async function loadTimeLogFormMeta(
     }),
     listBacklogItemStates(auth, profile.backlogItemType),
     listTaskStates(auth, profile.taskWorkItemType),
-    loadNonWorkingDates(catalog.project, catalog.team),
+    loadHolidayDateKeysAroundToday(),
   ]);
 
   const defaultOpenTaskState =

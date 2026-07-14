@@ -53,3 +53,32 @@ export function computeExpectedHours(
     weightedPct: roundToDecimals((expectedHours / capacity) * 100, 1),
   };
 }
+
+/**
+ * Porcentaje de asignación vigente en un día concreto (típicamente el último
+ * día laborable que muestra la card `Horas hoy`). Resuelve el tramo por
+ * fecha con la MISMA regla que `computeExpectedHours` usa para el Reporte
+ * por Período y el sprint (`pctForDate`): única fuente de verdad.
+ *
+ * Sin tramos → 100 (D17/D18: toda persona parte de 100% por defecto).
+ */
+export function resolveAssignmentPct(
+  dayKey: string,
+  segments: readonly AssignmentSegment[],
+): number {
+  if (segments.length === 0) return 100;
+  return pctForDate(dayKey, segments);
+}
+
+/**
+ * Horas esperadas de un día individual: 8 × %asignación(día)/100. Es el caso
+ * de un solo día de la fórmula de `computeExpectedHours`.
+ */
+export function expectedHoursForDay(
+  dayKey: string,
+  segments: readonly AssignmentSegment[],
+): number {
+  return roundHours(
+    HOURS_PER_WORKING_DAY * (resolveAssignmentPct(dayKey, segments) / 100),
+  );
+}
