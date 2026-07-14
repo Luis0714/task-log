@@ -2,8 +2,8 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 
-import { loadColombianHolidays } from "@/lib/holidays/co";
 import { requireManagementUser } from "@/app/api/assignments/helpers";
+import { loadColombianHolidaysForRange } from "@/lib/holidays";
 
 export const dynamic = "force-dynamic";
 
@@ -28,11 +28,14 @@ export async function GET(req: Request) {
   }
 
   try {
-    const holidays = await loadColombianHolidays(year);
+    const holidays = await loadColombianHolidaysForRange(
+      `${year}-01-01`,
+      `${year}-12-31`,
+    );
     return NextResponse.json({ year, holidays });
   } catch {
     return NextResponse.json(
-      { error: "No pudimos cargar los festivos de Colombia desde Nager.Date." },
+      { error: "No pudimos cargar los festivos de Colombia." },
       { status: 502 },
     );
   }

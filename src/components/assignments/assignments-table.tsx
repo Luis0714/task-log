@@ -35,8 +35,7 @@ export function AssignmentsTable({
     null,
   );
 
-  const showLoadingPlaceholder =
-    pendingDefaults && rows.length === 0 && defaults.length === 0;
+  const showLoadingPlaceholder = pendingDefaults;
 
   const isEmpty =
     !showLoadingPlaceholder && rows.length === 0 && defaults.length === 0;

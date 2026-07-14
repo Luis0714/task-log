@@ -24,7 +24,24 @@ export type CreateAssignmentInput = {
 
 export type UpdateAssignmentEndInput = {
   id: string;
-  validTo: Date;
+  validTo: Date | null;
+};
+
+/**
+ * Actualización parcial en el sitio de una asignación. Solo se aplican los
+ * campos presentes; el resto no se toca. No crea filas nuevas (modelo de una
+ * sola asignación por persona+proyecto+equipo).
+ */
+export type UpdateAssignmentInput = {
+  id: string;
+  projectId?: string;
+  projectName?: string;
+  teamId?: string | null;
+  teamName?: string | null;
+  roleId?: string | null;
+  assignmentPct?: number;
+  validFrom?: Date;
+  validTo?: Date | null;
 };
 
 export type UpdateAssignmentPctInput = {
@@ -101,6 +118,11 @@ export interface PersonProjectAssignmentRepository {
 
   updateEnd(
     input: UpdateAssignmentEndInput,
+  ): Promise<PersonProjectAssignmentRow>;
+
+  /** Actualiza en el sitio los campos presentes de una asignación. */
+  update(
+    input: UpdateAssignmentInput,
   ): Promise<PersonProjectAssignmentRow>;
 
   updatePct(

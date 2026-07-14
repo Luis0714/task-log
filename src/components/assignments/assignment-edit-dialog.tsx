@@ -128,7 +128,9 @@ export function AssignmentEditDialog({
       patch.validFrom = draft.validFrom || toLocalDateKey(new Date());
     }
     if (draft.validTo !== toDateKey(assignment.validTo)) {
-      patch.validTo = draft.validTo || undefined;
+      // "" (borrada) → null explícito para que el backend reabra la vigencia;
+      // JSON.stringify omitiría `undefined` y nunca llegaría el cambio.
+      patch.validTo = draft.validTo || null;
     }
     return patch;
   }
@@ -231,6 +233,7 @@ export function AssignmentEditDialog({
               value={draft.validTo}
               min={draft.validFrom}
               disabled={submitting}
+              clearable
               onChange={(v) => setDraft((d) => ({ ...d, validTo: v }))}
             />
             <FormInlineError message={endError} />

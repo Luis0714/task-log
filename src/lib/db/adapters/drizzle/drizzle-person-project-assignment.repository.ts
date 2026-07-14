@@ -18,6 +18,7 @@ import type {
   PersonProjectAssignmentRow,
   PersonProjectAssignmentWithRole,
   UpdateAssignmentEndInput,
+  UpdateAssignmentInput,
   UpdateAssignmentPctInput,
 } from "@/lib/db/ports/person-project-assignment.repository.port";
 
@@ -188,6 +189,32 @@ export const drizzlePersonProjectAssignmentRepository: PersonProjectAssignmentRe
         .update(personProjectAssignments)
         .set({ validTo: input.validTo })
         .where(eq(personProjectAssignments.id, input.id))
+        .returning();
+      if (!row) {
+        const err = new Error("Asignación no encontrada.");
+        err.name = "PersonProjectAssignmentNotFoundError";
+        throw err;
+      }
+      return row;
+    },
+
+    async update(input: UpdateAssignmentInput): Promise<PersonProjectAssignmentRow> {
+      const { id, ...fields } = input;
+      // Solo aplicamos las claves realmente presentes (undefined = no tocar).
+      const set: Partial<NewPersonProjectAssignment> = {};
+      if (fields.projectId !== undefined) set.projectId = fields.projectId;
+      if (fields.projectName !== undefined) set.projectName = fields.projectName;
+      if (fields.teamId !== undefined) set.teamId = fields.teamId;
+      if (fields.teamName !== undefined) set.teamName = fields.teamName;
+      if (fields.roleId !== undefined) set.roleId = fields.roleId;
+      if (fields.assignmentPct !== undefined) set.assignmentPct = fields.assignmentPct;
+      if (fields.validFrom !== undefined) set.validFrom = fields.validFrom;
+      if (fields.validTo !== undefined) set.validTo = fields.validTo;
+
+      const [row] = await getDb()
+        .update(personProjectAssignments)
+        .set(set)
+        .where(eq(personProjectAssignments.id, id))
         .returning();
       if (!row) {
         const err = new Error("Asignación no encontrada.");

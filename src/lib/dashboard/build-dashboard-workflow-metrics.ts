@@ -5,7 +5,7 @@ import {
   computeSprintPbiProgress,
   mapToDashboardWorkItems,
 } from "@/lib/dashboard/work-item-selectors";
-import { EMPTY_HOURS_BREAKDOWN } from "@/lib/dashboard/hours-breakdown";
+import { EMPTY_HOURS_BREAKDOWN } from "@/lib/hours/hours-breakdown";
 import {
   collectWorkItemStates,
   groupWorkItemsByStates,

@@ -1,4 +1,4 @@
-import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import type { DashboardDeliveryMetrics, SprintPbiProgress } from "@/lib/dashboard/types";
 import type { PbiStateBar } from "@/lib/dashboard/pbi-state-chart-data";
 import type {

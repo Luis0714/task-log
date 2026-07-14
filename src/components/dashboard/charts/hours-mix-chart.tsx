@@ -7,8 +7,8 @@ import { HoursMixMetricColumn } from "@/components/dashboard/charts/hours-mix-me
 import { ConfigChartTooltip } from "@/components/dashboard/charts/config-chart-tooltip";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { formatHours } from "@/lib/dashboard/format-hours";
-import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
-import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
+import { totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
 import { BUG_ICON_OPEN_CLASS } from "@/lib/brand/bug-colors";
 import {
   CHART_HEIGHT_INLINE,

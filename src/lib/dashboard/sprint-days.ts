@@ -1,8 +1,19 @@
 import {
-  countWorkingDaysInRange,
-  isWorkingDay,
+  isSameLocalDay,
+  isWeekendKey,
+  isWorkingDayKey,
+  parseLocalDateKey,
+  toLocalDateKey,
   type WorkingDayFilterOptions,
-} from "@/lib/dashboard/non-working-days";
+} from "@/lib/working-days";
+
+export {
+  countWorkingDayKeysBetween as countWorkingDaysInRange,
+  isSameLocalDay,
+  parseLocalDateKey,
+  toLocalDateKey,
+  type WorkingDayFilterOptions,
+} from "@/lib/working-days";
 
 export type SprintWorkingDay = {
   /** Fecha local en formato YYYY-MM-DD. */
@@ -12,41 +23,23 @@ export type SprintWorkingDay = {
   date: Date;
 };
 
-export type { WorkingDayFilterOptions };
-
-export function toLocalDateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-export function parseLocalDateKey(key: string): Date | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key.trim());
-  if (!match) return null;
-
-  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
 /** Fecha civil YYYY-MM-DD del sprint, sin desfase por zona horaria. */
 export function parseSprintCalendarDate(iso: string | null | undefined): Date | null {
   if (!iso?.trim()) return null;
   return parseLocalDateKey(iso.trim().slice(0, 10));
 }
 
-export function isSameLocalDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-export function listSprintWorkingDays(
-  startDate?: string | null,
-  finishDate?: string | null,
-  options: WorkingDayFilterOptions = {},
+/**
+ * Recorrido único del calendario del sprint (fuente de verdad de ambos
+ * listados). Excluye siempre los fines de semana; los festivos entre semana
+ * solo se incluyen si `includeHolidays` (con el `dayIndex` del laborable
+ * anterior: no consumen día del sprint).
+ */
+function listSprintDays(
+  startDate: string | null | undefined,
+  finishDate: string | null | undefined,
+  options: WorkingDayFilterOptions,
+  includeHolidays: boolean,
 ): SprintWorkingDay[] {
   if (!startDate?.trim() || !finishDate?.trim()) return [];
 
@@ -59,13 +52,13 @@ export function listSprintWorkingDays(
   let dayIndex = 0;
 
   while (cursor <= end) {
-    if (isWorkingDay(cursor, options)) {
-      dayIndex += 1;
-      days.push({
-        value: toLocalDateKey(cursor),
-        dayIndex,
-        date: new Date(cursor),
-      });
+    const key = toLocalDateKey(cursor);
+    if (!isWeekendKey(key)) {
+      const isWorking = isWorkingDayKey(key, options);
+      if (isWorking) dayIndex += 1;
+      if (isWorking || includeHolidays) {
+        days.push({ value: key, dayIndex, date: new Date(cursor) });
+      }
     }
     cursor.setDate(cursor.getDate() + 1);
   }
@@ -73,7 +66,27 @@ export function listSprintWorkingDays(
   return days;
 }
 
-export { countWorkingDaysInRange };
+export function listSprintWorkingDays(
+  startDate?: string | null,
+  finishDate?: string | null,
+  options: WorkingDayFilterOptions = {},
+): SprintWorkingDay[] {
+  return listSprintDays(startDate, finishDate, options, false);
+}
+
+/**
+ * Calendario del sprint incluyendo festivos entre semana. Cada festivo queda
+ * en la posición que le corresponde en el eje X de las gráficas. Usado por la
+ * serie de horas del sprint para representar visualmente los días no
+ * laborables.
+ */
+export function listSprintCalendarDays(
+  startDate?: string | null,
+  finishDate?: string | null,
+  options: WorkingDayFilterOptions = {},
+): SprintWorkingDay[] {
+  return listSprintDays(startDate, finishDate, options, true);
+}
 
 export function pickDefaultSprintDayKey(workingDays: SprintWorkingDay[]): string | null {
   if (workingDays.length === 0) return null;
@@ -107,7 +120,6 @@ export function isSprintWorkingDayKey(
   return workingDays.some((day) => day.value === key);
 }
 
-/** Día del sprint en URL o, si no es válido para el sprint, el default laborable. */
 export function resolveEffectiveSprintDayKey(
   sprintDayKey: string | undefined | null,
   workingDays: readonly SprintWorkingDay[],
@@ -140,7 +152,6 @@ function formatSprintDayDateLabel(day: SprintWorkingDay): string {
   }).format(day.date);
 }
 
-/** Etiqueta de eje para gráficas por día (solo fecha, sin índice del sprint). */
 export function formatSprintDayChartLabel(day: SprintWorkingDay): string {
   return formatSprintDayDateLabel(day);
 }

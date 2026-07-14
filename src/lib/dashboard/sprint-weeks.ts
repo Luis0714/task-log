@@ -1,8 +1,7 @@
-import { sumHoursBreakdownForDayKeys } from "@/lib/dashboard/hours-breakdown";
-import { HOURS_PER_SPRINT_WORKING_DAY } from "@/lib/dashboard/sprint-hours";
+import type { AssignmentSegment } from "@/lib/expected-hours";
+import { computeExpectedHours } from "@/lib/expected-hours";
+import { computeHoursBreakdown, type WorkedHoursItem } from "@/lib/hours/aggregate-hours";
 import { toLocalDateKey, type SprintWorkingDay } from "@/lib/dashboard/sprint-days";
-import type { SprintBugHoursSource } from "@/lib/dashboard/bug-hours";
-import type { SprintTaskHoursSource } from "@/lib/dashboard/task-hours";
 import type { SprintWeekMetrics } from "@/lib/dashboard/types";
 
 function getMondayOfWeek(date: Date): Date {
@@ -12,7 +11,6 @@ function getMondayOfWeek(date: Date): Date {
   return d;
 }
 
-/** Agrupa los días laborables del sprint por semana calendario (lunes–viernes). */
 export function splitSprintIntoWeeks(
   workingDays: readonly SprintWorkingDay[],
 ): SprintWorkingDay[][] {
@@ -46,21 +44,21 @@ export function formatSprintWeekDateRange(days: readonly SprintWorkingDay[]): st
 function buildWeekMetrics(
   days: readonly SprintWorkingDay[],
   label: string,
-  tasks: SprintTaskHoursSource[],
-  bugs: SprintBugHoursSource[],
+  tasks: readonly WorkedHoursItem[],
+  bugs: readonly WorkedHoursItem[],
+  segments: readonly AssignmentSegment[],
 ): SprintWeekMetrics | null {
   if (days.length === 0) return null;
 
   const dayKeys = days.map((day) => day.value);
-  const weekEndKey = dayKeys[dayKeys.length - 1] ?? "";
-  const hours = weekEndKey
-    ? sumHoursBreakdownForDayKeys(tasks, bugs, dayKeys, weekEndKey)
-    : { taskHours: 0, bugHours: 0 };
+  const hours = computeHoursBreakdown({ tasks, bugs, workingDayKeys: new Set(dayKeys) });
+
+  const { expectedHours } = computeExpectedHours(dayKeys, segments);
 
   return {
     label,
     hours,
-    hoursTarget: days.length * HOURS_PER_SPRINT_WORKING_DAY,
+    hoursTarget: expectedHours,
     workingDaysCount: days.length,
     dateRangeLabel: formatSprintWeekDateRange(days),
     dayKeys,
@@ -69,12 +67,13 @@ function buildWeekMetrics(
 
 export function computeSprintWeekMetrics(
   workingDays: readonly SprintWorkingDay[],
-  tasks: SprintTaskHoursSource[],
-  bugs: SprintBugHoursSource[],
+  tasks: readonly WorkedHoursItem[],
+  bugs: readonly WorkedHoursItem[],
+  segments: readonly AssignmentSegment[] = [],
 ): SprintWeekMetrics[] {
   return splitSprintIntoWeeks(workingDays)
     .map((days, index) =>
-      buildWeekMetrics(days, `Semana ${index + 1}`, tasks, bugs),
+      buildWeekMetrics(days, `Semana ${index + 1}`, tasks, bugs, segments),
     )
     .filter((week): week is SprintWeekMetrics => week !== null);
 }

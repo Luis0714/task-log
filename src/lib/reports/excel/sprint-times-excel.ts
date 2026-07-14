@@ -5,8 +5,8 @@ import ExcelJS from "exceljs";
 import {
   EMPTY_HOURS_BREAKDOWN,
   totalHoursBreakdown,
-} from "@/lib/dashboard/hours-breakdown";
-import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+} from "@/lib/hours/hours-breakdown";
+import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import {
   lookupMemberOrPlaceholder,
   type MemberInfo,

@@ -19,12 +19,13 @@ import { useHoursReport } from "@/hooks/reports/use-hours-report";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { normalizePersonName } from "@/lib/filters/person-name";
 import { filterHoursReportByVisibility } from "@/lib/reports/hours/filter-hours-report-by-visibility";
-import { appToast } from "@/lib/toast";
-import { useAssigneeVisibilityStore } from "@/store/assignee-visibility-store";
 import type {
   HoursReportPeriodSchema,
   HoursReportRequestSchema,
 } from "@/lib/schemas/reports-hours";
+import { getTodayDateKey } from "@/lib/time-log/working-date-default";
+import { appToast } from "@/lib/toast";
+import { useAssigneeVisibilityStore } from "@/store/assignee-visibility-store";
 
 export type ReportsTimeLogContentProps = {
   catalog: AdoCatalogSnapshot;
@@ -33,15 +34,8 @@ export type ReportsTimeLogContentProps = {
 };
 
 function defaultPeriod(): HoursReportPeriodSchema {
-  const now = new Date();
-  const y = now.getUTCFullYear();
-  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
-  return { kind: "month", monthKey: `${y}-${m}` };
-}
-
-/** Fecha actual en formato `YYYY-MM-DD` (UTC). */
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  const todayKey = getTodayDateKey();
+  return { kind: "month", monthKey: todayKey.slice(0, 7) };
 }
 
 function defaultMonthKey(): string {
@@ -55,8 +49,8 @@ export function ReportsTimeLogContent({
   adoExecutionReady,
 }: Readonly<ReportsTimeLogContentProps>) {
   const [period, setPeriod] = useState<HoursReportPeriodSchema>(defaultPeriod());
-  const [rangeFrom, setRangeFrom] = useState<string>(todayIso());
-  const [rangeTo, setRangeTo] = useState<string>(todayIso());
+  const [rangeFrom, setRangeFrom] = useState<string>(getTodayDateKey());
+  const [rangeTo, setRangeTo] = useState<string>(getTodayDateKey());
   const [projectIds, setProjectIds] = useState<string[]>(initialScopes.projectIds);
   const [teamIds, setTeamIds] = useState<string[]>(initialScopes.teamIds);
   const [nameFilter, setNameFilter] = useState<string>("");
@@ -167,7 +161,7 @@ export function ReportsTimeLogContent({
     void hoursReport.generate(payload);
   }, [hoursReport, payload, adoExecutionReady]);
 
-  const year = period.kind === "month" ? Number(period.monthKey.slice(0, 4)) : new Date().getUTCFullYear();
+  const year = period.kind === "month" ? Number(period.monthKey.slice(0, 4)) : Number(getTodayDateKey().slice(0, 4));
   const monthKey = period.kind === "month" ? period.monthKey : `${year}-01`;
 
   const switchToMonth = useCallback(() => {

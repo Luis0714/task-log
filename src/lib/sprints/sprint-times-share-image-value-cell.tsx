@@ -1,6 +1,6 @@
-import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import { formatHours } from "@/lib/dashboard/format-hours";
-import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import { totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
 import {
   SprintTimesShareBugIconSvg,
   SprintTimesShareClockIconSvg,

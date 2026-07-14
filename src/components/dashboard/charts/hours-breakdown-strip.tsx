@@ -2,8 +2,8 @@ import { Bug, Clock, ListChecks } from "lucide-react";
 
 import { BUG_BAR_OPEN_CLASS } from "@/lib/brand/bug-colors";
 import { formatHours } from "@/lib/dashboard/format-hours";
-import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
-import { totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
+import { totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
 import { cn } from "@/lib/utils";
 
 export type HoursBreakdownStripProps = {

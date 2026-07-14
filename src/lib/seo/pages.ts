@@ -65,6 +65,12 @@ export const PAGE_SEO = {
       "Genera un resumen breve de tu trabajo en curso para compartir en la reunión diaria del sprint activo.",
     path: "/daily",
   },
+  solicitudes: {
+    title: "Solicitudes",
+    description:
+      "Registra tus novedades (permisos, incapacidades y más) desde la plataforma. Crea el work item de Novedad en la historia de usuario del proyecto en Azure DevOps con cálculo automático de tiempo y fechas.",
+    path: "/solicitudes",
+  },
   reportsTimeLog: {
     title: "Reporte de horas por periodo",
     description:
@@ -82,6 +88,18 @@ export const PAGE_SEO = {
     description:
       "Conexión con Azure DevOps, proyecto, equipo y preferencias de la cuenta en NeosView.",
     path: "/settings",
+  },
+  assignments: {
+    title: "Asignaciones",
+    description:
+      "Configura el porcentaje de dedicación de cada persona en cada equipo dentro de cada proyecto.",
+    path: "/admin/asignaciones",
+  },
+  novedades: {
+    title: "Novedades",
+    description:
+      "Selecciona los (Proyectos, Equipos) cuyas historias del backlog deseas vincular como novedad para el reporte.",
+    path: "/admin/novedades",
   },
   privacy: {
     title: "Política de privacidad",

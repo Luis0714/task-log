@@ -95,7 +95,7 @@ export type ReportsTimeLogTableSkeletonProps = {
 };
 
 export function ReportsTimeLogTableSkeleton({
-  rowCount = 6,
+  rowCount = 15,
 }: Readonly<ReportsTimeLogTableSkeletonProps>) {
   return (
     <TableShell>

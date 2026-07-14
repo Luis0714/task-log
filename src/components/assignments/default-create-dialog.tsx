@@ -212,6 +212,7 @@ export function DefaultCreateDialog({
               value={draft.validTo}
               min={draft.validFrom}
               disabled={submitting}
+              clearable
               onChange={(v) => setDraft((d) => ({ ...d, validTo: v }))}
             />
             <FormInlineError message={endError} />

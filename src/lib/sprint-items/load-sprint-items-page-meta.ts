@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
-import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
+import { loadHolidayDateKeysAroundToday } from "@/lib/hours/load-working-day-keys";
 import { loadSprintItemsFilterMeta } from "@/lib/sprint-items/load-sprint-items-filter-meta";
 import type { SprintItemsKind } from "@/lib/sprint-items/types";
 import type { SprintItemsFilterMeta } from "@/lib/sprint-items/load-sprint-items-filter-meta";
@@ -27,7 +27,7 @@ export const loadSprintItemsPageMeta = cache(async function loadSprintItemsPageM
       catalog.project,
       catalog.team,
     ),
-    loadNonWorkingDates(catalog.project, catalog.team),
+    loadHolidayDateKeysAroundToday(),
   ]);
 
   return { filterMeta, nonWorkingDates };

@@ -5,7 +5,7 @@ import { cache } from "react";
 import {
   firstSprintDataError,
   loadSprintBacklogStates,
-  loadSprintNonWorkingDates,
+  loadSprintHolidayDates,
   loadSprintPeriodBugs,
   loadSprintPeriodTasks,
   loadSprintWorkItems,
@@ -82,7 +82,10 @@ export const loadSprintStatsScreen = cache(async function loadSprintStatsScreen(
       ),
       loadSprintBacklogStates(scope.project),
       loadProjectWorkItemTags(scope.project),
-      loadSprintNonWorkingDates(scope.project, scope.team),
+      loadSprintHolidayDates(
+        options.sprintStartDate ?? null,
+        options.sprintFinishDate ?? null,
+      ),
       loadTeamMembers({
         project: scope.project,
         team: scope.team,

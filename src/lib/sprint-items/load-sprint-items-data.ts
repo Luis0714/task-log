@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import { loadNonWorkingDates } from "@/lib/ado/load-non-working-dates";
+import { loadHolidayDateKeysAroundToday } from "@/lib/hours/load-working-day-keys";
 import type { SprintItemsDataSnapshot } from "@/lib/sprint-items/load-sprint-items-data-types";
 import { loadSprintItemsList } from "@/lib/sprint-items/load-sprint-items-list";
 import { loadSprintItemsListMeta } from "@/lib/sprint-items/load-sprint-items-list-meta";
@@ -44,7 +44,7 @@ export const loadSprintItemsData = cache(async function loadSprintItemsData(
       input.project,
       input.team,
     ),
-    loadNonWorkingDates(input.project, input.team),
+    loadHolidayDateKeysAroundToday(),
   ]);
 
   return {

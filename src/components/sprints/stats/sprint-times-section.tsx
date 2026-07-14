@@ -16,8 +16,8 @@ import {
 } from "@/components/sprints/stats/sprint-times-hours-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamMemberAvatar } from "@/components/team-members/team-member-avatar";
-import { EMPTY_HOURS_BREAKDOWN, totalHoursBreakdown } from "@/lib/dashboard/hours-breakdown";
-import type { HoursBreakdown } from "@/lib/dashboard/hours-breakdown";
+import { EMPTY_HOURS_BREAKDOWN, totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
+import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import type {
   SprintTimesMetrics,
   SprintTimesPersonRow,

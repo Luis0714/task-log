@@ -14,6 +14,7 @@ import type {
   HoursReportRequestSchema,
 } from "@/lib/schemas/reports-hours";
 import type { AdoProjectDto, AdoTeamDto } from "@/lib/schemas/ado-catalog";
+import { getTodayDateKey } from "@/lib/time-log/working-date-default";
 
 const PERIOD_ITEMS = [
   { value: "month" as const, label: "Mes" },
@@ -25,7 +26,7 @@ const MONTH_NAMES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
-const CURRENT_YEAR = new Date().getUTCFullYear();
+const CURRENT_YEAR = Number(getTodayDateKey().slice(0, 4));
 const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 
 /** Etiqueta del trigger multiselección: "Todos", el único, o "N seleccionados". */
