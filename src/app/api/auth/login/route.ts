@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, landing: result.landing });
   } catch {
     return NextResponse.json(
       { error: USER_MESSAGES.genericRetry },

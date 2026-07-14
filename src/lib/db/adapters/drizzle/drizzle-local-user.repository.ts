@@ -25,6 +25,7 @@ function mapLocalUserRow(
     userId: row.userId,
     username: row.username!,
     passwordHash: row.passwordHash!,
+    roleName: row.roleName,
     organization: row.organization,
     project: row.project,
     team: row.team,

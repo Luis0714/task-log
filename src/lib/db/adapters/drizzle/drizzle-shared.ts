@@ -4,7 +4,7 @@ import { eq, type SQL } from "drizzle-orm";
 
 import { getDb } from "@/lib/db/client";
 import type { LoadedAdoConnection } from "@/lib/db/ports/ado-connection.repository.port";
-import { adoConnections, users } from "@/lib/db/schema";
+import { adoConnections, roles, users } from "@/lib/db/schema";
 import { decryptAdoSecrets } from "@/lib/security/ado-secrets";
 
 export type UserAdoConnectionRow = {
@@ -13,6 +13,7 @@ export type UserAdoConnectionRow = {
   passwordHash: string | null;
   entraSubject: string | null;
   authProvider: "local" | "entra";
+  roleName: string | null;
   organization: string;
   project: string;
   team: string | null;
@@ -83,6 +84,7 @@ export async function findUserAdoConnectionRow(
       passwordHash: users.passwordHash,
       entraSubject: users.entraSubject,
       authProvider: users.authProvider,
+      roleName: roles.name,
       organization: adoConnections.organization,
       project: adoConnections.project,
       team: adoConnections.team,
@@ -91,6 +93,7 @@ export async function findUserAdoConnectionRow(
     })
     .from(users)
     .innerJoin(adoConnections, eq(adoConnections.userId, users.id))
+    .leftJoin(roles, eq(roles.id, users.roleId))
     .where(where)
     .limit(1);
 
