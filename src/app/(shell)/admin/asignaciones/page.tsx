@@ -6,7 +6,11 @@ import { assignmentRowToDto } from "@/lib/assignments/build-assignment-row";
 import { getServerAuthBootstrap } from "@/lib/auth/server-state";
 import { getRepositories } from "@/lib/db";
 import { loadAssignmentsCatalog } from "@/lib/ado/load-assignments-catalog";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import { PAGE_SEO } from "@/lib/seo/pages";
 import type { AdoContextSearchParams } from "@/lib/ado/types";
+
+export const metadata = buildPageMetadata(PAGE_SEO.assignments);
 
 export const dynamic = "force-dynamic";
 

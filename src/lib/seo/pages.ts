@@ -83,6 +83,12 @@ export const PAGE_SEO = {
       "Conexión con Azure DevOps, proyecto, equipo y preferencias de la cuenta en NeosView.",
     path: "/settings",
   },
+  assignments: {
+    title: "Asignaciones",
+    description:
+      "Configura el porcentaje de dedicación de cada persona en cada equipo dentro de cada proyecto.",
+    path: "/admin/asignaciones",
+  },
   privacy: {
     title: "Política de privacidad",
     description:

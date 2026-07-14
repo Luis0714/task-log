@@ -11,7 +11,6 @@ import {
   type AssignmentErrorKey,
   isAssignmentErrorKey,
 } from "@/lib/assignments/error-codes";
-import { splitAssignmentOnChange } from "@/lib/assignments/split-on-change";
 import { validateNewAssignment } from "@/lib/assignments/validate-new-assignment";
 import { checkOverAllocation } from "@/lib/assignments/over-allocation";
 import { endOfDay, startOfDay } from "@/lib/assignments/is-assignment-open";
@@ -40,20 +39,13 @@ function notFound() {
   );
 }
 
-/**
- * ¿El PATCH requiere un split? Sí si cambia fecha de inicio o cualquier
- * campo no-% (proyecto, equipo, rol) o si cambia el %. Un cambio de sólo
- * `validTo` no requiere split.
- */
-function needsSplit(
-  body: { validFrom?: string; projectId?: string; teamId?: string | null; roleId?: string | null; assignmentPct?: number },
-): boolean {
-  return Boolean(
-    body.validFrom ||
-      body.projectId ||
-      body.teamId !== undefined ||
-      body.roleId !== undefined ||
-      typeof body.assignmentPct === "number",
+/** Violación de índice único en Postgres (SQLSTATE 23505). */
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code?: unknown }).code === "23505"
   );
 }
 
@@ -100,66 +92,43 @@ export async function PATCH(
   const existing = await repo.findById(id);
   if (!existing) return notFound();
 
-  // Sólo se modifica validTo: cierre manual directo (sin split).
-  if (
-    !needsSplit(parsed.data) &&
-    parsed.data.validTo
-  ) {
-    try {
-      await repo.updateEnd({ id, validTo: new Date(parsed.data.validTo) });
-      const enriched = await repo.findByIdWithRole(id);
-      if (!enriched) {
-        return NextResponse.json(
-          { error: "No pudimos actualizar la asignación." },
-          { status: 500 },
-        );
-      }
-      return NextResponse.json({ assignment: assignmentRowToDto(enriched) });
-    } catch {
-      return NextResponse.json(
-        { error: "No pudimos actualizar la asignación." },
-        { status: 500 },
-      );
-    }
-  }
-
-  // Para todo cambio que afecte vigencia/proyecto/equipo/rol/%: split.
+  // Modelo: UNA sola asignación por (persona, proyecto, equipo). Editar
+  // actualiza SIEMPRE la misma fila; nunca se crea otra. Se fusionan solo los
+  // campos presentes en el patch con los valores actuales.
   const newStart = parsed.data.validFrom
     ? new Date(parsed.data.validFrom)
     : existing.validFrom;
-
   const newProject = parsed.data.projectId ?? existing.projectId;
   const newProjectName = parsed.data.projectName ?? existing.projectName;
   const newTeamId =
-    parsed.data.teamId !== undefined
-      ? parsed.data.teamId
-      : existing.teamId ?? null;
+    parsed.data.teamId !== undefined ? parsed.data.teamId : existing.teamId ?? null;
   const newTeamName =
-    parsed.data.teamName !== undefined
-      ? parsed.data.teamName
-      : existing.teamName ?? null;
+    parsed.data.teamName !== undefined ? parsed.data.teamName : existing.teamName ?? null;
   const newRoleId =
     parsed.data.roleId !== undefined ? parsed.data.roleId : existing.roleId;
   const newPct = parsed.data.assignmentPct ?? existing.assignmentPct;
+  // undefined = no se toca; null = se borra la fecha fin; fecha = se fija.
+  const finalValidTo =
+    parsed.data.validTo === undefined
+      ? existing.validTo ?? null
+      : parsed.data.validTo
+        ? new Date(parsed.data.validTo)
+        : null;
 
-  // Valida suma 100% sobre la nueva configuración frente a otras
-  // excepciones vigentes de la persona (excluyendo la actual).
+  // Valida contra las demás vigencias de la persona que se cruzan con la NUEVA
+  // ventana: una sola por slot (overlapSameProject) y suma <= 100% (over100).
   const overlapping = await repo.listOverlappingForPerson({
     personAdoId: existing.personAdoId,
-    from: existing.validFrom,
-    to: existing.validTo ?? null,
+    from: newStart,
+    to: finalValidTo,
     excludeAssignmentId: id,
   });
-  const candidateValidTo =
-    parsed.data.validTo && parsed.data.validTo !== ""
-      ? new Date(parsed.data.validTo)
-      : null;
   const validation = validateNewAssignment({
     candidate: {
       projectId: newProject,
       teamId: newTeamId,
       validFrom: newStart,
-      validTo: candidateValidTo,
+      validTo: finalValidTo,
       assignmentPct: newPct,
     },
     overlapping,
@@ -177,7 +146,7 @@ export async function PATCH(
         })),
         candidate: {
           fromMs: startOfDay(newStart).getTime(),
-          toMs: candidateValidTo ? endOfDay(candidateValidTo).getTime() : null,
+          toMs: finalValidTo ? endOfDay(finalValidTo).getTime() : null,
           pct: newPct,
           projectName: newProjectName,
           teamName: newTeamName,
@@ -205,18 +174,18 @@ export async function PATCH(
   }
 
   try {
-    const { created } = await splitAssignmentOnChange(repo, {
-      existing,
-      newValidFrom: newStart,
-      newAssignmentPct: newPct,
-      newRoleId: newRoleId ?? null,
-      newProjectId: newProject,
-      newProjectName,
-      newTeamId,
-      newTeamName,
-      createdByUserId: auth.userId,
+    await repo.update({
+      id,
+      projectId: newProject,
+      projectName: newProjectName,
+      teamId: newTeamId,
+      teamName: newTeamName,
+      roleId: newRoleId ?? null,
+      assignmentPct: newPct,
+      validFrom: newStart,
+      validTo: finalValidTo,
     });
-    const enriched = await repo.findByIdWithRole(created.id);
+    const enriched = await repo.findByIdWithRole(id);
     if (!enriched) {
       return NextResponse.json(
         { error: "No pudimos actualizar la asignación." },
@@ -224,7 +193,18 @@ export async function PATCH(
       );
     }
     return NextResponse.json({ assignment: assignmentRowToDto(enriched) });
-  } catch {
+  } catch (err) {
+    // Defensa ante carreras con el índice único de "una abierta por slot".
+    if (isUniqueViolation(err)) {
+      return NextResponse.json(
+        {
+          error: ASSIGNMENT_USER_MESSAGES.openExists,
+          code: ASSIGNMENT_ERROR_CODES.openExists,
+        },
+        { status: ASSIGNMENT_HTTP_STATUS.openExists },
+      );
+    }
+    console.error("[assignments PATCH] update failed", err);
     return NextResponse.json(
       { error: "No pudimos actualizar la asignación." },
       { status: 500 },

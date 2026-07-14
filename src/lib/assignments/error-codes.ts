@@ -8,6 +8,7 @@ export const ASSIGNMENT_ERROR_CODES = {
   startInPast: "start_in_past",
   endBeforeStart: "end_before_start",
   overlapSameProject: "overlap_same_project",
+  openExists: "open_exists",
   over100: "over_100",
   conflictProject: "conflict_project",
   notFound: "not_found",
@@ -28,6 +29,7 @@ export const ASSIGNMENT_HTTP_STATUS: Record<AssignmentErrorKey, number> = {
   startInPast: 400,
   endBeforeStart: 400,
   overlapSameProject: 409,
+  openExists: 409,
   over100: 409,
   conflictProject: 409,
   notFound: 404,
@@ -46,6 +48,8 @@ export const ASSIGNMENT_USER_MESSAGES: Record<AssignmentErrorKey, string> = {
     "La fecha de fin de vigencia debe ser igual o posterior a la fecha de inicio.",
   overlapSameProject:
     "Ya existe una asignación vigente de esta persona en ese proyecto que se cruza con las fechas.",
+  openExists:
+    "Ya existe una asignación sin fecha de fin para esta persona en este proyecto/equipo. Ponle una fecha de fin a la otra antes de dejar esta abierta.",
   over100:
     "La suma de asignaciones vigentes supera el 100%. Ajusta el porcentaje.",
   conflictProject:

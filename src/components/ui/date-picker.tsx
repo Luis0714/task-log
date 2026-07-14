@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, X } from "lucide-react";
 import { es as esDayPicker } from "react-day-picker/locale";
 import type { Matcher } from "react-day-picker";
 
@@ -22,6 +22,8 @@ export type DatePickerProps = {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  /** Muestra un botón para limpiar la fecha (campos opcionales). */
+  clearable?: boolean;
 };
 
 function formatPickerLabel(dateKey: string): string {
@@ -48,6 +50,7 @@ export function DatePicker({
   disabled = false,
   placeholder = "Selecciona una fecha",
   className,
+  clearable = false,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const selectedDate = useMemo(
@@ -96,6 +99,23 @@ export function DatePicker({
             }
           }}
         />
+        {clearable && value ? (
+          <div className="border-t p-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2 text-muted-foreground"
+              onClick={() => {
+                onChange("");
+                setOpen(false);
+              }}
+            >
+              <X className="size-3.5" aria-hidden />
+              Quitar fecha
+            </Button>
+          </div>
+        ) : null}
       </PopoverContent>
     </Popover>
   );

@@ -58,7 +58,10 @@ export const editAssignmentBodySchema = z.object({
   roleId: z.string().uuid(ASSIGNMENT_ERROR_CODES.roleRequired).nullable().optional(),
   assignmentPct: baseBody.shape.assignmentPct.optional(),
   validFrom: isoDateAny.optional(),
-  validTo: baseBody.shape.validTo,
+  validTo: z
+    .union([isoDate, z.literal(""), z.null()])
+    .optional()
+    .transform((v) => (v === "" ? null : v)),
 });
 
 export type EditAssignmentBody = z.infer<typeof editAssignmentBodySchema>;

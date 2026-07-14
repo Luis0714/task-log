@@ -121,6 +121,16 @@ export function makeFakeAssignmentRepo(
       const r = rows.find((row) => row.id === input.id);
       return r ? { ...r, validTo: input.validTo } : ({} as PersonProjectAssignmentRow);
     },
+    async update(input) {
+      const r = rows.find((row) => row.id === input.id);
+      if (!r) return {} as PersonProjectAssignmentRow;
+      const { id: _id, ...fields } = input;
+      void _id;
+      const patch = Object.fromEntries(
+        Object.entries(fields).filter(([, v]) => v !== undefined),
+      );
+      return { ...r, ...patch } as PersonProjectAssignmentRow;
+    },
     async updatePct(input) {
       const r = rows.find((row) => row.id === input.id);
       return r ? { ...r, assignmentPct: input.assignmentPct } : ({} as PersonProjectAssignmentRow);
