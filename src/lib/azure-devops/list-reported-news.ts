@@ -5,6 +5,7 @@ import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { buildWiqlIdsQuery, runWiqlIdsQuery } from "@/lib/azure-devops/wiql";
 import { getRepositories } from "@/lib/db";
 import type { NewsStoriesRepository } from "@/lib/db/ports/news-stories.repository.port";
+import { splitAdoDateTime } from "@/lib/solicitudes/time-calc";
 
 /**
  * Modelo de dominio — una "novedad reportada" en una HU vinculada.
@@ -20,9 +21,14 @@ export type ReportedNewsDetail = Readonly<{
   state: string;
   assignedTo: string | null;
   description: string | null;
+  /** Fecha civil `YYYY-MM-DD` extraída del campo DateTime de ADO. */
   fechaInicio: string | null;
+  /** Hora `HH:mm` extraída del campo DateTime de ADO; `null` si no trae hora. */
+  fechaInicioHora: string | null;
   fechaFin: string | null;
+  fechaFinHora: string | null;
   fechaReintegro: string | null;
+  fechaReintegroHora: string | null;
   tipoNovedad: string | null;
   parentId: number | null;
   createdDate: string | null;
@@ -278,6 +284,9 @@ function mapReportedNews(
     return null;
   };
   const assignedTo = readAssignedTo(fields["System.AssignedTo"]);
+  const inicio = splitDateTimeField(stringField("Custom.FechaInicio"));
+  const fin = splitDateTimeField(stringField("Custom.FechaFin"));
+  const reintegro = splitDateTimeField(stringField("Custom.FechaReintegro"));
 
   return {
     id,
@@ -285,9 +294,12 @@ function mapReportedNews(
     state: stringField("System.State") ?? "",
     assignedTo,
     description: stringField("System.Description"),
-    fechaInicio: stringField("Custom.FechaInicio"),
-    fechaFin: stringField("Custom.FechaFin"),
-    fechaReintegro: stringField("Custom.FechaReintegro"),
+    fechaInicio: inicio.dateKey,
+    fechaInicioHora: inicio.timeStr,
+    fechaFin: fin.dateKey,
+    fechaFinHora: fin.timeStr,
+    fechaReintegro: reintegro.dateKey,
+    fechaReintegroHora: reintegro.timeStr,
     tipoNovedad: stringField("Custom.TipodeNovedad"),
     parentId: intField("System.Parent"),
     createdDate: stringField("System.CreatedDate"),
@@ -303,4 +315,19 @@ function readAssignedTo(value: unknown): string | null {
     }
   }
   return null;
+}
+
+/**
+ * Variante tolerante a `null`/vacío para campos Date/DateTime de ADO. Devuelve
+ * `{ dateKey: null, timeStr: null }` si no hay valor; en caso contrario delega
+ * en `splitAdoDateTime`. Si el valor no trae `T…` (campos Date legacy) la hora
+ * queda en `null`.
+ */
+function splitDateTimeField(
+  raw: string | null,
+): { dateKey: string | null; timeStr: string | null } {
+  if (!raw) return { dateKey: null, timeStr: null };
+  const split = splitAdoDateTime(raw);
+  if (!split) return { dateKey: null, timeStr: null };
+  return { dateKey: split.dateKey, timeStr: split.timeStr };
 }

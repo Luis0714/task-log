@@ -12,7 +12,7 @@ import {
 
 export type UseWorkItemAssigneeFilterStateOptions = {
   assignee: string;
-  members: AdoTeamMemberDto[];
+  members: readonly AdoTeamMemberDto[];
   membersLoading?: boolean;
   onAssigneeChange: (value: string) => void;
 };

@@ -10,5 +10,9 @@
     "typescriptreact"
   ],
   "typescript.preferences.preferTypeOnlyAutoImports": true,
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "sonarlint.connectedMode.project": {
+    "connectionId": "neosview-sonarquebe",
+    "projectKey": "Luis0714_task-log"
+  }
 }

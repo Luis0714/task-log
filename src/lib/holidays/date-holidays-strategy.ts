@@ -21,19 +21,17 @@ export class DateHolidaysStrategy implements HolidayStrategy {
   }
 
   async isHoliday(date: Date): Promise<boolean> {
-    return this.holidays.isHoliday(date) !== false;
+    return (await this.getHoliday(date)) !== null;
   }
 
+  // Compara por clave de fecha (YYYY-MM-DD) y no con `holidays.isHoliday(date)`:
+  // la librería fija los límites del festivo en hora de Colombia, así que un
+  // Date de medianoche en otra zona horaria (p. ej. CI en UTC) queda fuera
+  // del rango aunque sea el mismo día calendario.
   async getHoliday(date: Date): Promise<Holiday | null> {
-    const result = this.holidays.isHoliday(date);
-    if (result === false || !Array.isArray(result) || result.length === 0) {
-      return null;
-    }
-    const first = result[0];
-    return {
-      date: toIsoDate(first.date),
-      name: first.name,
-    };
+    const dayKey = toIsoDate(date);
+    const holidays = await this.getHolidays(date.getFullYear());
+    return holidays.find((h) => h.date === dayKey) ?? null;
   }
 
   async getHolidays(year: number): Promise<Holiday[]> {
