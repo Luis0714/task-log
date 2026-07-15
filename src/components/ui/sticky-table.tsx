@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
@@ -23,7 +26,10 @@ export type StickyTableProps<T> = {
   bodyClassName?: string;
   renderCard?: (row: T) => ReactNode;
   cardsClassName?: string;
+  bodyMaxHeightClass?: string;
 };
+
+const DEFAULT_BODY_MAX_HEIGHT = "max-h-[60vh]";
 
 export function StickyTable<T>({
   columns,
@@ -35,7 +41,48 @@ export function StickyTable<T>({
   bodyClassName,
   renderCard,
   cardsClassName,
+  bodyMaxHeightClass = DEFAULT_BODY_MAX_HEIGHT,
 }: Readonly<StickyTableProps<T>>) {
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const headerEl = headerScrollRef.current;
+    const bodyEl = bodyScrollRef.current;
+    if (!headerEl || !bodyEl) return;
+
+    let syncing = false;
+    const syncFromHeader = () => {
+      if (syncing) return;
+      syncing = true;
+      bodyEl.scrollLeft = headerEl.scrollLeft;
+      requestAnimationFrame(() => {
+        syncing = false;
+      });
+    };
+    const syncFromBody = () => {
+      if (syncing) return;
+      syncing = true;
+      headerEl.scrollLeft = bodyEl.scrollLeft;
+      requestAnimationFrame(() => {
+        syncing = false;
+      });
+    };
+
+    headerEl.addEventListener("scroll", syncFromHeader, { passive: true });
+    bodyEl.addEventListener("scroll", syncFromBody, { passive: true });
+
+    return () => {
+      headerEl.removeEventListener("scroll", syncFromHeader);
+      bodyEl.removeEventListener("scroll", syncFromBody);
+    };
+  }, []);
+
+  const sharedTableClasses = cn(
+    "w-full table-fixed border-separate border-spacing-0 bg-background text-sm",
+    tableClassName,
+  );
+
   return (
     <>
       {renderCard ? (
@@ -50,34 +97,47 @@ export function StickyTable<T>({
           ))}
         </ul>
       ) : null}
-      <div className={cn("hidden overflow-x-auto rounded-md border md:block", className)}>
-        <table
-          className={cn(
-            "table-fixed border-separate border-spacing-0 bg-background text-sm",
-            tableClassName,
-          )}
-        >
-          <thead>
-            <tr className="border-b">
-              {columns.map((col) => (
-                <th key={col.key} className={headerCellClass(col)}>
-                  {col.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className={bodyClassName}>
-            {rows.map((row, idx) => (
-              <tr key={getRowKey(row, idx)} className={rowClassName}>
+      <div
+        className={cn(
+          "bg-background hidden overflow-hidden rounded-md border md:block",
+          className,
+        )}
+      >
+        <div ref={headerScrollRef} className="overflow-x-auto">
+          <table className={sharedTableClasses}>
+            <thead>
+              <tr className="border-b">
                 {columns.map((col) => (
-                  <td key={col.key} className={bodyCellClass(col)}>
-                    {col.render(row)}
-                  </td>
+                  <th key={col.key} className={headerCellClass(col)}>
+                    {col.header}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+          </table>
+        </div>
+        <div
+          ref={bodyScrollRef}
+          className={cn(
+            bodyMaxHeightClass,
+            "scrollbar-none [&::-webkit-scrollbar]:hidden",
+            "overflow-x-auto overflow-y-auto",
+          )}
+        >
+          <table className={sharedTableClasses}>
+            <tbody className={bodyClassName}>
+              {rows.map((row, idx) => (
+                <tr key={getRowKey(row, idx)} className={rowClassName}>
+                  {columns.map((col) => (
+                    <td key={col.key} className={bodyCellClass(col)}>
+                      {col.render(row)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </>
   );
@@ -106,7 +166,11 @@ function headerCellClass<T>(col: StickyTableColumn<T>): string {
 
 function bodyCellClass<T>(col: StickyTableColumn<T>): string {
   if (!col.sticky) {
-    return cn("border-b border-border/60 px-3 py-2", col.widthClass, col.bodyClassName);
+    return cn(
+      "border-b border-border/60 px-3 py-2",
+      col.widthClass,
+      col.bodyClassName,
+    );
   }
   return cn(
     "sticky z-10 border-b border-border/60 bg-background px-3 py-2",

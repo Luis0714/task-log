@@ -17,6 +17,7 @@ export function ReportsTimeLogTable({ rows }: Readonly<ReportsTimeLogTableProps>
       getRowKey={(row, idx) =>
         `${row.projectId}-${row.teamId ?? "none"}-${row.personDisplayName}-${idx}`
       }
+      tableClassName="min-w-[145rem]"
       rowClassName="border-b last:border-b-0"
       renderCard={(row) => <ReportsTimeLogRowCard row={row} />}
     />
