@@ -2,13 +2,6 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-/**
- * Tabla con scroll horizontal y columnas a la izquierda que permanecen fijas
- * durante el scroll. El contenedor provee `overflow-x-auto` con `border-collapse: collapse`
- * para que las celdas adyacentes peguen sin intersticios, y un bg opaco en las sticky
- * que coincide con el color del resto de la tabla para que no haya distinción visual
- * entre columnas fijas y móviles.
- */
 export type StickyTableColumn<T> = {
   key: string;
   header: ReactNode;
@@ -25,8 +18,11 @@ export type StickyTableProps<T> = {
   rows: readonly T[];
   getRowKey: (row: T, index: number) => string;
   className?: string;
+  tableClassName?: string;
   rowClassName?: string;
   bodyClassName?: string;
+  renderCard?: (row: T) => ReactNode;
+  cardsClassName?: string;
 };
 
 export function StickyTable<T>({
@@ -34,34 +30,56 @@ export function StickyTable<T>({
   rows,
   getRowKey,
   className,
+  tableClassName,
   rowClassName,
   bodyClassName,
+  renderCard,
+  cardsClassName,
 }: Readonly<StickyTableProps<T>>) {
   return (
-    <div className={cn("overflow-x-auto rounded-md border", className)}>
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b">
-            {columns.map((col) => (
-              <th key={col.key} className={headerCellClass(col)}>
-                {col.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className={bodyClassName}>
+    <>
+      {renderCard ? (
+        <ul className={cn("flex flex-col gap-2 md:hidden", cardsClassName)}>
           {rows.map((row, idx) => (
-            <tr key={getRowKey(row, idx)} className={rowClassName}>
+            <li
+              key={getRowKey(row, idx)}
+              className="bg-card text-card-foreground rounded-lg border p-3"
+            >
+              {renderCard(row)}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <div className={cn("hidden overflow-x-auto rounded-md border md:block", className)}>
+        <table
+          className={cn(
+            "table-fixed border-separate border-spacing-0 bg-background text-sm",
+            tableClassName,
+          )}
+        >
+          <thead>
+            <tr className="border-b">
               {columns.map((col) => (
-                <td key={col.key} className={bodyCellClass(col)}>
-                  {col.render(row)}
-                </td>
+                <th key={col.key} className={headerCellClass(col)}>
+                  {col.header}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className={bodyClassName}>
+            {rows.map((row, idx) => (
+              <tr key={getRowKey(row, idx)} className={rowClassName}>
+                {columns.map((col) => (
+                  <td key={col.key} className={bodyCellClass(col)}>
+                    {col.render(row)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -69,14 +87,14 @@ function headerCellClass<T>(col: StickyTableColumn<T>): string {
   const alignment = col.align === "center" ? "text-center" : "text-left";
   if (!col.sticky) {
     return cn(
-      "bg-background px-3 py-2 font-medium whitespace-nowrap",
+      "border-b border-border/60 bg-background px-3 py-2 font-medium whitespace-nowrap",
       alignment,
       col.widthClass,
       col.headerClassName,
     );
   }
   return cn(
-    "sticky z-20 bg-background px-3 py-2 font-medium whitespace-nowrap",
+    "sticky z-20 border-b border-border/60 bg-background px-3 py-2 font-medium whitespace-nowrap",
     col.sticky.leftClass,
     col.widthClass,
     alignment,
@@ -88,10 +106,10 @@ function headerCellClass<T>(col: StickyTableColumn<T>): string {
 
 function bodyCellClass<T>(col: StickyTableColumn<T>): string {
   if (!col.sticky) {
-    return cn("px-3 py-2", col.widthClass, col.bodyClassName);
+    return cn("border-b border-border/60 px-3 py-2", col.widthClass, col.bodyClassName);
   }
   return cn(
-    "sticky z-10 bg-background px-3 py-2",
+    "sticky z-10 border-b border-border/60 bg-background px-3 py-2",
     col.sticky.leftClass,
     col.widthClass,
     col.sticky.isLast &&

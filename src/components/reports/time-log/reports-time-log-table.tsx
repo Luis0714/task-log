@@ -1,5 +1,6 @@
 import { StickyTable } from "@/components/ui/sticky-table";
 import { REPORTS_TIME_LOG_COLUMNS } from "@/components/reports/time-log/reports-time-log-columns";
+import { ReportsTimeLogRowCard } from "@/components/reports/time-log/reports-time-log-row-card";
 import type { HoursReportRow } from "@/lib/reports/hours/hours-report-types";
 
 export { ReportsTimeLogTableSkeleton } from "./reports-time-log-table-skeleton";
@@ -17,6 +18,7 @@ export function ReportsTimeLogTable({ rows }: Readonly<ReportsTimeLogTableProps>
         `${row.projectId}-${row.teamId ?? "none"}-${row.personDisplayName}-${idx}`
       }
       rowClassName="border-b last:border-b-0"
+      renderCard={(row) => <ReportsTimeLogRowCard row={row} />}
     />
   );
 }

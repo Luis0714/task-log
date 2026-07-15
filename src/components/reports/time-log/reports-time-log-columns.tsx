@@ -48,6 +48,7 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   {
     key: "assignmentPct",
     header: "% Asignación",
+    widthClass: "w-32",
     align: "center",
     bodyClassName: "text-center",
     render: formatAssignmentPct,
@@ -55,6 +56,7 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   {
     key: "developmentHours",
     header: "Horas desarrollo",
+    widthClass: "w-40",
     align: "center",
     bodyClassName: "text-center tabular-nums",
     render: (row) => row.developmentHours.toFixed(1),
@@ -62,6 +64,7 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   {
     key: "bugHours",
     header: "Horas bugs",
+    widthClass: "w-32",
     align: "center",
     bodyClassName: "text-center tabular-nums",
     render: (row) => row.bugHours.toFixed(1),
@@ -69,6 +72,7 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   {
     key: "newsCount",
     header: "Cant. novedades",
+    widthClass: "w-36",
     align: "center",
     bodyClassName: "text-center tabular-nums",
     render: (row) => row.newsCount,
@@ -76,6 +80,7 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   {
     key: "newsHours",
     header: "Horas novedades",
+    widthClass: "w-40",
     align: "center",
     bodyClassName: "text-center tabular-nums",
     render: (row) => row.newsHours.toFixed(1),
@@ -83,6 +88,7 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   {
     key: "newsDays",
     header: "Días novedades",
+    widthClass: "w-36",
     align: "center",
     bodyClassName: "text-center tabular-nums",
     render: (row) => row.newsDays ?? 0,
@@ -90,6 +96,7 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   {
     key: "newsDetail",
     header: "Detalle de novedades",
+    widthClass: "w-64",
     align: "center",
     bodyClassName: "text-center text-xs",
     render: (row) => {
@@ -119,6 +126,7 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   {
     key: "workingDays",
     header: "Días hábiles",
+    widthClass: "w-32",
     align: "center",
     bodyClassName: "text-center tabular-nums",
     render: (row) => row.workingDays,
@@ -126,6 +134,7 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   {
     key: "expectedHours",
     header: "Horas esperadas",
+    widthClass: "w-40",
     align: "center",
     bodyClassName: "text-center tabular-nums",
     render: (row) => row.expectedHours.toFixed(1),
@@ -133,6 +142,7 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   {
     key: "totalHours",
     header: "Horas totales",
+    widthClass: "w-36",
     align: "center",
     bodyClassName: "text-center tabular-nums font-semibold",
     render: (row) => row.totalHours.toFixed(1),
@@ -140,6 +150,7 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   {
     key: "compliance",
     header: "% Cumplimiento",
+    widthClass: "w-40",
     align: "center",
     bodyClassName: "text-center",
     render: (row) => (
