@@ -5,6 +5,10 @@ import { NextResponse } from "next/server";
 import { requireManagementUser } from "@/app/api/assignments/helpers";
 import { ADO_SIGN_IN_REQUIRED_MESSAGE } from "@/lib/auth/ado-auth-messages";
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
+import {
+  NewsNotConfiguredError,
+  NEWS_NOT_CONFIGURED_CODE,
+} from "@/lib/reports/hours/errors";
 import { runHoursReport } from "@/lib/reports/hours/run-hours-report";
 import { hoursReportRequestSchema } from "@/lib/schemas/reports-hours";
 import { apiErrorFromCause, apiErrorResponse } from "@/lib/errors/api-error-response";
@@ -51,6 +55,12 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(result);
   } catch (cause) {
+    if (cause instanceof NewsNotConfiguredError) {
+      return NextResponse.json(
+        { error: cause.message, code: NEWS_NOT_CONFIGURED_CODE },
+        { status: 422 },
+      );
+    }
     if (
       cause instanceof Error &&
       /Nager|Date|holiday|festivo/i.test(cause.message)

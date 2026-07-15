@@ -10,6 +10,10 @@ import {
   makeScope,
   makeTask,
 } from "@/lib/reports/hours/build-hours-report.fixtures";
+import {
+  NewsNotConfiguredError,
+  NEWS_NOT_CONFIGURED_CODE,
+} from "@/lib/reports/hours/errors";
 import type { AdoWorkItemOption } from "@/lib/azure-devops/work-items";
 import type { ReportedNewsDetail } from "@/lib/azure-devops/list-reported-news";
 
@@ -113,7 +117,8 @@ describe("buildHoursReport", () => {
       {
         auth: fakeAuth,
         assignmentRepo: makeFakeAssignmentRepo([]),
-        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo(linkedHU),
+        listReportedNews: async () => [],
         listTasks: async () => [
           makeTask({ id: 1, loggedHours: 8, workingDate: "2026-06-15", parentId: 500 }),
           makeTask({ id: 2, loggedHours: 6, workingDate: "2026-06-20", parentId: 501 }),
@@ -143,7 +148,8 @@ describe("buildHoursReport", () => {
       {
         auth: fakeAuth,
         assignmentRepo: makeFakeAssignmentRepo([]),
-        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo(linkedHU),
+        listReportedNews: async () => [],
         listTasks: async () => [
           makeTask({ id: 1, loggedHours: 5, state: "In Progress", parentId: 500 }),
         ],
@@ -203,7 +209,8 @@ describe("buildHoursReport", () => {
       {
         auth: fakeAuth,
         assignmentRepo: makeFakeAssignmentRepo([]),
-        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo(linkedHU),
+        listReportedNews: async () => [],
         listTasks: async () => [
           makeTask({ id: 1, assignedTo: "Ana Gómez", loggedHours: 8, parentId: 500 }),
           makeTask({ id: 2, assignedTo: "Externo X", loggedHours: 8, parentId: 501 }),
@@ -233,7 +240,8 @@ describe("buildHoursReport", () => {
       {
         auth: fakeAuth,
         assignmentRepo: makeFakeAssignmentRepo([]),
-        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo(linkedHU),
+        listReportedNews: async () => [],
         listTasks: async () => [task],
         listBugs: async () => [],
         listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
@@ -267,7 +275,8 @@ describe("buildHoursReport", () => {
             assignmentPct: 50,
           }),
         ]),
-        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo(linkedHU),
+        listReportedNews: async () => [],
         listTasks: async () => [],
         listBugs: async () => [],
         listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
@@ -292,7 +301,8 @@ describe("buildHoursReport", () => {
       {
         auth: fakeAuth,
         assignmentRepo: makeFakeAssignmentRepo([]),
-        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo(linkedHU),
+        listReportedNews: async () => [],
         listTasks: async () => [],
         listBugs: async () => [],
         listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
@@ -310,26 +320,24 @@ describe("buildHoursReport", () => {
     expect(result.alerts.find((a) => a.kind === "unconfigured_person")).toBeUndefined();
   });
 
-  it("scope sin HUs de novedad → alerta news_not_configured y 0 en novedades", async () => {
-    const result = await buildHoursReport(
-      {
-        scopes: [makeScope()],
-        period: { kind: "month", monthKey: "2026-06" },
-      },
-      {
-        auth: fakeAuth,
-        assignmentRepo: makeFakeAssignmentRepo([makeAssignment({ assignmentPct: 100 })]),
-        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
-        listTasks: async () => [makeTask({ id: 1, loggedHours: 8, parentId: 500 })],
-        listBugs: async () => [],
-        listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
-        now: fixedNow,
-      },
-    );
-
-    expect(result.alerts.find((a) => a.kind === "news_not_configured")).toBeDefined();
-    expect(result.rows[0].newsHours).toBe(0);
-    expect(result.rows[0].newsCount).toBe(0);
+  it("scope sin HUs de novedad → bloquea el reporte con NewsNotConfiguredError", async () => {
+    await expect(
+      buildHoursReport(
+        {
+          scopes: [makeScope()],
+          period: { kind: "month", monthKey: "2026-06" },
+        },
+        {
+          auth: fakeAuth,
+          assignmentRepo: makeFakeAssignmentRepo([makeAssignment({ assignmentPct: 100 })]),
+          newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+          listTasks: async () => [makeTask({ id: 1, loggedHours: 8, parentId: 500 })],
+          listBugs: async () => [],
+          listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
+          now: fixedNow,
+        },
+      ),
+    ).rejects.toBeInstanceOf(NewsNotConfiguredError);
   });
 
   it("festivos caídos → propaga el error (el caller bloquea el reporte)", async () => {
@@ -342,7 +350,8 @@ describe("buildHoursReport", () => {
         {
           auth: fakeAuth,
           assignmentRepo: makeFakeAssignmentRepo([]),
-          newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+          newsStoriesRepo: makeFakeNewsStoriesRepo(linkedHU),
+          listReportedNews: async () => [],
           listTasks: async () => [],
           listBugs: async () => [],
           listWorkingDays: async () => {
@@ -377,7 +386,8 @@ describe("buildHoursReport", () => {
       {
         auth: fakeAuth,
         assignmentRepo: makeFakeAssignmentRepo([futureAssignment]),
-        newsStoriesRepo: makeFakeNewsStoriesRepo([]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo(linkedHU),
+        listReportedNews: async () => [],
         listTasks: async () => [
           makeTask({ id: 1, loggedHours: 80, parentId: 500 }),
         ],
@@ -394,5 +404,12 @@ describe("buildHoursReport", () => {
     expect(row.expectedHours).toBeGreaterThan(0);
     // % Asignación refleja la excepción de BD.
     expect(row.assignmentPct).toEqual({ kind: "exception", weightedPct: 50 });
+  });
+
+  it("NewsNotConfiguredError expone el código estable para la UI", () => {
+    const error = new NewsNotConfiguredError();
+    expect(error.code).toBe(NEWS_NOT_CONFIGURED_CODE);
+    expect(error.name).toBe("NewsNotConfiguredError");
+    expect(error.message.length).toBeGreaterThan(0);
   });
 });

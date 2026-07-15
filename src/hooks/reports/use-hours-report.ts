@@ -8,6 +8,7 @@ import {
   generateHoursReport,
 } from "@/services/reports/hours-reports.service";
 import { appToast } from "@/lib/toast";
+import { NEWS_NOT_CONFIGURED_CODE } from "@/lib/reports/hours/errors";
 import type {
   HoursReportExcelRequestSchema,
   HoursReportRequestSchema,
@@ -19,6 +20,7 @@ export type UseHoursReportReturn = {
   status: HoursReportStatus;
   result: HoursReportResult | null;
   errorMessage: string | null;
+  errorCode: string | null;
   generate: (payload: HoursReportRequestSchema) => Promise<void>;
   downloadExcel: (payload: HoursReportExcelRequestSchema) => Promise<void>;
   markStale: (currentPayload: HoursReportRequestSchema) => void;
@@ -28,17 +30,25 @@ export function useHoursReport(): UseHoursReportReturn {
   const [status, setStatus] = useState<HoursReportStatus>("idle");
   const [result, setResult] = useState<HoursReportResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const lastPayloadRef = useRef<HoursReportRequestSchema | null>(null);
 
   const generate = useCallback(async (payload: HoursReportRequestSchema) => {
     setStatus("generating");
     setErrorMessage(null);
+    setErrorCode(null);
     lastPayloadRef.current = payload;
     const response = await generateHoursReport(payload);
     if (!response.ok) {
+      setResult(null);
       setStatus("error");
       setErrorMessage(response.message);
-      appToast.error(response.message);
+      setErrorCode(response.code ?? null);
+      if (response.code === NEWS_NOT_CONFIGURED_CODE) {
+        appToast.warning(response.message);
+      } else {
+        appToast.error(response.message);
+      }
       return;
     }
     setResult(response.value);
@@ -70,7 +80,7 @@ export function useHoursReport(): UseHoursReportReturn {
     setStatus("stale");
   }, [status]);
 
-  return { status, result, errorMessage, generate, downloadExcel, markStale };
+  return { status, result, errorMessage, errorCode, generate, downloadExcel, markStale };
 }
 
 function payloadsEqual(

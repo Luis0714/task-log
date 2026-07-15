@@ -10,7 +10,7 @@ const FETCH_TIMEOUT_MS = 60_000;
 
 export type HoursReportServiceResult<T> =
   | { ok: true; value: T }
-  | { ok: false; message: string; status: number };
+  | { ok: false; message: string; status: number; code?: string };
 
 export async function generateHoursReport(
   payload: HoursReportRequestSchema,
@@ -34,6 +34,7 @@ export async function generateHoursReport(
             ? body.error
             : "No se pudo generar el reporte.",
         status: res.status,
+        code: typeof body.code === "string" ? body.code : undefined,
       };
     }
     return { ok: true, value: body as HoursReportResult };

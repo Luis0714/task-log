@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ReportsTimeLogAlerts } from "@/components/reports/time-log/reports-time-log-alerts";
 import { ReportsTimeLogEmptyState } from "@/components/reports/time-log/reports-time-log-empty-state";
 import { ReportsTimeLogFilters } from "@/components/reports/time-log/reports-time-log-filters";
+import { ReportsTimeLogNewsNotConfiguredAlert } from "@/components/reports/time-log/reports-time-log-news-not-configured-alert";
 import { ReportsTimeLogStaleBanner } from "@/components/reports/time-log/reports-time-log-stale-banner";
 import {
   ReportsTimeLogTable,
@@ -24,6 +25,7 @@ import {
   teamsForProjects,
 } from "@/lib/filters/teams-by-project";
 import { filterHoursReportByVisibility } from "@/lib/reports/hours/filter-hours-report-by-visibility";
+import { NEWS_NOT_CONFIGURED_CODE } from "@/lib/reports/hours/errors";
 import type {
   HoursReportPeriodSchema,
   HoursReportRequestSchema,
@@ -339,7 +341,15 @@ export function ReportsTimeLogContent({
         <ReportsTimeLogStaleBanner />
       ) : null}
 
-      {showError ? <CopilotErrorAlert message={hoursReport.errorMessage ?? "Error desconocido"} /> : null}
+      {showError ? (
+  hoursReport.errorCode === NEWS_NOT_CONFIGURED_CODE ? (
+    <ReportsTimeLogNewsNotConfiguredAlert
+      message={hoursReport.errorMessage ?? ""}
+    />
+  ) : (
+    <CopilotErrorAlert message={hoursReport.errorMessage ?? "Error desconocido"} />
+  )
+) : null}
 
       {hoursReport.result !== null ? (
         <ReportsTimeLogAlerts alerts={hoursReport.result.alerts} />

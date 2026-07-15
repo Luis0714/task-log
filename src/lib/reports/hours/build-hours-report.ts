@@ -27,6 +27,7 @@ import type {
 import { resolveAssignmentSegments } from "@/lib/reports/hours/resolve-assignment-segments";
 import { loadWorkingDayKeysInRange } from "@/lib/hours/load-working-day-keys";
 import type { NewsStoriesRepository } from "@/lib/db/ports/news-stories.repository.port";
+import { NewsNotConfiguredError } from "@/lib/reports/hours/errors";
 import type {
   PersonProjectAssignmentRow,
   PersonProjectAssignmentRepository,
@@ -94,6 +95,8 @@ export async function buildHoursReport(
   const rows: HoursReportRow[] = [];
   const alerts: HoursReportAlert[] = [];
 
+  let anyScopeHasNews = false;
+
   for (const scope of scopes) {
     const linkedHUs = await deps.newsStoriesRepo.list({
       projectIds: [scope.projectId],
@@ -105,6 +108,8 @@ export async function buildHoursReport(
         kind: "news_not_configured",
         message: `Novedades sin configurar: ${scopeLabel(scope)}`,
       });
+    } else {
+      anyScopeHasNews = true;
     }
 
     const [tasks, bugs, novedades] = await Promise.all([
@@ -221,6 +226,10 @@ export async function buildHoursReport(
         semaforo: compliance.level,
       });
     }
+  }
+
+  if (!anyScopeHasNews) {
+    throw new NewsNotConfiguredError();
   }
 
   return {
