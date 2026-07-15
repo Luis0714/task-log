@@ -11,8 +11,10 @@ import {
   type ReportedNewsDetail,
   type ReportedNewsScope,
 } from "@/lib/azure-devops/list-reported-news";
-import { computeHoursByPerson } from "@/lib/hours/aggregate-hours";
-import { EMPTY_HOURS_BREAKDOWN } from "@/lib/hours/hours-breakdown";
+import {
+  computeHoursByPerson,
+} from "@/lib/hours/aggregate-hours";
+import { EMPTY_HOURS_BREAKDOWN, type HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import { computeCompliance } from "@/lib/reports/hours/compliance";
 import { computeExpectedHours } from "@/lib/expected-hours";
 import { NEWS_DETAIL_DELIMITER } from "@/lib/reports/hours/format-news-detail";
@@ -84,148 +86,32 @@ export async function buildHoursReport(
     throw new Error("Periodo inválido.");
   }
 
-  const listTasks = deps.listTasks ?? listTasksInWorkingDateRange;
-  const listBugs = deps.listBugs ?? listBugsInWorkingDateRange;
-  const listNews = deps.listReportedNews ?? listReportedNews;
   const listWorkingDays = deps.listWorkingDays ?? loadWorkingDayKeysInRange;
   const now = deps.now ?? (() => new Date());
 
   const newsDateFilter = toNewsDateFilter(period);
   const workingDays = await listWorkingDays(fromIso, toIso);
+  const workingDayKeys = new Set(workingDays);
   const rows: HoursReportRow[] = [];
   const alerts: HoursReportAlert[] = [];
 
   let anyScopeHasNews = false;
 
   for (const scope of scopes) {
-    const linkedHUs = await deps.newsStoriesRepo.list({
-      projectIds: [scope.projectId],
-      teamIds: scope.teamId !== null ? [scope.teamId] : undefined,
+    const scopeReport = await loadScopeReport({
+      scope,
+      period,
+      fromIso,
+      toIso,
+      deps,
+      newsDateFilter,
+      filters,
+      workingDays,
+      workingDayKeys,
     });
-
-    if (linkedHUs.length === 0) {
-      alerts.push({
-        kind: "news_not_configured",
-        message: `Novedades sin configurar: ${scopeLabel(scope)}`,
-      });
-    } else {
-      anyScopeHasNews = true;
-    }
-
-    const [tasks, bugs, novedades] = await Promise.all([
-      listTasks(deps.auth, { startDate: fromIso, finishDate: toIso }, { team: scope.teamId ?? undefined }),
-      listBugs(deps.auth, { startDate: fromIso, finishDate: toIso }, { team: scope.teamId ?? undefined }),
-      linkedHUs.length > 0
-        ? listNews(
-            { auth: deps.auth, scopes: [scope], dateFilter: newsDateFilter },
-            { repo: deps.newsStoriesRepo },
-          )
-        : Promise.resolve<ReportedNewsDetail[]>([]),
-    ]);
-
-    // Horas dev/bug por persona del motor central (regla 2: solo días hábiles).
-    const workingDayKeys = new Set(workingDays);
-    const hoursByPerson = computeHoursByPerson(
-      { tasks, bugs, workingDayKeys },
-      (assignedTo) => assignedTo?.trim() || null,
-    );
-
-    // Novedades agrupadas por persona (assignedTo, mismo displayName de ADO).
-    const novedadesByPerson = new Map<string, ReportedNewsDetail[]>();
-    for (const n of novedades) {
-      const name = n.assignedTo?.trim();
-      if (!name) continue;
-      const list = novedadesByPerson.get(name) ?? [];
-      list.push(n);
-      novedadesByPerson.set(name, list);
-    }
-
-    const assignments = await deps.assignmentRepo.listWithRoles({ projectId: scope.projectId });
-
-    const scopeAssignments = assignments.filter(
-      (a) =>
-        (scope.teamId === null || a.teamId === scope.teamId) &&
-        (filters?.personAdoId === undefined || a.personAdoId === filters.personAdoId),
-    );
-
-    // Las personas del reporte son EXACTAMENTE las mismas que la pantalla de
-    // Asignaciones: el roster oficial del (proyecto, equipo) más quien tenga
-    // excepción en BD. Se indexan por `personAdoId` (id estable de ADO, la MISMA
-    // clave que usa Asignaciones), no por displayName, para que el conjunto
-    // coincida y no haya duplicados por diferencias de nombre. NO se toman los
-    // asignados de tasks/bugs (quien reportó trabajo pero ya no está en el equipo
-    // no debe aparecer). Toda persona parte de 100% por defecto (D17/D18); si
-    // tiene excepción, esa rige.
-    const scopeMembers = deps.loadTeamMembers ? await deps.loadTeamMembers(scope) : [];
-
-    const peopleById = new Map<string, { personAdoId: string; displayName: string }>();
-    for (const m of scopeMembers) {
-      peopleById.set(m.personAdoId, {
-        personAdoId: m.personAdoId,
-        displayName: m.personDisplayName,
-      });
-    }
-    for (const a of scopeAssignments) {
-      if (!peopleById.has(a.personAdoId)) {
-        peopleById.set(a.personAdoId, {
-          personAdoId: a.personAdoId,
-          displayName: a.personDisplayName,
-        });
-      }
-    }
-
-    for (const person of peopleById.values()) {
-      if (filters?.personAdoId && person.personAdoId !== filters.personAdoId) continue;
-      const personAssignments = scopeAssignments.filter(
-        (a) => a.personAdoId === person.personAdoId,
-      );
-      const hasException = personAssignments.length > 0;
-      const segments = resolveAssignmentSegments({
-        assignments: toSegmentInputs(personAssignments),
-        periodStart: fromIso,
-        periodEnd: toIso,
-        // Sin excepción ⇒ 100% por defecto para toda persona (D17/D18, CA-18).
-        hasInferredDefault: !hasException,
-      });
-      const expected = computeExpectedHours(workingDays, segments);
-
-      // Todas las tasks (con Completed Work) de la persona son desarrollo; los
-      // bugs van aparte. Las novedades ya NO salen de tasks: son items propios.
-      const worked = hoursByPerson.get(person.displayName) ?? EMPTY_HOURS_BREAKDOWN;
-
-      // Horas novedades = Completed Work reportado en las novedades de la
-      // persona; los días equivalen a horas / 8 (jornada laboral de 8 h).
-      const personNovedades = novedadesByPerson.get(person.displayName) ?? [];
-      const newsHours = roundHours(
-        personNovedades.reduce((sum, n) => sum + (n.completedWork ?? 0), 0),
-      );
-      const newsDays = roundToDecimals(newsHours / HOURS_PER_WORKING_DAY, 2);
-      const newsEntries = novedadesDetailEntries(personNovedades);
-
-      const total = worked.taskHours + worked.bugHours + newsHours;
-      const compliance = computeCompliance(total, expected.expectedHours);
-
-      rows.push({
-        projectId: scope.projectId,
-        projectName: scope.projectId,
-        teamId: scope.teamId,
-        teamName: scope.teamId,
-        personDisplayName: person.displayName,
-        assignmentPct: buildAssignmentLabel(hasException, personAssignments),
-        workingDays: expected.workingDays,
-        expectedHours: expected.expectedHours,
-        developmentHours: worked.taskHours,
-        bugHours: worked.bugHours,
-        newsHours,
-        totalHours: total,
-        newsCount: personNovedades.length,
-        newsDays,
-        newsDetail: newsEntries.join(NEWS_DETAIL_DELIMITER),
-        newsDetails: newsEntries,
-        compliancePct: compliance.pct,
-        semaforo: compliance.level,
-      });
-    }
+    if (scopeReport.hasNews) anyScopeHasNews = true;
+    alerts.push(...scopeReport.alerts);
+    rows.push(...scopeReport.rows);
   }
 
   if (!anyScopeHasNews) {
@@ -236,6 +122,240 @@ export async function buildHoursReport(
     rows,
     generatedAt: now().toISOString(),
     alerts,
+  };
+}
+
+async function loadScopeReport(input: {
+  scope: ReportedNewsScope;
+  period: BuildHoursReportPeriod;
+  fromIso: string;
+  toIso: string;
+  deps: BuildHoursReportDeps;
+  newsDateFilter: ReportedNewsDateFilter;
+  filters?: BuildHoursReportFilters;
+  workingDays: readonly string[];
+  workingDayKeys: Set<string>;
+}): Promise<{ rows: HoursReportRow[]; alerts: HoursReportAlert[]; hasNews: boolean }> {
+  const {
+    scope,
+    fromIso,
+    toIso,
+    deps,
+    newsDateFilter,
+    filters,
+    workingDays,
+    workingDayKeys,
+  } = input;
+
+  const listTasks = deps.listTasks ?? listTasksInWorkingDateRange;
+  const listBugs = deps.listBugs ?? listBugsInWorkingDateRange;
+  const listNews = deps.listReportedNews ?? listReportedNews;
+
+  const linkedHUs = await deps.newsStoriesRepo.list({
+    projectIds: [scope.projectId],
+    teamIds: scope.teamId !== null ? [scope.teamId] : undefined,
+  });
+
+  const alerts: HoursReportAlert[] = [];
+  if (linkedHUs.length === 0) {
+    alerts.push({
+      kind: "news_not_configured",
+      message: `Novedades sin configurar: ${scopeLabel(scope)}`,
+    });
+  }
+
+  const [tasks, bugs, novedades] = await Promise.all([
+    listTasks(
+      deps.auth,
+      { startDate: fromIso, finishDate: toIso },
+      { team: scope.teamId ?? undefined },
+    ),
+    listBugs(
+      deps.auth,
+      { startDate: fromIso, finishDate: toIso },
+      { team: scope.teamId ?? undefined },
+    ),
+    loadScopeNovedades({
+      hasNews: linkedHUs.length > 0,
+      scope,
+      newsDateFilter,
+      deps,
+      listNews,
+    }),
+  ]);
+
+  const hoursByPerson = computeHoursByPerson(
+    { tasks, bugs, workingDayKeys },
+    (assignedTo) => assignedTo?.trim() || null,
+  );
+  const novedadesByPerson = groupNovedadesByPerson(novedades);
+
+  const assignments = await deps.assignmentRepo.listWithRoles({
+    projectId: scope.projectId,
+  });
+  const scopeAssignments = filterAssignmentsByScope(assignments, scope, filters?.personAdoId);
+
+  const scopeMembers = deps.loadTeamMembers ? await deps.loadTeamMembers(scope) : [];
+  const peopleById = buildPeopleIndex(scopeMembers, scopeAssignments);
+
+  const rows = buildScopeRows({
+    scope,
+    people: [...peopleById.values()],
+    scopeAssignments,
+    hoursByPerson,
+    novedadesByPerson,
+    workingDays,
+    fromIso,
+    toIso,
+    personAdoId: filters?.personAdoId,
+  });
+
+  return { rows, alerts, hasNews: linkedHUs.length > 0 };
+}
+
+async function loadScopeNovedades(input: {
+  hasNews: boolean;
+  scope: ReportedNewsScope;
+  newsDateFilter: ReportedNewsDateFilter;
+  deps: BuildHoursReportDeps;
+  listNews: typeof listReportedNews;
+}): Promise<ReportedNewsDetail[]> {
+  if (!input.hasNews) return [];
+  return input.listNews(
+    { auth: input.deps.auth, scopes: [input.scope], dateFilter: input.newsDateFilter },
+    { repo: input.deps.newsStoriesRepo },
+  );
+}
+
+function groupNovedadesByPerson(
+  novedades: readonly ReportedNewsDetail[],
+): Map<string, ReportedNewsDetail[]> {
+  const grouped = new Map<string, ReportedNewsDetail[]>();
+  for (const n of novedades) {
+    const name = n.assignedTo?.trim();
+    if (!name) continue;
+    const list = grouped.get(name) ?? [];
+    list.push(n);
+    grouped.set(name, list);
+  }
+  return grouped;
+}
+
+function filterAssignmentsByScope(
+  assignments: readonly PersonProjectAssignmentRow[],
+  scope: ReportedNewsScope,
+  personAdoId: string | undefined,
+): PersonProjectAssignmentRow[] {
+  return assignments.filter(
+    (a) =>
+      (scope.teamId === null || a.teamId === scope.teamId) &&
+      (personAdoId === undefined || a.personAdoId === personAdoId),
+  );
+}
+
+function buildPeopleIndex(
+  scopeMembers: ReadonlyArray<{ personAdoId: string; personDisplayName: string }>,
+  scopeAssignments: readonly PersonProjectAssignmentRow[],
+): Map<string, { personAdoId: string; displayName: string }> {
+  const peopleById = new Map<string, { personAdoId: string; displayName: string }>();
+  for (const m of scopeMembers) {
+    peopleById.set(m.personAdoId, {
+      personAdoId: m.personAdoId,
+      displayName: m.personDisplayName,
+    });
+  }
+  for (const a of scopeAssignments) {
+    if (!peopleById.has(a.personAdoId)) {
+      peopleById.set(a.personAdoId, {
+        personAdoId: a.personAdoId,
+        displayName: a.personDisplayName,
+      });
+    }
+  }
+  return peopleById;
+}
+
+function buildScopeRows(input: {
+  scope: ReportedNewsScope;
+  people: ReadonlyArray<{ personAdoId: string; displayName: string }>;
+  scopeAssignments: readonly PersonProjectAssignmentRow[];
+  hoursByPerson: ReadonlyMap<string, HoursBreakdown>;
+  novedadesByPerson: Map<string, ReportedNewsDetail[]>;
+  workingDays: readonly string[];
+  fromIso: string;
+  toIso: string;
+  personAdoId: string | undefined;
+}): HoursReportRow[] {
+  const rows: HoursReportRow[] = [];
+  for (const person of input.people) {
+    if (input.personAdoId && person.personAdoId !== input.personAdoId) continue;
+    rows.push(
+      buildPersonReportRow({
+        scope: input.scope,
+        person,
+        scopeAssignments: input.scopeAssignments,
+        hoursByPerson: input.hoursByPerson,
+        novedadesByPerson: input.novedadesByPerson,
+        workingDays: input.workingDays,
+        fromIso: input.fromIso,
+        toIso: input.toIso,
+      }),
+    );
+  }
+  return rows;
+}
+
+function buildPersonReportRow(input: {
+  scope: ReportedNewsScope;
+  person: { personAdoId: string; displayName: string };
+  scopeAssignments: readonly PersonProjectAssignmentRow[];
+  hoursByPerson: ReadonlyMap<string, HoursBreakdown>;
+  novedadesByPerson: Map<string, ReportedNewsDetail[]>;
+  workingDays: readonly string[];
+  fromIso: string;
+  toIso: string;
+}): HoursReportRow {
+  const personAssignments = input.scopeAssignments.filter(
+    (a) => a.personAdoId === input.person.personAdoId,
+  );
+  const hasException = personAssignments.length > 0;
+  const segments = resolveAssignmentSegments({
+    assignments: toSegmentInputs(personAssignments),
+    periodStart: input.fromIso,
+    periodEnd: input.toIso,
+    hasInferredDefault: !hasException,
+  });
+  const expected = computeExpectedHours(input.workingDays, segments);
+
+  const worked = input.hoursByPerson.get(input.person.displayName) ?? EMPTY_HOURS_BREAKDOWN;
+  const personNovedades = input.novedadesByPerson.get(input.person.displayName) ?? [];
+  const newsHours = roundHours(
+    personNovedades.reduce((sum, n) => sum + (n.completedWork ?? 0), 0),
+  );
+  const newsDays = roundToDecimals(newsHours / HOURS_PER_WORKING_DAY, 2);
+  const newsEntries = novedadesDetailEntries(personNovedades);
+  const total = worked.taskHours + worked.bugHours + newsHours;
+  const compliance = computeCompliance(total, expected.expectedHours);
+
+  return {
+    projectId: input.scope.projectId,
+    projectName: input.scope.projectId,
+    teamId: input.scope.teamId,
+    teamName: input.scope.teamId,
+    personDisplayName: input.person.displayName,
+    assignmentPct: buildAssignmentLabel(hasException, personAssignments),
+    workingDays: expected.workingDays,
+    expectedHours: expected.expectedHours,
+    developmentHours: worked.taskHours,
+    bugHours: worked.bugHours,
+    newsHours,
+    totalHours: total,
+    newsCount: personNovedades.length,
+    newsDays,
+    newsDetail: newsEntries.join(NEWS_DETAIL_DELIMITER),
+    newsDetails: newsEntries,
+    compliancePct: compliance.pct,
+    semaforo: compliance.level,
   };
 }
 

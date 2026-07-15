@@ -94,7 +94,7 @@ describe("buildHoursReport", () => {
       },
     );
 
-    expect(result.rows.length).toBe(1);
+    expect(result.rows).toHaveLength(1);
     const row = result.rows[0];
     expect(row.developmentHours).toBe(60);
     expect(row.bugHours).toBe(20);
@@ -287,7 +287,7 @@ describe("buildHoursReport", () => {
       },
     );
 
-    expect(result.rows.length).toBe(1);
+    expect(result.rows).toHaveLength(1);
     expect(result.rows[0].personDisplayName).toBe("José Pérez");
     expect(result.rows[0].assignmentPct).toEqual({ kind: "exception", weightedPct: 50 });
   });
