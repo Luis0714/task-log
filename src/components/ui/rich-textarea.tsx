@@ -12,6 +12,7 @@ import { MdFormatListBulleted, MdFormatListNumbered, MdFormatUnderlined } from "
 import { FiLink } from "react-icons/fi";
 import { ItalicIcon } from "@/components/icons/italic-icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { extractImageFiles } from "@/lib/clipboard/extract-image-files";
 import { rewriteAdoImgSrcsForDisplay, rewriteProxyImgSrcsForStorage } from "@/lib/html/rewrite-ado-image-urls";
 import { appToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -43,7 +44,7 @@ function ToolbarButton({
   title,
   tooltip,
   children,
-}: ToolbarButtonProps) {
+}: Readonly<ToolbarButtonProps>) {
   // Se reutiliza la marca nativa que arma IconActionButton: el `<button>`
   // se pasa como `render` a `TooltipTrigger`, que internamente le inyecta el
   // ref/eventos y maneja el ARIA, dejándonos un único punto de estilo.
@@ -96,30 +97,13 @@ async function uploadOneImage(file: File): Promise<string | null> {
   return typeof data.url === "string" ? data.url : null;
 }
 
-/** Extrae los archivos de imagen de un `DataTransfer` (p.ej. paste o drop). */
-function extractImageFiles(source: DataTransfer | null | undefined): File[] {
-  if (!source) return [];
-  const files: File[] = [];
-  // 1) Archivos directos (drop o copy de archivos).
-  for (const file of Array.from(source.files ?? [])) {
-    if (file.type.startsWith("image/")) files.push(file);
-  }
-  // 2) Items como imágenes (pegar capturas desde el portapapeles).
-  for (const item of Array.from(source.items ?? [])) {
-    if (item.kind !== "file" || !item.type.startsWith("image/")) continue;
-    const file = item.getAsFile();
-    if (file) files.push(file);
-  }
-  return files;
-}
-
 export function RichTextarea({
   value,
   onChange,
   placeholder,
   disabled = false,
   className,
-}: RichTextareaProps) {
+}: Readonly<RichTextareaProps>) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const onChangeRef = useRef(onChange);
   const uploadImagesRef = useRef<((files: File[]) => void) | undefined>(undefined);
@@ -166,7 +150,7 @@ export function RichTextarea({
     },
   });
 
-  /** Valida la tanda, sube todo en paralelo y, si todo OK, inserta cada
+  /** Valida la tanda, sube todos en paralelo y, si todo OK, inserta cada
    *  imagen devuelta por la API en orden.
    *
    *  Regla dura: si el usuario intenta subir más de `MAX_IMAGES_PER_UPLOAD`

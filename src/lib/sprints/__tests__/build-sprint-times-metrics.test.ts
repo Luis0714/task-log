@@ -66,7 +66,7 @@ describe("buildSprintTimesMetrics", () => {
       sprintFinishDate: SPRINT_FINISH,
     });
 
-    expect(metrics.weeks.length).toBe(2);
+    expect(metrics.weeks).toHaveLength(2);
     const row = metrics.rows.find((r) => r.assignee === "Ana Gómez");
     expect(row?.weeks[0]).toEqual({ taskHours: 2, bugHours: 1.5 });
     expect(row?.weeks[1]).toEqual({ taskHours: 3, bugHours: 0 });
@@ -87,5 +87,52 @@ describe("buildSprintTimesMetrics", () => {
 
     const beto = metrics.rows.find((r) => r.assignee === "Beto Ruiz");
     expect(beto?.sprint).toEqual({ taskHours: 0, bugHours: 0 });
+  });
+
+  it("cuando hay roster, las filas se limitan EXACTAMENTE al roster (sin merge con asignados del sprint)", () => {
+    // El roster tiene Ana y Beto. Hay una task asignada a "Carlos" que no está
+    // en el roster (p. ej. persona dada de baja con tareas registradas). Con
+    // roster presente, NO debe aparecer fila de Carlos: la fuente única es
+    // el roster, igual que el reporte por período y Asignaciones.
+    const metrics = buildSprintTimesMetrics({
+      tasks: [makeItem({ id: 1, assignedTo: "Carlos", loggedHours: 8 })],
+      bugs: [],
+      sprintStartDate: SPRINT_START,
+      sprintFinishDate: SPRINT_FINISH,
+      assigneeRoster: [
+        { id: "m1", displayName: "Ana Gómez" },
+        { id: "m2", displayName: "Beto Ruiz" },
+      ],
+    });
+
+    expect(metrics.rows.map((r) => r.assignee).sort()).toEqual([
+      "Ana Gómez",
+      "Beto Ruiz",
+    ]);
+    expect(metrics.rows.find((r) => r.assignee === "Carlos")).toBeUndefined();
+  });
+
+  it("cuando hay roster, no se agrega la fila 'Sin asignar' aunque haya items sin assignedTo", () => {
+    // Hay un bug sin assignedTo. Con roster presente NO debe generarse la
+    // fila sintética "Sin asignar" para mantener consistencia con el reporte
+    // por período y Asignaciones.
+    const metrics = buildSprintTimesMetrics({
+      tasks: [makeItem({ id: 1, assignedTo: "Ana Gómez", loggedHours: 4 })],
+      bugs: [makeItem({ id: 2, type: "Bug", assignedTo: "", loggedHours: 2 })],
+      sprintStartDate: SPRINT_START,
+      sprintFinishDate: SPRINT_FINISH,
+      assigneeRoster: [
+        { id: "m1", displayName: "Ana Gómez" },
+        { id: "m2", displayName: "Beto Ruiz" },
+      ],
+    });
+
+    expect(metrics.rows.map((r) => r.assignee).sort()).toEqual([
+      "Ana Gómez",
+      "Beto Ruiz",
+    ]);
+    expect(
+      metrics.rows.find((r) => r.assignee === "Sin asignar"),
+    ).toBeUndefined();
   });
 });
