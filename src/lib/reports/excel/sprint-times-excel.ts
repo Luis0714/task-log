@@ -23,12 +23,26 @@ import {
   lookupMemberOrPlaceholder,
   type MemberInfo,
 } from "@/lib/reports/excel/member-info";
+import { computeCompliance } from "@/lib/reports/hours/compliance";
+import type { SemaforoLevel } from "@/lib/reports/hours/hours-report-types";
 import type { SprintTimesMetrics } from "@/lib/sprints/sprint-stats-types";
 import {
   sumSprintBreakdowns,
   sumWeekBreakdowns,
 } from "@/lib/sprints/sum-hours-breakdowns";
 import { formatSprintDateRange } from "@/lib/time-log/format-options";
+
+const NEWS_COLOR = "FFF59E0B";
+const SEMAFORO_FILLS: Record<SemaforoLevel, string> = {
+  verde: "FFD1FAE5",
+  amarillo: "FFFEF3C7",
+  rojo: "FFFECACA",
+};
+const SEMAFORO_FG: Record<SemaforoLevel, string> = {
+  verde: "FF065F46",
+  amarillo: "FF92400E",
+  rojo: "FF991B1B",
+};
 
 // ── Domain helpers ────────────────────────────────────────────────────────────
 
@@ -63,6 +77,8 @@ type UserAggregate = {
   sprintHours: HoursBreakdown[];
   /** Total acumulado a través de todos los sprints. */
   sprint: HoursBreakdown;
+  /** Horas esperadas sumadas a través de todos los sprints. */
+  expectedHours: number;
   memberInfo: MemberInfo;
 };
 
@@ -74,7 +90,7 @@ function aggregateUsersAcrossSprints(
   const empty = (): HoursBreakdown => ({ ...EMPTY_HOURS_BREAKDOWN });
   const byUser = new Map<
     string,
-    { sprintHours: HoursBreakdown[]; sprint: HoursBreakdown }
+    { sprintHours: HoursBreakdown[]; sprint: HoursBreakdown; expected: number }
   >();
 
   for (let i = 0; i < sprintCount; i++) {
@@ -85,6 +101,7 @@ function aggregateUsersAcrossSprints(
         agg = {
           sprintHours: Array.from({ length: sprintCount }, empty),
           sprint: empty(),
+          expected: 0,
         };
         byUser.set(personRow.assignee, agg);
       }
@@ -100,6 +117,7 @@ function aggregateUsersAcrossSprints(
         bugHours: agg.sprint.bugHours + personRow.sprint.bugHours,
         newsHours: (agg.sprint.newsHours ?? 0) + personRow.sprint.newsHours,
       };
+      agg.expected += personRow.expectedHours;
     }
   }
 
@@ -108,6 +126,7 @@ function aggregateUsersAcrossSprints(
       assignee,
       sprintHours: data.sprintHours,
       sprint: data.sprint,
+      expectedHours: data.expected,
       memberInfo: lookupMemberOrPlaceholder(memberRoles, assignee),
     }),
   );
@@ -129,7 +148,7 @@ const ROL_COL_WIDTH = 36;
 const SPRINT_COL_WIDTH = 28;
 const WEEK_SUB_COL_WIDTH = 10;
 const SPRINT_TIER_COL_WIDTH = 14;
-const WEEK_SUB_COLS = 3;
+const WEEK_SUB_COLS = 4;
 const SPRINT_TIER_COLS = 3;
 
 const GROUP_HEADER_ROW = 6;
@@ -210,42 +229,70 @@ function buildWeekCells(
     color: COLOR.accent,
     bold: isMedium,
   });
-  buildHoursCell(ws.getCell(excelRow, startColumn + 1), totalHoursBreakdown(breakdown), {
+  buildHoursCell(ws.getCell(excelRow, startColumn + 1), breakdown.bugHours, {
+    fill: bg,
+    color: COLOR.bugAccent,
+    bold: isMedium,
+  });
+  buildHoursCell(ws.getCell(excelRow, startColumn + 2), breakdown.newsHours, {
+    fill: bg,
+    color: NEWS_COLOR,
+    bold: isMedium,
+  });
+  buildHoursCell(ws.getCell(excelRow, startColumn + 3), totalHoursBreakdown(breakdown), {
     fill: bg,
     color: fg,
     bold: true,
   });
-  buildHoursCell(ws.getCell(excelRow, startColumn + 2), breakdown.bugHours, {
-    fill: bg,
-    color: COLOR.bugAccent,
-    bold: isMedium,
+}
+
+function buildComplianceCell(
+  cell: ExcelJS.Cell,
+  pct: number | null,
+  level: SemaforoLevel | null,
+  fallbackFill: string,
+): void {
+  if (level === null) {
+    cell.value = "—";
+    styleCell(cell, {
+      fill: fallbackFill,
+      font: { color: COLOR.mutedFg, size: 10 },
+      alignment: centerAlign(),
+      borderStyle: "thin",
+    });
+    return;
+  }
+  cell.value = `${pct ?? 0}%`;
+  styleCell(cell, {
+    fill: SEMAFORO_FILLS[level],
+    font: { color: SEMAFORO_FG[level], bold: true, size: 10 },
+    alignment: centerAlign(),
+    borderStyle: "thin",
   });
 }
 
-function buildTierCells(
+function buildSummaryTierCells(
   ws: ExcelJS.Worksheet,
   excelRow: number,
+  expectedHours: number,
   breakdown: HoursBreakdown,
   tierStart: number,
   opts: { fill: string; bold?: boolean },
 ): void {
-  const isMedium = opts.bold ?? false;
-  const totalColor = isMedium ? COLOR.totalFg : COLOR.foreground;
-  buildHoursCell(ws.getCell(excelRow, tierStart), breakdown.taskHours, {
+  const isBold = opts.bold ?? false;
+  const total = totalHoursBreakdown(breakdown);
+  const { pct, level } = computeCompliance(total, expectedHours);
+  buildHoursCell(ws.getCell(excelRow, tierStart), expectedHours, {
     fill: opts.fill,
-    color: COLOR.accent,
-    bold: isMedium,
+    color: COLOR.mutedFg,
+    bold: isBold,
   });
-  buildHoursCell(ws.getCell(excelRow, tierStart + 1), breakdown.bugHours, {
+  buildHoursCell(ws.getCell(excelRow, tierStart + 1), total, {
     fill: opts.fill,
-    color: COLOR.bugAccent,
-    bold: isMedium,
-  });
-  buildHoursCell(ws.getCell(excelRow, tierStart + 2), totalHoursBreakdown(breakdown), {
-    fill: opts.fill,
-    color: totalColor,
+    color: isBold ? COLOR.totalFg : COLOR.foreground,
     bold: true,
   });
+  buildComplianceCell(ws.getCell(excelRow, tierStart + 2), pct, level, opts.fill);
 }
 
 // ── Header builders ───────────────────────────────────────────────────────────
@@ -300,7 +347,7 @@ function writeTierHeaderCell(
   row: number,
   tierStart: number,
 ): void {
-  writeGroupHeaderCell(ws, row, tierStart, "Tiempos totales", {
+  writeGroupHeaderCell(ws, row, tierStart, "Resumen", {
     colSpan: SPRINT_TIER_COLS,
     font: GROUP_HEADER_FONT,
   });
@@ -393,21 +440,47 @@ function writeMetadataRows(
   }
 }
 
+function weekHeaderValue(week: {
+  label: string;
+  dateRangeLabel: string;
+  workingDaysCount: number;
+}): ExcelJS.CellValue {
+  const dias = `${week.workingDaysCount} ${
+    week.workingDaysCount === 1 ? "día hábil" : "días hábiles"
+  }`;
+  return {
+    richText: [
+      {
+        text: week.label,
+        font: { bold: true, italic: false, color: { argb: COLOR.subHeaderFg }, size: 11 },
+      },
+      {
+        text: week.dateRangeLabel ? `\n${week.dateRangeLabel}` : "",
+        font: { bold: false, italic: true, color: { argb: COLOR.mutedFg }, size: 9 },
+      },
+      {
+        text: `\n${dias}`,
+        font: { bold: false, italic: false, color: { argb: COLOR.mutedFg }, size: 9 },
+      },
+    ],
+  };
+}
+
 function writeHeaderRow(
   ws: ExcelJS.Worksheet,
   row: number,
-  weekLabels: ReadonlyArray<{ label: string; dateRangeLabel: string }>,
+  weekLabels: ReadonlyArray<{
+    label: string;
+    dateRangeLabel: string;
+    workingDaysCount: number;
+  }>,
 ): void {
   writeFixedHeaderCells(ws, row, ["Persona", "Rol"]);
 
   weekLabels.forEach((week, idx) => {
-    writeGroupHeaderCell(
-      ws,
-      row,
-      weekStartColumn(idx),
-      twoLineHeaderValue(week.label, week.dateRangeLabel),
-      { wrap: true },
-    );
+    writeGroupHeaderCell(ws, row, weekStartColumn(idx), weekHeaderValue(week), {
+      wrap: true,
+    });
   });
 
   writeTierHeaderCell(ws, row, sprintTierStartColumn(weekLabels.length));
@@ -447,8 +520,9 @@ function writeSubHeaderRow(
 
   const subLabels: Array<{ text: string; color: string }> = [
     { text: "Desarrollo", color: COLOR.accent },
-    { text: "Total", color: COLOR.foreground },
     { text: "Bugs", color: COLOR.bugAccent },
+    { text: "Novedades", color: NEWS_COLOR },
+    { text: "Total", color: COLOR.foreground },
   ];
 
   for (let idx = 0; idx < weekCount; idx++) {
@@ -459,9 +533,9 @@ function writeSubHeaderRow(
   }
 
   const tierLabels: Array<{ text: string; color: string }> = [
-    { text: "T. Desarrollo", color: COLOR.accent },
-    { text: "T. Bugs", color: COLOR.bugAccent },
-    { text: "T. Sprint", color: COLOR.foreground },
+    { text: "Esperadas", color: COLOR.mutedFg },
+    { text: "Total horas", color: COLOR.foreground },
+    { text: "% Cumpl.", color: COLOR.mutedFg },
   ];
   tierLabels.forEach((label, idx) => {
     writeSubLabel(firstTierStartCol + idx, label.text, label.color);
@@ -471,7 +545,12 @@ function writeSubHeaderRow(
 function writePersonRow(
   ws: ExcelJS.Worksheet,
   excelRow: number,
-  row: { assignee: string; weeks: readonly HoursBreakdown[]; sprint: HoursBreakdown },
+  row: {
+    assignee: string;
+    weeks: readonly HoursBreakdown[];
+    sprint: HoursBreakdown;
+    expectedHours: number;
+  },
   memberInfo: MemberInfo,
   weekColumns: readonly { label: string }[],
 ): void {
@@ -483,9 +562,14 @@ function writePersonRow(
     buildWeekCells(ws, excelRow, breakdown, idx, weekStartColumn(idx));
   });
 
-  buildTierCells(ws, excelRow, row.sprint, sprintTierStartColumn(weekColumns.length), {
-    fill: COLOR.cardBg,
-  });
+  buildSummaryTierCells(
+    ws,
+    excelRow,
+    row.expectedHours,
+    row.sprint,
+    sprintTierStartColumn(weekColumns.length),
+    { fill: COLOR.cardBg },
+  );
 }
 
 function writeTotalLabelCells(
@@ -517,6 +601,7 @@ function writeTotalsRow(
   excelRow: number,
   weekTotals: readonly HoursBreakdown[],
   sprintTotal: HoursBreakdown,
+  expectedTotal: number,
 ): void {
   writeTotalLabelCells(ws, excelRow, "Total equipo", 2);
 
@@ -524,10 +609,14 @@ function writeTotalsRow(
     buildWeekCells(ws, excelRow, breakdown, idx, weekStartColumn(idx), "medium");
   });
 
-  buildTierCells(ws, excelRow, sprintTotal, sprintTierStartColumn(weekTotals.length), {
-    fill: COLOR.totalBg,
-    bold: true,
-  });
+  buildSummaryTierCells(
+    ws,
+    excelRow,
+    expectedTotal,
+    sprintTotal,
+    sprintTierStartColumn(weekTotals.length),
+    { fill: COLOR.totalBg, bold: true },
+  );
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -590,9 +679,10 @@ export async function buildSprintTimesExcel(
     : Array.from({ length: weekCount }, (_, idx) => sumWeekBreakdowns(times.rows, idx));
 
   const sprintTotal = sumSprintBreakdowns(times.rows);
+  const expectedTotal = times.rows.reduce((acc, row) => acc + row.expectedHours, 0);
   const totalRowIdx = DATA_START_ROW + dataRowIdx;
   ws.getRow(totalRowIdx).height = 26;
-  writeTotalsRow(ws, totalRowIdx, weekTotals, sprintTotal);
+  writeTotalsRow(ws, totalRowIdx, weekTotals, sprintTotal, expectedTotal);
 
   return workbook.xlsx.writeBuffer();
 }
@@ -696,6 +786,7 @@ export async function buildCombinedSprintTimesExcel(
   const sprintGroupTotals: Array<{
     weekTotals: HoursBreakdown[];
     sprintTotal: HoursBreakdown;
+    expectedTotal: number;
   }> = [];
 
   for (const sprintEntry of sortedSprints) {
@@ -716,7 +807,15 @@ export async function buildCombinedSprintTimesExcel(
       weekCount,
     );
     const sprintTotal = sumSprintBreakdowns(sprintEntry.times.rows);
-    sprintGroupTotals.push({ weekTotals: sprintWeekTotals, sprintTotal });
+    const sprintExpected = sprintEntry.times.rows.reduce(
+      (acc, row) => acc + row.expectedHours,
+      0,
+    );
+    sprintGroupTotals.push({
+      weekTotals: sprintWeekTotals,
+      sprintTotal,
+      expectedTotal: sprintExpected,
+    });
 
     const subtotalRow = DATA_START_ROW + dataRowIdx;
     ws.getRow(subtotalRow).height = 26;
@@ -726,6 +825,7 @@ export async function buildCombinedSprintTimesExcel(
       sprintName,
       sprintWeekTotals,
       sprintTotal,
+      sprintExpected,
       weekCount,
     );
     dataRowIdx++;
@@ -745,6 +845,10 @@ export async function buildCombinedSprintTimesExcel(
       }),
       { ...EMPTY_HOURS_BREAKDOWN },
     );
+    const overallExpected = sprintGroupTotals.reduce(
+      (acc, group) => acc + group.expectedTotal,
+      0,
+    );
     const totalRow = DATA_START_ROW + dataRowIdx;
     ws.getRow(totalRow).height = 28;
     writeCombinedGrandTotalRow(
@@ -752,6 +856,7 @@ export async function buildCombinedSprintTimesExcel(
       totalRow,
       overallWeekTotals,
       overallSprintTotal,
+      overallExpected,
       weekCount,
     );
   }
@@ -803,7 +908,12 @@ function writeCombinedPersonRow(
   ws: ExcelJS.Worksheet,
   excelRow: number,
   sprintName: string,
-  row: { assignee: string; weeks: readonly HoursBreakdown[]; sprint: HoursBreakdown },
+  row: {
+    assignee: string;
+    weeks: readonly HoursBreakdown[];
+    sprint: HoursBreakdown;
+    expectedHours: number;
+  },
   memberInfo: MemberInfo,
   weekCount: number,
 ): void {
@@ -824,9 +934,14 @@ function writeCombinedPersonRow(
     buildWeekCells(ws, excelRow, breakdown, idx, combinedWeekStartColumn(idx));
   }
 
-  buildTierCells(ws, excelRow, row.sprint, combinedTierStartColumn(weekCount), {
-    fill: COLOR.cardBg,
-  });
+  buildSummaryTierCells(
+    ws,
+    excelRow,
+    row.expectedHours,
+    row.sprint,
+    combinedTierStartColumn(weekCount),
+    { fill: COLOR.cardBg },
+  );
 }
 
 function writeCombinedSprintSubtotalRow(
@@ -835,6 +950,7 @@ function writeCombinedSprintSubtotalRow(
   sprintName: string,
   weekTotals: readonly HoursBreakdown[],
   sprintTotal: HoursBreakdown,
+  expectedTotal: number,
   weekCount: number,
 ): void {
   styleCell(ws.getCell(excelRow, 1), {
@@ -858,10 +974,14 @@ function writeCombinedSprintSubtotalRow(
     buildWeekCells(ws, excelRow, breakdown, idx, combinedWeekStartColumn(idx), "medium");
   }
 
-  buildTierCells(ws, excelRow, sprintTotal, combinedTierStartColumn(weekCount), {
-    fill: COLOR.subHeaderBg,
-    bold: true,
-  });
+  buildSummaryTierCells(
+    ws,
+    excelRow,
+    expectedTotal,
+    sprintTotal,
+    combinedTierStartColumn(weekCount),
+    { fill: COLOR.subHeaderBg, bold: true },
+  );
 }
 
 function writeCombinedGrandTotalRow(
@@ -869,6 +989,7 @@ function writeCombinedGrandTotalRow(
   excelRow: number,
   weekTotals: readonly HoursBreakdown[],
   sprintTotal: HoursBreakdown,
+  expectedTotal: number,
   weekCount: number,
 ): void {
   writeTotalLabelCells(ws, excelRow, "Total general", 3);
@@ -878,10 +999,14 @@ function writeCombinedGrandTotalRow(
     buildWeekCells(ws, excelRow, breakdown, idx, combinedWeekStartColumn(idx), "medium");
   }
 
-  buildTierCells(ws, excelRow, sprintTotal, combinedTierStartColumn(weekCount), {
-    fill: COLOR.totalBg,
-    bold: true,
-  });
+  buildSummaryTierCells(
+    ws,
+    excelRow,
+    expectedTotal,
+    sprintTotal,
+    combinedTierStartColumn(weekCount),
+    { fill: COLOR.totalBg, bold: true },
+  );
 }
 
 // ── Summary sheet (multi-sprint only) ─────────────────────────────────────────
@@ -968,6 +1093,7 @@ function writeSummarySheet(
         assignee: aggregate.assignee,
         weeks: aggregate.sprintHours,
         sprint: aggregate.sprint,
+        expectedHours: aggregate.expectedHours,
       },
       aggregate.memberInfo,
       stubColumns,
@@ -984,9 +1110,13 @@ function writeSummarySheet(
     sumWeekBreakdowns(adaptedAggregates, idx),
   );
   const sprintTotal = sumSprintBreakdowns(aggregates);
+  const expectedTotal = aggregates.reduce(
+    (acc, aggregate) => acc + aggregate.expectedHours,
+    0,
+  );
   const totalRow = DATA_START_ROW + dataRowIdx;
   ws.getRow(totalRow).height = 26;
-  writeTotalsRow(ws, totalRow, sprintColTotals, sprintTotal);
+  writeTotalsRow(ws, totalRow, sprintColTotals, sprintTotal, expectedTotal);
 }
 
 /**

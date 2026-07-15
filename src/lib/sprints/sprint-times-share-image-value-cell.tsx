@@ -19,13 +19,13 @@ function HoursValue({
   color,
   fontSize = 15,
   fontWeight = 600,
-}: {
+}: Readonly<{
   value: number;
   icon: CellIcon;
   color: string;
   fontSize?: number;
   fontWeight?: number;
-}) {
+}>) {
   const Icon =
     icon === "dev"
       ? SprintTimesShareDevIconSvg
@@ -45,7 +45,7 @@ function HoursValue({
   );
 }
 
-export function SprintTimesShareDevHoursCell({ value }: { value: number }) {
+export function SprintTimesShareDevHoursCell({ value }: Readonly<{ value: number }>) {
   return (
     <HoursValue
       value={value}
@@ -55,19 +55,19 @@ export function SprintTimesShareDevHoursCell({ value }: { value: number }) {
   );
 }
 
-export function SprintTimesShareBugHoursCell({ value }: { value: number }) {
+export function SprintTimesShareBugHoursCell({ value }: Readonly<{ value: number }>) {
   return (
     <HoursValue value={value} icon="bug" color={sprintTimesShareImageColors.bug} />
   );
 }
 
-export function SprintTimesShareNewsHoursCell({ value }: { value: number }) {
+export function SprintTimesShareNewsHoursCell({ value }: Readonly<{ value: number }>) {
   return (
     <HoursValue value={value} icon="news" color={sprintTimesShareImageColors.news} />
   );
 }
 
-export function SprintTimesShareExpectedHoursCell({ value }: { value: number }) {
+export function SprintTimesShareExpectedHoursCell({ value }: Readonly<{ value: number }>) {
   return (
     <span
       style={{
@@ -84,10 +84,10 @@ export function SprintTimesShareExpectedHoursCell({ value }: { value: number }) 
 export function SprintTimesShareComplianceCell({
   level,
   pct,
-}: {
+}: Readonly<{
   level: SemaforoLevel | null;
   pct: number | null;
-}) {
+}>) {
   if (level === null) {
     return (
       <span
@@ -136,10 +136,10 @@ export function SprintTimesShareComplianceCell({
 export function SprintTimesShareBreakdownCell({
   breakdown,
   emphasized = false,
-}: {
+}: Readonly<{
   breakdown: HoursBreakdown;
   emphasized?: boolean;
-}) {
+}>) {
   const total = totalHoursBreakdown(breakdown);
 
   return (
@@ -181,10 +181,10 @@ export function SprintTimesShareBreakdownCell({
 export function SprintTimesShareSubColumnHeader({
   kind,
   label,
-}: {
+}: Readonly<{
   kind: CellIcon | "news";
   label: string;
-}) {
+}>) {
   const color =
     kind === "dev" ? sprintTimesShareImageColors.development
     : kind === "bug" ? sprintTimesShareImageColors.bug
@@ -212,7 +212,7 @@ export function SprintTimesShareSubColumnHeader({
   );
 }
 
-export function SprintTimesShareWeekTotalCell({ value }: { value: number }) {
+export function SprintTimesShareWeekTotalCell({ value }: Readonly<{ value: number }>) {
   return (
     <HoursValue
       value={value}

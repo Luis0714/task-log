@@ -14,7 +14,7 @@ export type SprintTimesDevHoursValueProps = {
   className?: string;
 };
 
-export function SprintTimesDevHoursValue({ value, className }: SprintTimesDevHoursValueProps) {
+export function SprintTimesDevHoursValue({ value, className }: Readonly<SprintTimesDevHoursValueProps>) {
   return (
     <span
       className={cn(
@@ -33,7 +33,7 @@ export type SprintTimesBugHoursValueProps = {
   className?: string;
 };
 
-export function SprintTimesBugHoursValue({ value, className }: SprintTimesBugHoursValueProps) {
+export function SprintTimesBugHoursValue({ value, className }: Readonly<SprintTimesBugHoursValueProps>) {
   return (
     <span
       className={cn(
@@ -52,7 +52,7 @@ export type SprintTimesTotalCellProps = {
   className?: string;
 };
 
-export function SprintTimesTotalCell({ breakdown, className }: SprintTimesTotalCellProps) {
+export function SprintTimesTotalCell({ breakdown, className }: Readonly<SprintTimesTotalCellProps>) {
   const total = totalHoursBreakdown(breakdown);
 
   return (
@@ -79,7 +79,7 @@ export type SprintTimesLegendProps = {
   className?: string;
 };
 
-export function SprintTimesDevSubColumnHeader({ className }: { className?: string }) {
+export function SprintTimesDevSubColumnHeader({ className }: Readonly<{ className?: string }>) {
   return (
     <span
       className={cn(
@@ -93,7 +93,7 @@ export function SprintTimesDevSubColumnHeader({ className }: { className?: strin
   );
 }
 
-export function SprintTimesBugSubColumnHeader({ className }: { className?: string }) {
+export function SprintTimesBugSubColumnHeader({ className }: Readonly<{ className?: string }>) {
   return (
     <span
       className={cn(
@@ -107,7 +107,7 @@ export function SprintTimesBugSubColumnHeader({ className }: { className?: strin
   );
 }
 
-export function SprintTimesWeekTotalValue({ value, className }: { value: number; className?: string }) {
+export function SprintTimesWeekTotalValue({ value, className }: Readonly<{ value: number; className?: string }>) {
   return (
     <span
       className={cn(
@@ -121,7 +121,7 @@ export function SprintTimesWeekTotalValue({ value, className }: { value: number;
   );
 }
 
-export function SprintTimesTotalSubColumnHeader({ className }: { className?: string }) {
+export function SprintTimesTotalSubColumnHeader({ className }: Readonly<{ className?: string }>) {
   return (
     <span
       className={cn(
@@ -135,7 +135,7 @@ export function SprintTimesTotalSubColumnHeader({ className }: { className?: str
   );
 }
 
-export function SprintTimesLegend({ className }: SprintTimesLegendProps) {
+export function SprintTimesLegend({ className }: Readonly<SprintTimesLegendProps>) {
   return (
     <div className={cn("text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-[11px]", className)}>
       <span className="inline-flex items-center gap-1">
@@ -158,7 +158,7 @@ export function SprintTimesLegend({ className }: SprintTimesLegendProps) {
   );
 }
 
-export function SprintTimesNewsHoursValue({ value, className }: { value: number; className?: string }) {
+export function SprintTimesNewsHoursValue({ value, className }: Readonly<{ value: number; className?: string }>) {
   return (
     <span
       className={cn(
@@ -172,7 +172,7 @@ export function SprintTimesNewsHoursValue({ value, className }: { value: number;
   );
 }
 
-export function SprintTimesNewsSubColumnHeader({ className }: { className?: string }) {
+export function SprintTimesNewsSubColumnHeader({ className }: Readonly<{ className?: string }>) {
   return (
     <span
       className={cn(
@@ -189,10 +189,10 @@ export function SprintTimesNewsSubColumnHeader({ className }: { className?: stri
 export function SprintTimesExpectedHoursValue({
   value,
   className,
-}: {
+}: Readonly<{
   value: number;
   className?: string;
-}) {
+}>) {
   return (
     <span
       className={cn(
@@ -205,7 +205,7 @@ export function SprintTimesExpectedHoursValue({
   );
 }
 
-export function SprintTimesExpectedHoursSubColumnHeader({ className }: { className?: string }) {
+export function SprintTimesExpectedHoursSubColumnHeader({ className }: Readonly<{ className?: string }>) {
   return (
     <span
       className={cn(
@@ -222,11 +222,11 @@ export function SprintTimesComplianceBadge({
   level,
   pct,
   className,
-}: {
+}: Readonly<{
   level: SemaforoLevel | null;
   pct: number | null;
   className?: string;
-}) {
+}>) {
   return (
     <div className={cn("flex justify-center", className)}>
       <ReportsTimeLogSemaforoBadge level={level} pct={pct} />
@@ -234,7 +234,7 @@ export function SprintTimesComplianceBadge({
   );
 }
 
-export function SprintTimesComplianceSubColumnHeader({ className }: { className?: string }) {
+export function SprintTimesComplianceSubColumnHeader({ className }: Readonly<{ className?: string }>) {
   return (
     <span
       className={cn(

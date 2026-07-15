@@ -8,7 +8,7 @@ type ShareIconSvgProps = {
 export function SprintTimesShareDevIconSvg({
   size = 14,
   color = sprintTimesShareImageColors.development,
-}: ShareIconSvgProps) {
+}: Readonly<ShareIconSvgProps>) {
   return (
     <svg
       width={size}
@@ -34,7 +34,7 @@ export function SprintTimesShareDevIconSvg({
 export function SprintTimesShareBugIconSvg({
   size = 14,
   color = sprintTimesShareImageColors.bug,
-}: ShareIconSvgProps) {
+}: Readonly<ShareIconSvgProps>) {
   return (
     <svg
       width={size}
@@ -60,7 +60,7 @@ export function SprintTimesShareBugIconSvg({
 export function SprintTimesShareClockIconSvg({
   size = 14,
   color = sprintTimesShareImageColors.sprintTotal,
-}: ShareIconSvgProps) {
+}: Readonly<ShareIconSvgProps>) {
   return (
     <svg
       width={size}
@@ -82,7 +82,7 @@ export function SprintTimesShareClockIconSvg({
 export function SprintTimesShareCalendarOffIconSvg({
   size = 14,
   color = sprintTimesShareImageColors.news,
-}: ShareIconSvgProps) {
+}: Readonly<ShareIconSvgProps>) {
   return (
     <svg
       width={size}

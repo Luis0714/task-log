@@ -16,7 +16,6 @@ import {
   SprintTimesLegend,
   SprintTimesNewsHoursValue,
   SprintTimesNewsSubColumnHeader,
-  SprintTimesTotalCell,
   SprintTimesTotalSubColumnHeader,
   SprintTimesWeekTotalValue,
 } from "@/components/sprints/stats/sprint-times-hours-cell";
@@ -62,7 +61,7 @@ function weekGroupClass(weekIndex: number, emphasized = false): string {
 function buildTableGridStyle(weekCount: number): React.CSSProperties {
   return {
     display: "grid",
-    gridTemplateColumns: `minmax(8rem, 1.1fr) repeat(${weekCount}, minmax(14rem, 1.3fr)) minmax(7rem, 0.95fr) minmax(7rem, 0.95fr) minmax(8rem, 1fr)`,
+    gridTemplateColumns: `minmax(8rem, 1.1fr) repeat(${weekCount}, minmax(14rem, 1.3fr)) minmax(4rem, 0.5fr) minmax(4.5rem, 0.55fr) minmax(4.5rem, 0.5fr)`,
     gap: "0 0.75rem",
   };
 }
@@ -196,7 +195,7 @@ function TimesRow({
         <SprintTimesExpectedHoursValue value={expectedHours} />
       </div>
       <div className="flex items-center justify-center py-2">
-        <SprintTimesTotalCell breakdown={sprint} />
+        <SprintTimesWeekTotalValue value={totalHoursBreakdown(sprint)} />
       </div>
       <div className="flex items-center justify-center py-2">
         <SprintTimesComplianceBadge level={semaforo} pct={compliancePct} />

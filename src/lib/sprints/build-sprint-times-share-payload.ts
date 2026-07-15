@@ -1,4 +1,5 @@
 import { EMPTY_HOURS_BREAKDOWN, type HoursBreakdown } from "@/lib/hours/hours-breakdown";
+import { roundHours } from "@/lib/number/rounding";
 import { resolveSemaforo } from "@/lib/reports/hours/compliance";
 import type { SemaforoLevel } from "@/lib/reports/hours/hours-report-types";
 import { SITE_NAME } from "@/lib/seo/site";
@@ -47,17 +48,32 @@ function resolveFocusWeekIndex(
   return weekIndex - 1;
 }
 
+function weekExpectedHoursFor(
+  personExpectedHours: number,
+  focusWeekIndex: number | null,
+  weekWorkingDays: readonly number[],
+  totalWorkingDays: number,
+): number | null {
+  if (focusWeekIndex === null) return null;
+  if (totalWorkingDays <= 0) return 0;
+  const workingDays = weekWorkingDays[focusWeekIndex] ?? 0;
+  return roundHours(personExpectedHours * (workingDays / totalWorkingDays));
+}
+
 function mapPersonRow(
   row: SprintTimesPersonRow,
   focusWeekIndex: number | null,
-  weekExpectedTotals: Map<number, number> | null,
+  weekWorkingDays: readonly number[],
+  totalWorkingDays: number,
 ): SprintTimesShareTableRow {
   const weeks = row.weeks.map((week) => week ?? EMPTY_HOURS_BREAKDOWN);
   const weekTotal = focusWeekIndex === null ? null : weeks[focusWeekIndex] ?? EMPTY_HOURS_BREAKDOWN;
-  const weekExpected = focusWeekIndex === null || weekExpectedTotals === null
-    ? null
-    : weekExpectedTotals.get(focusWeekIndex) ?? 0;
-  const weekExpectedHours = weekExpected ?? null;
+  const weekExpectedHours = weekExpectedHoursFor(
+    row.expectedHours,
+    focusWeekIndex,
+    weekWorkingDays,
+    totalWorkingDays,
+  );
   const weekSemaforo = computeWeekSemaforo(weekTotal, weekExpectedHours);
   const weekCompliancePct = computeWeekPct(weekTotal, weekExpectedHours);
 
@@ -125,7 +141,11 @@ function buildTableLayout(
   variant: SprintTimesShareVariant,
 ): SprintTimesShareTableLayout {
   const focusWeekIndex = resolveFocusWeekIndex(times, variant);
-  const rows = times.rows.map((row) => mapPersonRow(row, focusWeekIndex, null));
+  const weekWorkingDays = times.weeks.map((week) => week.workingDaysCount);
+  const totalWorkingDays = weekWorkingDays.reduce((acc, days) => acc + days, 0);
+  const rows = times.rows.map((row) =>
+    mapPersonRow(row, focusWeekIndex, weekWorkingDays, totalWorkingDays),
+  );
 
   const weekTotals = times.weeks.map((_, index) => sumWeekBreakdowns(times.rows, index));
   const sprintTotal = sumSprintBreakdowns(times.rows);
@@ -139,13 +159,12 @@ function buildTableLayout(
     ? null
     : (teamTotalWeeks[focusWeekIndex] ?? EMPTY_HOURS_BREAKDOWN);
 
-  const teamTotalWeekExpected = focusWeekIndex === null
-    ? null
-    : times.rows.reduce((acc, row) => {
-        const week = row.weeks[focusWeekIndex];
-        if (!week) return acc;
-        return acc + 8;
-      }, 0);
+  const teamTotalWeekExpected = weekExpectedHoursFor(
+    expectedHoursTotal,
+    focusWeekIndex,
+    weekWorkingDays,
+    totalWorkingDays,
+  );
 
   const teamTotalRow: SprintTimesShareTableRow = {
     assignee: SPRINT_TIMES_SHARE_LABELS.teamTotal,

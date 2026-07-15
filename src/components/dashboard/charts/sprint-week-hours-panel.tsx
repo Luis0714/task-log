@@ -18,7 +18,7 @@ export function SprintWeekHoursPanel({
   selectedDayKey = "",
   loading = false,
   className,
-}: SprintWeekHoursPanelProps) {
+}: Readonly<SprintWeekHoursPanelProps>) {
   const displayWeeks =
     loading && weeks.length === 0
       ? [

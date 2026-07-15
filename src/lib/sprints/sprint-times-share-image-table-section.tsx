@@ -32,12 +32,12 @@ function WeekGroupHeader({
   dateRangeLabel,
   workingDaysCount,
   weekIndex,
-}: {
+}: Readonly<{
   label: string;
   dateRangeLabel: string;
   workingDaysCount: number;
   weekIndex: number;
-}) {
+}>) {
   return (
     <div
       style={{
@@ -69,11 +69,11 @@ function WeekGroupCells({
   breakdown,
   weekIndex,
   emphasized = false,
-}: {
+}: Readonly<{
   breakdown: HoursBreakdown;
   weekIndex: number;
   emphasized?: boolean;
-}) {
+}>) {
   const weekTotal = totalHoursBreakdown(breakdown);
   const cellBase: React.CSSProperties = {
     display: "flex",
@@ -296,10 +296,10 @@ function renderRowCell(
 function TableRow({
   columns,
   row,
-}: {
+}: Readonly<{
   columns: SprintTimesShareColumn[];
   row: SprintTimesShareTableRow;
-}) {
+}>) {
   return (
     <div
       style={{
@@ -330,7 +330,7 @@ function TableRow({
   );
 }
 
-export function SprintTimesShareImageTableSection({ payload }: { payload: SprintTimesSharePayload }) {
+export function SprintTimesShareImageTableSection({ payload }: Readonly<{ payload: SprintTimesSharePayload }>) {
   const { horizontalPadding } = SPRINT_TIMES_SHARE_IMAGE_LAYOUT;
   const { columns, rows, teamTotalRow } = payload.table;
 
