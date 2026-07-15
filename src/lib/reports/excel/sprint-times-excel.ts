@@ -93,10 +93,12 @@ function aggregateUsersAcrossSprints(
       agg.sprintHours[i] = {
         taskHours: slot.taskHours + personRow.sprint.taskHours,
         bugHours: slot.bugHours + personRow.sprint.bugHours,
+        newsHours: (slot.newsHours ?? 0) + (personRow.sprint.newsHours ?? 0),
       };
       agg.sprint = {
         taskHours: agg.sprint.taskHours + personRow.sprint.taskHours,
         bugHours: agg.sprint.bugHours + personRow.sprint.bugHours,
+        newsHours: (agg.sprint.newsHours ?? 0) + personRow.sprint.newsHours,
       };
     }
   }
@@ -739,6 +741,7 @@ export async function buildCombinedSprintTimesExcel(
       (acc, group) => ({
         taskHours: acc.taskHours + group.sprintTotal.taskHours,
         bugHours: acc.bugHours + group.sprintTotal.bugHours,
+        newsHours: acc.newsHours + (group.sprintTotal.newsHours ?? 0),
       }),
       { ...EMPTY_HOURS_BREAKDOWN },
     );

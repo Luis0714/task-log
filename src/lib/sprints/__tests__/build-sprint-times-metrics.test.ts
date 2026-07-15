@@ -56,8 +56,8 @@ describe("buildSprintTimesMetrics", () => {
   it("separa tasks y bugs por semana y persona", () => {
     const metrics = buildSprintTimesMetrics({
       tasks: [
-        makeItem({ id: 1, workingDate: "2026-06-16", loggedHours: 2 }), // semana 1
-        makeItem({ id: 2, workingDate: "2026-06-23", loggedHours: 3 }), // semana 2
+        makeItem({ id: 1, workingDate: "2026-06-16", loggedHours: 2 }),
+        makeItem({ id: 2, workingDate: "2026-06-23", loggedHours: 3 }),
       ],
       bugs: [
         makeItem({ id: 3, type: "Bug", workingDate: "2026-06-16", loggedHours: 1.5 }),
@@ -68,9 +68,9 @@ describe("buildSprintTimesMetrics", () => {
 
     expect(metrics.weeks).toHaveLength(2);
     const row = metrics.rows.find((r) => r.assignee === "Ana Gómez");
-    expect(row?.weeks[0]).toEqual({ taskHours: 2, bugHours: 1.5 });
-    expect(row?.weeks[1]).toEqual({ taskHours: 3, bugHours: 0 });
-    expect(row?.sprint).toEqual({ taskHours: 5, bugHours: 1.5 });
+    expect(row?.weeks[0]).toEqual({ taskHours: 2, bugHours: 1.5, newsHours: 0 });
+    expect(row?.weeks[1]).toEqual({ taskHours: 3, bugHours: 0, newsHours: 0 });
+    expect(row?.sprint).toEqual({ taskHours: 5, bugHours: 1.5, newsHours: 0 });
   });
 
   it("una persona del roster sin horas igual aparece con ceros", () => {
@@ -86,7 +86,7 @@ describe("buildSprintTimesMetrics", () => {
     });
 
     const beto = metrics.rows.find((r) => r.assignee === "Beto Ruiz");
-    expect(beto?.sprint).toEqual({ taskHours: 0, bugHours: 0 });
+    expect(beto?.sprint).toEqual({ taskHours: 0, bugHours: 0, newsHours: 0 });
   });
 
   it("cuando hay roster, las filas se limitan EXACTAMENTE al roster (sin merge con asignados del sprint)", () => {

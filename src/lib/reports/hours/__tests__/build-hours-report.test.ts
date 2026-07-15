@@ -98,6 +98,7 @@ describe("buildHoursReport", () => {
     const row = result.rows[0];
     expect(row.developmentHours).toBe(60);
     expect(row.bugHours).toBe(20);
+    expect(row.workedHours).toBe(80);
     expect(row.newsHours).toBe(8);
     expect(row.newsCount).toBe(1);
     expect(row.newsDetail).toBe("Feature - Novedad 1");

@@ -16,6 +16,7 @@ import {
 } from "@/lib/hours/aggregate-hours";
 import { EMPTY_HOURS_BREAKDOWN, type HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import { computeCompliance } from "@/lib/reports/hours/compliance";
+import { computeDeviation } from "@/lib/reports/hours/deviation";
 import { computeExpectedHours } from "@/lib/expected-hours";
 import { NEWS_DETAIL_DELIMITER } from "@/lib/reports/hours/format-news-detail";
 import { roundHours, roundToDecimals } from "@/lib/number/rounding";
@@ -334,8 +335,11 @@ function buildPersonReportRow(input: {
   );
   const newsDays = roundToDecimals(newsHours / HOURS_PER_WORKING_DAY, 2);
   const newsEntries = novedadesDetailEntries(personNovedades);
-  const total = worked.taskHours + worked.bugHours + newsHours;
+  const workedHours = worked.taskHours + worked.bugHours;
+  const total = workedHours + newsHours;
   const compliance = computeCompliance(total, expected.expectedHours);
+  const assignmentPct = buildAssignmentLabel(hasException, personAssignments);
+  const deviation = computeDeviation(assignmentPct, compliance.pct);
 
   return {
     projectId: input.scope.projectId,
@@ -343,11 +347,12 @@ function buildPersonReportRow(input: {
     teamId: input.scope.teamId,
     teamName: input.scope.teamId,
     personDisplayName: input.person.displayName,
-    assignmentPct: buildAssignmentLabel(hasException, personAssignments),
+    assignmentPct,
     workingDays: expected.workingDays,
     expectedHours: expected.expectedHours,
     developmentHours: worked.taskHours,
     bugHours: worked.bugHours,
+    workedHours,
     newsHours,
     totalHours: total,
     newsCount: personNovedades.length,
@@ -356,6 +361,8 @@ function buildPersonReportRow(input: {
     newsDetails: newsEntries,
     compliancePct: compliance.pct,
     semaforo: compliance.level,
+    deviationPct: deviation.pct,
+    deviationLevel: deviation.level,
   };
 }
 

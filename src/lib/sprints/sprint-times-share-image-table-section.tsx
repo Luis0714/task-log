@@ -4,7 +4,10 @@ import { sprintTimesShareImageColors } from "@/lib/sprints/sprint-times-share-im
 import {
   SprintTimesShareBreakdownCell,
   SprintTimesShareBugHoursCell,
+  SprintTimesShareComplianceCell,
   SprintTimesShareDevHoursCell,
+  SprintTimesShareExpectedHoursCell,
+  SprintTimesShareNewsHoursCell,
   SprintTimesShareSubColumnHeader,
   SprintTimesShareWeekTotalCell,
 } from "@/lib/sprints/sprint-times-share-image-value-cell";
@@ -27,10 +30,12 @@ function weekGroupBackground(weekIndex: number, emphasized = false): string {
 function WeekGroupHeader({
   label,
   dateRangeLabel,
+  workingDaysCount,
   weekIndex,
 }: {
   label: string;
   dateRangeLabel: string;
+  workingDaysCount: number;
   weekIndex: number;
 }) {
   return (
@@ -53,6 +58,9 @@ function WeekGroupHeader({
       {dateRangeLabel ? (
         <span style={{ fontSize: 11, color: sprintTimesShareImageTheme.muted }}>{dateRangeLabel}</span>
       ) : null}
+      <span style={{ fontSize: 10, color: sprintTimesShareImageTheme.muted }}>
+        {workingDaysCount} {workingDaysCount === 1 ? "día hábil" : "días hábiles"}
+      </span>
     </div>
   );
 }
@@ -67,6 +75,16 @@ function WeekGroupCells({
   emphasized?: boolean;
 }) {
   const weekTotal = totalHoursBreakdown(breakdown);
+  const cellBase: React.CSSProperties = {
+    display: "flex",
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "12px 10px",
+  };
+  const divider = {
+    borderLeft: `1px solid ${sprintTimesShareImageTheme.border}`,
+  };
   return (
     <div
       style={{
@@ -77,40 +95,17 @@ function WeekGroupCells({
         width: "100%",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "12px 10px",
-        }}
-      >
+      <div style={cellBase}>
         <SprintTimesShareDevHoursCell value={breakdown.taskHours} />
       </div>
-      <div
-        style={{
-          display: "flex",
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "12px 10px",
-          borderLeft: `1px solid ${sprintTimesShareImageTheme.border}`,
-        }}
-      >
-        <SprintTimesShareWeekTotalCell value={weekTotal} />
-      </div>
-      <div
-        style={{
-          display: "flex",
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "12px 10px",
-          borderLeft: `1px solid ${sprintTimesShareImageTheme.border}`,
-        }}
-      >
+      <div style={{ ...cellBase, ...divider }}>
         <SprintTimesShareBugHoursCell value={breakdown.bugHours} />
+      </div>
+      <div style={{ ...cellBase, ...divider }}>
+        <SprintTimesShareNewsHoursCell value={breakdown.newsHours} />
+      </div>
+      <div style={{ ...cellBase, ...divider }}>
+        <SprintTimesShareWeekTotalCell value={weekTotal} />
       </div>
     </div>
   );
@@ -119,6 +114,8 @@ function WeekGroupCells({
 function resolveColumnFlex(column: SprintTimesShareColumn): number {
   if (column.kind === "assignee") return 1.15;
   if (column.kind === "week") return 1.2;
+  if (column.kind === "expectedHours") return 0.9;
+  if (column.kind === "compliance") return 1.05;
   return 0.95;
 }
 
@@ -136,6 +133,7 @@ function renderColumnHeader(column: SprintTimesShareColumn) {
       <WeekGroupHeader
         label={column.week.label}
         dateRangeLabel={column.week.dateRangeLabel}
+        workingDaysCount={column.week.workingDaysCount}
         weekIndex={column.weekIndex}
       />
     );
@@ -145,6 +143,22 @@ function renderColumnHeader(column: SprintTimesShareColumn) {
     return (
       <span style={{ fontSize: 13, fontWeight: 700, color: sprintTimesShareImageTheme.muted }}>
         {column.label}
+      </span>
+    );
+  }
+
+  if (column.kind === "expectedHours") {
+    return (
+      <span style={{ fontSize: 13, fontWeight: 700, color: sprintTimesShareImageTheme.muted }}>
+        {SPRINT_TIMES_SHARE_LABELS.expectedHoursColumn}
+      </span>
+    );
+  }
+
+  if (column.kind === "compliance") {
+    return (
+      <span style={{ fontSize: 13, fontWeight: 700, color: sprintTimesShareImageTheme.muted }}>
+        {SPRINT_TIMES_SHARE_LABELS.complianceColumn}
       </span>
     );
   }
@@ -168,12 +182,49 @@ function renderSubHeaderCell(column: SprintTimesShareColumn) {
           <SprintTimesShareSubColumnHeader kind="dev" label={SPRINT_TIMES_SHARE_LABELS.development} />
         </div>
         <div style={{ display: "flex", flex: 1, justifyContent: "center" }}>
-          <SprintTimesShareSubColumnHeader kind="total" label={SPRINT_TIMES_SHARE_LABELS.total} />
-        </div>
-        <div style={{ display: "flex", flex: 1, justifyContent: "center" }}>
           <SprintTimesShareSubColumnHeader kind="bug" label={SPRINT_TIMES_SHARE_LABELS.bugs} />
         </div>
+        <div style={{ display: "flex", flex: 1, justifyContent: "center" }}>
+          <SprintTimesShareSubColumnHeader kind="news" label={SPRINT_TIMES_SHARE_LABELS.news} />
+        </div>
+        <div style={{ display: "flex", flex: 1, justifyContent: "center" }}>
+          <SprintTimesShareSubColumnHeader kind="clock" label={SPRINT_TIMES_SHARE_LABELS.total} />
+        </div>
       </div>
+    );
+  }
+
+  if (column.kind === "expectedHours") {
+    return (
+      <span
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 10,
+          fontWeight: 700,
+          color: sprintTimesShareImageTheme.muted,
+        }}
+      >
+        {SPRINT_TIMES_SHARE_LABELS.hours.toUpperCase()}
+      </span>
+    );
+  }
+
+  if (column.kind === "compliance") {
+    return (
+      <span
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 10,
+          fontWeight: 700,
+          color: sprintTimesShareImageTheme.muted,
+        }}
+      >
+        %
+      </span>
     );
   }
 
@@ -220,9 +271,22 @@ function renderRowCell(
     );
   }
 
+  if (column.kind === "expectedHours") {
+    if (row.weekExpectedHours !== null) {
+      return <SprintTimesShareExpectedHoursCell value={row.weekExpectedHours} />;
+    }
+    return <SprintTimesShareExpectedHoursCell value={row.expectedHours} />;
+  }
+
   if (column.kind === "weekTotal") {
     if (!row.weekTotal) return <span style={{ display: "flex" }} />;
     return <SprintTimesShareBreakdownCell breakdown={row.weekTotal} emphasized={row.emphasized} />;
+  }
+
+  if (column.kind === "compliance") {
+    const level = row.weekSemaforo ?? row.semaforo;
+    const pct = row.weekCompliancePct ?? row.compliancePct;
+    return <SprintTimesShareComplianceCell level={level} pct={pct} />;
   }
 
   if (!row.sprint) return <span style={{ display: "flex" }} />;

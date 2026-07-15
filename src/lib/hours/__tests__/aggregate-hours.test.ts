@@ -55,7 +55,7 @@ describe("computeHoursBreakdown", () => {
       bugs: [item({ loggedHours: 1.5 }), item({ state: "Removed", loggedHours: 8 })],
       workingDayKeys: WEEK_DAYS,
     });
-    expect(breakdown).toEqual({ taskHours: 3, bugHours: 1.5 });
+    expect(breakdown).toEqual({ taskHours: 3, bugHours: 1.5, newsHours: 0 });
   });
 
   it("expresses day/week/range variants through the workingDayKeys subset", () => {
@@ -92,9 +92,9 @@ describe("computeHoursByDay", () => {
       workingDayKeys: WEEK_DAYS,
     });
     expect([...byDay.keys()]).toEqual([MON, TUE, WED]);
-    expect(byDay.get(MON)).toEqual({ taskHours: 2, bugHours: 0 });
-    expect(byDay.get(TUE)).toEqual({ taskHours: 0, bugHours: 0 });
-    expect(byDay.get(WED)).toEqual({ taskHours: 0, bugHours: 1 });
+    expect(byDay.get(MON)).toEqual({ taskHours: 2, bugHours: 0, newsHours: 0 });
+    expect(byDay.get(TUE)).toEqual({ taskHours: 0, bugHours: 0, newsHours: 0 });
+    expect(byDay.get(WED)).toEqual({ taskHours: 0, bugHours: 1, newsHours: 0 });
   });
 });
 
@@ -112,8 +112,8 @@ describe("computeHoursByPerson", () => {
       },
       (assignedTo) => assignedTo?.trim().toLowerCase() ?? null,
     );
-    expect(byPerson.get("ana")).toEqual({ taskHours: 3, bugHours: 0 });
-    expect(byPerson.get("beto")).toEqual({ taskHours: 0, bugHours: 3 });
+    expect(byPerson.get("ana")).toEqual({ taskHours: 3, bugHours: 0, newsHours: 0 });
+    expect(byPerson.get("beto")).toEqual({ taskHours: 0, bugHours: 3, newsHours: 0 });
     expect(byPerson.size).toBe(2);
   });
 

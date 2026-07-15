@@ -7,9 +7,15 @@ import { AssigneeVisibilityCombobox } from "@/components/sprints/stats/assignee-
 import {
   SprintTimesBugHoursValue,
   SprintTimesBugSubColumnHeader,
+  SprintTimesComplianceBadge,
+  SprintTimesComplianceSubColumnHeader,
   SprintTimesDevHoursValue,
   SprintTimesDevSubColumnHeader,
+  SprintTimesExpectedHoursSubColumnHeader,
+  SprintTimesExpectedHoursValue,
   SprintTimesLegend,
+  SprintTimesNewsHoursValue,
+  SprintTimesNewsSubColumnHeader,
   SprintTimesTotalCell,
   SprintTimesTotalSubColumnHeader,
   SprintTimesWeekTotalValue,
@@ -17,9 +23,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamMemberAvatar } from "@/components/team-members/team-member-avatar";
 import { EMPTY_HOURS_BREAKDOWN, totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
-import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import type {
   SprintTimesMetrics,
+  SprintTimesPersonRow,
   SprintTimesWeekColumn,
 } from "@/lib/sprints/sprint-stats-types";
 import {
@@ -56,7 +62,7 @@ function weekGroupClass(weekIndex: number, emphasized = false): string {
 function buildTableGridStyle(weekCount: number): React.CSSProperties {
   return {
     display: "grid",
-    gridTemplateColumns: `minmax(8rem, 1.1fr) repeat(${weekCount}, minmax(14rem, 1.3fr)) minmax(7rem, 0.95fr)`,
+    gridTemplateColumns: `minmax(8rem, 1.1fr) repeat(${weekCount}, minmax(14rem, 1.3fr)) minmax(7rem, 0.95fr) minmax(7rem, 0.95fr) minmax(8rem, 1fr)`,
     gap: "0 0.75rem",
   };
 }
@@ -75,7 +81,7 @@ function WeekGroupBlock({
   return (
     <div
       className={cn(
-        "grid grid-cols-3 rounded-md",
+        "grid grid-cols-4 rounded-md",
         weekGroupClass(weekIndex, emphasized),
         className,
       )}
@@ -114,6 +120,9 @@ function WeekGroupHeader({ week }: Readonly<{ week: SprintTimesWeekColumn }>) {
       {week.dateRangeLabel ? (
         <p className="text-muted-foreground truncate text-[10px]">{week.dateRangeLabel}</p>
       ) : null}
+      <p className="text-muted-foreground text-[10px]">
+        {week.workingDaysCount} {week.workingDaysCount === 1 ? "día hábil" : "días hábiles"}
+      </p>
     </div>
   );
 }
@@ -142,18 +151,15 @@ function TimesTableSkeleton() {
 }
 
 function TimesRow({
-  assignee,
-  weeks,
-  sprint,
-  emphasized = false,
+  row,
   weekCount,
 }: Readonly<{
-  assignee: string;
-  weeks: HoursBreakdown[];
-  sprint: HoursBreakdown;
-  emphasized?: boolean;
+  row: SprintTimesPersonRow;
   weekCount: number;
 }>) {
+  const { assignee, weeks, sprint, expectedHours, compliancePct, semaforo } = row;
+  const emphasized = assignee === "Total equipo";
+
   return (
     <li
       style={buildTableGridStyle(weekCount)}
@@ -174,17 +180,26 @@ function TimesRow({
               <SprintTimesDevHoursValue value={breakdown.taskHours} className="w-full" />
             </WeekGroupCell>
             <WeekGroupCell withDivider>
-              <SprintTimesWeekTotalValue value={totalHoursBreakdown(breakdown)} />
+              <SprintTimesBugHoursValue value={breakdown.bugHours} className="w-full" />
             </WeekGroupCell>
             <WeekGroupCell withDivider>
-              <SprintTimesBugHoursValue value={breakdown.bugHours} className="w-full" />
+              <SprintTimesNewsHoursValue value={breakdown.newsHours} className="w-full" />
+            </WeekGroupCell>
+            <WeekGroupCell withDivider>
+              <SprintTimesWeekTotalValue value={totalHoursBreakdown(breakdown)} />
             </WeekGroupCell>
           </WeekGroupBlock>
         );
       })}
 
       <div className="flex items-center justify-center py-2">
+        <SprintTimesExpectedHoursValue value={expectedHours} />
+      </div>
+      <div className="flex items-center justify-center py-2">
         <SprintTimesTotalCell breakdown={sprint} />
+      </div>
+      <div className="flex items-center justify-center py-2">
+        <SprintTimesComplianceBadge level={semaforo} pct={compliancePct} />
       </div>
     </li>
   );
@@ -207,6 +222,11 @@ export function SprintTimesSection({
   );
 
   const sprintTotal = useMemo(() => sumSprintBreakdowns(times.rows), [times.rows]);
+
+  const expectedHoursTotal = useMemo(
+    () => times.rows.reduce((acc, row) => acc + row.expectedHours, 0),
+    [times.rows],
+  );
 
   const hasRows = times.rows.length > 0;
   const hasWeeks = weekCount > 0;
@@ -248,8 +268,14 @@ export function SprintTimesSection({
                 <WeekGroupHeader week={week} />
               </div>
             ))}
-            <div className="min-w-0 text-center">
-              <p className="text-xs font-medium">Tiempo sprint</p>
+            <div className="min-w-0 text-center text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              Esperadas
+            </div>
+            <div className="min-w-0 text-center text-xs font-medium">
+              Total horas
+            </div>
+            <div className="min-w-0 text-center text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              Cumpl.
             </div>
           </div>
 
@@ -264,35 +290,42 @@ export function SprintTimesSection({
                   <SprintTimesDevSubColumnHeader />
                 </WeekGroupCell>
                 <WeekGroupCell withDivider className="py-1.5">
-                  <SprintTimesTotalSubColumnHeader />
+                  <SprintTimesBugSubColumnHeader />
                 </WeekGroupCell>
                 <WeekGroupCell withDivider className="py-1.5">
-                  <SprintTimesBugSubColumnHeader />
+                  <SprintTimesNewsSubColumnHeader />
+                </WeekGroupCell>
+                <WeekGroupCell withDivider className="py-1.5">
+                  <SprintTimesTotalSubColumnHeader />
                 </WeekGroupCell>
               </WeekGroupBlock>
             ))}
             <span className="text-muted-foreground flex items-center justify-center py-1.5 text-center text-[10px] font-medium uppercase tracking-wide">
+              <SprintTimesExpectedHoursSubColumnHeader />
+            </span>
+            <span className="text-muted-foreground flex items-center justify-center py-1.5 text-center text-[10px] font-medium uppercase tracking-wide">
               Total
+            </span>
+            <span className="text-muted-foreground flex items-center justify-center py-1.5 text-center text-[10px] font-medium uppercase tracking-wide">
+              <SprintTimesComplianceSubColumnHeader />
             </span>
           </div>
 
           <ul className="divide-border/60 divide-y">
             {times.rows.map((row) => (
-              <TimesRow
-                key={row.assignee}
-                assignee={row.assignee}
-                weeks={row.weeks}
-                sprint={row.sprint}
-                weekCount={weekCount}
-              />
+              <TimesRow key={row.assignee} row={row} weekCount={weekCount} />
             ))}
 
             <TimesRow
-              assignee="Total equipo"
-              weeks={weekTotals}
-              sprint={sprintTotal}
+              row={{
+                assignee: "Total equipo",
+                weeks: weekTotals,
+                sprint: sprintTotal,
+                expectedHours: expectedHoursTotal,
+                compliancePct: null,
+                semaforo: null,
+              }}
               weekCount={weekCount}
-              emphasized
             />
           </ul>
         </div>
@@ -335,3 +368,4 @@ export function SprintTimesSection({
     </DashboardSection>
   );
 }
+

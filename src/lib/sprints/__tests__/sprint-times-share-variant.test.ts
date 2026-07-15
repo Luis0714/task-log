@@ -21,7 +21,14 @@ function buildTimes(weekCount: number): SprintTimesMetrics {
       workingDaysCount: 5,
     })),
     rows: [
-      { assignee: "A", weeks: [], sprint: { taskHours: 0, bugHours: 0 } },
+      {
+        assignee: "A",
+        weeks: [],
+        sprint: { taskHours: 0, bugHours: 0, newsHours: 0 },
+        expectedHours: 0,
+        compliancePct: null,
+        semaforo: null,
+      },
     ],
   };
 }
@@ -34,7 +41,14 @@ function buildTimesWithLabels(): SprintTimesMetrics {
       { label: "Semana 3", dateRangeLabel: "15 ago – 21 ago", workingDaysCount: 5 },
     ],
     rows: [
-      { assignee: "A", weeks: [], sprint: { taskHours: 0, bugHours: 0 } },
+      {
+        assignee: "A",
+        weeks: [],
+        sprint: { taskHours: 0, bugHours: 0, newsHours: 0 },
+        expectedHours: 0,
+        compliancePct: null,
+        semaforo: null,
+      },
     ],
   };
 }

@@ -54,6 +54,22 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
     render: formatAssignmentPct,
   },
   {
+    key: "workingDays",
+    header: "Días hábiles",
+    widthClass: "w-32",
+    align: "center",
+    bodyClassName: "text-center tabular-nums",
+    render: (row) => row.workingDays,
+  },
+  {
+    key: "expectedHours",
+    header: "Horas esperadas",
+    widthClass: "w-40",
+    align: "center",
+    bodyClassName: "text-center tabular-nums",
+    render: (row) => row.expectedHours.toFixed(1),
+  },
+  {
     key: "developmentHours",
     header: "Horas desarrollo",
     widthClass: "w-40",
@@ -124,20 +140,12 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
     },
   },
   {
-    key: "workingDays",
-    header: "Días hábiles",
-    widthClass: "w-32",
-    align: "center",
-    bodyClassName: "text-center tabular-nums",
-    render: (row) => row.workingDays,
-  },
-  {
-    key: "expectedHours",
-    header: "Horas esperadas",
+    key: "workedHours",
+    header: "Horas trabajadas",
     widthClass: "w-40",
     align: "center",
-    bodyClassName: "text-center tabular-nums",
-    render: (row) => row.expectedHours.toFixed(1),
+    bodyClassName: "text-center tabular-nums font-medium",
+    render: (row) => row.workedHours.toFixed(1),
   },
   {
     key: "totalHours",
@@ -155,6 +163,16 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
     bodyClassName: "text-center",
     render: (row) => (
       <ReportsTimeLogSemaforoBadge level={row.semaforo} pct={row.compliancePct} />
+    ),
+  },
+  {
+    key: "deviation",
+    header: "% Desviación",
+    widthClass: "w-40",
+    align: "center",
+    bodyClassName: "text-center",
+    render: (row) => (
+      <ReportsTimeLogSemaforoBadge level={row.deviationLevel} pct={row.deviationPct} />
     ),
   },
 ];

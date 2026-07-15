@@ -42,22 +42,24 @@ export function formatHoursReportPeriodLabel(period: BuildHoursReportPeriod): st
   return `${formatIsoDateEs(period.fromIso)} a ${formatIsoDateEs(period.toIso)}`;
 }
 
-const COL_WIDTHS = [28, 30, 34, 16, 18, 14, 16, 18, 14, 56, 12, 18, 14, 16] as const;
+const COL_WIDTHS = [28, 30, 34, 16, 12, 18, 18, 14, 16, 18, 14, 56, 18, 14, 16, 16] as const;
 const HEADER_LABELS = [
   "Proyecto",
   "Equipo",
   "Usuario",
   "% Asignación",
+  "Días hábiles",
+  "Horas esperadas",
   "Horas desarrollo",
   "Horas bugs",
   "Cant. novedades",
   "Horas novedades",
   "Días novedades",
   "Detalle de novedades",
-  "Días hábiles",
-  "Horas esperadas",
+  "Horas trabajadas",
   "Horas totales",
   "% Cumplimiento",
+  "% Desviación",
 ] as const;
 
 const SEMAFORO_FILLS: Record<SemaforoLevel, string> = {
@@ -214,35 +216,37 @@ function writeDataRow(
   });
   ws.getCell(excelRow, 4).value = formatAssignmentPct(row);
 
-  buildNumericCell(ws, excelRow, 5, row.developmentHours);
-  buildNumericCell(ws, excelRow, 6, row.bugHours);
+  buildNumericCell(ws, excelRow, 5, row.workingDays, "0");
+  buildNumericCell(ws, excelRow, 6, row.expectedHours);
+  buildNumericCell(ws, excelRow, 7, row.developmentHours);
+  buildNumericCell(ws, excelRow, 8, row.bugHours);
 
-  styleCell(ws.getCell(excelRow, 7), {
+  styleCell(ws.getCell(excelRow, 9), {
     fill: COLOR.cardBg,
     alignment: centerAlign(),
     borderStyle: "thin",
     skipRightBorder: true,
     numFmt: "0",
   });
-  ws.getCell(excelRow, 7).value = row.newsCount;
+  ws.getCell(excelRow, 9).value = row.newsCount;
 
-  buildNumericCell(ws, excelRow, 8, row.newsHours);
-  buildNumericCell(ws, excelRow, 9, row.newsDays, "General");
+  buildNumericCell(ws, excelRow, 10, row.newsHours);
+  buildNumericCell(ws, excelRow, 11, row.newsDays, "General");
 
-  styleCell(ws.getCell(excelRow, 10), {
+  styleCell(ws.getCell(excelRow, 12), {
     fill: COLOR.cardBg,
     alignment: leftAlign(1, true),
     borderStyle: "thin",
     skipRightBorder: true,
   });
-  ws.getCell(excelRow, 10).value =
+  ws.getCell(excelRow, 12).value =
     row.newsCount === 0 ? "Sin novedades" : row.newsDetail || "Sin novedades";
-    
-  buildNumericCell(ws, excelRow, 11, row.workingDays, "0");
-  buildNumericCell(ws, excelRow, 12, row.expectedHours);
-  buildNumericCell(ws, excelRow, 13, row.totalHours);
 
-  buildSemaforoCell(ws, excelRow, 14, row);
+  buildNumericCell(ws, excelRow, 13, row.workedHours);
+  buildNumericCell(ws, excelRow, 14, row.totalHours);
+
+  buildSemaforoCell(ws, excelRow, 15, row.semaforo, row.compliancePct);
+  buildSemaforoCell(ws, excelRow, 16, row.deviationLevel, row.deviationPct);
 }
 
 function buildNumericCell(
@@ -255,7 +259,7 @@ function buildNumericCell(
   buildHoursCell(ws.getCell(excelRow, col), value, {
     fill: COLOR.cardBg,
     color: COLOR.foreground,
-    skipRightBorder: col < 14,
+    skipRightBorder: col < 16,
     numFmt,
   });
 }
@@ -264,26 +268,30 @@ function buildSemaforoCell(
   ws: ExcelJS.Worksheet,
   excelRow: number,
   col: number,
-  row: HoursReportRow,
+  level: SemaforoLevel | null,
+  pct: number | null,
 ): void {
   const cell = ws.getCell(excelRow, col);
-  if (row.semaforo === null) {
+  const skipRightBorder = col < 16;
+  if (level === null) {
     styleCell(cell, {
       fill: COLOR.placeholderFg,
       font: { color: COLOR.mutedFg, size: 10, italic: true },
       alignment: centerAlign(),
       borderStyle: "thin",
+      skipRightBorder,
     });
     cell.value = "Sin configurar";
     return;
   }
   styleCell(cell, {
-    fill: SEMAFORO_FILLS[row.semaforo],
-    font: { color: SEMAFORO_FG[row.semaforo], bold: true, size: 10 },
+    fill: SEMAFORO_FILLS[level],
+    font: { color: SEMAFORO_FG[level], bold: true, size: 10 },
     alignment: centerAlign(),
     borderStyle: "thin",
+    skipRightBorder,
   });
-  cell.value = `${row.compliancePct ?? 0}%`;
+  cell.value = `${pct ?? 0}%`;
   cell.numFmt = `0"%"`;
 }
 

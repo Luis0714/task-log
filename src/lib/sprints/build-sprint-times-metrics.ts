@@ -1,4 +1,5 @@
 import { computeHoursBreakdown } from "@/lib/hours/aggregate-hours";
+import { computeCompliance } from "@/lib/reports/hours/compliance";
 import {
   EMPTY_HOURS_BREAKDOWN,
   totalHoursBreakdown,
@@ -27,14 +28,20 @@ export type BuildSprintTimesMetricsInput = {
   sprintStartDate?: string | null;
   sprintFinishDate?: string | null;
   nonWorkingDates?: readonly string[];
-  /**
-   * Roster oficial del equipo (fuente única: `loadTeamMembers`). Cuando se
-   * provee, el reporte SOLO lista a estos miembros — nunca se mergea con
-   * asignados del sprint ni se agrega la fila sintética "Sin asignar", para
-   * coincidir con el reporte por período y la pantalla de Asignaciones
-   * (CA-roster-consistente).
-   */
   assigneeRoster?: readonly AdoTeamMemberDto[];
+  /**
+   * Horas esperadas por assignee en el sprint, pre-computadas en page-shell
+   * con `resolveAssignmentSegments` + `computeExpectedHours`. Mantener el builder
+   * puro de dependencias de DB.
+   */
+  expectedHoursByAssignee?: ReadonlyMap<string, number>;
+  /**
+   * Horas de novedades por assignee × semana, donde la clave de semana es el
+   * `dateKey` del lunes (o primer día hábil) de esa semana. Pre-computado en
+   * page-shell con `buildSprintNewsHoursByWeek`. Si un assignee o semana no
+   * aparece en el map, se asume `0`.
+   */
+  newsHoursByAssigneeWeek?: ReadonlyMap<string, ReadonlyMap<string, number>>;
 };
 
 export const EMPTY_SPRINT_TIMES_METRICS: SprintTimesMetrics = {
@@ -74,36 +81,74 @@ function buildWeekColumn(
   };
 }
 
+function readNewsHours(
+  innerWeekMap: ReadonlyMap<string, number> | undefined,
+  weekKey: string,
+): number {
+  if (!innerWeekMap) return 0;
+  return innerWeekMap.get(weekKey) ?? 0;
+}
+
 function buildWeekBreakdown(
   tasks: AdoWorkItemOptionDto[],
   bugs: AdoWorkItemOptionDto[],
   dayKeys: readonly string[],
+  newsHours: number,
 ): HoursBreakdown {
-  if (dayKeys.length === 0) return EMPTY_HOURS_BREAKDOWN;
-  return computeHoursBreakdown({ tasks, bugs, workingDayKeys: new Set(dayKeys) });
+  if (dayKeys.length === 0 && newsHours === 0) return EMPTY_HOURS_BREAKDOWN;
+  const base = dayKeys.length === 0
+    ? EMPTY_HOURS_BREAKDOWN
+    : computeHoursBreakdown({ tasks, bugs, workingDayKeys: new Set(dayKeys) });
+  return { ...base, newsHours };
 }
 
-function buildPersonRow(
-  assignee: string,
-  tasks: readonly AdoWorkItemOptionDto[],
-  bugs: readonly AdoWorkItemOptionDto[],
-  roster: readonly AdoTeamMemberDto[],
-  weekDayKeys: readonly (readonly string[])[],
-  allSprintDayKeys: readonly string[],
-): SprintTimesPersonRow {
-  const personTasks = filterItemsByAssignee(tasks, assignee, roster);
-  const personBugs = filterItemsByAssignee(bugs, assignee, roster);
+function buildPersonRow(args: {
+  assignee: string;
+  tasks: readonly AdoWorkItemOptionDto[];
+  bugs: readonly AdoWorkItemOptionDto[];
+  roster: readonly AdoTeamMemberDto[];
+  weekDayKeys: readonly (readonly string[])[];
+  weekKeys: readonly string[];
+  allSprintDayKeys: readonly string[];
+  expectedHours: number;
+  newsByWeek: ReadonlyMap<string, number> | undefined;
+}): SprintTimesPersonRow {
+  const personTasks = filterItemsByAssignee(args.tasks, args.assignee, args.roster);
+  const personBugs = filterItemsByAssignee(args.bugs, args.assignee, args.roster);
 
-  const weeks = weekDayKeys.map((dayKeys) =>
-    buildWeekBreakdown(personTasks, personBugs, dayKeys),
+  const weeks = args.weekDayKeys.map((dayKeys, index) =>
+    buildWeekBreakdown(
+      personTasks,
+      personBugs,
+      dayKeys,
+      readNewsHours(args.newsByWeek, args.weekKeys[index] ?? ""),
+    ),
   );
 
-  const sprint = buildWeekBreakdown(personTasks, personBugs, allSprintDayKeys);
+  const sprintNewsHours = args.weekKeys.reduce(
+    (total, weekKey) => total + readNewsHours(args.newsByWeek, weekKey),
+    0,
+  );
+
+  const sprintBase = args.allSprintDayKeys.length === 0
+    ? EMPTY_HOURS_BREAKDOWN
+    : computeHoursBreakdown({
+        tasks: personTasks,
+        bugs: personBugs,
+        workingDayKeys: new Set(args.allSprintDayKeys),
+      });
+
+  const sprint: HoursBreakdown = { ...sprintBase, newsHours: sprintNewsHours };
+  const totalReported = totalHoursBreakdown(sprint);
+  const { pct, level } = computeCompliance(totalReported, args.expectedHours);
 
   return {
-    assignee,
+    assignee: args.assignee,
     weeks,
     sprint,
+    expectedHours: args.expectedHours,
+    compliancePct: pct,
+    semaforo: level,
   };
 }
 
@@ -133,13 +178,6 @@ function collectAssigneeLabelsFromWorkItems(
   return [...labels];
 }
 
-/**
- * Devuelve las etiquetas de persona a mostrar en el reporte. Si hay roster
- * oficial del equipo, ese roster es la fuente ÚNICA: NO se mergea con
- * asignados del sprint y NO se agrega "Sin asignar". Si el roster está vacío
- * (p. ej. falló la carga desde ADO), caemos a las etiquetas derivadas de los
- * propios items para que el reporte no quede vacío en escenarios degradados.
- */
 function resolveAssigneeLabels(
   tasks: readonly AdoWorkItemOptionDto[],
   bugs: readonly AdoWorkItemOptionDto[],
@@ -150,6 +188,22 @@ function resolveAssigneeLabels(
   }
 
   return assigneeRoster.map((member) => member.displayName);
+}
+
+const ISO_DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function isoDateOnly(value: string): string | null {
+  if (!ISO_DATE_ONLY.test(value)) return null;
+  return value;
+}
+
+function weekKeyForDay(
+  dayKey: string,
+  weekKeysByDay: ReadonlyMap<string, string>,
+): string {
+  const fromMap = weekKeysByDay.get(dayKey);
+  if (fromMap) return fromMap;
+  return isoDateOnly(dayKey) ?? dayKey;
 }
 
 export function buildSprintTimesMetrics(
@@ -167,26 +221,51 @@ export function buildSprintTimesMetrics(
 
   const weekGroups = splitSprintIntoWeeks(workingDays);
   const weekDayKeys = weekGroups.map((days) => days.map((day) => day.value));
+  const weekKeys = weekGroups.map((days) => {
+    const first = days[0];
+    if (!first) return "";
+    return isoDateOnly(first.value) ?? first.value;
+  });
+  const weekKeysByDay = new Map<string, string>();
+  weekGroups.forEach((days, index) => {
+    const weekKey = weekKeys[index] ?? "";
+    if (!weekKey) return;
+    for (const day of days) {
+      weekKeysByDay.set(day.value, weekKey);
+    }
+  });
+
   const allSprintDayKeys = workingDays.map((day) => day.value);
 
   const weeks = weekGroups
-    .map((days, index) => buildWeekColumn(days, `Semana ${index + 1}`))
+    .map((days, index) =>
+      buildWeekColumn(days, `Semana ${index + 1}`),
+    )
     .filter((week): week is SprintTimesWeekColumn => week !== null);
 
   const assigneeRoster = input.assigneeRoster ?? [];
   const assignees = resolveAssigneeLabels(input.tasks, input.bugs, assigneeRoster);
+
   const rows = sortPersonRows(
-    assignees.map((assignee) =>
-      buildPersonRow(
+    assignees.map((assignee) => {
+      const expectedHours =
+        input.expectedHoursByAssignee?.get(assignee) ?? 0;
+      const newsByWeek = input.newsHoursByAssigneeWeek?.get(assignee);
+      return buildPersonRow({
         assignee,
-        input.tasks,
-        input.bugs,
-        assigneeRoster,
+        tasks: input.tasks,
+        bugs: input.bugs,
+        roster: assigneeRoster,
         weekDayKeys,
+        weekKeys,
         allSprintDayKeys,
-      ),
-    ),
+        expectedHours,
+        newsByWeek,
+      });
+    }),
   );
 
   return { weeks, rows };
 }
+
+export { weekKeyForDay };

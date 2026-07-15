@@ -7,8 +7,10 @@ import {
 } from "@/lib/hours/hours-breakdown";
 
 describe("totalHoursBreakdown", () => {
-  it("suma tasks y bugs con redondeo a un decimal", () => {
-    expect(totalHoursBreakdown({ taskHours: 2.25, bugHours: 1.25 })).toBe(3.5);
+  it("suma tasks, bugs y news con redondeo a un decimal", () => {
+    expect(
+      totalHoursBreakdown({ taskHours: 2.25, bugHours: 1.25, newsHours: 0.5 }),
+    ).toBe(4);
   });
 
   it("devuelve 0 para el desglose vacío", () => {
@@ -19,10 +21,14 @@ describe("totalHoursBreakdown", () => {
 describe("sumHoursBreakdowns", () => {
   it("agrega varios desgloses campo a campo", () => {
     const total = sumHoursBreakdowns([
-      { taskHours: 1.5, bugHours: 0.5 },
-      { taskHours: 2, bugHours: 1 },
+      { taskHours: 1.5, bugHours: 0.5, newsHours: 0.25 },
+      { taskHours: 2, bugHours: 1, newsHours: 0 },
     ]);
-    expect(total).toEqual({ taskHours: 3.5, bugHours: 1.5 });
+    expect(total).toEqual({
+      taskHours: 3.5,
+      bugHours: 1.5,
+      newsHours: 0.3,
+    });
   });
 
   it("devuelve el desglose vacío para una lista vacía", () => {

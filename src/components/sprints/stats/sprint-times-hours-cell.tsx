@@ -1,10 +1,12 @@
 "use client";
 
-import { Bug, Clock, ListChecks } from "lucide-react";
+import { Bug, CalendarOff, Clock, ListChecks } from "lucide-react";
 
+import { ReportsTimeLogSemaforoBadge } from "@/components/reports/time-log/reports-time-log-semaforo-badge";
 import { formatHours } from "@/lib/dashboard/format-hours";
 import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import { totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
+import type { SemaforoLevel } from "@/lib/reports/hours/hours-report-types";
 import { cn } from "@/lib/utils";
 
 export type SprintTimesDevHoursValueProps = {
@@ -145,9 +147,102 @@ export function SprintTimesLegend({ className }: SprintTimesLegendProps) {
         Tiempo en bugs
       </span>
       <span className="inline-flex items-center gap-1">
+        <CalendarOff className="size-3 shrink-0" aria-hidden />
+        Tiempo en novedades
+      </span>
+      <span className="inline-flex items-center gap-1">
         <Clock className="text-primary/80 size-3 shrink-0" aria-hidden />
         Total sprint
       </span>
     </div>
+  );
+}
+
+export function SprintTimesNewsHoursValue({ value, className }: { value: number; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center justify-center gap-1 text-xs tabular-nums",
+        className,
+      )}
+    >
+      <CalendarOff className="size-3 shrink-0" style={{ color: "var(--bug-open)" }} aria-hidden />
+      <span>{formatHours(value)}</span>
+    </span>
+  );
+}
+
+export function SprintTimesNewsSubColumnHeader({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "text-muted-foreground inline-flex items-center justify-center gap-1 text-[10px] font-medium uppercase tracking-wide",
+        className,
+      )}
+    >
+      <CalendarOff className="size-3 shrink-0" style={{ color: "var(--bug-open)" }} aria-hidden />
+      Novedades
+    </span>
+  );
+}
+
+export function SprintTimesExpectedHoursValue({
+  value,
+  className,
+}: {
+  value: number;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "text-muted-foreground inline-flex items-center justify-center gap-1 text-xs tabular-nums",
+        className,
+      )}
+    >
+      <span>{formatHours(value)}</span>
+    </span>
+  );
+}
+
+export function SprintTimesExpectedHoursSubColumnHeader({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "text-muted-foreground inline-flex items-center justify-center gap-1 text-[10px] font-medium uppercase tracking-wide",
+        className,
+      )}
+    >
+      Esperadas
+    </span>
+  );
+}
+
+export function SprintTimesComplianceBadge({
+  level,
+  pct,
+  className,
+}: {
+  level: SemaforoLevel | null;
+  pct: number | null;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex justify-center", className)}>
+      <ReportsTimeLogSemaforoBadge level={level} pct={pct} />
+    </div>
+  );
+}
+
+export function SprintTimesComplianceSubColumnHeader({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "text-muted-foreground inline-flex items-center justify-center gap-1 text-[10px] font-medium uppercase tracking-wide",
+        className,
+      )}
+    >
+      Cumpl.
+    </span>
   );
 }

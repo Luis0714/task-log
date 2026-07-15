@@ -1,4 +1,6 @@
-import { EMPTY_HOURS_BREAKDOWN } from "@/lib/hours/hours-breakdown";
+import { EMPTY_HOURS_BREAKDOWN, type HoursBreakdown } from "@/lib/hours/hours-breakdown";
+import { resolveSemaforo } from "@/lib/reports/hours/compliance";
+import type { SemaforoLevel } from "@/lib/reports/hours/hours-report-types";
 import { SITE_NAME } from "@/lib/seo/site";
 import { formatSprintDateRange } from "@/lib/time-log/format-options";
 import { SPRINT_TIMES_SHARE_LABELS } from "@/lib/sprints/sprint-times-share-labels";
@@ -48,11 +50,47 @@ function resolveFocusWeekIndex(
 function mapPersonRow(
   row: SprintTimesPersonRow,
   focusWeekIndex: number | null,
+  weekExpectedTotals: Map<number, number> | null,
 ): SprintTimesShareTableRow {
   const weeks = row.weeks.map((week) => week ?? EMPTY_HOURS_BREAKDOWN);
   const weekTotal = focusWeekIndex === null ? null : weeks[focusWeekIndex] ?? EMPTY_HOURS_BREAKDOWN;
+  const weekExpected = focusWeekIndex === null || weekExpectedTotals === null
+    ? null
+    : weekExpectedTotals.get(focusWeekIndex) ?? 0;
+  const weekExpectedHours = weekExpected ?? null;
+  const weekSemaforo = computeWeekSemaforo(weekTotal, weekExpectedHours);
+  const weekCompliancePct = computeWeekPct(weekTotal, weekExpectedHours);
 
-  return { assignee: row.assignee, weeks, sprint: row.sprint, weekTotal };
+  return {
+    assignee: row.assignee,
+    weeks,
+    sprint: row.sprint,
+    weekTotal,
+    expectedHours: row.expectedHours,
+    compliancePct: row.compliancePct,
+    semaforo: row.semaforo,
+    weekExpectedHours,
+    weekCompliancePct,
+    weekSemaforo,
+  };
+}
+
+function computeWeekPct(
+  weekTotal: HoursBreakdown | null,
+  weekExpected: number | null,
+): number | null {
+  if (!weekTotal || weekExpected === null || weekExpected <= 0) return null;
+  const total = weekTotal.taskHours + weekTotal.bugHours + weekTotal.newsHours;
+  return Math.round((total / weekExpected) * 1000) / 10;
+}
+
+function computeWeekSemaforo(
+  weekTotal: HoursBreakdown | null,
+  weekExpected: number | null,
+): SemaforoLevel | null {
+  const pct = computeWeekPct(weekTotal, weekExpected);
+  if (pct === null) return null;
+  return resolveSemaforo(pct);
 }
 
 function buildColumns(
@@ -66,7 +104,9 @@ function buildColumns(
     times.weeks.forEach((week, index) => {
       columns.push({ kind: "week", weekIndex: index, week });
     });
+    columns.push({ kind: "expectedHours" });
     columns.push({ kind: "sprintTotal" });
+    columns.push({ kind: "compliance" });
     return columns;
   }
 
@@ -74,7 +114,9 @@ function buildColumns(
   if (focusWeek) {
     columns.push({ kind: "week", weekIndex: focusWeekIndex, week: focusWeek });
   }
+  columns.push({ kind: "expectedHours" });
   columns.push({ kind: "weekTotal", label: SPRINT_TIMES_SHARE_LABELS.weekTotalColumn });
+  columns.push({ kind: "compliance" });
   return columns;
 }
 
@@ -83,21 +125,39 @@ function buildTableLayout(
   variant: SprintTimesShareVariant,
 ): SprintTimesShareTableLayout {
   const focusWeekIndex = resolveFocusWeekIndex(times, variant);
-  const rows = times.rows.map((row) => mapPersonRow(row, focusWeekIndex));
+  const rows = times.rows.map((row) => mapPersonRow(row, focusWeekIndex, null));
 
   const weekTotals = times.weeks.map((_, index) => sumWeekBreakdowns(times.rows, index));
   const sprintTotal = sumSprintBreakdowns(times.rows);
+  const expectedHoursTotal = times.rows.reduce(
+    (acc, row) => acc + row.expectedHours,
+    0,
+  );
 
   const teamTotalWeeks = weekTotals.map((week) => week ?? EMPTY_HOURS_BREAKDOWN);
   const teamTotalWeekTotal = focusWeekIndex === null
     ? null
     : (teamTotalWeeks[focusWeekIndex] ?? EMPTY_HOURS_BREAKDOWN);
 
+  const teamTotalWeekExpected = focusWeekIndex === null
+    ? null
+    : times.rows.reduce((acc, row) => {
+        const week = row.weeks[focusWeekIndex];
+        if (!week) return acc;
+        return acc + 8;
+      }, 0);
+
   const teamTotalRow: SprintTimesShareTableRow = {
     assignee: SPRINT_TIMES_SHARE_LABELS.teamTotal,
     weeks: teamTotalWeeks,
     sprint: sprintTotal,
     weekTotal: teamTotalWeekTotal,
+    expectedHours: expectedHoursTotal,
+    compliancePct: null,
+    semaforo: null,
+    weekExpectedHours: teamTotalWeekExpected,
+    weekCompliancePct: null,
+    weekSemaforo: null,
     emphasized: true,
   };
 

@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-const COLUMN_COUNT = 14;
+const COLUMN_COUNT = 16;
 const PLACEHOLDER_ROW_COUNT = 15;
 
 export type ReportsTimeLogTableSkeletonProps = {

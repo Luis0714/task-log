@@ -18,6 +18,7 @@ function makeRow(personDisplayName: string): HoursReportRow {
     expectedHours: 40,
     developmentHours: 30,
     bugHours: 5,
+    workedHours: 35,
     newsHours: 0,
     totalHours: 35,
     newsCount: 0,
@@ -26,6 +27,8 @@ function makeRow(personDisplayName: string): HoursReportRow {
     newsDetails: [],
     compliancePct: 87.5,
     semaforo: "amarillo",
+    deviationPct: 12.5,
+    deviationLevel: "amarillo",
   };
 }
 

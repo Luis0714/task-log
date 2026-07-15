@@ -78,3 +78,30 @@ export function SprintTimesShareClockIconSvg({
     </svg>
   );
 }
+
+export function SprintTimesShareCalendarOffIconSvg({
+  size = 14,
+  color = sprintTimesShareImageColors.news,
+}: ShareIconSvgProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M4 6h16" />
+      <path d="M16 2v4" />
+      <path d="M8 2v4" />
+      <path d="M4 10v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+      <path d="M16 14h-4" />
+      <path d="M16 18h-2" />
+      <path d="m3 3 18 18" />
+    </svg>
+  );
+}

@@ -3,10 +3,6 @@ import {
   type HoursBreakdown,
 } from "@/lib/hours/hours-breakdown";
 
-/**
- * Suma el desglose de una semana a través de todas las filas. Las filas con
- * menos semanas que `weekIndex` aportan `EMPTY_HOURS_BREAKDOWN`.
- */
 export function sumWeekBreakdowns(
   rows: readonly { weeks: readonly (HoursBreakdown | undefined)[] }[],
   weekIndex: number,
@@ -17,6 +13,7 @@ export function sumWeekBreakdowns(
       return {
         taskHours: acc.taskHours + w.taskHours,
         bugHours: acc.bugHours + w.bugHours,
+        newsHours: acc.newsHours + w.newsHours,
       };
     },
     { ...EMPTY_HOURS_BREAKDOWN },
@@ -30,6 +27,7 @@ export function sumSprintBreakdowns(
     (acc, row) => ({
       taskHours: acc.taskHours + row.sprint.taskHours,
       bugHours: acc.bugHours + row.sprint.bugHours,
+      newsHours: acc.newsHours + row.sprint.newsHours,
     }),
     { ...EMPTY_HOURS_BREAKDOWN },
   );

@@ -16,18 +16,21 @@ export function ReportsTimeLogRowCard({
             {row.teamName ? ` · ${row.teamName}` : ""}
           </p>
         </div>
-        <ReportsTimeLogSemaforoBadge
-          level={row.semaforo}
-          pct={row.compliancePct}
-        />
+        <div className="flex shrink-0 flex-col items-end gap-1 text-xs">
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground">Cumpl.</span>
+            <ReportsTimeLogSemaforoBadge level={row.semaforo} pct={row.compliancePct} />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground">Desv.</span>
+            <ReportsTimeLogSemaforoBadge
+              level={row.deviationLevel}
+              pct={row.deviationPct}
+            />
+          </div>
+        </div>
       </div>
-      <div className="text-muted-foreground flex items-center justify-between gap-3 text-xs">
-        <span>
-          Total:{" "}
-          <span className="text-foreground font-semibold tabular-nums">
-            {row.totalHours.toFixed(1)} h
-          </span>
-        </span>
+      <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
         <span>
           Dev:{" "}
           <span className="text-foreground tabular-nums">
@@ -38,6 +41,18 @@ export function ReportsTimeLogRowCard({
           Bugs:{" "}
           <span className="text-foreground tabular-nums">
             {row.bugHours.toFixed(1)} h
+          </span>
+        </span>
+        <span>
+          Trabajadas:{" "}
+          <span className="text-foreground font-medium tabular-nums">
+            {row.workedHours.toFixed(1)} h
+          </span>
+        </span>
+        <span>
+          Total:{" "}
+          <span className="text-foreground font-semibold tabular-nums">
+            {row.totalHours.toFixed(1)} h
           </span>
         </span>
       </div>
