@@ -27,7 +27,13 @@ export type BuildSprintTimesMetricsInput = {
   sprintStartDate?: string | null;
   sprintFinishDate?: string | null;
   nonWorkingDates?: readonly string[];
-  /** Roster del equipo + asignados del sprint (misma fuente que filtros de HUs y bugs). */
+  /**
+   * Roster oficial del equipo (fuente única: `loadTeamMembers`). Cuando se
+   * provee, el reporte SOLO lista a estos miembros — nunca se mergea con
+   * asignados del sprint ni se agrega la fila sintética "Sin asignar", para
+   * coincidir con el reporte por período y la pantalla de Asignaciones
+   * (CA-roster-consistente).
+   */
   assigneeRoster?: readonly AdoTeamMemberDto[];
 };
 
@@ -128,46 +134,12 @@ function collectAssigneeLabelsFromWorkItems(
 }
 
 /**
- * Fallback defensivo: si un work item tiene horas de alguien que ya no
- * está en el roster (p. ej. persona dada de baja pero con tareas
- * registradas), lo agregamos al roster local para que sus horas no se
- * pierdan del reporte. Sin llamada extra a ADO.
+ * Devuelve las etiquetas de persona a mostrar en el reporte. Si hay roster
+ * oficial del equipo, ese roster es la fuente ÚNICA: NO se mergea con
+ * asignados del sprint y NO se agrega "Sin asignar". Si el roster está vacío
+ * (p. ej. falló la carga desde ADO), caemos a las etiquetas derivadas de los
+ * propios items para que el reporte no quede vacío en escenarios degradados.
  */
-function ensureRosterCoversItems(
-  roster: readonly AdoTeamMemberDto[],
-  items: readonly AdoWorkItemOptionDto[],
-): AdoTeamMemberDto[] {
-  const seen = new Set(roster.map((member) => member.displayName));
-  const extras: AdoTeamMemberDto[] = [];
-
-  for (const item of items) {
-    const name = item.assignedTo?.trim();
-    if (!name || seen.has(name)) continue;
-    seen.add(name);
-    extras.push({ id: `sprint-assignee:${name}`, displayName: name });
-  }
-
-  return [...roster, ...extras];
-}
-
-function collectTimesAssigneeLabels(
-  tasks: readonly AdoWorkItemOptionDto[],
-  bugs: readonly AdoWorkItemOptionDto[],
-  assigneeRoster: readonly AdoTeamMemberDto[],
-): string[] {
-  const scopedItems = [...tasks, ...bugs];
-  const roster = ensureRosterCoversItems(assigneeRoster, scopedItems);
-
-  const assignees = roster.map((member) => member.displayName);
-
-  const hasUnassigned = scopedItems.some((item) => !item.assignedTo?.trim());
-  if (hasUnassigned) {
-    assignees.push(SPRINT_BUG_UNASSIGNED_LABEL);
-  }
-
-  return assignees;
-}
-
 function resolveAssigneeLabels(
   tasks: readonly AdoWorkItemOptionDto[],
   bugs: readonly AdoWorkItemOptionDto[],
@@ -177,7 +149,7 @@ function resolveAssigneeLabels(
     return collectAssigneeLabelsFromWorkItems(tasks, bugs);
   }
 
-  return collectTimesAssigneeLabels(tasks, bugs, assigneeRoster);
+  return assigneeRoster.map((member) => member.displayName);
 }
 
 export function buildSprintTimesMetrics(
@@ -202,12 +174,17 @@ export function buildSprintTimesMetrics(
     .filter((week): week is SprintTimesWeekColumn => week !== null);
 
   const assigneeRoster = input.assigneeRoster ?? [];
-  const scopedItems = [...input.tasks, ...input.bugs];
-  const roster = ensureRosterCoversItems(assigneeRoster, scopedItems);
   const assignees = resolveAssigneeLabels(input.tasks, input.bugs, assigneeRoster);
   const rows = sortPersonRows(
     assignees.map((assignee) =>
-      buildPersonRow(assignee, input.tasks, input.bugs, roster, weekDayKeys, allSprintDayKeys),
+      buildPersonRow(
+        assignee,
+        input.tasks,
+        input.bugs,
+        assigneeRoster,
+        weekDayKeys,
+        allSprintDayKeys,
+      ),
     ),
   );
 
