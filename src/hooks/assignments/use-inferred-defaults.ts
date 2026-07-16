@@ -40,8 +40,11 @@ async function resolveInferredDefaultRows(
 
 export type UseInferredDefaultsResult = {
   defaults: InferredDefaultRow[];
-  /** True hasta que TERMINA la primera resolución (para el skeleton inicial). */
-  initialLoading: boolean;
+  /**
+   * True mientras se resuelve CUALQUIER carga (inicial o por cambio de
+   * filtros): la UI debe mostrar "cargando", nunca un falso "sin resultados".
+   */
+  loading: boolean;
   removeDefault: (defaultKey: string) => void;
 };
 
@@ -54,7 +57,6 @@ export function useInferredDefaults(
 ): UseInferredDefaultsResult {
   const [defaults, setDefaults] = useState<InferredDefaultRow[]>([]);
   const [pending, setPending] = useState(true);
-  const [loadedOnce, setLoadedOnce] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +64,6 @@ export function useInferredDefaults(
       if (cancelled) return;
       setDefaults(rows);
       setPending(false);
-      setLoadedOnce(true);
     };
 
     if (slots.length === 0) {
@@ -85,5 +86,5 @@ export function useInferredDefaults(
     setDefaults((prev) => prev.filter((d) => d.defaultKey !== defaultKey));
   }, []);
 
-  return { defaults, initialLoading: pending && !loadedOnce, removeDefault };
+  return { defaults, loading: pending, removeDefault };
 }

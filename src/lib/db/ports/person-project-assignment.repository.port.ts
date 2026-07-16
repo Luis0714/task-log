@@ -98,8 +98,11 @@ export interface PersonProjectAssignmentRepository {
   /**
    * Dado un conjunto de slots (persona, proyecto, equipo) obtenidos del
    * catálogo, devuelve aquellos para los que NO existe una excepción
-   * (vigente o histórica) en la BD. Útil para pintar las filas virtuales
-   * "por defecto" en la UI.
+   * (vigente o histórica) en la BD para ese MISMO equipo. La excepción de
+   * un equipo no cubre los demás equipos del proyecto (la persona sigue
+   * apareciendo una vez por equipo); una excepción a nivel de proyecto
+   * (`teamId` null) sí cubre todos sus equipos. Útil para pintar las filas
+   * virtuales "por defecto" en la UI.
    */
   listInferredDefaults(
     input: InferredDefaultsInput,

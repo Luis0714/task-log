@@ -121,7 +121,7 @@ export function AssignmentsShell({
     [filters.projects, filters.teams, projectLabels, availableTeamNames],
   );
 
-  const { defaults, initialLoading, removeDefault } = useInferredDefaults(slots);
+  const { defaults, loading: defaultsLoading, removeDefault } = useInferredDefaults(slots);
   const { handleCellChange, handleDelete, handleDefaultCreate } =
     useAssignmentActions({ createRow, editCell, deleteRow, removeDefault });
 
@@ -172,14 +172,14 @@ export function AssignmentsShell({
         defaultTeams={defaultTeamNames}
       />
       <p className="text-muted-foreground text-xs">
-        {initialLoading
+        {defaultsLoading
           ? "Cargando asignaciones…"
           : `Mostrando ${totalVisible} de ${totalAll} ${totalNoun}`}
       </p>
       <AssignmentsTable
         rows={visibleRows}
         defaults={visibleDefaults}
-        pendingDefaults={initialLoading}
+        pendingDefaults={defaultsLoading}
         projectOptions={filterProjectOptions}
         teamOptionsByProject={teamOptionsByProject}
         onCellChange={(rowRef, patch) =>

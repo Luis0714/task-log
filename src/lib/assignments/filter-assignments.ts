@@ -31,7 +31,11 @@ export function filterByPersonName<T extends { personDisplayName: string }>(
   return items.filter((item) => nameMatches(item.personDisplayName, query));
 }
 
-/** Filtra asignaciones por búsqueda de persona + proyectos + equipos. */
+/**
+ * Filtra asignaciones por búsqueda de persona + proyectos + equipos. Las
+ * asignaciones a nivel de proyecto (`teamName` null) aplican a todos sus
+ * equipos, así que pasan el filtro de equipos.
+ */
 export function filterAssignmentRows<T extends FilterableAssignment>(
   rows: readonly T[],
   { personQuery, projects, teams }: AssignmentFilterCriteria,
@@ -42,7 +46,8 @@ export function filterAssignmentRows<T extends FilterableAssignment>(
     if (projects.length > 0 && !projects.includes(row.projectName)) return false;
     if (
       teams.length > 0 &&
-      !(row.teamName !== null && teams.includes(row.teamName))
+      row.teamName !== null &&
+      !teams.includes(row.teamName)
     ) {
       return false;
     }

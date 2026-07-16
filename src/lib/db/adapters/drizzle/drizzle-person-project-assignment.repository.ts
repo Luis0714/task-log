@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 
+import { filterInferredDefaultSlots } from "@/lib/assignments/filter-inferred-default-slots";
 import { getDb } from "@/lib/db/client";
 import {
   personProjectAssignments,
@@ -52,10 +53,6 @@ const ROW_PROJECTION = {
   createdByDisplayName: users.displayName,
 } as const;
 
-/** Une persona + proyecto en una clave estable para Sets. */
-function slotKey(personAdoId: string, projectId: string): string {
-  return personAdoId.concat("::", projectId);
-}
 
 export const drizzlePersonProjectAssignmentRepository: PersonProjectAssignmentRepository =
   {
@@ -111,23 +108,16 @@ export const drizzlePersonProjectAssignmentRepository: PersonProjectAssignmentRe
         ...new Set(input.members.map((m) => m.personAdoId)),
       ];
 
-      // Una sola query trae los pares (persona, proyecto) ya configurados.
-      // Suficientemente pequeño porque se filtra por persona.
-      const existingPairs = await getDb()
+      const existingSlots = await getDb()
         .selectDistinct({
           personAdoId: personProjectAssignments.personAdoId,
           projectId: personProjectAssignments.projectId,
+          teamId: personProjectAssignments.teamId,
         })
         .from(personProjectAssignments)
         .where(inArray(personProjectAssignments.personAdoId, personAdoIds));
 
-      const configuredKeys = new Set(
-        existingPairs.map((r) => slotKey(r.personAdoId, r.projectId)),
-      );
-
-      return input.members.filter(
-        (m) => !configuredKeys.has(slotKey(m.personAdoId, m.projectId)),
-      );
+      return filterInferredDefaultSlots(input.members, existingSlots);
     },
 
     async listOverlappingForPerson(input): Promise<PersonProjectAssignmentRow[]> {
