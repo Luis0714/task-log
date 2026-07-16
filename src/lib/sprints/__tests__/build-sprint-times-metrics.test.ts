@@ -135,4 +135,82 @@ describe("buildSprintTimesMetrics", () => {
       metrics.rows.find((r) => r.assignee === "Sin asignar"),
     ).toBeUndefined();
   });
+
+  it("sin segmentos cargados asume 100%: esperadas = días hábiles × 8, por sprint y por semana", () => {
+    const metrics = buildSprintTimesMetrics({
+      tasks: [makeItem({ id: 1 })],
+      bugs: [],
+      sprintStartDate: SPRINT_START,
+      sprintFinishDate: SPRINT_FINISH,
+    });
+
+    const row = metrics.rows.find((r) => r.assignee === "Ana Gómez");
+    expect(row?.expectedHours).toBe(80);
+    expect(row?.expectedHoursByWeek).toEqual([40, 40]);
+  });
+
+  it("con segmentos de excepción, las esperadas respetan el % por tramo", () => {
+    const metrics = buildSprintTimesMetrics({
+      tasks: [makeItem({ id: 1 })],
+      bugs: [],
+      sprintStartDate: SPRINT_START,
+      sprintFinishDate: SPRINT_FINISH,
+      assignmentSegmentsByAssignee: new Map([
+        ["Ana Gómez", [{ pct: 50, from: SPRINT_START, to: null }]],
+      ]),
+    });
+
+    const row = metrics.rows.find((r) => r.assignee === "Ana Gómez");
+    expect(row?.expectedHours).toBe(40);
+    expect(row?.expectedHoursByWeek).toEqual([20, 20]);
+  });
+
+  it("calcula % cumplimiento con el total reportado sobre las esperadas", () => {
+    const metrics = buildSprintTimesMetrics({
+      tasks: [makeItem({ id: 1, loggedHours: 40 })],
+      bugs: [],
+      sprintStartDate: SPRINT_START,
+      sprintFinishDate: SPRINT_FINISH,
+    });
+
+    const row = metrics.rows.find((r) => r.assignee === "Ana Gómez");
+    expect(row?.compliancePct).toBe(50);
+    expect(row?.semaforo).toBe("rojo");
+  });
+
+  it("reparte las horas de novedades en la semana de su rango y las suma al sprint", () => {
+    const metrics = buildSprintTimesMetrics({
+      tasks: [makeItem({ id: 1, loggedHours: 4 })],
+      bugs: [],
+      sprintStartDate: SPRINT_START,
+      sprintFinishDate: SPRINT_FINISH,
+      newsSolicitudes: [
+        {
+          assignee: "Ana Gómez",
+          fechaInicio: "2026-06-16",
+          fechaFin: "2026-06-17",
+          hours: 16,
+        },
+      ],
+    });
+
+    const row = metrics.rows.find((r) => r.assignee === "Ana Gómez");
+    expect(row?.weeks[0]?.newsHours).toBe(16);
+    expect(row?.weeks[1]?.newsHours).toBe(0);
+    expect(row?.sprint.newsHours).toBe(16);
+    expect(row?.compliancePct).toBe(25);
+  });
+
+  it("la fila 'Sin asignar' (sin roster) queda sin esperadas ni cumplimiento", () => {
+    const metrics = buildSprintTimesMetrics({
+      tasks: [makeItem({ id: 1, assignedTo: "" })],
+      bugs: [],
+      sprintStartDate: SPRINT_START,
+      sprintFinishDate: SPRINT_FINISH,
+    });
+
+    const row = metrics.rows.find((r) => r.assignee === "Sin asignar");
+    expect(row?.expectedHours).toBe(0);
+    expect(row?.compliancePct).toBeNull();
+  });
 });

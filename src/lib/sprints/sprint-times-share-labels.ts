@@ -2,7 +2,7 @@ export const SPRINT_TIMES_SHARE_LABELS = {
   sectionTitle: "Tiempos del sprint",
   assigneeColumn: "Persona",
   sprintTotalColumn: "Total horas",
-  expectedHoursColumn: "Horas esperadas",
+  expectedHoursColumn: "H. Esperadas",
   complianceColumn: "% cumplimiento",
   weekTotalColumn: "Total semana",
   development: "Desarrollo",

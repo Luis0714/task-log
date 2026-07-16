@@ -17,10 +17,12 @@ import type {
 import { logApiError } from "@/lib/errors/log-api-error";
 import { WORK_ITEM_ASSIGNEE_ALL } from "@/lib/schemas/work-item-filters";
 import { loadTeamMembers } from "@/lib/filters/load-team-members";
+import { loadTeamAssignmentSegmentsByAssignee } from "@/lib/ado/load-team-assignment-segments";
 import { buildSprintGoalMetrics } from "@/lib/sprints/build-sprint-goal-metrics";
 import { buildSprintOperationalMetrics } from "@/lib/sprints/build-sprint-operational-metrics";
 import { resolveSprintStatsScope } from "@/lib/sprints/filter-sprint-stats-scope";
 import { loadProjectWorkItemTags } from "@/lib/sprints/load-project-work-item-tags";
+import { loadSprintNewsSolicitudes } from "@/lib/sprints/load-sprint-news-solicitudes";
 
 export type LoadLiveSprintMetricsOptions = {
   goalOnly: boolean;
@@ -46,7 +48,7 @@ export async function loadLiveSprintMetrics(
   scope: SprintGoalScope,
   options: LoadLiveSprintMetricsOptions,
 ): Promise<LoadLiveSprintMetricsResult> {
-  const [workItemsPart, bugsPart, tasksPart, backlogStatesPart, tagsPart, nonWorkingDatesPart, assigneeRoster] =
+  const [workItemsPart, bugsPart, tasksPart, backlogStatesPart, tagsPart, nonWorkingDatesPart, assigneeRoster, newsSolicitudes] =
     await Promise.all([
       loadSprintWorkItems(scope.project, scope.sprintPath, WORK_ITEM_ASSIGNEE_ALL),
       loadSprintPeriodBugs(
@@ -74,6 +76,12 @@ export async function loadLiveSprintMetrics(
       loadTeamMembers({
         project: scope.project,
         team: scope.team,
+      }),
+      loadSprintNewsSolicitudes({
+        projectId: scope.project,
+        teamId: scope.team,
+        sprintStartDate: options.sprintStartDate,
+        sprintFinishDate: options.sprintFinishDate,
       }),
     ]);
 
@@ -114,6 +122,14 @@ export async function loadLiveSprintMetrics(
     generalObjective,
   });
 
+  const assignmentSegmentsByAssignee = await loadTeamAssignmentSegmentsByAssignee({
+    projectId: scope.project,
+    teamId: scope.team,
+    sprintStartDate: options.sprintStartDate,
+    sprintFinishDate: options.sprintFinishDate,
+    roster: assigneeRoster,
+  });
+
   const operational = buildSprintOperationalMetrics({
     workItems: workItemsPart.data,
     bugs: bugsPart.data,
@@ -125,6 +141,8 @@ export async function loadLiveSprintMetrics(
     sprintFinishDate: options.sprintFinishDate,
     nonWorkingDates: nonWorkingDatesPart.data,
     assigneeRoster,
+    assignmentSegmentsByAssignee,
+    newsSolicitudes,
   });
 
   return { metrics: { goal, operational }, error: null };

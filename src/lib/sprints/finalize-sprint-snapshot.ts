@@ -10,6 +10,8 @@ import {
 } from "@/lib/ado/load-sprint-data";
 import { fetchWorkItemsByIds } from "@/lib/azure-devops/work-items";
 import { loadTeamMembers } from "@/lib/filters/load-team-members";
+import { loadTeamAssignmentSegmentsByAssignee } from "@/lib/ado/load-team-assignment-segments";
+import { loadSprintNewsSolicitudes } from "@/lib/sprints/load-sprint-news-solicitudes";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { isDatabaseConfigured } from "@/lib/db/client";
@@ -63,7 +65,7 @@ export async function finalizeSprintSnapshot(
   }
 
   const scopedAuth = withAdoProject(input.auth, input.scope.project);
-  const [workItemsPart, bugsPart, tasksPart, backlogStatesPart, tagsPart, nonWorkingDatesPart, assigneeRoster, goals, sprintGoal] =
+  const [workItemsPart, bugsPart, tasksPart, backlogStatesPart, tagsPart, nonWorkingDatesPart, assigneeRoster, goals, sprintGoal, newsSolicitudes] =
     await Promise.all([
       loadSprintWorkItems(input.scope.project, input.scope.sprintPath, WORK_ITEM_ASSIGNEE_ALL),
       loadSprintPeriodBugs(
@@ -94,6 +96,12 @@ export async function finalizeSprintSnapshot(
       }),
       getRepositories().sprintStoryGoal.listByScope(input.scope),
       getRepositories().sprintGoal.getByScope(input.scope),
+      loadSprintNewsSolicitudes({
+        projectId: input.scope.project,
+        teamId: input.scope.team,
+        sprintStartDate: input.sprintStartDate,
+        sprintFinishDate: input.sprintFinishDate,
+      }),
     ]);
 
   const adoError = firstSprintDataError(
@@ -128,6 +136,14 @@ export async function finalizeSprintSnapshot(
     }),
   );
 
+  const assignmentSegmentsByAssignee = await loadTeamAssignmentSegmentsByAssignee({
+    projectId: input.scope.project,
+    teamId: input.scope.team,
+    sprintStartDate: input.sprintStartDate,
+    sprintFinishDate: input.sprintFinishDate,
+    roster: assigneeRoster,
+  });
+
   const statsPayload = buildSprintStatsPayloadBundle({
     workItems,
     bugs: bugsPart.data,
@@ -138,6 +154,8 @@ export async function finalizeSprintSnapshot(
     sprintFinishDate: input.sprintFinishDate,
     nonWorkingDates: nonWorkingDatesPart.data,
     assigneeRoster,
+    assignmentSegmentsByAssignee,
+    newsSolicitudes,
   });
 
   const saveInput: SaveSprintSnapshotInput = {

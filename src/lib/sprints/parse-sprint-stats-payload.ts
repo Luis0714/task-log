@@ -169,10 +169,16 @@ function parseSprintTimesPersonRow(value: unknown): SprintTimesPersonRow | null 
     weeks,
     sprint: parseHoursBreakdown(value.sprint),
     expectedHours: Number(value.expectedHours ?? 0),
+    expectedHoursByWeek: parseNumberArray(value.expectedHoursByWeek),
     compliancePct:
       typeof value.compliancePct === "number" ? value.compliancePct : null,
     semaforo: parseSemaforoLevel(value.semaforo),
   };
+}
+
+function parseNumberArray(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => Number(entry) || 0);
 }
 
 function parseSemaforoLevel(value: unknown): SemaforoLevel | null {

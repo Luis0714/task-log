@@ -4,8 +4,6 @@ import { Bug, CalendarOff, Clock, ListChecks } from "lucide-react";
 
 import { ReportsTimeLogSemaforoBadge } from "@/components/reports/time-log/reports-time-log-semaforo-badge";
 import { formatHours } from "@/lib/dashboard/format-hours";
-import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
-import { totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
 import type { SemaforoLevel } from "@/lib/reports/hours/hours-report-types";
 import { cn } from "@/lib/utils";
 
@@ -44,34 +42,6 @@ export function SprintTimesBugHoursValue({ value, className }: Readonly<SprintTi
       <Bug className="size-3 shrink-0" style={{ color: "var(--bug-open)" }} aria-hidden />
       <span>{formatHours(value)}</span>
     </span>
-  );
-}
-
-export type SprintTimesTotalCellProps = {
-  breakdown: HoursBreakdown;
-  className?: string;
-};
-
-export function SprintTimesTotalCell({ breakdown, className }: Readonly<SprintTimesTotalCellProps>) {
-  const total = totalHoursBreakdown(breakdown);
-
-  return (
-    <div className={cn("flex flex-col items-center gap-1", className)}>
-      <span className="text-foreground inline-flex items-center gap-1 text-xs font-semibold tabular-nums">
-        <Clock className="text-primary/80 size-3 shrink-0" aria-hidden />
-        <span>{formatHours(total)}</span>
-      </span>
-      <div className="flex flex-wrap justify-center gap-x-1.5 gap-y-0.5">
-        <SprintTimesDevHoursValue
-          value={breakdown.taskHours}
-          className="text-muted-foreground text-[10px] [&_svg]:size-2.5"
-        />
-        <SprintTimesBugHoursValue
-          value={breakdown.bugHours}
-          className="text-muted-foreground text-[10px] [&_svg]:size-2.5"
-        />
-      </div>
-    </div>
   );
 }
 
@@ -205,19 +175,6 @@ export function SprintTimesExpectedHoursValue({
   );
 }
 
-export function SprintTimesExpectedHoursSubColumnHeader({ className }: Readonly<{ className?: string }>) {
-  return (
-    <span
-      className={cn(
-        "text-muted-foreground inline-flex items-center justify-center gap-1 text-[10px] font-medium uppercase tracking-wide",
-        className,
-      )}
-    >
-      Esperadas
-    </span>
-  );
-}
-
 export function SprintTimesComplianceBadge({
   level,
   pct,
@@ -229,20 +186,11 @@ export function SprintTimesComplianceBadge({
 }>) {
   return (
     <div className={cn("flex justify-center", className)}>
-      <ReportsTimeLogSemaforoBadge level={level} pct={pct} />
-    </div>
-  );
-}
-
-export function SprintTimesComplianceSubColumnHeader({ className }: Readonly<{ className?: string }>) {
-  return (
-    <span
-      className={cn(
-        "text-muted-foreground inline-flex items-center justify-center gap-1 text-[10px] font-medium uppercase tracking-wide",
-        className,
+      {level === null ? (
+        <span className="text-muted-foreground text-xs">—</span>
+      ) : (
+        <ReportsTimeLogSemaforoBadge level={level} pct={pct} />
       )}
-    >
-      Cumpl.
-    </span>
+    </div>
   );
 }

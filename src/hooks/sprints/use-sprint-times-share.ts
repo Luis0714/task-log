@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useSprintShareExport } from "@/hooks/sprints/use-sprint-share-export";
 import { buildSprintTimesShareDownloadFilename } from "@/lib/sprints/format-sprint-times-share";
@@ -24,6 +24,12 @@ import {
 export type UseSprintTimesShareOptions = Omit<SprintTimesShareQuery, "variant" | "times"> & {
   times: SprintTimesMetrics;
   canShare: boolean;
+  /**
+   * Variante que refleja lo que el usuario ve en pantalla (filtro de semanas).
+   * Al abrir el diálogo queda preseleccionada y la imagen se genera de
+   * inmediato, sin esperar una selección manual.
+   */
+  initialVariant?: SprintTimesShareVariant;
 };
 
 export type UseSprintTimesShareResult = ReturnType<typeof useSprintShareExport> & {
@@ -46,9 +52,13 @@ const TIMES_SHARE_MESSAGES = {
 export function useSprintTimesShare({
   canShare,
   times,
+  initialVariant,
   ...query
 }: UseSprintTimesShareOptions): UseSprintTimesShareResult {
-  const [variant, setVariantState] = useState<SprintTimesShareVariantSelection>(null);
+  const [dialogVariant, setDialogVariant] =
+    useState<SprintTimesShareVariantSelection>(null);
+  const variant: SprintTimesShareVariantSelection =
+    dialogVariant ?? initialVariant ?? null;
 
   const effectiveVariant: SprintTimesShareVariant | null =
     isSprintTimesShareVariantSelected(variant) &&
@@ -84,7 +94,7 @@ export function useSprintTimesShare({
   const setVariant = useCallback(
     (value: SprintTimesShareVariant) => {
       if (!isSprintTimesShareVariantEnabled(times, value)) return;
-      setVariantState(value);
+      setDialogVariant(value);
     },
     [times],
   );
@@ -122,17 +132,20 @@ export function useSprintTimesShare({
       title: `Tiempos del sprint — ${shareQuery?.sprintName ?? "sprint"}`,
       text: `Tiempos del sprint ${shareQuery?.sprintName ?? "sprint"}`,
     },
-    autoGenerateOnOpen: false,
   });
 
-  useEffect(() => {
-    if (exportResult.open) {
-      setVariantState(null);
-    }
-  }, [exportResult.open]);
+  const { setOpen: setExportOpen } = exportResult;
+  const setOpen = useCallback(
+    (open: boolean) => {
+      if (open) setDialogVariant(null);
+      setExportOpen(open);
+    },
+    [setExportOpen],
+  );
 
   return {
     ...exportResult,
+    setOpen,
     times,
     variant,
     setVariant,

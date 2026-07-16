@@ -23,6 +23,7 @@ function buildTimes(): SprintTimesMetrics {
         ],
         sprint: { taskHours: 18, bugHours: 2, newsHours: 8 },
         expectedHours: 72,
+        expectedHoursByWeek: [40, 32],
         compliancePct: 38.9,
         semaforo: "rojo",
       },

@@ -1,15 +1,24 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+
+export type StickyTableColumnSticky = {
+  /** Fija la columna a la izquierda (ej. "left-0", "left-48"). */
+  leftClass?: string;
+  /** Fija la columna a la derecha (ej. "right-0", "right-28"). */
+  rightClass?: string;
+  /** Columna del grupo fijo que linda con el área con scroll: pinta el divisor. */
+  isLast?: boolean;
+};
 
 export type StickyTableColumn<T> = {
   key: string;
   header: ReactNode;
   widthClass?: string;
-  sticky?: { leftClass: string; isLast?: boolean };
+  sticky?: StickyTableColumnSticky;
   align?: "left" | "center";
   bodyClassName?: string;
   headerClassName?: string;
@@ -22,7 +31,8 @@ export type StickyTableProps<T> = {
   getRowKey: (row: T, index: number) => string;
   className?: string;
   tableClassName?: string;
-  rowClassName?: string;
+  tableStyle?: CSSProperties;
+  rowClassName?: string | ((row: T, index: number) => string);
   bodyClassName?: string;
   renderCard?: (row: T) => ReactNode;
   cardsClassName?: string;
@@ -37,6 +47,7 @@ export function StickyTable<T>({
   getRowKey,
   className,
   tableClassName,
+  tableStyle,
   rowClassName,
   bodyClassName,
   renderCard,
@@ -83,6 +94,9 @@ export function StickyTable<T>({
     tableClassName,
   );
 
+  const resolveRowClassName = (row: T, index: number): string | undefined =>
+    typeof rowClassName === "function" ? rowClassName(row, index) : rowClassName;
+
   return (
     <>
       {renderCard ? (
@@ -104,7 +118,7 @@ export function StickyTable<T>({
         )}
       >
         <div ref={headerScrollRef} className="overflow-x-auto">
-          <table className={sharedTableClasses}>
+          <table className={sharedTableClasses} style={tableStyle}>
             <thead>
               <tr className="border-b">
                 {columns.map((col) => (
@@ -124,10 +138,10 @@ export function StickyTable<T>({
             "overflow-x-auto overflow-y-auto",
           )}
         >
-          <table className={sharedTableClasses}>
+          <table className={sharedTableClasses} style={tableStyle}>
             <tbody className={bodyClassName}>
               {rows.map((row, idx) => (
-                <tr key={getRowKey(row, idx)} className={rowClassName}>
+                <tr key={getRowKey(row, idx)} className={resolveRowClassName(row, idx)}>
                   {columns.map((col) => (
                     <td key={col.key} className={bodyCellClass(col)}>
                       {col.render(row)}
@@ -143,6 +157,14 @@ export function StickyTable<T>({
   );
 }
 
+function stickyEdgeClass(sticky: StickyTableColumnSticky): string | false {
+  if (!sticky.isLast) return false;
+  if (sticky.rightClass) {
+    return "after:absolute after:inset-y-0 after:left-0 after:w-px after:bg-border/60 after:content-['']";
+  }
+  return "after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border/60 after:content-['']";
+}
+
 function headerCellClass<T>(col: StickyTableColumn<T>): string {
   const alignment = col.align === "center" ? "text-center" : "text-left";
   if (!col.sticky) {
@@ -156,10 +178,10 @@ function headerCellClass<T>(col: StickyTableColumn<T>): string {
   return cn(
     "sticky z-20 border-b border-border/60 bg-background px-3 py-2 font-medium whitespace-nowrap",
     col.sticky.leftClass,
+    col.sticky.rightClass,
     col.widthClass,
     alignment,
-    col.sticky.isLast &&
-      "after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border/60 after:content-['']",
+    stickyEdgeClass(col.sticky),
     col.headerClassName,
   );
 }
@@ -175,9 +197,9 @@ function bodyCellClass<T>(col: StickyTableColumn<T>): string {
   return cn(
     "sticky z-10 border-b border-border/60 bg-background px-3 py-2",
     col.sticky.leftClass,
+    col.sticky.rightClass,
     col.widthClass,
-    col.sticky.isLast &&
-      "after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border/60 after:content-['']",
+    stickyEdgeClass(col.sticky),
     col.bodyClassName,
   );
 }

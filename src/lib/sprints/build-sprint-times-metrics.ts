@@ -5,6 +5,7 @@ import {
   totalHoursBreakdown,
   type HoursBreakdown,
 } from "@/lib/hours/hours-breakdown";
+import { computeExpectedHours, type AssignmentSegment } from "@/lib/expected-hours";
 import { listSprintWorkingDays, type SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 import {
   formatSprintWeekDateRange,
@@ -12,6 +13,10 @@ import {
 } from "@/lib/dashboard/sprint-weeks";
 import { findTeamMemberByAssigneeName } from "@/lib/filters/person-name";
 import type { AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import {
+  buildSprintNewsHoursByWeek,
+  type SprintNewsSolicitud,
+} from "@/lib/sprints/build-sprint-news-hours-by-week";
 import {
   resolveSprintBugAssigneeLabel,
   SPRINT_BUG_UNASSIGNED_LABEL,
@@ -30,18 +35,18 @@ export type BuildSprintTimesMetricsInput = {
   nonWorkingDates?: readonly string[];
   assigneeRoster?: readonly AdoTeamMemberDto[];
   /**
-   * Horas esperadas por assignee en el sprint, pre-computadas en page-shell
-   * con `resolveAssignmentSegments` + `computeExpectedHours`. Mantener el builder
-   * puro de dependencias de DB.
+   * Segmentos de asignación por assignee (mismas reglas del reporte por
+   * periodo), pre-cargados con `loadTeamAssignmentSegmentsByAssignee` para
+   * mantener el builder puro de dependencias de BD. Un assignee sin entrada
+   * se asume al 100% (D17/D18).
    */
-  expectedHoursByAssignee?: ReadonlyMap<string, number>;
+  assignmentSegmentsByAssignee?: ReadonlyMap<string, readonly AssignmentSegment[]>;
   /**
-   * Horas de novedades por assignee × semana, donde la clave de semana es el
-   * `dateKey` del lunes (o primer día hábil) de esa semana. Pre-computado en
-   * page-shell con `buildSprintNewsHoursByWeek`. Si un assignee o semana no
-   * aparece en el map, se asume `0`.
+   * Novedades que se cruzan con el sprint, pre-cargadas con
+   * `loadSprintNewsSolicitudes`. Sus horas se reparten por semana igual que
+   * en el reporte por periodo.
    */
-  newsHoursByAssigneeWeek?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+  newsSolicitudes?: readonly SprintNewsSolicitud[];
 };
 
 export const EMPTY_SPRINT_TIMES_METRICS: SprintTimesMetrics = {
@@ -102,6 +107,22 @@ function buildWeekBreakdown(
   return { ...base, newsHours };
 }
 
+/**
+ * Sin segmentos cargados, toda persona cuenta al 100% (D17/D18: nunca
+ * "Sin configurar"). La única excepción es la fila sintética "Sin asignar",
+ * que no es una persona y queda sin horas esperadas.
+ */
+function resolveSegmentsForAssignee(
+  assignee: string,
+  segmentsByAssignee: ReadonlyMap<string, readonly AssignmentSegment[]> | undefined,
+  sprintStartKey: string,
+): readonly AssignmentSegment[] {
+  if (assignee === SPRINT_BUG_UNASSIGNED_LABEL) return [];
+  const loaded = segmentsByAssignee?.get(assignee);
+  if (loaded && loaded.length > 0) return loaded;
+  return [{ pct: 100, from: sprintStartKey, to: null }];
+}
+
 function buildPersonRow(args: {
   assignee: string;
   tasks: readonly AdoWorkItemOptionDto[];
@@ -110,7 +131,7 @@ function buildPersonRow(args: {
   weekDayKeys: readonly (readonly string[])[];
   weekKeys: readonly string[];
   allSprintDayKeys: readonly string[];
-  expectedHours: number;
+  segments: readonly AssignmentSegment[];
   newsByWeek: ReadonlyMap<string, number> | undefined;
 }): SprintTimesPersonRow {
   const personTasks = filterItemsByAssignee(args.tasks, args.assignee, args.roster);
@@ -140,13 +161,22 @@ function buildPersonRow(args: {
 
   const sprint: HoursBreakdown = { ...sprintBase, newsHours: sprintNewsHours };
   const totalReported = totalHoursBreakdown(sprint);
-  const { pct, level } = computeCompliance(totalReported, args.expectedHours);
+
+  const expectedHours = computeExpectedHours(
+    args.allSprintDayKeys,
+    args.segments,
+  ).expectedHours;
+  const expectedHoursByWeek = args.weekDayKeys.map(
+    (dayKeys) => computeExpectedHours(dayKeys, args.segments).expectedHours,
+  );
+  const { pct, level } = computeCompliance(totalReported, expectedHours);
 
   return {
     assignee: args.assignee,
     weeks,
     sprint,
-    expectedHours: args.expectedHours,
+    expectedHours,
+    expectedHoursByWeek,
     compliancePct: pct,
     semaforo: level,
   };
@@ -197,13 +227,22 @@ function isoDateOnly(value: string): string | null {
   return value;
 }
 
-function weekKeyForDay(
-  dayKey: string,
-  weekKeysByDay: ReadonlyMap<string, string>,
-): string {
-  const fromMap = weekKeysByDay.get(dayKey);
-  if (fromMap) return fromMap;
-  return isoDateOnly(dayKey) ?? dayKey;
+function buildNewsHoursByAssigneeWeek(args: {
+  solicitudes: readonly SprintNewsSolicitud[];
+  roster: readonly AdoTeamMemberDto[];
+  weekKeysByDay: ReadonlyMap<string, string>;
+  sprintDayKeys: readonly string[];
+}): ReadonlyMap<string, ReadonlyMap<string, number>> {
+  const normalized = args.solicitudes.map((solicitud) => ({
+    ...solicitud,
+    assignee: resolveTimesAssigneeLabel(args.roster, solicitud.assignee),
+  }));
+
+  return buildSprintNewsHoursByWeek({
+    weekKeysByDay: args.weekKeysByDay,
+    sprintDayKeys: args.sprintDayKeys,
+    solicitudes: normalized,
+  });
 }
 
 export function buildSprintTimesMetrics(
@@ -236,6 +275,7 @@ export function buildSprintTimesMetrics(
   });
 
   const allSprintDayKeys = workingDays.map((day) => day.value);
+  const sprintStartKey = allSprintDayKeys[0] ?? "";
 
   const weeks = weekGroups
     .map((days, index) =>
@@ -246,12 +286,16 @@ export function buildSprintTimesMetrics(
   const assigneeRoster = input.assigneeRoster ?? [];
   const assignees = resolveAssigneeLabels(input.tasks, input.bugs, assigneeRoster);
 
+  const newsHoursByAssigneeWeek = buildNewsHoursByAssigneeWeek({
+    solicitudes: input.newsSolicitudes ?? [],
+    roster: assigneeRoster,
+    weekKeysByDay,
+    sprintDayKeys: allSprintDayKeys,
+  });
+
   const rows = sortPersonRows(
-    assignees.map((assignee) => {
-      const expectedHours =
-        input.expectedHoursByAssignee?.get(assignee) ?? 0;
-      const newsByWeek = input.newsHoursByAssigneeWeek?.get(assignee);
-      return buildPersonRow({
+    assignees.map((assignee) =>
+      buildPersonRow({
         assignee,
         tasks: input.tasks,
         bugs: input.bugs,
@@ -259,13 +303,15 @@ export function buildSprintTimesMetrics(
         weekDayKeys,
         weekKeys,
         allSprintDayKeys,
-        expectedHours,
-        newsByWeek,
-      });
-    }),
+        segments: resolveSegmentsForAssignee(
+          assignee,
+          input.assignmentSegmentsByAssignee,
+          sprintStartKey,
+        ),
+        newsByWeek: newsHoursByAssigneeWeek.get(assignee),
+      }),
+    ),
   );
 
   return { weeks, rows };
 }
-
-export { weekKeyForDay };

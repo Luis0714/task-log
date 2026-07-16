@@ -4,6 +4,9 @@ import { sprintGoalShareTheme } from "@/lib/sprints/sprint-goal-share-theme";
 
 export const SPRINT_TIMES_SHARE_IMAGE_WIDTH = 1200;
 
+const SPRINT_TIMES_SHARE_EXTRA_WEEK_WIDTH = 280;
+const SPRINT_TIMES_SHARE_BASE_WEEK_COUNT = 2;
+
 export const SPRINT_TIMES_SHARE_IMAGE_LAYOUT = {
   headerHeight: 168,
   legendHeight: 52,
@@ -32,9 +35,18 @@ export function computeSprintTimesShareImageHeight(payload: SprintTimesSharePayl
   );
 }
 
+/**
+ * A partir de la tercera semana el lienzo crece para que cada semana conserve
+ * un ancho legible en sprints largos.
+ */
 export function getSprintTimesShareImageSize(payload: SprintTimesSharePayload) {
+  const weekColumns = payload.table.columns.filter(
+    (column) => column.kind === "week",
+  ).length;
+  const extraWeeks = Math.max(0, weekColumns - SPRINT_TIMES_SHARE_BASE_WEEK_COUNT);
+
   return {
-    width: SPRINT_TIMES_SHARE_IMAGE_WIDTH,
+    width: SPRINT_TIMES_SHARE_IMAGE_WIDTH + extraWeeks * SPRINT_TIMES_SHARE_EXTRA_WEEK_WIDTH,
     height: computeSprintTimesShareImageHeight(payload),
   };
 }

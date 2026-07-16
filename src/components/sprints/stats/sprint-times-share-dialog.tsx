@@ -9,7 +9,7 @@ import type { UseSprintTimesShareResult } from "@/hooks/sprints/use-sprint-times
 // ajustar el wording sin tener que buscar a través del JSX anidado, y evita
 // divergencias entre la descripción y los alts de la imagen.
 const DIALOG_DESCRIPTION =
-  "Elige el resumen que necesitas y compártelo como imagen en Teams, WhatsApp o correo. También puedes copiar la imagen al portapapeles.";
+  "La imagen refleja lo que estás viendo en la tabla. Puedes cambiar el resumen y compartirla en Teams, WhatsApp o correo, o copiarla al portapapeles.";
 const PREVIEW_ALT = "Vista previa de tiempos del sprint";
 const EMPTY_PREVIEW_MESSAGE =
   "Elige el resumen que quieres compartir para generar la imagen.";

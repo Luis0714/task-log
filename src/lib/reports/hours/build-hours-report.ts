@@ -27,7 +27,10 @@ import type {
   HoursReportResult,
   HoursReportRow,
 } from "@/lib/reports/hours/hours-report-types";
-import { resolveAssignmentSegments } from "@/lib/reports/hours/resolve-assignment-segments";
+import {
+  resolveAssignmentSegments,
+  toAssignmentsForSegments,
+} from "@/lib/reports/hours/resolve-assignment-segments";
 import { loadWorkingDayKeysInRange } from "@/lib/hours/load-working-day-keys";
 import type { NewsStoriesRepository } from "@/lib/db/ports/news-stories.repository.port";
 import { NewsNotConfiguredError } from "@/lib/reports/hours/errors";
@@ -321,7 +324,7 @@ function buildPersonReportRow(input: {
   );
   const hasException = personAssignments.length > 0;
   const segments = resolveAssignmentSegments({
-    assignments: toSegmentInputs(personAssignments),
+    assignments: toAssignmentsForSegments(personAssignments),
     periodStart: input.fromIso,
     periodEnd: input.toIso,
     hasInferredDefault: !hasException,
@@ -401,22 +404,6 @@ function formatIsoDate(year: number, month: number, day: number): string {
 
 function padTwo(value: number): string {
   return String(value).padStart(2, "0");
-}
-
-function toSegmentInputs(rows: readonly PersonProjectAssignmentRow[]) {
-  return rows.map((r) => ({
-    assignmentPct: r.assignmentPct,
-    validFrom: toIsoKey(r.validFrom),
-    validTo: r.validTo ? toIsoKey(r.validTo) : null,
-  }));
-}
-
-function toIsoKey(date: Date | string): string {
-  if (typeof date === "string") return date.slice(0, 10);
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(date.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
 }
 
 function buildAssignmentLabel(

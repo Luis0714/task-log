@@ -2,7 +2,6 @@ import { totalHoursBreakdown, type HoursBreakdown } from "@/lib/hours/hours-brea
 import { SPRINT_GOAL_SHARE_FONT_FAMILY } from "@/lib/sprints/load-sprint-goal-share-fonts";
 import { sprintTimesShareImageColors } from "@/lib/sprints/sprint-times-share-image-colors";
 import {
-  SprintTimesShareBreakdownCell,
   SprintTimesShareBugHoursCell,
   SprintTimesShareComplianceCell,
   SprintTimesShareDevHoursCell,
@@ -15,7 +14,6 @@ import { SPRINT_TIMES_SHARE_LABELS } from "@/lib/sprints/sprint-times-share-labe
 import {
   SPRINT_TIMES_SHARE_IMAGE_LAYOUT,
   sprintTimesShareImageTheme,
-  truncateSprintTimesShareText,
 } from "@/lib/sprints/sprint-times-share-image-theme";
 import type {
   SprintTimesShareColumn,
@@ -111,12 +109,42 @@ function WeekGroupCells({
   );
 }
 
+const ASSIGNEE_CHAR_WIDTH = 8.5;
+const ASSIGNEE_MIN_WIDTH = 150;
+const ASSIGNEE_MAX_WIDTH = 380;
+
+/**
+ * Ancho fijo suficiente para el nombre más largo en una sola línea: los
+ * nombres completos nunca se truncan ni saltan de línea.
+ */
+function resolveAssigneeColumnWidth(rows: readonly SprintTimesShareTableRow[]): number {
+  const longest = rows.reduce((max, row) => Math.max(max, row.assignee.length), 0);
+  return Math.min(
+    ASSIGNEE_MAX_WIDTH,
+    Math.max(ASSIGNEE_MIN_WIDTH, Math.round(longest * ASSIGNEE_CHAR_WIDTH) + 16),
+  );
+}
+
+/**
+ * La columna de semana aloja 4 sub-celdas (Desarrollo/Bugs/Novedades/Total),
+ * por eso pesa ~3-4× el resto; Esperadas, Total y % Cumplimiento son un solo
+ * valor y quedan angostas.
+ */
 function resolveColumnFlex(column: SprintTimesShareColumn): number {
-  if (column.kind === "assignee") return 1.15;
-  if (column.kind === "week") return 1.2;
-  if (column.kind === "expectedHours") return 0.9;
-  if (column.kind === "compliance") return 1.05;
-  return 0.95;
+  if (column.kind === "week") return 3.2;
+  if (column.kind === "expectedHours") return 0.6;
+  if (column.kind === "compliance") return 0.7;
+  return 0.8;
+}
+
+function resolveColumnStyle(
+  column: SprintTimesShareColumn,
+  assigneeWidth: number,
+): React.CSSProperties {
+  if (column.kind === "assignee") {
+    return { width: assigneeWidth, flexShrink: 0 };
+  }
+  return { flex: resolveColumnFlex(column) };
 }
 
 function renderColumnHeader(column: SprintTimesShareColumn) {
@@ -256,9 +284,10 @@ function renderRowCell(
           fontSize: 15,
           fontWeight: row.emphasized ? 700 : 600,
           color: sprintTimesShareImageTheme.text,
+          whiteSpace: "nowrap",
         }}
       >
-        {truncateSprintTimesShareText(row.assignee, 28)}
+        {row.assignee}
       </span>
     );
   }
@@ -280,7 +309,7 @@ function renderRowCell(
 
   if (column.kind === "weekTotal") {
     if (!row.weekTotal) return <span style={{ display: "flex" }} />;
-    return <SprintTimesShareBreakdownCell breakdown={row.weekTotal} emphasized={row.emphasized} />;
+    return <SprintTimesShareWeekTotalCell value={totalHoursBreakdown(row.weekTotal)} />;
   }
 
   if (column.kind === "compliance") {
@@ -290,15 +319,17 @@ function renderRowCell(
   }
 
   if (!row.sprint) return <span style={{ display: "flex" }} />;
-  return <SprintTimesShareBreakdownCell breakdown={row.sprint} emphasized={row.emphasized} />;
+  return <SprintTimesShareWeekTotalCell value={totalHoursBreakdown(row.sprint)} />;
 }
 
 function TableRow({
   columns,
   row,
+  assigneeWidth,
 }: Readonly<{
   columns: SprintTimesShareColumn[];
   row: SprintTimesShareTableRow;
+  assigneeWidth: number;
 }>) {
   return (
     <div
@@ -317,7 +348,7 @@ function TableRow({
           key={`${column.kind}-${index}`}
           style={{
             display: "flex",
-            flex: resolveColumnFlex(column),
+            ...resolveColumnStyle(column, assigneeWidth),
             minWidth: 0,
             alignItems: "center",
             justifyContent: column.kind === "assignee" ? "flex-start" : "center",
@@ -333,6 +364,7 @@ function TableRow({
 export function SprintTimesShareImageTableSection({ payload }: Readonly<{ payload: SprintTimesSharePayload }>) {
   const { horizontalPadding } = SPRINT_TIMES_SHARE_IMAGE_LAYOUT;
   const { columns, rows, teamTotalRow } = payload.table;
+  const assigneeWidth = resolveAssigneeColumnWidth([...rows, teamTotalRow]);
 
   return (
     <div
@@ -361,7 +393,7 @@ export function SprintTimesShareImageTableSection({ payload }: Readonly<{ payloa
             key={`header-${column.kind}-${index}`}
             style={{
               display: "flex",
-              flex: resolveColumnFlex(column),
+              ...resolveColumnStyle(column, assigneeWidth),
               minWidth: 0,
               alignItems: "center",
               justifyContent: column.kind === "assignee" ? "flex-start" : "center",
@@ -387,7 +419,7 @@ export function SprintTimesShareImageTableSection({ payload }: Readonly<{ payloa
             key={`sub-${column.kind}-${index}`}
             style={{
               display: "flex",
-              flex: resolveColumnFlex(column),
+              ...resolveColumnStyle(column, assigneeWidth),
               minWidth: 0,
               alignItems: "center",
               justifyContent: "center",
@@ -400,9 +432,14 @@ export function SprintTimesShareImageTableSection({ payload }: Readonly<{ payloa
 
       <div style={{ display: "flex", flexDirection: "column" }}>
         {rows.map((row) => (
-          <TableRow key={row.assignee} columns={columns} row={row} />
+          <TableRow
+            key={row.assignee}
+            columns={columns}
+            row={row}
+            assigneeWidth={assigneeWidth}
+          />
         ))}
-        <TableRow columns={columns} row={teamTotalRow} />
+        <TableRow columns={columns} row={teamTotalRow} assigneeWidth={assigneeWidth} />
       </div>
     </div>
   );

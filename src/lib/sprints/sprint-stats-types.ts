@@ -82,6 +82,12 @@ export type SprintTimesPersonRow = {
   weeks: HoursBreakdown[];
   sprint: HoursBreakdown;
   expectedHours: number;
+  /**
+   * Horas esperadas de cada semana (mismo índice que `weeks`). Puede venir
+   * vacío en snapshots antiguos; en ese caso se prorratea `expectedHours`
+   * por días hábiles de la semana.
+   */
+  expectedHoursByWeek: number[];
   compliancePct: number | null;
   semaforo: SemaforoLevel | null;
 };

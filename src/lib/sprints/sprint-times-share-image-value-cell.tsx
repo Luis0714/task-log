@@ -1,6 +1,4 @@
-import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import { formatHours } from "@/lib/dashboard/format-hours";
-import { totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
 import type { SemaforoLevel } from "@/lib/reports/hours/hours-report-types";
 import {
   SprintTimesShareBugIconSvg,
@@ -129,51 +127,6 @@ export function SprintTimesShareComplianceCell({
       }}
     >
       {pct ?? 0}%
-    </div>
-  );
-}
-
-export function SprintTimesShareBreakdownCell({
-  breakdown,
-  emphasized = false,
-}: Readonly<{
-  breakdown: HoursBreakdown;
-  emphasized?: boolean;
-}>) {
-  const total = totalHoursBreakdown(breakdown);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-      <HoursValue
-        value={total}
-        icon="clock"
-        color={sprintTimesShareImageColors.sprintTotal}
-        fontSize={emphasized ? 16 : 15}
-        fontWeight={emphasized ? 700 : 600}
-      />
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <HoursValue
-          value={breakdown.taskHours}
-          icon="dev"
-          color={sprintTimesShareImageColors.development}
-          fontSize={12}
-          fontWeight={500}
-        />
-        <HoursValue
-          value={breakdown.bugHours}
-          icon="bug"
-          color={sprintTimesShareImageColors.bug}
-          fontSize={12}
-          fontWeight={500}
-        />
-        <HoursValue
-          value={breakdown.newsHours}
-          icon="news"
-          color={sprintTimesShareImageColors.news}
-          fontSize={12}
-          fontWeight={500}
-        />
-      </div>
     </div>
   );
 }
