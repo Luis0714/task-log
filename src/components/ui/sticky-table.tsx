@@ -36,10 +36,13 @@ export type StickyTableProps<T> = {
   bodyClassName?: string;
   renderCard?: (row: T) => ReactNode;
   cardsClassName?: string;
+  /**
+   * Limita el alto del cuerpo con scroll interno (ej. "max-h-[60vh]"). Sin
+   * valor, la tabla crece con todas sus filas y el scroll vertical es el de
+   * la página.
+   */
   bodyMaxHeightClass?: string;
 };
-
-const DEFAULT_BODY_MAX_HEIGHT = "max-h-[60vh]";
 
 export function StickyTable<T>({
   columns,
@@ -52,7 +55,7 @@ export function StickyTable<T>({
   bodyClassName,
   renderCard,
   cardsClassName,
-  bodyMaxHeightClass = DEFAULT_BODY_MAX_HEIGHT,
+  bodyMaxHeightClass,
 }: Readonly<StickyTableProps<T>>) {
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const bodyScrollRef = useRef<HTMLDivElement>(null);
@@ -133,15 +136,18 @@ export function StickyTable<T>({
         <div
           ref={bodyScrollRef}
           className={cn(
-            bodyMaxHeightClass,
             "scrollbar-none [&::-webkit-scrollbar]:hidden",
-            "overflow-x-auto overflow-y-auto",
+            "overflow-x-auto",
+            bodyMaxHeightClass && ["overflow-y-auto", bodyMaxHeightClass],
           )}
         >
           <table className={sharedTableClasses} style={tableStyle}>
             <tbody className={bodyClassName}>
               {rows.map((row, idx) => (
-                <tr key={getRowKey(row, idx)} className={resolveRowClassName(row, idx)}>
+                <tr
+                  key={getRowKey(row, idx)}
+                  className={cn("group/row", resolveRowClassName(row, idx))}
+                >
                   {columns.map((col) => (
                     <td key={col.key} className={bodyCellClass(col)}>
                       {col.render(row)}
@@ -186,16 +192,27 @@ function headerCellClass<T>(col: StickyTableColumn<T>): string {
   );
 }
 
+const ROW_HOVER_CELL = "group-hover/row:bg-muted/30";
+/**
+ * Las celdas fijas deben seguir opacas al hover para que las columnas con
+ * scroll no se transparenten debajo: mismo tono que `bg-muted/30` pero
+ * mezclado en sólido sobre el fondo.
+ */
+const ROW_HOVER_STICKY_CELL =
+  "group-hover/row:bg-[color-mix(in_oklab,var(--muted)_30%,var(--background))]";
+
 function bodyCellClass<T>(col: StickyTableColumn<T>): string {
   if (!col.sticky) {
     return cn(
       "border-b border-border/60 px-3 py-2",
+      ROW_HOVER_CELL,
       col.widthClass,
       col.bodyClassName,
     );
   }
   return cn(
     "sticky z-10 border-b border-border/60 bg-background px-3 py-2",
+    ROW_HOVER_STICKY_CELL,
     col.sticky.leftClass,
     col.sticky.rightClass,
     col.widthClass,

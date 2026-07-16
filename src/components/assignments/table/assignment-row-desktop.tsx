@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ConfirmEditDialog } from "@/components/assignments/confirm-edit-dialog";
+import { TruncatedTextTooltip } from "@/components/ui/truncated-text-tooltip";
 import type { AssignmentRow } from "@/hooks/assignments/use-assignments";
 import { cn } from "@/lib/utils";
 
@@ -35,13 +36,13 @@ export function AssignmentRowDesktop({
     <>
       <tr
         className={cn(
-          "border-border/40 border-t transition-opacity",
+          "border-border/40 hover:bg-muted/30 border-t transition-opacity",
           row.pending && "opacity-60",
         )}
       >
         <td className="px-3 py-2 font-medium">
           <div className="flex items-center gap-2">
-            {row.personDisplayName}
+            <TruncatedTextTooltip text={row.personDisplayName} />
             {row.pending ? (
               <Loader2
                 className="text-muted-foreground size-3 animate-spin"
@@ -50,9 +51,11 @@ export function AssignmentRowDesktop({
             ) : null}
           </div>
         </td>
-        <td className="px-3 py-2 text-muted-foreground">{row.projectName}</td>
         <td className="px-3 py-2 text-muted-foreground">
-          {row.teamName ?? "—"}
+          <TruncatedTextTooltip text={row.projectName} />
+        </td>
+        <td className="px-3 py-2 text-muted-foreground">
+          {row.teamName ? <TruncatedTextTooltip text={row.teamName} /> : "—"}
         </td>
         <td className="px-3 py-2 text-right font-mono">{row.assignmentPct}%</td>
         <td className="px-3 py-2 text-muted-foreground text-xs whitespace-nowrap">

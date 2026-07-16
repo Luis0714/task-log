@@ -1,4 +1,5 @@
 import type { StickyTableColumn } from "@/components/ui/sticky-table";
+import { TruncatedTextTooltip } from "@/components/ui/truncated-text-tooltip";
 import { ReportsTimeLogSemaforoBadge } from "@/components/reports/time-log/reports-time-log-semaforo-badge";
 import {
   Tooltip,
@@ -24,8 +25,7 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
     widthClass: "w-48",
     sticky: { leftClass: "left-0" },
     align: "left",
-    bodyClassName: "truncate",
-    render: (row) => row.projectName,
+    render: (row) => <TruncatedTextTooltip text={row.projectName} />,
   },
   {
     key: "equipo",
@@ -33,8 +33,8 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
     widthClass: "w-48",
     sticky: { leftClass: "left-48" },
     align: "left",
-    bodyClassName: "truncate",
-    render: (row) => row.teamName ?? "—",
+    render: (row) =>
+      row.teamName ? <TruncatedTextTooltip text={row.teamName} /> : "—",
   },
   {
     key: "usuario",
@@ -42,8 +42,8 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
     widthClass: "w-56",
     sticky: { leftClass: "left-96", isLast: true },
     align: "left",
-    bodyClassName: "truncate font-medium",
-    render: (row) => row.personDisplayName,
+    bodyClassName: "font-medium",
+    render: (row) => <TruncatedTextTooltip text={row.personDisplayName} />,
   },
   {
     key: "assignmentPct",

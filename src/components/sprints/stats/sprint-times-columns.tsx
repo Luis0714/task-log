@@ -15,6 +15,7 @@ import {
   SprintTimesWeekTotalValue,
 } from "@/components/sprints/stats/sprint-times-hours-cell";
 import type { StickyTableColumn } from "@/components/ui/sticky-table";
+import { TruncatedTextTooltip } from "@/components/ui/truncated-text-tooltip";
 import { TeamMemberAvatar } from "@/components/team-members/team-member-avatar";
 import { EMPTY_HOURS_BREAKDOWN, totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
 import type {
@@ -139,9 +140,7 @@ function buildPersonColumn(): StickyTableColumn<SprintTimesPersonRow> {
     render: (row) => (
       <div className="flex min-w-0 items-center gap-2">
         <TeamMemberAvatar name={row.assignee} size="sm" />
-        <p className="truncate text-sm font-medium" title={row.assignee}>
-          {row.assignee}
-        </p>
+        <TruncatedTextTooltip text={row.assignee} className="text-sm font-medium" />
       </div>
     ),
   };
