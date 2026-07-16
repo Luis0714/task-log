@@ -2,6 +2,7 @@ import "server-only";
 
 import ExcelJS from "exceljs";
 
+import type { DeviationLevel } from "@/lib/reports/hours/deviation";
 import {
   buildHoursCell,
   buildPersonaCell,
@@ -72,6 +73,31 @@ const SEMAFORO_FG: Record<SemaforoLevel, string> = {
   verde: "FF065F46",
   amarillo: "FF92400E",
   rojo: "FF991B1B",
+};
+
+/**
+ * Colores del badge de desviación: rojo cuando el cumplimiento es inferior
+ * al 100%, verde cuando es exacto y azul cuando lo supera. La intensidad
+ * sigue los mismos buckets del semáforo (5% / 20%).
+ */
+const DEVIATION_FILLS: Record<DeviationLevel, string> = {
+  exact: "FFD1FAE5",
+  "under-light": "FFFEE2E2",
+  "under-medium": "FFFECACA",
+  "under-strong": "FFFCA5A5",
+  "over-light": "FFE0F2FE",
+  "over-medium": "FFBAE6FD",
+  "over-strong": "FF7DD3FC",
+};
+
+const DEVIATION_FG: Record<DeviationLevel, string> = {
+  exact: "FF065F46",
+  "under-light": "FFB91C1C",
+  "under-medium": "FF991B1B",
+  "under-strong": "FF7F1D1D",
+  "over-light": "FF0369A1",
+  "over-medium": "FF075985",
+  "over-strong": "FF0C4A6E",
 };
 
 export type BuildHoursReportExcelInput = {
@@ -235,7 +261,7 @@ function writeDataRow(
 
   styleCell(ws.getCell(excelRow, 12), {
     fill: COLOR.cardBg,
-    alignment: leftAlign(1, true),
+    alignment: centerAlign(true),
     borderStyle: "thin",
     skipRightBorder: true,
   });
@@ -246,7 +272,7 @@ function writeDataRow(
   buildNumericCell(ws, excelRow, 14, row.totalHours);
 
   buildSemaforoCell(ws, excelRow, 15, row.semaforo, row.compliancePct);
-  buildSemaforoCell(ws, excelRow, 16, row.deviationLevel, row.deviationPct);
+  buildDeviationCell(ws, excelRow, 16, row.deviationLevel, row.deviationPct);
 }
 
 function buildNumericCell(
@@ -287,6 +313,41 @@ function buildSemaforoCell(
   styleCell(cell, {
     fill: SEMAFORO_FILLS[level],
     font: { color: SEMAFORO_FG[level], bold: true, size: 10 },
+    alignment: centerAlign(),
+    borderStyle: "thin",
+    skipRightBorder,
+  });
+  cell.value = `${pct ?? 0}%`;
+  cell.numFmt = `0"%"`;
+}
+
+/**
+ * Celda de "% Desviación". Comparte el layout con `buildSemaforoCell` pero
+ * usa la escala roja/verde/azul específica (sub/exacto/sobre cumplimiento).
+ */
+function buildDeviationCell(
+  ws: ExcelJS.Worksheet,
+  excelRow: number,
+  col: number,
+  level: DeviationLevel | null,
+  pct: number | null,
+): void {
+  const cell = ws.getCell(excelRow, col);
+  const skipRightBorder = col < 16;
+  if (level === null) {
+    styleCell(cell, {
+      fill: COLOR.placeholderFg,
+      font: { color: COLOR.mutedFg, size: 10, italic: true },
+      alignment: centerAlign(),
+      borderStyle: "thin",
+      skipRightBorder,
+    });
+    cell.value = "Sin configurar";
+    return;
+  }
+  styleCell(cell, {
+    fill: DEVIATION_FILLS[level],
+    font: { color: DEVIATION_FG[level], bold: true, size: 10 },
     alignment: centerAlign(),
     borderStyle: "thin",
     skipRightBorder,

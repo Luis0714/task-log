@@ -28,7 +28,7 @@ function makeRow(personDisplayName: string): HoursReportRow {
     compliancePct: 87.5,
     semaforo: "amarillo",
     deviationPct: 12.5,
-    deviationLevel: "amarillo",
+    deviationLevel: "under-medium",
   };
 }
 

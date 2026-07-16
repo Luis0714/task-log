@@ -413,4 +413,41 @@ describe("buildHoursReport", () => {
     expect(error.name).toBe("NewsNotConfiguredError");
     expect(error.message.length).toBeGreaterThan(0);
   });
+
+  it("ordena las filas por % de cumplimiento descendente (nulos al final, desempate alfabético)", async () => {
+    const result = await buildHoursReport(
+      {
+        scopes: [makeScope()],
+        period: { kind: "range", fromIso: "2026-06-01", toIso: "2026-06-30" },
+      },
+      {
+        auth: fakeAuth,
+        // El roster del reporte se arma desde las excepciones en BD.
+        // Ana: 100%, Beto: 100%, Cami: 100%. Las horas esperadas serán iguales,
+        // así que el orden lo define el cumplimiento calculado a partir de
+        // las horas reportadas en `listTasks`.
+        assignmentRepo: makeFakeAssignmentRepo([
+          makeAssignment({ personAdoId: "a", personDisplayName: "Ana", assignmentPct: 100 }),
+          makeAssignment({ personAdoId: "b", personDisplayName: "Beto", assignmentPct: 100 }),
+          makeAssignment({ personAdoId: "c", personDisplayName: "Cami", assignmentPct: 100 }),
+        ]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo([
+          { workItemId: 500, projectId: "Proyecto A", teamId: "Backend" },
+        ]),
+        listTasks: async () => [
+          makeTask({ id: 1, loggedHours: 80, assignedTo: "Ana", parentId: 500 }),
+          makeTask({ id: 2, loggedHours: 40, assignedTo: "Beto", parentId: 500 }),
+          makeTask({ id: 3, loggedHours: 0, assignedTo: "Cami", parentId: 500 }),
+        ],
+        listBugs: async () => [],
+        listReportedNews: async () => [],
+        listWorkingDays: async () => fixedWorkingDays("2026-06-01", "2026-06-30"),
+        now: fixedNow,
+      },
+    );
+
+    const order = result.rows.map((row) => row.personDisplayName);
+    // Ana (mayor cumplimiento) primero, Beto en medio, Cami (sin horas, null) al final.
+    expect(order).toEqual(["Ana", "Beto", "Cami"]);
+  });
 });

@@ -28,11 +28,6 @@ export type AssignmentsShellProps = Readonly<{
   catalog: AdoCatalogSnapshot;
 }>;
 
-function currentMonthKey(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
 export function AssignmentsShell({
   initialAssignments,
   catalog,
@@ -67,7 +62,6 @@ export function AssignmentsShell({
         urlTeams.length > 0 ? urlTeams : defaultTeamNames,
         teamNamesForProjects(catalog.teamsByProject, projects),
       ),
-      month: currentMonthKey(),
     };
   });
 
@@ -133,8 +127,15 @@ export function AssignmentsShell({
     () => filterByPersonName(defaults, filters.personQuery),
     [defaults, filters.personQuery],
   );
+  // Universo del conteo: respeta los filtros de proyecto/equipo pero NO el de
+  // persona, para que el denominador refleje el alcance actual y no el total
+  // absoluto de la BD. `defaults` ya nace scoped a esos slots.
+  const scopeRowsCount = useMemo(
+    () => filterAssignmentRows(rows, { ...filters, personQuery: "" }).length,
+    [rows, filters],
+  );
   const totalVisible = visibleRows.length + visibleDefaults.length;
-  const totalAll = rows.length + defaults.length;
+  const totalAll = scopeRowsCount + defaults.length;
   const totalNoun = totalAll === 1 ? "asignación" : "asignaciones";
 
   function handleFiltersChange(next: AssignmentsFiltersValue) {
@@ -156,7 +157,6 @@ export function AssignmentsShell({
       personQuery: "",
       projects: [...defaultProjectNames],
       teams: [...defaultTeamNames],
-      month: currentMonthKey(),
     });
   }
 

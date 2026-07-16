@@ -12,22 +12,14 @@ import {
 import { MultiCheckboxFilter } from "@/components/filters/multi-checkbox-filter";
 import type { MultiCheckboxFilterOption } from "@/components/filters/multi-checkbox-filter";
 
-/** Mes actual, en formato `YYYY-MM`. */
-function defaultMonthKey(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
 /**
  * Estado de los filtros del módulo de asignaciones.
- * Proyectos/Equipos vacíos = "todos". El mes sí tiene siempre un valor por
- * defecto (el actual) — el usuario lo cambia si quiere uno distinto.
+ * Proyectos/Equipos vacíos = "todos".
  */
 export type AssignmentsFiltersValue = {
   personQuery: string;
   projects: string[];
   teams: string[];
-  month: string;
 };
 
 /** Shape "vacío" usado sólo por la firma; los defaults reales se aplican en shell. */
@@ -35,14 +27,12 @@ export type EmptyAssignmentsFiltersShape = Readonly<{
   personQuery: string;
   projects: ReadonlyArray<string>;
   teams: ReadonlyArray<string>;
-  month: string;
 }>;
 
 export const EMPTY_ASSIGNMENTS_FILTERS: EmptyAssignmentsFiltersShape = {
   personQuery: "",
   projects: [],
   teams: [],
-  month: defaultMonthKey(),
 } as const;
 
 /** Construye los filtros iniciales con proyectos/equipos del catálogo por defecto. */
@@ -54,7 +44,6 @@ export function buildInitialAssignmentsFilters(
     personQuery: "",
     projects: [...projectNames],
     teams: [...teamNames],
-    month: defaultMonthKey(),
   };
 }
 
@@ -151,24 +140,7 @@ export function AssignmentsFilters({
         />
       </div>
 
-      {/* Mes — 15% en desktop, input compacto. */}
-      <div className="flex w-full min-w-0 flex-col gap-1.5 sm:w-[calc(50%-0.375rem)] lg:w-[15%]">
-        <label
-          htmlFor="assignments-filter-month"
-          className="text-xs font-medium"
-        >
-          Mes
-        </label>
-        <Input
-          id="assignments-filter-month"
-          type="month"
-          value={value.month}
-          onChange={(e) => onChange({ ...value, month: e.target.value })}
-          className="w-full font-mono"
-        />
-      </div>
-
-      {/* Limpiar filtros — 5% en desktop (icon-only), fila propia en mobile. */}
+      {/* Limpiar filtros — ocupa el espacio restante; fila propia en mobile. */}
       {hasAnyFilter ? (
         <div className="flex w-full min-w-0 items-end justify-end sm:w-full lg:w-[5%] lg:justify-center">
           <Tooltip>

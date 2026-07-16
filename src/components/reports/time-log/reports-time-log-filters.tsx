@@ -185,7 +185,7 @@ export function ReportsTimeLogFilters({
               <>
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <Label>Desde</Label>
-                  <DatePicker value={rangeFrom} onChange={onRangeFromChange} max={rangeTo} />
+                  <DatePicker value={rangeFrom} onChange={onRangeFromChange} />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <Label>Hasta</Label>

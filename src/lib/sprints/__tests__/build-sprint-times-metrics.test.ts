@@ -213,4 +213,30 @@ describe("buildSprintTimesMetrics", () => {
     expect(row?.expectedHours).toBe(0);
     expect(row?.compliancePct).toBeNull();
   });
+
+  it("ordena las filas por % de cumplimiento descendente (nulos al final)", () => {
+    const metrics = buildSprintTimesMetrics({
+      tasks: [
+        // Ana: 80h trabajadas → cumplimiento alto.
+        makeItem({ id: 1, assignedTo: "Ana Gómez", loggedHours: 40 }),
+        makeItem({ id: 2, assignedTo: "Ana Gómez", loggedHours: 40 }),
+        // Beto: pocas horas → cumplimiento bajo.
+        makeItem({ id: 3, assignedTo: "Beto Pérez", loggedHours: 4 }),
+        // Cami: nada → cumplimiento null.
+        makeItem({ id: 4, assignedTo: "Cami Ruiz", loggedHours: 0 }),
+      ],
+      bugs: [],
+      sprintStartDate: SPRINT_START,
+      sprintFinishDate: SPRINT_FINISH,
+      assigneeRoster: [
+        { id: "a", uniqueName: "ana@org.com", displayName: "Ana Gómez" },
+        { id: "b", uniqueName: "beto@org.com", displayName: "Beto Pérez" },
+        { id: "c", uniqueName: "cami@org.com", displayName: "Cami Ruiz" },
+      ],
+    });
+
+    const order = metrics.rows.map((r) => r.assignee);
+    // Ana (mayor cumplimiento) → Beto (menor) → Cami (sin horas, null al final).
+    expect(order).toEqual(["Ana Gómez", "Beto Pérez", "Cami Ruiz"]);
+  });
 });

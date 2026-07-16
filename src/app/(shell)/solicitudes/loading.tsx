@@ -14,9 +14,19 @@ const COLUMNS: readonly Column[] = [
   { label: "Fin" },
   { label: "Reintegro" },
   { label: "Horas", align: "right" },
+  { label: "Días", align: "right" },
   { label: "Estado", align: "right", cellClassName: "min-w-32" },
   { label: "Acciones", align: "right" },
   { label: "Azure", align: "right" },
+] as const;
+
+const SKELETON_ROW_KEYS = [
+  "skeleton-row-1",
+  "skeleton-row-2",
+  "skeleton-row-3",
+  "skeleton-row-4",
+  "skeleton-row-5",
+  "skeleton-row-6",
 ] as const;
 
 export default function SolicitudesLoading() {
@@ -49,8 +59,8 @@ export default function SolicitudesLoading() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {Array.from({ length: 6 }).map((_, rowIdx) => (
-              <tr key={rowIdx} className="hover:bg-muted/30">
+            {SKELETON_ROW_KEYS.map((rowKey) => (
+              <tr key={rowKey} className="hover:bg-muted/30">
                 {COLUMNS.map((col) => (
                   <td
                     key={col.label}
