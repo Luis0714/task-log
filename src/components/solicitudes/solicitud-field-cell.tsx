@@ -17,8 +17,9 @@ export function SolicitudFieldCell({ field, value }: SolicitudFieldCellProps) {
   const { widthClass, align, withTooltip } = resolveFieldCellLayout(field);
 
   const baseAlign = align === "right" ? "text-right" : "text-left";
-  const nowrapClass = align === "right" ? "whitespace-nowrap" : "whitespace-nowrap";
-  const classes = ["px-3 py-2", baseAlign, nowrapClass, widthClass].filter(Boolean).join(" ");
+  const classes = ["px-3 py-2", baseAlign, "whitespace-nowrap", widthClass]
+    .filter(Boolean)
+    .join(" ");
 
   if (withTooltip) {
     return (
