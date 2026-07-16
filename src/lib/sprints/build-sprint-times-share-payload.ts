@@ -107,9 +107,11 @@ function buildColumns(
     times.weeks.forEach((week, index) => {
       columns.push({ kind: "week", weekIndex: index, week });
     });
-    columns.push({ kind: "expectedHours" });
-    columns.push({ kind: "sprintTotal" });
-    columns.push({ kind: "compliance" });
+    columns.push(
+      { kind: "sprintTotal" },
+      { kind: "expectedHours" },
+      { kind: "compliance" },
+    );
     return columns;
   }
 
@@ -117,9 +119,11 @@ function buildColumns(
   if (focusWeek) {
     columns.push({ kind: "week", weekIndex: focusWeekIndex, week: focusWeek });
   }
-  columns.push({ kind: "expectedHours" });
-  columns.push({ kind: "weekTotal", label: SPRINT_TIMES_SHARE_LABELS.weekTotalColumn });
-  columns.push({ kind: "compliance" });
+  columns.push(
+    { kind: "weekTotal", label: SPRINT_TIMES_SHARE_LABELS.weekTotalColumn },
+    { kind: "expectedHours" },
+    { kind: "compliance" },
+  );
   return columns;
 }
 

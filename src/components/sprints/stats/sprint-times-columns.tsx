@@ -163,26 +163,26 @@ function buildWeekColumns(
 function buildFixedRightColumns(): StickyTableColumn<SprintTimesPersonRow>[] {
   return [
     {
-      key: "esperadas",
-      header: "H. Esperadas",
-      widthClass: "w-20",
-      sticky: { rightClass: "right-48", isLast: true },
-      align: "center",
-      headerClassName: RIGHT_HEADER_CLASS,
-      bodyClassName: "text-center",
-      render: (row) => <SprintTimesExpectedHoursValue value={row.expectedHours} />,
-    },
-    {
       key: "totales",
       header: "H. Totales",
       widthClass: "w-20",
-      sticky: { rightClass: "right-28" },
+      sticky: { rightClass: "right-48", isLast: true },
       align: "center",
       headerClassName: RIGHT_HEADER_CLASS,
       bodyClassName: "text-center",
       render: (row) => (
         <SprintTimesWeekTotalValue value={totalHoursBreakdown(row.sprint)} />
       ),
+    },
+    {
+      key: "esperadas",
+      header: "Esperadas",
+      widthClass: "w-20",
+      sticky: { rightClass: "right-28" },
+      align: "center",
+      headerClassName: RIGHT_HEADER_CLASS,
+      bodyClassName: "text-center",
+      render: (row) => <SprintTimesExpectedHoursValue value={row.expectedHours} />,
     },
     {
       key: "cumplimiento",

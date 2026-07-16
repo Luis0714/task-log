@@ -184,15 +184,31 @@ function buildPersonRow(args: {
 
 function sortPersonRows(rows: SprintTimesPersonRow[]): SprintTimesPersonRow[] {
   return [...rows].sort((left, right) => {
+    // 1) % de cumplimiento descendente (nulos al final).
+    const complianceDiff = compareComplianceDesc(left.compliancePct, right.compliancePct);
+    if (complianceDiff !== 0) return complianceDiff;
+
+    // 2) Total de horas del sprint descendente como desempate.
     const totalDiff =
       totalHoursBreakdown(right.sprint) - totalHoursBreakdown(left.sprint);
     if (totalDiff !== 0) return totalDiff;
 
+    // 3) "Sin asignar" al final, luego alfabético por nombre.
     if (left.assignee === SPRINT_BUG_UNASSIGNED_LABEL) return 1;
     if (right.assignee === SPRINT_BUG_UNASSIGNED_LABEL) return -1;
 
     return left.assignee.localeCompare(right.assignee, "es");
   });
+}
+
+function compareComplianceDesc(
+  left: number | null,
+  right: number | null,
+): number {
+  if (left === null && right === null) return 0;
+  if (left === null) return 1;
+  if (right === null) return -1;
+  return right - left;
 }
 
 function collectAssigneeLabelsFromWorkItems(

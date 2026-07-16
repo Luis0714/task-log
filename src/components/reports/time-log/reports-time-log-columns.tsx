@@ -1,6 +1,7 @@
 import type { StickyTableColumn } from "@/components/ui/sticky-table";
 import { TruncatedTextTooltip } from "@/components/ui/truncated-text-tooltip";
 import { ReportsTimeLogSemaforoBadge } from "@/components/reports/time-log/reports-time-log-semaforo-badge";
+import { ReportsTimeLogDeviationBadge } from "@/components/reports/time-log/reports-time-log-deviation-badge";
 import {
   Tooltip,
   TooltipContent,
@@ -248,7 +249,7 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
     header: (
       <ColumnHeader
         label="% Cumplimiento"
-        tooltip="Horas totales frente a las esperadas según su asignación en este proyecto/equipo."
+        tooltip="Horas reportadas vs. esperadas según su asignación. 100% = exacto."
       />
     ),
     widthClass: "w-40",
@@ -263,14 +264,14 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
     header: (
       <ColumnHeader
         label="% Desviación"
-        tooltip="Diferencia entre el % de asignación esperado y el % de cumplimiento."
+        tooltip="Distancia al 100% de cumplimiento. Rojo = trabajó menos, azul = trabajó más."
       />
     ),
     widthClass: "w-40",
     align: "center",
     bodyClassName: "text-center",
     render: (row) => (
-      <ReportsTimeLogSemaforoBadge level={row.deviationLevel} pct={row.deviationPct} />
+      <ReportsTimeLogDeviationBadge level={row.deviationLevel} pct={row.deviationPct} />
     ),
   },
 ];

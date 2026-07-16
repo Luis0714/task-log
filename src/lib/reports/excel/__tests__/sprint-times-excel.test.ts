@@ -45,7 +45,7 @@ async function loadWorksheet(
 }
 
 describe("buildSprintTimesExcel", () => {
-  it("incluye la sub-columna Novedades y el resumen Esperadas/Total horas/% Cumpl.", async () => {
+  it("incluye la sub-columna Novedades y el resumen Total horas/Esperadas/% Cumpl.", async () => {
     const buffer = await buildSprintTimesExcel({
       sprintName: "Sprint 1",
       project: "Proyecto",
@@ -58,15 +58,43 @@ describe("buildSprintTimesExcel", () => {
 
     // Sub-cabecera (fila 7): semana 1 → Desarrollo(3) Bugs(4) Novedades(5) Total(6).
     expect(ws.getCell(7, 5).value).toBe("Novedades");
-    // Resumen: Esperadas(11) Total horas(12) % Cumpl.(13).
+    // Resumen: Total horas(11) Esperadas(12) % Cumpl.(13).
     expect(ws.getCell(6, 11).value).toBe("Resumen");
-    expect(ws.getCell(7, 11).value).toBe("Esperadas");
-    expect(ws.getCell(7, 12).value).toBe("Total horas");
+    expect(ws.getCell(7, 11).value).toBe("Total horas");
+    expect(ws.getCell(7, 12).value).toBe("Esperadas");
     expect(ws.getCell(7, 13).value).toBe("% Cumpl.");
 
-    // Fila de datos (fila 8): esperadas = 72; cumplimiento = 28/72 → "38.9%".
-    expect(ws.getCell(8, 11).value).toBe(72);
+    // Fila de datos (fila 8): total horas = 28; esperadas = 72; cumplimiento = 28/72 → "38.9%".
+    expect(ws.getCell(8, 11).value).toBe(28);
+    expect(ws.getCell(8, 12).value).toBe(72);
     expect(String(ws.getCell(8, 13).value)).toBe("38.9%");
+  });
+
+  it("cuando se selecciona una semana, esperadas y cumplimiento usan SOLO esa semana", async () => {
+    // Misma fixture que arriba: semana 1 esperadas=40, semana 2 esperadas=32.
+    // El sprint completo tiene esperadas=72 y horas totales=28 → 38.9%.
+    // Pero filtrado a la semana 2: esperadas=32, horas=16 → 50.0%.
+    const buffer = await buildSprintTimesExcel({
+      sprintName: "Sprint 1",
+      project: "Proyecto",
+      team: "Equipo",
+      times: buildTimes(),
+      memberRoles: emptyRoles,
+      weekIndex: 1,
+    });
+
+    const ws = await loadWorksheet(buffer, "Tiempos registrados");
+
+    // Resumen: solo hay 1 semana, así que las columnas son
+    // Persona(1) | Rol(2) | semana(3-6) | Total horas(7) | Esperadas(8) | % Cumpl.(9).
+    expect(ws.getCell(7, 7).value).toBe("Total horas");
+    expect(ws.getCell(7, 8).value).toBe("Esperadas");
+    expect(ws.getCell(7, 9).value).toBe("% Cumpl.");
+
+    // Fila de datos (fila 8): total horas de la semana 2 = 16; esperadas = 32; cumplimiento = 16/32 → "50%".
+    expect(ws.getCell(8, 7).value).toBe(16);
+    expect(ws.getCell(8, 8).value).toBe(32);
+    expect(String(ws.getCell(8, 9).value)).toBe("50%");
   });
 });
 

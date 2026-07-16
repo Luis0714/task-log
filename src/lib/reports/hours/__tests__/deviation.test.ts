@@ -1,83 +1,91 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  assignmentPctValue,
   computeDeviation,
-  resolveDeviationSemaforo,
+  resolveDeviationLevel,
 } from "@/lib/reports/hours/deviation";
 
-describe("assignmentPctValue", () => {
-  it("excepción devuelve su % ponderado", () => {
-    expect(assignmentPctValue({ kind: "exception", weightedPct: 50 })).toBe(50);
+describe("resolveDeviationLevel", () => {
+  it("100% → exact (cumplimiento exacto)", () => {
+    expect(resolveDeviationLevel(100)).toBe("exact");
   });
 
-  it("default equivale a 100", () => {
-    expect(assignmentPctValue({ kind: "default" })).toBe(100);
+  it("subcumplimiento leve: desviación ≤ 20%", () => {
+    expect(resolveDeviationLevel(99)).toBe("under-light");
+    expect(resolveDeviationLevel(95)).toBe("under-light");
+    expect(resolveDeviationLevel(80)).toBe("under-light");
   });
 
-  it("sin configurar no tiene valor numérico", () => {
-    expect(assignmentPctValue({ kind: "unconfigured" })).toBeNull();
-  });
-});
-
-describe("resolveDeviationSemaforo", () => {
-  it("déficit pequeño es verde", () => {
-    expect(resolveDeviationSemaforo(0)).toBe("verde");
-    expect(resolveDeviationSemaforo(5)).toBe("verde");
+  it("subcumplimiento medio: desviación entre 21% y 50%", () => {
+    expect(resolveDeviationLevel(79)).toBe("under-medium");
+    expect(resolveDeviationLevel(50)).toBe("under-medium");
   });
 
-  it("hacer más de lo asignado (desviación negativa) es verde", () => {
-    expect(resolveDeviationSemaforo(-5)).toBe("verde");
-    expect(resolveDeviationSemaforo(-40)).toBe("verde");
+  it("subcumplimiento fuerte: desviación > 50%", () => {
+    expect(resolveDeviationLevel(49)).toBe("under-strong");
+    expect(resolveDeviationLevel(0)).toBe("under-strong");
   });
 
-  it("déficit medio es amarillo", () => {
-    expect(resolveDeviationSemaforo(12)).toBe("amarillo");
-    expect(resolveDeviationSemaforo(20)).toBe("amarillo");
+  it("sobrecumplimiento leve: desviación ≤ 20%", () => {
+    expect(resolveDeviationLevel(101)).toBe("over-light");
+    expect(resolveDeviationLevel(120)).toBe("over-light");
   });
 
-  it("déficit alto es rojo", () => {
-    expect(resolveDeviationSemaforo(21)).toBe("rojo");
-    expect(resolveDeviationSemaforo(50)).toBe("rojo");
+  it("sobrecumplimiento medio: desviación entre 21% y 50%", () => {
+    expect(resolveDeviationLevel(121)).toBe("over-medium");
+    expect(resolveDeviationLevel(150)).toBe("over-medium");
+  });
+
+  it("sobrecumplimiento fuerte: desviación > 50%", () => {
+    expect(resolveDeviationLevel(151)).toBe("over-strong");
+    expect(resolveDeviationLevel(200)).toBe("over-strong");
   });
 });
 
 describe("computeDeviation", () => {
-  it("desviación = asignación − cumplimiento", () => {
-    const result = computeDeviation({ kind: "default" }, 88);
-    expect(result.pct).toBe(12);
-    expect(result.level).toBe("amarillo");
+  it("devuelve null cuando no hay cumplimiento", () => {
+    expect(computeDeviation(null)).toEqual({ pct: null, level: null });
   });
 
-  it("cumplimiento igual a la asignación da 0 (verde)", () => {
-    const result = computeDeviation({ kind: "default" }, 100);
-    expect(result.pct).toBe(0);
-    expect(result.level).toBe("verde");
+  it("cumple la tabla de la HU: cubre los valores representativos", () => {
+    const cases: ReadonlyArray<{
+      compliance: number;
+      expectedPct: number;
+      expectedLevel:
+        | "exact"
+        | "under-light"
+        | "under-medium"
+        | "under-strong"
+        | "over-light"
+        | "over-medium"
+        | "over-strong";
+    }> = [
+      { compliance: 0, expectedPct: 100, expectedLevel: "under-strong" },
+      { compliance: 50, expectedPct: 50, expectedLevel: "under-medium" },
+      { compliance: 80, expectedPct: 20, expectedLevel: "under-light" },
+      { compliance: 100, expectedPct: 0, expectedLevel: "exact" },
+      { compliance: 110, expectedPct: 10, expectedLevel: "over-light" },
+      { compliance: 150, expectedPct: 50, expectedLevel: "over-medium" },
+      { compliance: 200, expectedPct: 100, expectedLevel: "over-strong" },
+    ];
+    for (const { compliance, expectedPct, expectedLevel } of cases) {
+      expect(computeDeviation(compliance)).toEqual({
+        pct: expectedPct,
+        level: expectedLevel,
+      });
+    }
   });
 
-  it("hacer más de lo asignado no penaliza (desviación negativa, verde)", () => {
-    const result = computeDeviation({ kind: "default" }, 130);
-    expect(result.pct).toBe(-30);
-    expect(result.level).toBe("verde");
+  it("el valor siempre es positivo (magnitud del alejamiento del 100%)", () => {
+    expect(computeDeviation(80).pct).toBe(20);
+    expect(computeDeviation(120).pct).toBe(20);
+    expect(computeDeviation(0).pct).toBe(100);
+    expect(computeDeviation(200).pct).toBe(100);
   });
 
-  it("usa el % de la excepción como asignación", () => {
-    const result = computeDeviation({ kind: "exception", weightedPct: 60 }, 45);
-    expect(result.pct).toBe(15);
-    expect(result.level).toBe("amarillo");
-  });
-
-  it("sin cumplimiento devuelve null", () => {
-    expect(computeDeviation({ kind: "default" }, null)).toEqual({
-      pct: null,
-      level: null,
-    });
-  });
-
-  it("sin configurar devuelve null", () => {
-    expect(computeDeviation({ kind: "unconfigured" }, 90)).toEqual({
-      pct: null,
-      level: null,
-    });
+  it("no depende del % de asignación (escenario 50% asignación + 200% cumplimiento)", () => {
+    // Persona con 50% de asignación. Si trabajó el doble de lo esperado,
+    // su cumplimiento es 200% y la desviación debe ser +100%.
+    expect(computeDeviation(200)).toEqual({ pct: 100, level: "over-strong" });
   });
 });

@@ -1,3 +1,5 @@
+import type { DeviationLevel } from "@/lib/reports/hours/deviation";
+
 /** Nivel del semáforo de cumplimiento (D9). */
 export type SemaforoLevel = "verde" | "amarillo" | "rojo";
 
@@ -36,7 +38,7 @@ export type HoursReportRow = Readonly<{
   compliancePct: number | null;
   semaforo: SemaforoLevel | null;
   deviationPct: number | null;
-  deviationLevel: SemaforoLevel | null;
+  deviationLevel: DeviationLevel | null;
 }>;
 
 export type HoursReportAlertKind =

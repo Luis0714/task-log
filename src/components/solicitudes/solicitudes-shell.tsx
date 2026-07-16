@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
@@ -9,16 +9,17 @@ import { SolicitudesTable } from "@/components/solicitudes/solicitudes-table";
 import { SolicitudFormDialog } from "@/components/solicitudes/solicitud-form-dialog";
 import { SolicitudesFiltersBar } from "@/components/solicitudes/solicitudes-filters-bar";
 import { useSolicitudCatalog } from "@/hooks/solicitudes/use-solicitud-catalog";
+import { useSolicitudesFilters } from "@/hooks/solicitudes/use-solicitudes-filters";
 import type { SolicitudDto } from "@/lib/novedades/list-my-solicitudes";
 import {
-  WORK_ITEM_ASSIGNEE_ME,
-  parseAssigneeFilter,
-} from "@/lib/schemas/work-item-filters";
-import { findTeamMemberByAssigneeName } from "@/lib/filters/person-name";
+  findTeamMemberByAssigneeName,
+  normalizePersonName,
+} from "@/lib/filters/person-name";
 import {
   teamNamesForProjects,
   type TeamsByProject,
 } from "@/lib/filters/teams-by-project";
+import { fetchMySolicitudes } from "@/services/solicitudes/solicitudes.service";
 
 export type SolicitudesShellProps = Readonly<{
   initialSolicitudes: readonly SolicitudDto[];
@@ -33,20 +34,10 @@ export type SolicitudesShellProps = Readonly<{
   isManagement: boolean;
 }>;
 
-function normalize(value: string | null | undefined): string {
-  return (value ?? "").toLocaleLowerCase("es");
-}
-
 /**
- * ¿El solicitante coincide con el filtro de asignado? Parseamos el formato
- * estándar `all` / `me` / `name|name|...` y comparamos por displayName /
- * uniqueName. La lógica vive aquí (en el shell) porque las solicitudes no
- * tienen un identificador de persona estable, solo el `assignedTo` que ADO
- * guarda como `DisplayName <uniqueName>` o `DisplayName`.
- *
- * Para `includeMe` necesitamos saber quién es el usuario logueado: lo
- * recibimos como `currentUserDisplayName` y resolvemos contra el roster del
- * proyecto (no asumimos que el primer miembro con `uniqueName` sea "yo").
+ * ¿El solicitante coincide con el filtro de asignado? El filtro viene en
+ * formato estándar `all` / `me` / `name|name|...`. Se compara por displayName
+ * usando el roster del proyecto (no asumimos que el primer miembro sea "yo").
  */
 function matchesAssigneeFilter(
   solicitud: SolicitudDto,
@@ -54,20 +45,21 @@ function matchesAssigneeFilter(
   members: readonly { displayName: string; uniqueName?: string }[],
   currentUserDisplayName: string | null,
 ): boolean {
-  const parsed = parseAssigneeFilter(filter);
-  if (parsed.kind === "all") return true;
+  if (filter === "all" || filter === "") return true;
 
   const member = findTeamMemberByAssigneeName(members, solicitud.assignedTo ?? "");
   const memberName = member?.displayName ?? solicitud.assignedTo ?? "";
   if (!memberName) return false;
 
-  if (parsed.includeMe && currentUserDisplayName) {
+  if (filter === "me" && currentUserDisplayName) {
     const me = members.find(
-      (m) => normalize(m.displayName) === normalize(currentUserDisplayName),
+      (m) => normalizePersonName(m.displayName) === normalizePersonName(currentUserDisplayName),
     );
-    if (me && normalize(memberName) === normalize(me.displayName)) return true;
+    if (me && normalizePersonName(memberName) === normalizePersonName(me.displayName)) return true;
+    return false;
   }
-  return parsed.names.some((name) => normalize(name) === normalize(memberName));
+  const names = filter.split("|").filter((name) => name.length > 0);
+  return names.some((name) => normalizePersonName(name) === normalizePersonName(memberName));
 }
 
 /** `[]` = "sin selección, todos seleccionados" (mismo criterio que el reporte
@@ -95,6 +87,10 @@ export function SolicitudesShell({
   // `null` = dialog cerrado; `"create"` / `"edit"` = modo activo.
   const [dialogMode, setDialogMode] = useState<"create" | "edit" | null>(null);
   const [editingSolicitud, setEditingSolicitud] = useState<SolicitudDto | null>(null);
+  const [loadingList, setLoadingList] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
+
+  const filters = useSolicitudesFilters();
 
   // Filtros del listado — defaults idénticos a /admin/novedades: el proyecto
   // y equipo predeterminados del catálogo (no "todos"). Si no hay defaultTeam
@@ -105,7 +101,6 @@ export function SolicitudesShell({
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>(() =>
     defaultTeam ? [defaultTeam] : [],
   );
-  const [assigneeFilter, setAssigneeFilter] = useState<string>(WORK_ITEM_ASSIGNEE_ME);
 
   const catalog = useSolicitudCatalog(defaultProject);
   const members = useMemo(() => catalog.options?.members ?? [], [catalog.options]);
@@ -132,6 +127,54 @@ export function SolicitudesShell({
     return map;
   }, [catalog.options]);
 
+  // Refetch al cambiar filtros de fecha o asignación. El proyecto/equipo se
+  // aplica en cliente sobre el resultado (es barato y mantiene la
+  // paginación/scroll estables al cambiar de equipo).
+  useEffect(() => {
+    if (effectiveProjects.length === 0) {
+      setSolicitudes([]);
+      return;
+    }
+    const controller = new AbortController();
+    setLoadingList(true);
+    setListError(null);
+    void (async () => {
+      try {
+        const next = await fetchMySolicitudes(
+          {
+            scopes: effectiveProjects.map((projectId) => ({
+              projectId,
+              teamId: null,
+            })),
+            dateFilter: filters.dateFilter ?? { kind: "none" },
+            assignee: filters.assigneeFilter,
+          },
+          controller.signal,
+        );
+        if (controller.signal.aborted) return;
+        setSolicitudes(next);
+      } catch (cause) {
+        if (controller.signal.aborted) return;
+        setListError(
+          cause instanceof Error ? cause.message : "No se pudieron cargar las solicitudes.",
+        );
+      } finally {
+        if (!controller.signal.aborted) setLoadingList(false);
+      }
+    })();
+    return () => controller.abort();
+    // Refetch sólo cuando cambian las dimensiones que el servidor filtra.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    effectiveProjects.map((p) => p).join("|"),
+    filters.dateFilter?.kind === "month" ? filters.dateFilter.monthKey : null,
+    filters.dateFilter?.kind === "range"
+      ? `${filters.dateFilter.fromKey}|${filters.dateFilter.toKey}`
+      : null,
+    filters.mode,
+    filters.assigneeFilter,
+  ]);
+
   const filteredSolicitudes = useMemo(() => {
     const teamSet = new Set(effectiveTeams);
     return solicitudes.filter((solicitud) => {
@@ -140,10 +183,25 @@ export function SolicitudesShell({
           solicitud.parentId !== null ? parentTeamById.get(solicitud.parentId) : null;
         if (teamId !== null && teamId !== undefined && !teamSet.has(teamId)) return false;
       }
-      if (!matchesAssigneeFilter(solicitud, assigneeFilter, members, currentUserDisplayName)) return false;
+      if (
+        !matchesAssigneeFilter(
+          solicitud,
+          filters.assigneeFilter,
+          members,
+          currentUserDisplayName,
+        )
+      )
+        return false;
       return true;
     });
-  }, [solicitudes, effectiveTeams, parentTeamById, assigneeFilter, members, currentUserDisplayName]);
+  }, [
+    solicitudes,
+    effectiveTeams,
+    parentTeamById,
+    filters.assigneeFilter,
+    members,
+    currentUserDisplayName,
+  ]);
 
   const handleSaved = useCallback((saved: SolicitudDto) => {
     setSolicitudes((prev) => [saved, ...prev.filter((item) => item.id !== saved.id)]);
@@ -192,18 +250,32 @@ export function SolicitudesShell({
         teams={teams}
         selectedTeamIds={effectiveTeams}
         onTeamIdsChange={setSelectedTeamIds}
-        assigneeValue={assigneeFilter}
-        onAssigneeChange={setAssigneeFilter}
+        assigneeValue={filters.assigneeFilter}
+        onAssigneeChange={filters.setAssigneeFilter}
         members={members}
         membersLoading={catalog.loading}
         membersError={null}
+        isManagement={isManagement}
+        mode={filters.mode}
+        onModeChange={filters.setMode}
+        monthKey={filters.monthKey}
+        onMonthKeyChange={filters.setMonthKey}
+        rangeFrom={filters.rangeFrom}
+        rangeTo={filters.rangeTo}
+        onRangeFromChange={filters.setRangeFrom}
+        onRangeToChange={filters.setRangeTo}
       />
+
+      {listError ? (
+        <p className="text-destructive text-sm">{listError}</p>
+      ) : null}
 
       <SolicitudesTable
         solicitudes={filteredSolicitudes}
         project={defaultProject}
         onEdit={handleEdit}
         onDeleted={handleDeleted}
+        loading={loadingList}
       />
 
       <SolicitudFormDialog

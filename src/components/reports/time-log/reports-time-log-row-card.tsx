@@ -1,3 +1,4 @@
+import { ReportsTimeLogDeviationBadge } from "@/components/reports/time-log/reports-time-log-deviation-badge";
 import { ReportsTimeLogSemaforoBadge } from "@/components/reports/time-log/reports-time-log-semaforo-badge";
 import type { HoursReportRow } from "@/lib/reports/hours/hours-report-types";
 
@@ -23,7 +24,7 @@ export function ReportsTimeLogRowCard({
           </div>
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground">Desv.</span>
-            <ReportsTimeLogSemaforoBadge
+            <ReportsTimeLogDeviationBadge
               level={row.deviationLevel}
               pct={row.deviationPct}
             />

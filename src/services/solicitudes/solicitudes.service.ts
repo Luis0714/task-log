@@ -1,10 +1,20 @@
 import "client-only";
 
+import type {
+  ReportedNewsDateFilter,
+  ReportedNewsScope,
+} from "@/lib/azure-devops/list-reported-news";
 import type { SolicitudDto } from "@/lib/novedades/list-my-solicitudes";
 import type { SolicitudOptions } from "@/lib/novedades/solicitud-options";
 import type { CreateSolicitudBody } from "@/lib/schemas/solicitudes";
 
 export type CreateSolicitudResponse = { workItemId: number; url: string };
+
+export type FetchSolicitudesFilters = Readonly<{
+  scopes?: ReadonlyArray<ReportedNewsScope>;
+  dateFilter?: ReportedNewsDateFilter;
+  assignee?: string;
+}>;
 
 async function parseErrorMessage(res: Response): Promise<string> {
   try {
@@ -15,8 +25,45 @@ async function parseErrorMessage(res: Response): Promise<string> {
   }
 }
 
-export async function fetchMySolicitudes(): Promise<SolicitudDto[]> {
-  const res = await fetch("/api/solicitudes", { cache: "no-store" });
+function encodeScopes(scopes: ReadonlyArray<ReportedNewsScope>): string {
+  return scopes
+    .map((scope) => `${scope.projectId}:${scope.teamId ?? ""}`)
+    .join("|");
+}
+
+function buildQueryString(filters: FetchSolicitudesFilters): string {
+  const params = new URLSearchParams();
+  if (filters.scopes && filters.scopes.length > 0) {
+    params.set("scopes", encodeScopes(filters.scopes));
+  }
+  if (filters.dateFilter) {
+    if (filters.dateFilter.kind === "month") {
+      params.set("mode", "month");
+      params.set("month", filters.dateFilter.monthKey);
+    } else if (filters.dateFilter.kind === "range") {
+      params.set("mode", "range");
+      params.set("from", filters.dateFilter.fromKey);
+      params.set("to", filters.dateFilter.toKey);
+    } else {
+      params.set("mode", "all");
+    }
+  }
+  if (filters.assignee) {
+    params.set("assignee", filters.assignee);
+  }
+  const qs = params.toString();
+  return qs.length > 0 ? `?${qs}` : "";
+}
+
+export async function fetchMySolicitudes(
+  filters?: FetchSolicitudesFilters,
+  signal?: AbortSignal,
+): Promise<SolicitudDto[]> {
+  const qs = filters ? buildQueryString(filters) : "";
+  const res = await fetch(`/api/solicitudes${qs}`, {
+    cache: "no-store",
+    ...(signal ? { signal } : {}),
+  });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   const body = (await res.json()) as { solicitudes: SolicitudDto[] };
   return body.solicitudes;

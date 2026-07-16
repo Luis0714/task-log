@@ -123,7 +123,7 @@ export async function buildHoursReport(
   }
 
   return {
-    rows,
+    rows: sortHoursReportRowsByComplianceDesc(rows),
     generatedAt: now().toISOString(),
     alerts,
   };
@@ -342,7 +342,7 @@ function buildPersonReportRow(input: {
   const total = workedHours + newsHours;
   const compliance = computeCompliance(total, expected.expectedHours);
   const assignmentPct = buildAssignmentLabel(hasException, personAssignments);
-  const deviation = computeDeviation(assignmentPct, compliance.pct);
+  const deviation = computeDeviation(compliance.pct);
 
   return {
     projectId: input.scope.projectId,
@@ -437,4 +437,22 @@ function novedadesDetailEntries(novedades: readonly ReportedNewsDetail[]): strin
 
 function scopeLabel(scope: ReportedNewsScope): string {
   return scope.teamId ? `${scope.projectId} / ${scope.teamId}` : `${scope.projectId} (proyecto)`;
+}
+
+/**
+ * Orden final del reporte: % de cumplimiento descendente, nulos al final,
+ * desempate alfabético por nombre de persona para que el orden sea estable
+ * entre generaciones con el mismo set de datos.
+ */
+function sortHoursReportRowsByComplianceDesc(
+  rows: readonly HoursReportRow[],
+): HoursReportRow[] {
+  return [...rows].sort((left, right) => {
+    if (left.compliancePct === null && right.compliancePct === null) return 0;
+    if (left.compliancePct === null) return 1;
+    if (right.compliancePct === null) return -1;
+    const diff = right.compliancePct - left.compliancePct;
+    if (diff !== 0) return diff;
+    return left.personDisplayName.localeCompare(right.personDisplayName, "es");
+  });
 }
