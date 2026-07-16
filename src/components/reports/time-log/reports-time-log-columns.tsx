@@ -18,10 +18,33 @@ export function formatAssignmentPct(row: HoursReportRow): string {
   return "Sin configurar";
 }
 
+function ColumnHeader({
+  label,
+  tooltip,
+}: Readonly<{ label: string; tooltip: string }>) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span className="decoration-muted-foreground/40 -mx-3 -my-2 block cursor-default px-3 py-2 underline decoration-dotted underline-offset-4" />
+        }
+      >
+        {label}
+      </TooltipTrigger>
+      <TooltipContent className="max-w-60">{tooltip}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow>[] = [
   {
     key: "proyecto",
-    header: "Proyecto",
+    header: (
+      <ColumnHeader
+        label="Proyecto"
+        tooltip="Proyecto al que pertenece la persona."
+      />
+    ),
     widthClass: "w-48",
     sticky: { leftClass: "left-0" },
     align: "left",
@@ -29,7 +52,12 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   },
   {
     key: "equipo",
-    header: "Equipo",
+    header: (
+      <ColumnHeader
+        label="Equipo"
+        tooltip="Equipo del proyecto al que pertenece la persona."
+      />
+    ),
     widthClass: "w-48",
     sticky: { leftClass: "left-48" },
     align: "left",
@@ -38,7 +66,12 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   },
   {
     key: "usuario",
-    header: "Usuario",
+    header: (
+      <ColumnHeader
+        label="Usuario"
+        tooltip="Colaborador analizado en el reporte."
+      />
+    ),
     widthClass: "w-56",
     sticky: { leftClass: "left-96", isLast: true },
     align: "left",
@@ -47,31 +80,25 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   },
   {
     key: "assignmentPct",
-    header: "% Asignación",
+    header: (
+      <ColumnHeader
+        label="% Asignación"
+        tooltip="Dedicación asignada a la persona en este proyecto/equipo."
+      />
+    ),
     widthClass: "w-32",
     align: "center",
     bodyClassName: "text-center",
     render: formatAssignmentPct,
   },
   {
-    key: "workingDays",
-    header: "Días hábiles",
-    widthClass: "w-32",
-    align: "center",
-    bodyClassName: "text-center tabular-nums",
-    render: (row) => row.workingDays,
-  },
-  {
-    key: "expectedHours",
-    header: "Horas esperadas",
-    widthClass: "w-40",
-    align: "center",
-    bodyClassName: "text-center tabular-nums",
-    render: (row) => row.expectedHours.toFixed(1),
-  },
-  {
     key: "developmentHours",
-    header: "Horas desarrollo",
+    header: (
+      <ColumnHeader
+        label="Horas desarrollo"
+        tooltip="Horas dedicadas a construir el producto (desarrollo, diseño, QA…) en el período seleccionado."
+      />
+    ),
     widthClass: "w-40",
     align: "center",
     bodyClassName: "text-center tabular-nums",
@@ -79,7 +106,12 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   },
   {
     key: "bugHours",
-    header: "Horas bugs",
+    header: (
+      <ColumnHeader
+        label="Horas bugs"
+        tooltip="Horas invertidas en la solución de bugs en el período seleccionado."
+      />
+    ),
     widthClass: "w-32",
     align: "center",
     bodyClassName: "text-center tabular-nums",
@@ -87,23 +119,25 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   },
   {
     key: "newsCount",
-    header: "Cant. novedades",
+    header: (
+      <ColumnHeader
+        label="Cant. novedades"
+        tooltip="Cantidad de novedades de la persona en el período seleccionado."
+      />
+    ),
     widthClass: "w-36",
     align: "center",
     bodyClassName: "text-center tabular-nums",
     render: (row) => row.newsCount,
   },
   {
-    key: "newsHours",
-    header: "Horas novedades",
-    widthClass: "w-40",
-    align: "center",
-    bodyClassName: "text-center tabular-nums",
-    render: (row) => row.newsHours.toFixed(1),
-  },
-  {
     key: "newsDays",
-    header: "Días novedades",
+    header: (
+      <ColumnHeader
+        label="Días novedades"
+        tooltip="Días equivalentes de las novedades en el período (horas ÷ 8)."
+      />
+    ),
     widthClass: "w-36",
     align: "center",
     bodyClassName: "text-center tabular-nums",
@@ -111,7 +145,12 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   },
   {
     key: "newsDetail",
-    header: "Detalle de novedades",
+    header: (
+      <ColumnHeader
+        label="Detalle de novedades"
+        tooltip="Tipo y título de cada novedad reportada por la persona en el período."
+      />
+    ),
     widthClass: "w-64",
     align: "center",
     bodyClassName: "text-center text-xs",
@@ -140,8 +179,26 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
     },
   },
   {
+    key: "newsHours",
+    header: (
+      <ColumnHeader
+        label="Horas novedades"
+        tooltip="Horas que sumaron las novedades de la persona en el período seleccionado."
+      />
+    ),
+    widthClass: "w-40",
+    align: "center",
+    bodyClassName: "text-center tabular-nums",
+    render: (row) => row.newsHours.toFixed(1),
+  },
+  {
     key: "workedHours",
-    header: "Horas trabajadas",
+    header: (
+      <ColumnHeader
+        label="Horas trabajadas"
+        tooltip="Horas desarrollo + horas bugs."
+      />
+    ),
     widthClass: "w-40",
     align: "center",
     bodyClassName: "text-center tabular-nums font-medium",
@@ -149,15 +206,51 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   },
   {
     key: "totalHours",
-    header: "Horas totales",
+    header: (
+      <ColumnHeader
+        label="Horas totales"
+        tooltip="Horas trabajadas + horas novedades."
+      />
+    ),
     widthClass: "w-36",
     align: "center",
     bodyClassName: "text-center tabular-nums font-semibold",
     render: (row) => row.totalHours.toFixed(1),
   },
   {
+    key: "expectedHours",
+    header: (
+      <ColumnHeader
+        label="Horas esperadas"
+        tooltip="Horas que debería registrar la persona según los días hábiles del período y su % de asignación."
+      />
+    ),
+    widthClass: "w-40",
+    align: "center",
+    bodyClassName: "text-center tabular-nums",
+    render: (row) => row.expectedHours.toFixed(1),
+  },
+  {
+    key: "workingDays",
+    header: (
+      <ColumnHeader
+        label="Días hábiles"
+        tooltip="Días laborales del rango de fechas o mes seleccionado."
+      />
+    ),
+    widthClass: "w-32",
+    align: "center",
+    bodyClassName: "text-center tabular-nums",
+    render: (row) => row.workingDays,
+  },
+  {
     key: "compliance",
-    header: "% Cumplimiento",
+    header: (
+      <ColumnHeader
+        label="% Cumplimiento"
+        tooltip="Horas totales frente a las esperadas según su asignación en este proyecto/equipo."
+      />
+    ),
     widthClass: "w-40",
     align: "center",
     bodyClassName: "text-center",
@@ -167,7 +260,12 @@ export const REPORTS_TIME_LOG_COLUMNS: readonly StickyTableColumn<HoursReportRow
   },
   {
     key: "deviation",
-    header: "% Desviación",
+    header: (
+      <ColumnHeader
+        label="% Desviación"
+        tooltip="Diferencia entre el % de asignación esperado y el % de cumplimiento."
+      />
+    ),
     widthClass: "w-40",
     align: "center",
     bodyClassName: "text-center",
