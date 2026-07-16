@@ -1,10 +1,8 @@
 import "server-only";
 
-import { adoProjectBase, escapeWiqlString } from "@/lib/azure-devops/client";
+import { getServerAuthState } from "@/lib/auth/server-state";
+import { listSolicitudesForUser } from "@/lib/novedades/list-solicitudes-for-user";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
-import { buildWiqlIdsQuery, runWiqlIdsQuery } from "@/lib/azure-devops/wiql";
-import { fetchReportedNewsByIds } from "@/lib/azure-devops/list-reported-news";
-import { NOVEDAD_FIELDS, NOVEDAD_WORK_ITEM_TYPE } from "@/lib/azure-devops/novedad-fields";
 
 /**
  * Una solicitud (novedad) tal como se muestra en el listado "Mis solicitudes"
@@ -39,47 +37,22 @@ export type SolicitudDto = Readonly<{
 
 /**
  * Novedades del proyecto en curso asignadas al usuario logueado O creadas por
- * él. Reutiliza `fetchReportedNewsByIds` para enriquecer los IDs. Devuelve `[]`
- * si la consulta falla, para no romper la pantalla.
+ * él. Wrapper de compatibilidad sobre `listSolicitudesForUser` que fija el
+ * scope al proyecto actual y el filtro de asignación a `@Me`.
+ *
+ * Conserva la firma histórica para no romper consumidores existentes
+ * (ej. `/api/solicitudes` GET inicial y `SolicitudesPage`).
  */
 export async function listMySolicitudes(auth: AdoCallerAuth): Promise<SolicitudDto[]> {
-  const conditions = [
-    `[System.TeamProject] = '${escapeWiqlString(auth.project)}'`,
-    `[System.WorkItemType] = '${escapeWiqlString(NOVEDAD_WORK_ITEM_TYPE)}'`,
-    `[System.State] <> 'Removed'`,
-    `([System.AssignedTo] = @Me OR [System.CreatedBy] = @Me)`,
-  ];
-
-  let ids: number[];
-  try {
-    ids = await runWiqlIdsQuery(
+  const authState = await getServerAuthState();
+  return listSolicitudesForUser(
+    {
       auth,
-      buildWiqlIdsQuery(conditions, `[${NOVEDAD_FIELDS.fechaInicio}] DESC`),
-      "No se pudieron consultar tus solicitudes.",
-    );
-  } catch {
-    return [];
-  }
-  if (ids.length === 0) return [];
-
-  const details = await fetchReportedNewsByIds(auth, ids);
-  const editBase = `${adoProjectBase(auth)}/_workitems/edit`;
-
-  return details.map((item) => ({
-    id: item.id,
-    title: item.title,
-    tipo: item.tipoNovedad,
-    assignedTo: item.assignedTo,
-    description: item.description,
-    fechaInicio: item.fechaInicio,
-    fechaInicioHora: item.fechaInicioHora,
-    fechaFin: item.fechaFin,
-    fechaFinHora: item.fechaFinHora,
-    fechaReintegro: item.fechaReintegro,
-    fechaReintegroHora: item.fechaReintegroHora,
-    parentId: item.parentId,
-    hours: item.completedWork,
-    state: item.state,
-    url: `${editBase}/${item.id}`,
-  }));
+      scopes: [{ projectId: auth.project, teamId: null }],
+    },
+    {
+      isManagement: authState.isManagement,
+      currentUserDisplayName: authState.profileDisplayName,
+    },
+  );
 }

@@ -30,6 +30,7 @@ import {
   sumSprintBreakdowns,
   sumWeekBreakdowns,
 } from "@/lib/sprints/sum-hours-breakdowns";
+import { filterSprintTimesByWeek } from "@/lib/sprints/filter-sprint-times-by-week";
 import { formatSprintDateRange } from "@/lib/time-log/format-options";
 
 const NEWS_COLOR = "FFF59E0B";
@@ -282,15 +283,15 @@ function buildSummaryTierCells(
   const isBold = opts.bold ?? false;
   const total = totalHoursBreakdown(breakdown);
   const { pct, level } = computeCompliance(total, expectedHours);
-  buildHoursCell(ws.getCell(excelRow, tierStart), expectedHours, {
-    fill: opts.fill,
-    color: COLOR.mutedFg,
-    bold: isBold,
-  });
-  buildHoursCell(ws.getCell(excelRow, tierStart + 1), total, {
+  buildHoursCell(ws.getCell(excelRow, tierStart), total, {
     fill: opts.fill,
     color: isBold ? COLOR.totalFg : COLOR.foreground,
     bold: true,
+  });
+  buildHoursCell(ws.getCell(excelRow, tierStart + 1), expectedHours, {
+    fill: opts.fill,
+    color: COLOR.mutedFg,
+    bold: isBold,
   });
   buildComplianceCell(ws.getCell(excelRow, tierStart + 2), pct, level, opts.fill);
 }
@@ -533,8 +534,8 @@ function writeSubHeaderRow(
   }
 
   const tierLabels: Array<{ text: string; color: string }> = [
-    { text: "Esperadas", color: COLOR.mutedFg },
     { text: "Total horas", color: COLOR.foreground },
+    { text: "Esperadas", color: COLOR.mutedFg },
     { text: "% Cumpl.", color: COLOR.mutedFg },
   ];
   tierLabels.forEach((label, idx) => {
@@ -638,7 +639,16 @@ export async function buildSprintTimesExcel(
   const generatedAt = input.generatedAt ?? new Date();
   const isWeekScope = weekIndex !== undefined && weekIndex >= 0;
 
-  const weekColumns = isWeekScope ? [times.weeks[weekIndex]] : times.weeks;
+  // Recalcular horas esperadas y % cumplimiento para la semana seleccionada
+  // (la asignación vigente puede variar entre semanas). Sin este paso el Excel
+  // mostraría las horas de la semana pero el cumplimiento del sprint completo,
+  // divergiendo de la tabla y la imagen compartida.
+  const scopedTimes = isWeekScope
+    ? filterSprintTimesByWeek(times, weekIndex)
+    : times;
+  const scopeWeeks = scopedTimes.weeks;
+
+  const weekColumns = isWeekScope ? [scopeWeeks[0]] : scopeWeeks;
   const weekCount = weekColumns?.length ?? 0;
   const colCount = totalColumnCount(weekCount);
 
@@ -653,7 +663,7 @@ export async function buildSprintTimesExcel(
   writeTitleRow(ws, 1, colCount, generatedAt);
 
   const scopeLabel = isWeekScope
-    ? `Alcance: Semana ${(weekIndex ?? 0) + 1} — ${times.weeks[weekIndex ?? 0]?.dateRangeLabel ?? ""}`
+    ? `Alcance: Semana ${(weekIndex ?? 0) + 1} — ${scopeWeeks[0]?.dateRangeLabel ?? ""}`
     : "Alcance: Sprint completo";
   writeMetadataRows(ws, 3, colCount, {
     project,
@@ -666,7 +676,7 @@ export async function buildSprintTimesExcel(
   writeSubHeaderRow(ws, SUB_HEADER_ROW, weekCount);
 
   let dataRowIdx = 0;
-  for (const row of times.rows) {
+  for (const row of scopedTimes.rows) {
     const excelRow = DATA_START_ROW + dataRowIdx;
     ws.getRow(excelRow).height = 32;
     const memberInfo = lookupMemberOrPlaceholder(memberRoles, row.assignee);
@@ -675,11 +685,16 @@ export async function buildSprintTimesExcel(
   }
 
   const weekTotals: HoursBreakdown[] = isWeekScope
-    ? [sumWeekBreakdowns(times.rows, weekIndex)]
-    : Array.from({ length: weekCount }, (_, idx) => sumWeekBreakdowns(times.rows, idx));
+    ? [sumWeekBreakdowns(scopedTimes.rows, 0)]
+    : Array.from({ length: weekCount }, (_, idx) =>
+        sumWeekBreakdowns(scopedTimes.rows, idx),
+      );
 
-  const sprintTotal = sumSprintBreakdowns(times.rows);
-  const expectedTotal = times.rows.reduce((acc, row) => acc + row.expectedHours, 0);
+  const sprintTotal = sumSprintBreakdowns(scopedTimes.rows);
+  const expectedTotal = scopedTimes.rows.reduce(
+    (acc, row) => acc + row.expectedHours,
+    0,
+  );
   const totalRowIdx = DATA_START_ROW + dataRowIdx;
   ws.getRow(totalRowIdx).height = 26;
   writeTotalsRow(ws, totalRowIdx, weekTotals, sprintTotal, expectedTotal);

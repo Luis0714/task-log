@@ -3,6 +3,7 @@
 import { ExternalLink, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
@@ -51,6 +52,7 @@ export type SolicitudesTableProps = Readonly<{
   project: string;
   onEdit: (solicitud: SolicitudDto) => void;
   onDeleted: (solicitud: SolicitudDto) => void;
+  loading?: boolean;
 }>;
 
 export function SolicitudesTable({
@@ -58,7 +60,12 @@ export function SolicitudesTable({
   project,
   onEdit,
   onDeleted,
+  loading = false,
 }: SolicitudesTableProps) {
+  if (loading && solicitudes.length === 0) {
+    return <SolicitudesTableSkeleton />;
+  }
+
   if (solicitudes.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-8 text-center">
@@ -285,6 +292,46 @@ function Field({ label, value }: Readonly<{ label: string; value: string }>) {
       <dd className="truncate" title={value}>
         {value}
       </dd>
+    </div>
+  );
+}
+
+function SolicitudesTableSkeleton() {
+  const skeletonRows = SKELETON_ROW_KEYS.map((key) => (
+    <SkeletonRow key={key} />
+  ));
+  const skeletonCards = SKELETON_ROW_KEYS.map((key) => (
+    <SkeletonCard key={key} />
+  ));
+  return (
+    <div className="overflow-hidden rounded-xl border">
+      <ul className="space-y-3 p-3 md:hidden">{skeletonCards}</ul>
+      <div className="hidden md:block">
+        <div className="divide-y">{skeletonRows}</div>
+      </div>
+    </div>
+  );
+}
+
+const SKELETON_ROW_KEYS = ["row-1", "row-2", "row-3", "row-4"] as const;
+
+function SkeletonCard() {
+  return (
+    <li className="space-y-2 rounded-xl border p-4">
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-3 w-1/2" />
+      <Skeleton className="h-3 w-1/3" />
+    </li>
+  );
+}
+
+function SkeletonRow() {
+  return (
+    <div className="flex items-center gap-3 px-3 py-3">
+      <Skeleton className="h-4 flex-1" />
+      <Skeleton className="h-4 w-20" />
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className="h-4 w-24" />
     </div>
   );
 }

@@ -1,11 +1,12 @@
+import { AuthRequiredPageLayout } from "@/components/auth/auth-required-page-layout";
 import { SolicitudesShell } from "@/components/solicitudes/solicitudes-shell";
-import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
 import { loadAssignmentsCatalog } from "@/lib/ado/load-assignments-catalog";
+import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
+import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
+import { resolvePageAuth } from "@/lib/auth/resolve-page-auth";
 import { getServerAuthState } from "@/lib/auth/server-state";
 import { loadColombianHolidaysForRange } from "@/lib/holidays";
 import { listMySolicitudes } from "@/lib/novedades/list-my-solicitudes";
-import type { SolicitudDto } from "@/lib/novedades/list-my-solicitudes";
-import type { AdoContextSearchParams } from "@/lib/ado/types";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
 
@@ -16,17 +17,28 @@ export const dynamic = "force-dynamic";
 export default async function SolicitudesPage({
   searchParams,
 }: Readonly<{
-  searchParams?: Promise<AdoContextSearchParams>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }>) {
-  const sp = (await (searchParams ?? Promise.resolve({}))) as AdoContextSearchParams;
-  const caller = await requireAdoCaller();
+  const { searchParams: sp, auth } = await resolvePageAuth(searchParams);
 
+  if (!canLoadLiveAdoContent(auth)) {
+    return (
+      <AuthRequiredPageLayout
+        title={PAGE_SEO.solicitudes.title}
+        description={PAGE_SEO.solicitudes.description}
+        connectOptions={auth.connectOptions}
+        savedConnectionTarget={auth.savedConnectionTarget}
+      />
+    );
+  }
+
+  const caller = await requireAdoCaller();
   const currentYear = new Date().getFullYear();
   const [catalog, authState, holidays, initialSolicitudes] = await Promise.all([
     loadAssignmentsCatalog(sp),
     getServerAuthState(),
     loadColombianHolidaysForRange(`${currentYear - 1}-01-01`, `${currentYear + 2}-12-31`),
-    caller.ok ? listMySolicitudes(caller.auth) : Promise.resolve<SolicitudDto[]>([]),
+    caller.ok ? listMySolicitudes(caller.auth) : Promise.resolve([]),
   ]);
 
   return (

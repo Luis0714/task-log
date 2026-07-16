@@ -4,6 +4,7 @@ import { adoFetch, adoProjectBase, escapeWiqlString } from "@/lib/azure-devops/c
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { buildWiqlIdsQuery, runWiqlIdsQuery } from "@/lib/azure-devops/wiql";
 import { getRepositories } from "@/lib/db";
+import { buildFieldAssigneeWiqlCondition } from "@/lib/filters/assignee-wiql";
 import type { NewsStoriesRepository } from "@/lib/db/ports/news-stories.repository.port";
 import { splitAdoDateTime } from "@/lib/solicitudes/time-calc";
 
@@ -102,6 +103,12 @@ export type ListReportedNewsArgs = Readonly<{
   scopes: ReadonlyArray<ReportedNewsScope>;
   /** Filtro por fechas; `undefined` ≡ `{ kind: "none" }` (modo "Todas"). */
   dateFilter?: ReportedNewsDateFilter;
+  /**
+   * Filtro opcional por asignación. Mismo formato que `serializeAssigneeSelection`
+   * (`WORK_ITEM_ASSIGNEE_ALL` | `WORK_ITEM_ASSIGNEE_ME` | lista separada por `|`).
+   * Si es `undefined` o vacío, no se aplica ningún filtro de asignación.
+   */
+  assignee?: string;
 }>;
 
 /** Dependencias inyectables (útil en tests). */
@@ -150,6 +157,7 @@ export async function listReportedNews(
   const ids = await listReportedNewsIdsByParent(args.auth, {
     parentIds: Array.from(parentIds),
     dateFilter: args.dateFilter ?? { kind: "none" },
+    assignee: args.assignee,
   });
   if (ids.length === 0) return [];
 
@@ -166,7 +174,11 @@ export async function listReportedNews(
  */
 export async function listReportedNewsIdsByParent(
   auth: AdoCallerAuth,
-  args: { parentIds: ReadonlyArray<number>; dateFilter: ReportedNewsDateFilter },
+  args: {
+    parentIds: ReadonlyArray<number>;
+    dateFilter: ReportedNewsDateFilter;
+    assignee?: string;
+  },
 ): Promise<number[]> {
   if (args.parentIds.length === 0) return [];
 
@@ -175,12 +187,17 @@ export async function listReportedNewsIdsByParent(
   );
   if (parentIdList.length === 0) return [];
 
+  const assigneeCondition = args.assignee
+    ? buildFieldAssigneeWiqlCondition("System.AssignedTo", args.assignee)
+    : null;
+
   const conditions = [
     `[System.TeamProject] = '${escapeWiqlString(auth.project)}'`,
     `[System.WorkItemType] = '${escapeWiqlString(NOVEDADES_WORK_ITEM_TYPE)}'`,
     `[System.State] <> 'Removed'`,
     `[System.Parent] IN (${parentIdList.join(", ")})`,
     ...buildDateConditions(args.dateFilter),
+    ...(assigneeCondition ? [assigneeCondition] : []),
   ];
 
   const query = buildWiqlIdsQuery(conditions, "[Custom.FechaInicio] DESC");

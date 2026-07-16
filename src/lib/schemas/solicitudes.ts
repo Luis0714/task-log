@@ -68,3 +68,42 @@ export const solicitudOptionsQuerySchema = z.object({
 });
 
 export type SolicitudOptionsQuery = z.infer<typeof solicitudOptionsQuerySchema>;
+
+/** Modo del filtro de periodo para el listado de solicitudes. */
+const dateFilterModeSchema = z.enum(["month", "range", "all"]);
+
+/** Mes civil `YYYY-MM`. */
+const monthKeySchema = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Mes inválido (YYYY-MM).");
+
+/** Fecha civil `YYYY-MM-DD`. */
+const dateKeySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida (YYYY-MM-DD).");
+
+/**
+ * Query params para GET /api/solicitudes. Todos los filtros son opcionales;
+ * cuando se omite un campo se usa el default del módulo
+ * (modo `month`, mes actual, asignación "me" para no-admin).
+ */
+export const solicitudesListQuerySchema = z
+  .object({
+    scopes: z.string().trim().optional(),
+    mode: dateFilterModeSchema.optional(),
+    month: monthKeySchema.optional(),
+    from: dateKeySchema.optional(),
+    to: dateKeySchema.optional(),
+    assignee: z.string().trim().optional(),
+  })
+  .refine(
+    (data) =>
+      data.mode !== "range" ||
+      (Boolean(data.from) && Boolean(data.to) && data.from! <= data.to!),
+    {
+      message: "Rango inválido: 'from' debe ser ≤ 'to'.",
+      path: ["from"],
+    },
+  );
+
+export type SolicitudesListQuery = z.infer<typeof solicitudesListQuerySchema>;
