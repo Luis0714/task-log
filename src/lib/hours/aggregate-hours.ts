@@ -68,6 +68,7 @@ export function computeHoursBreakdown(input: WorkedHoursInput): HoursBreakdown {
   return {
     taskHours: sumWorkedHours(input.tasks, input.workingDayKeys),
     bugHours: sumWorkedHours(input.bugs, input.workingDayKeys),
+    newsHours: 0,
   };
 }
 
@@ -105,6 +106,7 @@ export function computeHoursByDay(
     byDay.set(day, {
       taskHours: roundHours(entry.taskHours),
       bugHours: roundHours(entry.bugHours),
+      newsHours: 0,
     });
   }
   return byDay;
@@ -142,6 +144,7 @@ export function computeHoursByPerson(
     byPerson.set(key, {
       taskHours: roundHours(entry.taskHours),
       bugHours: roundHours(entry.bugHours),
+      newsHours: 0,
     });
   }
   return byPerson;

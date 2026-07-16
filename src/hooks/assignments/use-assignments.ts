@@ -17,13 +17,21 @@ import {
 
 export type AssignmentRow = AssignmentDto & { pending?: boolean };
 
+export type AssignmentFailure = {
+  ok: false;
+  message: string;
+  code?: string;
+  /** % ya asignado que reporta la API en errores de sobreasignación. */
+  currentTotal?: number;
+};
+
 export type CreateRowResult =
   | { ok: true; assignments: AssignmentDto[] }
-  | { ok: false; message: string };
+  | AssignmentFailure;
 
 export type UpdateCellResult =
   | { ok: true; assignment: AssignmentDto }
-  | { ok: false; message: string };
+  | AssignmentFailure;
 
 export type UseAssignmentsResult = {
   rows: AssignmentRow[];
@@ -47,6 +55,19 @@ const FALLBACK_ERROR = "No se pudo completar la operación. Inténtalo de nuevo.
 
 function errorMessage(err: unknown): string {
   return err instanceof Error && err.message.trim() ? err.message : FALLBACK_ERROR;
+}
+
+function toAssignmentFailure(err: unknown): AssignmentFailure {
+  const failure: AssignmentFailure = { ok: false, message: errorMessage(err) };
+  if (!(err instanceof Error)) return failure;
+
+  const { code, currentTotal } = err as Error & {
+    code?: unknown;
+    currentTotal?: unknown;
+  };
+  if (typeof code === "string") failure.code = code;
+  if (typeof currentTotal === "number") failure.currentTotal = currentTotal;
+  return failure;
 }
 
 function sortRows(list: AssignmentRow[]): AssignmentRow[] {
@@ -90,7 +111,7 @@ export function useAssignments(initial: AssignmentDto[]): UseAssignmentsResult {
         }
         return { ok: true, assignments: created };
       } catch (err) {
-        return { ok: false, message: errorMessage(err) };
+        return toAssignmentFailure(err);
       }
     },
     [],
@@ -146,7 +167,7 @@ export function useAssignments(initial: AssignmentDto[]): UseAssignmentsResult {
             r.id === id ? { ...r, pending: snapshot.pending ?? false } : r,
           ),
         );
-        return { ok: false, message: errorMessage(err) };
+        return toAssignmentFailure(err);
       }
     },
     [rows],

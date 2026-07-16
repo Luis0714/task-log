@@ -1,17 +1,14 @@
 export function stripHtmlTags(input: string): string {
   let out = "";
   let inTag = false;
-  for (let i = 0; i < input.length; i++) {
-    const ch = input[i]!;
+  for (const ch of input) {
     if (ch === "<") {
       inTag = true;
-      continue;
-    }
-    if (ch === ">") {
+    } else if (ch === ">") {
       inTag = false;
-      continue;
+    } else if (!inTag) {
+      out += ch;
     }
-    if (!inTag) out += ch;
   }
   return out;
 }

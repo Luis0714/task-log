@@ -8,7 +8,7 @@ type ShareIconSvgProps = {
 export function SprintTimesShareDevIconSvg({
   size = 14,
   color = sprintTimesShareImageColors.development,
-}: ShareIconSvgProps) {
+}: Readonly<ShareIconSvgProps>) {
   return (
     <svg
       width={size}
@@ -34,7 +34,7 @@ export function SprintTimesShareDevIconSvg({
 export function SprintTimesShareBugIconSvg({
   size = 14,
   color = sprintTimesShareImageColors.bug,
-}: ShareIconSvgProps) {
+}: Readonly<ShareIconSvgProps>) {
   return (
     <svg
       width={size}
@@ -60,7 +60,7 @@ export function SprintTimesShareBugIconSvg({
 export function SprintTimesShareClockIconSvg({
   size = 14,
   color = sprintTimesShareImageColors.sprintTotal,
-}: ShareIconSvgProps) {
+}: Readonly<ShareIconSvgProps>) {
   return (
     <svg
       width={size}
@@ -75,6 +75,33 @@ export function SprintTimesShareClockIconSvg({
     >
       <circle cx="12" cy="12" r="10" />
       <path d="M12 6v6l4 2" />
+    </svg>
+  );
+}
+
+export function SprintTimesShareCalendarOffIconSvg({
+  size = 14,
+  color = sprintTimesShareImageColors.news,
+}: Readonly<ShareIconSvgProps>) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M4 6h16" />
+      <path d="M16 2v4" />
+      <path d="M8 2v4" />
+      <path d="M4 10v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+      <path d="M16 14h-4" />
+      <path d="M16 18h-2" />
+      <path d="m3 3 18 18" />
     </svg>
   );
 }

@@ -53,12 +53,21 @@ describe("filterAssignmentRows", () => {
     expect(result.map((r) => r.personDisplayName)).toEqual(["Ana Ruiz"]);
   });
 
-  it("excluye filas sin equipo cuando hay filtro de equipos", () => {
+  it("las filas a nivel de proyecto (sin equipo) pasan el filtro de equipos", () => {
     const result = filterAssignmentRows(rows, {
       personQuery: "",
       projects: [],
       teams: ["Web", "API"],
     });
-    expect(result.map((r) => r.teamName)).toEqual(["Web", "API"]);
+    expect(result.map((r) => r.teamName)).toEqual(["Web", "API", null]);
+  });
+
+  it("excluye filas cuyo equipo no está en la selección", () => {
+    const result = filterAssignmentRows(rows, {
+      personQuery: "",
+      projects: [],
+      teams: ["Web"],
+    });
+    expect(result.map((r) => r.teamName)).toEqual(["Web", null]);
   });
 });

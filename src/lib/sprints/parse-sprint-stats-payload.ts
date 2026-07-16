@@ -5,6 +5,7 @@ import type {
   WorkItemStatusCounts,
 } from "@/lib/dashboard/types";
 import type { PbiStateBar } from "@/lib/dashboard/pbi-state-chart-data";
+import type { SemaforoLevel } from "@/lib/reports/hours/hours-report-types";
 import type { SprintSnapshotOperationalMetrics } from "@/lib/sprints/sprint-snapshot-types";
 import type {
   SprintBugAssigneeRow,
@@ -138,6 +139,7 @@ function parseHoursBreakdown(value: unknown): HoursBreakdown {
   return {
     taskHours: Number(row.taskHours ?? 0),
     bugHours: Number(row.bugHours ?? 0),
+    newsHours: Number(row.newsHours ?? 0),
   };
 }
 
@@ -166,7 +168,23 @@ function parseSprintTimesPersonRow(value: unknown): SprintTimesPersonRow | null 
     assignee,
     weeks,
     sprint: parseHoursBreakdown(value.sprint),
+    expectedHours: Number(value.expectedHours ?? 0),
+    expectedHoursByWeek: parseNumberArray(value.expectedHoursByWeek),
+    compliancePct:
+      typeof value.compliancePct === "number" ? value.compliancePct : null,
+    semaforo: parseSemaforoLevel(value.semaforo),
   };
+}
+
+function parseNumberArray(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => Number(entry) || 0);
+}
+
+function parseSemaforoLevel(value: unknown): SemaforoLevel | null {
+  return value === "verde" || value === "amarillo" || value === "rojo"
+    ? value
+    : null;
 }
 
 function parseSprintTimesMetrics(value: unknown): SprintTimesMetrics {

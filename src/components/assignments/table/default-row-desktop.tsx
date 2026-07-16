@@ -8,6 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TruncatedTextTooltip } from "@/components/ui/truncated-text-tooltip";
 import { toLocalDateKey } from "@/lib/dashboard/sprint-days";
 
 import type { InferredDefaultRow } from "./types";
@@ -19,10 +20,16 @@ type DefaultRowDesktopProps = Readonly<{
 
 export function DefaultRowDesktop({ row, onCreate }: DefaultRowDesktopProps) {
   return (
-    <tr className="border-border/40 border-t">
-      <td className="px-3 py-2 font-medium">{row.personDisplayName}</td>
-      <td className="px-3 py-2 text-muted-foreground">{row.projectName}</td>
-      <td className="px-3 py-2 text-muted-foreground">{row.teamName ?? "—"}</td>
+    <tr className="border-border/40 hover:bg-muted/30 border-t">
+      <td className="px-3 py-2 font-medium">
+        <TruncatedTextTooltip text={row.personDisplayName} />
+      </td>
+      <td className="px-3 py-2 text-muted-foreground">
+        <TruncatedTextTooltip text={row.projectName} />
+      </td>
+      <td className="px-3 py-2 text-muted-foreground">
+        {row.teamName ? <TruncatedTextTooltip text={row.teamName} /> : "—"}
+      </td>
       <td className="px-3 py-2 text-right font-mono">100%</td>
       <td className="px-3 py-2 text-muted-foreground text-xs whitespace-nowrap">
         {toLocalDateKey(new Date())}

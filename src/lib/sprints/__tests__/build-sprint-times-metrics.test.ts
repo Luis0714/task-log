@@ -56,8 +56,8 @@ describe("buildSprintTimesMetrics", () => {
   it("separa tasks y bugs por semana y persona", () => {
     const metrics = buildSprintTimesMetrics({
       tasks: [
-        makeItem({ id: 1, workingDate: "2026-06-16", loggedHours: 2 }), // semana 1
-        makeItem({ id: 2, workingDate: "2026-06-23", loggedHours: 3 }), // semana 2
+        makeItem({ id: 1, workingDate: "2026-06-16", loggedHours: 2 }),
+        makeItem({ id: 2, workingDate: "2026-06-23", loggedHours: 3 }),
       ],
       bugs: [
         makeItem({ id: 3, type: "Bug", workingDate: "2026-06-16", loggedHours: 1.5 }),
@@ -68,9 +68,9 @@ describe("buildSprintTimesMetrics", () => {
 
     expect(metrics.weeks).toHaveLength(2);
     const row = metrics.rows.find((r) => r.assignee === "Ana Gómez");
-    expect(row?.weeks[0]).toEqual({ taskHours: 2, bugHours: 1.5 });
-    expect(row?.weeks[1]).toEqual({ taskHours: 3, bugHours: 0 });
-    expect(row?.sprint).toEqual({ taskHours: 5, bugHours: 1.5 });
+    expect(row?.weeks[0]).toEqual({ taskHours: 2, bugHours: 1.5, newsHours: 0 });
+    expect(row?.weeks[1]).toEqual({ taskHours: 3, bugHours: 0, newsHours: 0 });
+    expect(row?.sprint).toEqual({ taskHours: 5, bugHours: 1.5, newsHours: 0 });
   });
 
   it("una persona del roster sin horas igual aparece con ceros", () => {
@@ -86,7 +86,7 @@ describe("buildSprintTimesMetrics", () => {
     });
 
     const beto = metrics.rows.find((r) => r.assignee === "Beto Ruiz");
-    expect(beto?.sprint).toEqual({ taskHours: 0, bugHours: 0 });
+    expect(beto?.sprint).toEqual({ taskHours: 0, bugHours: 0, newsHours: 0 });
   });
 
   it("cuando hay roster, las filas se limitan EXACTAMENTE al roster (sin merge con asignados del sprint)", () => {
@@ -134,5 +134,83 @@ describe("buildSprintTimesMetrics", () => {
     expect(
       metrics.rows.find((r) => r.assignee === "Sin asignar"),
     ).toBeUndefined();
+  });
+
+  it("sin segmentos cargados asume 100%: esperadas = días hábiles × 8, por sprint y por semana", () => {
+    const metrics = buildSprintTimesMetrics({
+      tasks: [makeItem({ id: 1 })],
+      bugs: [],
+      sprintStartDate: SPRINT_START,
+      sprintFinishDate: SPRINT_FINISH,
+    });
+
+    const row = metrics.rows.find((r) => r.assignee === "Ana Gómez");
+    expect(row?.expectedHours).toBe(80);
+    expect(row?.expectedHoursByWeek).toEqual([40, 40]);
+  });
+
+  it("con segmentos de excepción, las esperadas respetan el % por tramo", () => {
+    const metrics = buildSprintTimesMetrics({
+      tasks: [makeItem({ id: 1 })],
+      bugs: [],
+      sprintStartDate: SPRINT_START,
+      sprintFinishDate: SPRINT_FINISH,
+      assignmentSegmentsByAssignee: new Map([
+        ["Ana Gómez", [{ pct: 50, from: SPRINT_START, to: null }]],
+      ]),
+    });
+
+    const row = metrics.rows.find((r) => r.assignee === "Ana Gómez");
+    expect(row?.expectedHours).toBe(40);
+    expect(row?.expectedHoursByWeek).toEqual([20, 20]);
+  });
+
+  it("calcula % cumplimiento con el total reportado sobre las esperadas", () => {
+    const metrics = buildSprintTimesMetrics({
+      tasks: [makeItem({ id: 1, loggedHours: 40 })],
+      bugs: [],
+      sprintStartDate: SPRINT_START,
+      sprintFinishDate: SPRINT_FINISH,
+    });
+
+    const row = metrics.rows.find((r) => r.assignee === "Ana Gómez");
+    expect(row?.compliancePct).toBe(50);
+    expect(row?.semaforo).toBe("rojo");
+  });
+
+  it("reparte las horas de novedades en la semana de su rango y las suma al sprint", () => {
+    const metrics = buildSprintTimesMetrics({
+      tasks: [makeItem({ id: 1, loggedHours: 4 })],
+      bugs: [],
+      sprintStartDate: SPRINT_START,
+      sprintFinishDate: SPRINT_FINISH,
+      newsSolicitudes: [
+        {
+          assignee: "Ana Gómez",
+          fechaInicio: "2026-06-16",
+          fechaFin: "2026-06-17",
+          hours: 16,
+        },
+      ],
+    });
+
+    const row = metrics.rows.find((r) => r.assignee === "Ana Gómez");
+    expect(row?.weeks[0]?.newsHours).toBe(16);
+    expect(row?.weeks[1]?.newsHours).toBe(0);
+    expect(row?.sprint.newsHours).toBe(16);
+    expect(row?.compliancePct).toBe(25);
+  });
+
+  it("la fila 'Sin asignar' (sin roster) queda sin esperadas ni cumplimiento", () => {
+    const metrics = buildSprintTimesMetrics({
+      tasks: [makeItem({ id: 1, assignedTo: "" })],
+      bugs: [],
+      sprintStartDate: SPRINT_START,
+      sprintFinishDate: SPRINT_FINISH,
+    });
+
+    const row = metrics.rows.find((r) => r.assignee === "Sin asignar");
+    expect(row?.expectedHours).toBe(0);
+    expect(row?.compliancePct).toBeNull();
   });
 });

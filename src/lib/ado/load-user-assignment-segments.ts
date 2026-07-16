@@ -3,7 +3,11 @@ import "server-only";
 import { cache } from "react";
 
 import { getRepositories } from "@/lib/db";
-import { resolveAssignmentSegments } from "@/lib/reports/hours/resolve-assignment-segments";
+import {
+  resolveAssignmentSegments,
+  toAssignmentsForSegments,
+  type AssignmentForSegment,
+} from "@/lib/reports/hours/resolve-assignment-segments";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
 import type { AssignmentSegment } from "@/lib/expected-hours";
 
@@ -13,17 +17,9 @@ export type LoadUserAssignmentSegmentsInput = {
   sprintFinishDate: string | null;
 };
 
-function toIsoKey(value: Date | string): string {
-  const d = typeof value === "string" ? new Date(value) : value;
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 async function loadAssignmentsFromDb(
   projectId: string,
-): Promise<{ assignmentPct: number; validFrom: string; validTo: string | null }[]> {
+): Promise<AssignmentForSegment[]> {
   if (!isIronSessionConfigured()) return [];
   const session = await getTaskPilotSession();
   const personAdoId = session.adoProfile?.id?.trim();
@@ -34,11 +30,7 @@ async function loadAssignmentsFromDb(
     personAdoId,
     projectId,
   });
-  return rows.map((row) => ({
-    assignmentPct: row.assignmentPct,
-    validFrom: toIsoKey(row.validFrom),
-    validTo: row.validTo ? toIsoKey(row.validTo) : null,
-  }));
+  return toAssignmentsForSegments(rows);
 }
 
 export const loadUserAssignmentSegments = cache(

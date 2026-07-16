@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 
 import { CalendarRange } from "lucide-react";
 
+import { resolveAdoTimeZone } from "@/lib/azure-devops/working-date-field";
+
 const MONTH_NAMES = [
   "enero",
   "febrero",
@@ -54,26 +56,24 @@ export function formatMonthLabel(monthKey: string): string {
   return `${MONTH_NAMES[idx]} de ${year}`;
 }
 
-/** Fecha corta `dd mm yyyy` para el meta del row. Acepta ISO `YYYY-MM-DD` o
- *  timestamp completo; cae a `Intl.DateTimeFormat("es-CO")` si llega otro
- *  formato. Devuelve `null` si el valor está vacío. */
 export function formatShortDate(value: string | null): string | null {
   if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    const m = DATE_KEY_PATTERN.exec(value);
-    if (m) {
-      const [, year, monthNum, day] = m;
-      const idx = Math.max(0, Math.min(11, Number(monthNum) - 1));
-      return `${Number(day)} ${MONTH_ABBREV[idx]} ${year}`;
-    }
-    return value;
+  const match = DATE_KEY_PATTERN.exec(value.slice(0, 10));
+  if (match) {
+    const [, year, monthNum, day] = match;
+    const idx = Math.max(0, Math.min(11, Number(monthNum) - 1));
+    return `${Number(day)} ${MONTH_ABBREV[idx]} ${year}`;
   }
-  return new Intl.DateTimeFormat("es-CO", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    return new Intl.DateTimeFormat("es-CO", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: resolveAdoTimeZone(),
+    }).format(date);
+  }
+  return value;
 }
 
 /** Render inline del rango [inicio, fin] con icono de calendario.

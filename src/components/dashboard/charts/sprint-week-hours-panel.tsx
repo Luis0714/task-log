@@ -18,13 +18,13 @@ export function SprintWeekHoursPanel({
   selectedDayKey = "",
   loading = false,
   className,
-}: SprintWeekHoursPanelProps) {
+}: Readonly<SprintWeekHoursPanelProps>) {
   const displayWeeks =
     loading && weeks.length === 0
       ? [
           {
             label: "1ª semana",
-            hours: { taskHours: 0, bugHours: 0 },
+            hours: { taskHours: 0, bugHours: 0, newsHours: 0 },
             hoursTarget: 0,
             workingDaysCount: 0,
             dateRangeLabel: "",
@@ -32,7 +32,7 @@ export function SprintWeekHoursPanel({
           },
           {
             label: "2ª semana",
-            hours: { taskHours: 0, bugHours: 0 },
+            hours: { taskHours: 0, bugHours: 0, newsHours: 0 },
             hoursTarget: 0,
             workingDaysCount: 0,
             dateRangeLabel: "",

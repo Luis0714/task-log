@@ -1,10 +1,10 @@
 "use client";
 
-import { Bug, Clock, ListChecks } from "lucide-react";
+import { Bug, CalendarOff, Clock, ListChecks } from "lucide-react";
 
+import { ReportsTimeLogSemaforoBadge } from "@/components/reports/time-log/reports-time-log-semaforo-badge";
 import { formatHours } from "@/lib/dashboard/format-hours";
-import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
-import { totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
+import type { SemaforoLevel } from "@/lib/reports/hours/hours-report-types";
 import { cn } from "@/lib/utils";
 
 export type SprintTimesDevHoursValueProps = {
@@ -12,7 +12,7 @@ export type SprintTimesDevHoursValueProps = {
   className?: string;
 };
 
-export function SprintTimesDevHoursValue({ value, className }: SprintTimesDevHoursValueProps) {
+export function SprintTimesDevHoursValue({ value, className }: Readonly<SprintTimesDevHoursValueProps>) {
   return (
     <span
       className={cn(
@@ -31,7 +31,7 @@ export type SprintTimesBugHoursValueProps = {
   className?: string;
 };
 
-export function SprintTimesBugHoursValue({ value, className }: SprintTimesBugHoursValueProps) {
+export function SprintTimesBugHoursValue({ value, className }: Readonly<SprintTimesBugHoursValueProps>) {
   return (
     <span
       className={cn(
@@ -45,39 +45,11 @@ export function SprintTimesBugHoursValue({ value, className }: SprintTimesBugHou
   );
 }
 
-export type SprintTimesTotalCellProps = {
-  breakdown: HoursBreakdown;
-  className?: string;
-};
-
-export function SprintTimesTotalCell({ breakdown, className }: SprintTimesTotalCellProps) {
-  const total = totalHoursBreakdown(breakdown);
-
-  return (
-    <div className={cn("flex flex-col items-center gap-1", className)}>
-      <span className="text-foreground inline-flex items-center gap-1 text-xs font-semibold tabular-nums">
-        <Clock className="text-primary/80 size-3 shrink-0" aria-hidden />
-        <span>{formatHours(total)}</span>
-      </span>
-      <div className="flex flex-wrap justify-center gap-x-1.5 gap-y-0.5">
-        <SprintTimesDevHoursValue
-          value={breakdown.taskHours}
-          className="text-muted-foreground text-[10px] [&_svg]:size-2.5"
-        />
-        <SprintTimesBugHoursValue
-          value={breakdown.bugHours}
-          className="text-muted-foreground text-[10px] [&_svg]:size-2.5"
-        />
-      </div>
-    </div>
-  );
-}
-
 export type SprintTimesLegendProps = {
   className?: string;
 };
 
-export function SprintTimesDevSubColumnHeader({ className }: { className?: string }) {
+export function SprintTimesDevSubColumnHeader({ className }: Readonly<{ className?: string }>) {
   return (
     <span
       className={cn(
@@ -91,7 +63,7 @@ export function SprintTimesDevSubColumnHeader({ className }: { className?: strin
   );
 }
 
-export function SprintTimesBugSubColumnHeader({ className }: { className?: string }) {
+export function SprintTimesBugSubColumnHeader({ className }: Readonly<{ className?: string }>) {
   return (
     <span
       className={cn(
@@ -105,7 +77,7 @@ export function SprintTimesBugSubColumnHeader({ className }: { className?: strin
   );
 }
 
-export function SprintTimesWeekTotalValue({ value, className }: { value: number; className?: string }) {
+export function SprintTimesWeekTotalValue({ value, className }: Readonly<{ value: number; className?: string }>) {
   return (
     <span
       className={cn(
@@ -119,7 +91,7 @@ export function SprintTimesWeekTotalValue({ value, className }: { value: number;
   );
 }
 
-export function SprintTimesTotalSubColumnHeader({ className }: { className?: string }) {
+export function SprintTimesTotalSubColumnHeader({ className }: Readonly<{ className?: string }>) {
   return (
     <span
       className={cn(
@@ -133,7 +105,7 @@ export function SprintTimesTotalSubColumnHeader({ className }: { className?: str
   );
 }
 
-export function SprintTimesLegend({ className }: SprintTimesLegendProps) {
+export function SprintTimesLegend({ className }: Readonly<SprintTimesLegendProps>) {
   return (
     <div className={cn("text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-[11px]", className)}>
       <span className="inline-flex items-center gap-1">
@@ -145,9 +117,80 @@ export function SprintTimesLegend({ className }: SprintTimesLegendProps) {
         Tiempo en bugs
       </span>
       <span className="inline-flex items-center gap-1">
+        <CalendarOff className="size-3 shrink-0" aria-hidden />
+        Tiempo en novedades
+      </span>
+      <span className="inline-flex items-center gap-1">
         <Clock className="text-primary/80 size-3 shrink-0" aria-hidden />
         Total sprint
       </span>
+    </div>
+  );
+}
+
+export function SprintTimesNewsHoursValue({ value, className }: Readonly<{ value: number; className?: string }>) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center justify-center gap-1 text-xs tabular-nums",
+        className,
+      )}
+    >
+      <CalendarOff className="size-3 shrink-0" style={{ color: "var(--bug-open)" }} aria-hidden />
+      <span>{formatHours(value)}</span>
+    </span>
+  );
+}
+
+export function SprintTimesNewsSubColumnHeader({ className }: Readonly<{ className?: string }>) {
+  return (
+    <span
+      className={cn(
+        "text-muted-foreground inline-flex items-center justify-center gap-1 text-[10px] font-medium uppercase tracking-wide",
+        className,
+      )}
+    >
+      <CalendarOff className="size-3 shrink-0" style={{ color: "var(--bug-open)" }} aria-hidden />
+      Novedades
+    </span>
+  );
+}
+
+export function SprintTimesExpectedHoursValue({
+  value,
+  className,
+}: Readonly<{
+  value: number;
+  className?: string;
+}>) {
+  return (
+    <span
+      className={cn(
+        "text-muted-foreground inline-flex items-center justify-center gap-1 text-xs tabular-nums",
+        className,
+      )}
+    >
+      <span>{formatHours(value)}</span>
+    </span>
+  );
+}
+
+export function SprintTimesComplianceBadge({
+  level,
+  pct,
+  className,
+}: Readonly<{
+  level: SemaforoLevel | null;
+  pct: number | null;
+  className?: string;
+}>) {
+  return (
+    <div className={cn("flex justify-center", className)}>
+      {level === null ? (
+        <span className="text-muted-foreground text-xs">—</span>
+      ) : (
+        <ReportsTimeLogSemaforoBadge level={level} pct={pct} />
+      )}
     </div>
   );
 }

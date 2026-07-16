@@ -12,18 +12,30 @@ function buildTimes(): SprintTimesMetrics {
     rows: [
       {
         assignee: "Ana",
-        weeks: [{ taskHours: 1, bugHours: 0 }],
-        sprint: { taskHours: 1, bugHours: 0 },
+        weeks: [{ taskHours: 1, bugHours: 0, newsHours: 0 }],
+        sprint: { taskHours: 1, bugHours: 0, newsHours: 0 },
+        expectedHours: 0,
+        expectedHoursByWeek: [],
+        compliancePct: null,
+        semaforo: null,
       },
       {
         assignee: "Beto",
-        weeks: [{ taskHours: 2, bugHours: 1 }],
-        sprint: { taskHours: 2, bugHours: 1 },
+        weeks: [{ taskHours: 2, bugHours: 1, newsHours: 0 }],
+        sprint: { taskHours: 2, bugHours: 1, newsHours: 0 },
+        expectedHours: 0,
+        expectedHoursByWeek: [],
+        compliancePct: null,
+        semaforo: null,
       },
       {
         assignee: "Cami",
-        weeks: [{ taskHours: 3, bugHours: 0 }],
-        sprint: { taskHours: 3, bugHours: 0 },
+        weeks: [{ taskHours: 3, bugHours: 0, newsHours: 0 }],
+        sprint: { taskHours: 3, bugHours: 0, newsHours: 0 },
+        expectedHours: 0,
+        expectedHoursByWeek: [],
+        compliancePct: null,
+        semaforo: null,
       },
     ],
   };
@@ -65,6 +77,6 @@ describe("buildSprintTimesSharePayload", () => {
     );
     expect(payload.table.teamTotalRow.assignee).toBe("Total equipo");
     const sprintTotal = payload.table.teamTotalRow.sprint;
-    expect(sprintTotal).toEqual({ taskHours: 5, bugHours: 1 });
+    expect(sprintTotal).toEqual({ taskHours: 5, bugHours: 1, newsHours: 0 });
   });
 });

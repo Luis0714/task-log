@@ -7,6 +7,7 @@ import {
   type OpResult,
 } from "@/components/assignments/assignments-table";
 import type {
+  AssignmentFailure,
   AssignmentRow,
   CreateRowResult,
   UpdateCellResult,
@@ -15,6 +16,7 @@ import type {
   CreateAssignmentPayload,
   EditAssignmentPayload,
 } from "@/services/assignments/assignments.service";
+import { ASSIGNMENT_ERROR_CODES } from "@/lib/assignments/error-codes";
 import { getTodayDateKey } from "@/lib/time-log/working-date-default";
 import { appToast } from "@/lib/toast";
 
@@ -35,6 +37,38 @@ export type UseAssignmentActionsResult = {
   ) => OpResult;
 };
 
+const ERROR_TOAST_DURATION_MS = 8_000;
+
+function over100Description(currentTotal?: number): string {
+  if (currentTotal === undefined || currentTotal <= 0) {
+    return "La suma de sus asignaciones vigentes supera el 100%.";
+  }
+  const available = Math.max(0, 100 - currentTotal);
+  if (available === 0) {
+    return `Ya tiene el ${currentTotal}% asignado. Libera porcentaje en otra asignación.`;
+  }
+  return `Ya tiene el ${currentTotal}% asignado. Puedes asignarle hasta el ${available}%.`;
+}
+
+/**
+ * Superar el 100% es una regla de negocio, no un fallo: sale como warning
+ * con título corto y una descripción de una línea, legible en lo que dura
+ * el toast (el mensaje completo del servidor es demasiado largo para eso).
+ */
+function toastActionFailure(fallbackTitle: string, failure: AssignmentFailure): void {
+  if (failure.code === ASSIGNMENT_ERROR_CODES.over100) {
+    appToast.warning("Supera el 100% de asignación", {
+      description: over100Description(failure.currentTotal),
+      duration: ERROR_TOAST_DURATION_MS,
+    });
+    return;
+  }
+  appToast.error(fallbackTitle, {
+    description: failure.message,
+    duration: ERROR_TOAST_DURATION_MS,
+  });
+}
+
 /**
  * Orquesta las operaciones de la tabla de asignaciones (editar, eliminar y
  * materializar una fila "por defecto") con feedback de toast. Separa la lógica
@@ -51,7 +85,7 @@ export function useAssignmentActions({
       if (Object.keys(patch).length === 0) return { ok: true };
       const res = await editCell(id, patch);
       if (!res.ok) {
-        appToast.error(res.message);
+        toastActionFailure("No se pudo actualizar la asignación", res);
         return { ok: false, message: res.message };
       }
       appToast.success("Asignación actualizada.");
@@ -92,7 +126,7 @@ export function useAssignmentActions({
         validTo: payload.validTo ?? undefined,
       });
       if (!result.ok) {
-        appToast.error(result.message);
+        toastActionFailure("No se pudo crear la asignación", result);
         return { ok: false, message: result.message };
       }
       appToast.success("Asignación creada.");

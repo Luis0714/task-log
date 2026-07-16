@@ -1,8 +1,10 @@
 import type { AdoTaskStateDto, AdoTeamMemberDto, AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
+import type { AssignmentSegment } from "@/lib/expected-hours";
 import { buildSprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import { buildDashboardDeliveryMetrics } from "@/lib/dashboard/build-dashboard-delivery-metrics";
 import { buildSprintWorkflowSectionMetrics } from "@/lib/sprints/build-sprint-workflow-section-metrics";
 import { buildBugQualityMetrics, buildParentTitleLookup } from "@/lib/sprints/build-bug-quality-metrics";
+import type { SprintNewsSolicitud } from "@/lib/sprints/build-sprint-news-hours-by-week";
 import { buildSprintTimesMetrics } from "@/lib/sprints/build-sprint-times-metrics";
 import {
   filterBugsToGoalScope,
@@ -23,6 +25,8 @@ export type BuildSprintOperationalMetricsInput = {
   sprintFinishDate?: string | null;
   nonWorkingDates?: readonly string[];
   assigneeRoster?: readonly AdoTeamMemberDto[];
+  assignmentSegmentsByAssignee?: ReadonlyMap<string, readonly AssignmentSegment[]>;
+  newsSolicitudes?: readonly SprintNewsSolicitud[];
 };
 
 function resolveScopedWorkItems(input: BuildSprintOperationalMetricsInput): AdoWorkItemOptionDto[] {
@@ -69,6 +73,8 @@ export function buildSprintOperationalMetrics(
       sprintFinishDate: input.sprintFinishDate,
       nonWorkingDates: input.nonWorkingDates,
       assigneeRoster: input.assigneeRoster,
+      assignmentSegmentsByAssignee: input.assignmentSegmentsByAssignee,
+      newsSolicitudes: input.newsSolicitudes,
     }),
   };
 }

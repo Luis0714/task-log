@@ -23,6 +23,7 @@ export type HoursReportRow = Readonly<{
   expectedHours: number;
   developmentHours: number;
   bugHours: number;
+  workedHours: number;
   newsHours: number;
   totalHours: number;
   newsCount: number;
@@ -34,6 +35,8 @@ export type HoursReportRow = Readonly<{
   newsDetails: string[];
   compliancePct: number | null;
   semaforo: SemaforoLevel | null;
+  deviationPct: number | null;
+  deviationLevel: SemaforoLevel | null;
 }>;
 
 export type HoursReportAlertKind =

@@ -6,6 +6,31 @@ export type AssignmentForSegment = {
   validTo: string | null;
 };
 
+export type AssignmentDateRow = {
+  assignmentPct: number;
+  validFrom: Date | string;
+  validTo: Date | string | null;
+};
+
+/** Normaliza filas de BD (fechas `Date` o ISO) al input de segmentos. */
+export function toAssignmentsForSegments(
+  rows: readonly AssignmentDateRow[],
+): AssignmentForSegment[] {
+  return rows.map((row) => ({
+    assignmentPct: row.assignmentPct,
+    validFrom: toIsoDateKey(row.validFrom),
+    validTo: row.validTo === null ? null : toIsoDateKey(row.validTo),
+  }));
+}
+
+function toIsoDateKey(date: Date | string): string {
+  if (typeof date === "string") return date.slice(0, 10);
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export type ResolveAssignmentSegmentsArgs = {
   assignments: readonly AssignmentForSegment[];
   periodStart: string;

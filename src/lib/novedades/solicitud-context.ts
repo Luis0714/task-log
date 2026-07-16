@@ -102,9 +102,8 @@ export async function resolveAssigneeFromRoster(
     return formatIdentityPatchValue(match.displayName, match.uniqueName);
   }
   const profile = await resolveAdoProfile(auth).catch(() => null);
-  const profileName = profile?.displayName?.trim();
-  if (profileName && profileName.toLowerCase() === lowered) {
-    return formatIdentityPatchValue(profileName);
+  if (profile?.displayName?.trim()?.toLowerCase() === lowered) {
+    return formatIdentityPatchValue(profile.displayName.trim());
   }
   return formatIdentityPatchValue(trimmed);
 }

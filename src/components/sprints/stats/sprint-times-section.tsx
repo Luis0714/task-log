@@ -1,35 +1,36 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { DashboardSection } from "@/components/dashboard/layout/dashboard-section";
 import { AssigneeVisibilityCombobox } from "@/components/sprints/stats/assignee-visibility-combobox";
-import {
-  SprintTimesBugHoursValue,
-  SprintTimesBugSubColumnHeader,
-  SprintTimesDevHoursValue,
-  SprintTimesDevSubColumnHeader,
-  SprintTimesLegend,
-  SprintTimesTotalCell,
-  SprintTimesTotalSubColumnHeader,
-  SprintTimesWeekTotalValue,
-} from "@/components/sprints/stats/sprint-times-hours-cell";
+import { SPRINT_TIMES_TEAM_TOTAL_LABEL } from "@/components/sprints/stats/sprint-times-columns";
+import { SprintTimesLegend } from "@/components/sprints/stats/sprint-times-hours-cell";
+import { SprintTimesShareActions } from "@/components/sprints/stats/sprint-times-share-actions";
+import { SprintTimesTable } from "@/components/sprints/stats/sprint-times-table";
+import { SprintTimesWeekSelect } from "@/components/sprints/stats/sprint-times-week-select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TeamMemberAvatar } from "@/components/team-members/team-member-avatar";
-import { EMPTY_HOURS_BREAKDOWN, totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
-import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
+import { totalHoursBreakdown } from "@/lib/hours/hours-breakdown";
+import { computeCompliance } from "@/lib/reports/hours/compliance";
+import {
+  filterSprintTimesByWeek,
+  parseSprintTimesWeekSelection,
+  SPRINT_TIMES_WEEK_ALL,
+} from "@/lib/sprints/filter-sprint-times-by-week";
+import {
+  buildSprintTimesShareWeekVariant,
+  type SprintTimesShareVariant,
+} from "@/lib/sprints/sprint-times-share-variant";
+import { canShareSprintTimes } from "@/lib/sprints/sprint-times-share-eligibility";
+import type { SprintTimesShareScope } from "@/lib/sprints/sprint-times-share-scope";
 import type {
   SprintTimesMetrics,
-  SprintTimesWeekColumn,
+  SprintTimesPersonRow,
 } from "@/lib/sprints/sprint-stats-types";
 import {
   sumSprintBreakdowns,
   sumWeekBreakdowns,
 } from "@/lib/sprints/sum-hours-breakdowns";
-import { SprintTimesShareActions } from "@/components/sprints/stats/sprint-times-share-actions";
-import type { SprintTimesShareScope } from "@/lib/sprints/sprint-times-share-scope";
-import { canShareSprintTimes } from "@/lib/sprints/sprint-times-share-eligibility";
-import { cn } from "@/lib/utils";
 import { useAssigneeVisibilityStore } from "@/store/assignee-visibility-store";
 
 export type SprintTimesSectionProps = {
@@ -41,82 +42,6 @@ export type SprintTimesSectionProps = {
   extraAction?: ReactNode;
   allAssignees?: readonly string[];
 };
-
-const WEEK_ODD_CLASS = "bg-primary/[0.07]";
-const WEEK_EVEN_CLASS = "bg-muted/50";
-const WEEK_ODD_EMPHASIZED = "bg-primary/[0.1]";
-const WEEK_EVEN_EMPHASIZED = "bg-muted/65";
-
-function weekGroupClass(weekIndex: number, emphasized = false): string {
-  const isOdd = weekIndex % 2 === 0;
-  if (emphasized) return isOdd ? WEEK_ODD_EMPHASIZED : WEEK_EVEN_EMPHASIZED;
-  return isOdd ? WEEK_ODD_CLASS : WEEK_EVEN_CLASS;
-}
-
-function buildTableGridStyle(weekCount: number): React.CSSProperties {
-  return {
-    display: "grid",
-    gridTemplateColumns: `minmax(8rem, 1.1fr) repeat(${weekCount}, minmax(14rem, 1.3fr)) minmax(7rem, 0.95fr)`,
-    gap: "0 0.75rem",
-  };
-}
-
-function WeekGroupBlock({
-  weekIndex,
-  emphasized = false,
-  className,
-  children,
-}: Readonly<{
-  weekIndex: number;
-  emphasized?: boolean;
-  className?: string;
-  children: ReactNode;
-}>) {
-  return (
-    <div
-      className={cn(
-        "grid grid-cols-3 rounded-md",
-        weekGroupClass(weekIndex, emphasized),
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
-function WeekGroupCell({
-  children,
-  withDivider = false,
-  className,
-}: Readonly<{
-  children: ReactNode;
-  withDivider?: boolean;
-  className?: string;
-}>) {
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-center px-3 py-2",
-        withDivider && "border-border/20 border-l",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
-function WeekGroupHeader({ week }: Readonly<{ week: SprintTimesWeekColumn }>) {
-  return (
-    <div className="min-w-0 text-center">
-      <p className="text-xs font-medium">{week.label}</p>
-      {week.dateRangeLabel ? (
-        <p className="text-muted-foreground truncate text-[10px]">{week.dateRangeLabel}</p>
-      ) : null}
-    </div>
-  );
-}
 
 const TIMES_SKELETON_ROWS = Array.from(
   { length: 8 },
@@ -141,53 +66,21 @@ function TimesTableSkeleton() {
   );
 }
 
-function TimesRow({
-  assignee,
-  weeks,
-  sprint,
-  emphasized = false,
-  weekCount,
-}: Readonly<{
-  assignee: string;
-  weeks: HoursBreakdown[];
-  sprint: HoursBreakdown;
-  emphasized?: boolean;
-  weekCount: number;
-}>) {
-  return (
-    <li
-      style={buildTableGridStyle(weekCount)}
-      className={cn("items-center px-3 py-1", emphasized && "bg-muted/15")}
-    >
-      <div className="flex min-w-0 items-center gap-2 py-1.5">
-        <TeamMemberAvatar name={assignee} size="sm" />
-        <p className="truncate text-sm font-medium" title={assignee}>
-          {assignee}
-        </p>
-      </div>
+function buildTeamTotalRow(times: SprintTimesMetrics): SprintTimesPersonRow {
+  const weeks = times.weeks.map((_, index) => sumWeekBreakdowns(times.rows, index));
+  const sprint = sumSprintBreakdowns(times.rows);
+  const expectedHours = times.rows.reduce((acc, row) => acc + row.expectedHours, 0);
+  const { pct, level } = computeCompliance(totalHoursBreakdown(sprint), expectedHours);
 
-      {Array.from({ length: weekCount }, (_, index) => {
-        const breakdown = weeks[index] ?? EMPTY_HOURS_BREAKDOWN;
-        return (
-          <WeekGroupBlock key={index} weekIndex={index} emphasized={emphasized}>
-            <WeekGroupCell>
-              <SprintTimesDevHoursValue value={breakdown.taskHours} className="w-full" />
-            </WeekGroupCell>
-            <WeekGroupCell withDivider>
-              <SprintTimesWeekTotalValue value={totalHoursBreakdown(breakdown)} />
-            </WeekGroupCell>
-            <WeekGroupCell withDivider>
-              <SprintTimesBugHoursValue value={breakdown.bugHours} className="w-full" />
-            </WeekGroupCell>
-          </WeekGroupBlock>
-        );
-      })}
-
-      <div className="flex items-center justify-center py-2">
-        <SprintTimesTotalCell breakdown={sprint} />
-      </div>
-    </li>
-  );
+  return {
+    assignee: SPRINT_TIMES_TEAM_TOTAL_LABEL,
+    weeks,
+    sprint,
+    expectedHours,
+    expectedHoursByWeek: [],
+    compliancePct: pct,
+    semaforo: level,
+  };
 }
 
 export function SprintTimesSection({
@@ -199,22 +92,27 @@ export function SprintTimesSection({
   extraAction,
   allAssignees,
 }: Readonly<SprintTimesSectionProps>) {
-  const weekCount = times.weeks.length;
+  const [weekValue, setWeekValue] = useState<string>(SPRINT_TIMES_WEEK_ALL);
 
-  const weekTotals = useMemo(
-    () => Array.from({ length: weekCount }, (_, i) => sumWeekBreakdowns(times.rows, i)),
-    [times.rows, weekCount],
+  const weekSelection = parseSprintTimesWeekSelection(weekValue, times.weeks.length);
+  const visibleTimes = useMemo(
+    () => filterSprintTimesByWeek(times, weekSelection),
+    [times, weekSelection],
   );
-
-  const sprintTotal = useMemo(() => sumSprintBreakdowns(times.rows), [times.rows]);
+  const shareVariant: SprintTimesShareVariant =
+    weekSelection === SPRINT_TIMES_WEEK_ALL
+      ? "full"
+      : buildSprintTimesShareWeekVariant(weekSelection + 1);
+  const totalRow = useMemo(() => buildTeamTotalRow(visibleTimes), [visibleTimes]);
 
   const hasRows = times.rows.length > 0;
-  const hasWeeks = weekCount > 0;
-  const tableGridStyle = buildTableGridStyle(weekCount);
+  const hasWeeks = times.weeks.length > 0;
 
   const hiddenAssignees = useAssigneeVisibilityStore((s) => s.hidden);
   const toggleAssignee = useAssigneeVisibilityStore((s) => s.toggle);
   const showAssigneeFilter = allAssignees !== undefined;
+  const hasActions =
+    hasWeeks || showAssigneeFilter || Boolean(extraAction) || Boolean(shareScope);
 
   let content: ReactNode;
   if (loading) {
@@ -232,72 +130,7 @@ export function SprintTimesSection({
       </p>
     );
   } else {
-    content = (
-      <div className="overflow-x-auto rounded-lg border border-border/60">
-        <div className="min-w-3xl">
-          <div
-            style={tableGridStyle}
-            className="border-border/60 bg-muted/20 items-center px-3 py-2"
-          >
-            <span className="text-muted-foreground text-xs font-medium">Persona</span>
-            {times.weeks.map((week, index) => (
-              <div
-                key={week.label}
-                className={cn("rounded-md px-2 py-1.5 text-center", weekGroupClass(index))}
-              >
-                <WeekGroupHeader week={week} />
-              </div>
-            ))}
-            <div className="min-w-0 text-center">
-              <p className="text-xs font-medium">Tiempo sprint</p>
-            </div>
-          </div>
-
-          <div
-            style={tableGridStyle}
-            className="border-border/60 border-b px-3 pb-1"
-          >
-            <span />
-            {times.weeks.map((week, index) => (
-              <WeekGroupBlock key={week.label} weekIndex={index}>
-                <WeekGroupCell className="py-1.5">
-                  <SprintTimesDevSubColumnHeader />
-                </WeekGroupCell>
-                <WeekGroupCell withDivider className="py-1.5">
-                  <SprintTimesTotalSubColumnHeader />
-                </WeekGroupCell>
-                <WeekGroupCell withDivider className="py-1.5">
-                  <SprintTimesBugSubColumnHeader />
-                </WeekGroupCell>
-              </WeekGroupBlock>
-            ))}
-            <span className="text-muted-foreground flex items-center justify-center py-1.5 text-center text-[10px] font-medium uppercase tracking-wide">
-              Total
-            </span>
-          </div>
-
-          <ul className="divide-border/60 divide-y">
-            {times.rows.map((row) => (
-              <TimesRow
-                key={row.assignee}
-                assignee={row.assignee}
-                weeks={row.weeks}
-                sprint={row.sprint}
-                weekCount={weekCount}
-              />
-            ))}
-
-            <TimesRow
-              assignee="Total equipo"
-              weeks={weekTotals}
-              sprint={sprintTotal}
-              weekCount={weekCount}
-              emphasized
-            />
-          </ul>
-        </div>
-      </div>
-    );
+    content = <SprintTimesTable times={visibleTimes} totalRow={totalRow} />;
   }
 
   return (
@@ -306,25 +139,34 @@ export function SprintTimesSection({
       description={description}
       className={className}
       action={
-        showAssigneeFilter || shareScope || extraAction ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {showAssigneeFilter ? (
-              <AssigneeVisibilityCombobox
-                assignees={allAssignees!}
-                hiddenAssignees={hiddenAssignees}
-                onToggle={toggleAssignee}
-                disabled={!allAssignees?.length}
-              />
-            ) : null}
-            {extraAction}
-            {shareScope ? (
-              <SprintTimesShareActions
-                {...shareScope}
-                times={times}
-                canShare={canShareSprintTimes(times)}
-              />
-            ) : null}
-          </div>
+        hasActions ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {hasWeeks ? (
+            <SprintTimesWeekSelect
+              weeks={times.weeks}
+              value={weekValue}
+              onValueChange={setWeekValue}
+              disabled={loading || !hasRows}
+            />
+          ) : null}
+          {showAssigneeFilter ? (
+            <AssigneeVisibilityCombobox
+              assignees={allAssignees!}
+              hiddenAssignees={hiddenAssignees}
+              onToggle={toggleAssignee}
+              disabled={!allAssignees?.length}
+            />
+          ) : null}
+          {extraAction}
+          {shareScope ? (
+            <SprintTimesShareActions
+              {...shareScope}
+              times={times}
+              canShare={canShareSprintTimes(times)}
+              initialVariant={shareVariant}
+            />
+          ) : null}
+        </div>
         ) : null
       }
     >

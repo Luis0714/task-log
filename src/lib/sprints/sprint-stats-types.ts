@@ -1,6 +1,7 @@
 import type { HoursBreakdown } from "@/lib/hours/hours-breakdown";
 import type { DashboardDeliveryMetrics, SprintPbiProgress } from "@/lib/dashboard/types";
 import type { PbiStateBar } from "@/lib/dashboard/pbi-state-chart-data";
+import type { SemaforoLevel } from "@/lib/reports/hours/hours-report-types";
 import type {
   SprintSnapshotSummary,
   SprintStoryGoalStatus,
@@ -80,6 +81,15 @@ export type SprintTimesPersonRow = {
   /** Una entrada por semana calendario del sprint (puede ser 2, 3 o más). */
   weeks: HoursBreakdown[];
   sprint: HoursBreakdown;
+  expectedHours: number;
+  /**
+   * Horas esperadas de cada semana (mismo índice que `weeks`). Puede venir
+   * vacío en snapshots antiguos; en ese caso se prorratea `expectedHours`
+   * por días hábiles de la semana.
+   */
+  expectedHoursByWeek: number[];
+  compliancePct: number | null;
+  semaforo: SemaforoLevel | null;
 };
 
 export type SprintTimesMetrics = {

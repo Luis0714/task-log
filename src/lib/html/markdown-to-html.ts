@@ -54,13 +54,11 @@ function renderInline(value: string): string {
     (_match, alt, url) =>
       `<img src="${escapeHtml(proxiedImageUrl(url))}" alt="${alt}" />`,
   );
-  // 2. Enlaces: [texto](url "title opcional")
+  // 2. Enlaces: [texto](url "title opcional") — un solo pase evita duplicar el
+  //    patrón base y posibles ambigüedades de backtracking al alternar dos regex
+  //    casi idénticos.
   text = text.replace(
-    /\[([^\]]+)\]\(([^)\s]+)\s+"[^"]*"\)/g,
-    (_m, label, url) => `<a href="${escapeHtml(url)}">${label}</a>`,
-  );
-  text = text.replace(
-    /\[([^\]]+)\]\(([^)\s]+)\)/g,
+    /\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,
     (_m, label, url) => `<a href="${escapeHtml(url)}">${label}</a>`,
   );
   // 3. Negrita: **x** o __x__
@@ -85,8 +83,8 @@ export function looksLikeMarkdown(input: string): boolean {
   if (/<[a-z][\s\S]*?>/i.test(trimmed)) return false;
 
   return (
-    /^\s*(?:\d+\.|--?|\*\*?)\s+/m.test(trimmed) ||
-    /^\s*#{1,6}\s\S/m.test(trimmed) ||
+    /^\s*(?:\d+\.|-{1,2}|\*)\s+/m.test(trimmed) ||
+    /^[ \t]*#{1,6}\s\S/m.test(trimmed) ||
     /!\[[^\]]*\]\([^)]+\)/.test(trimmed) ||
     /\[[^\]]+\]\([^)]+\)/.test(trimmed) ||
     /\*\*[^*\n]+\*\*/.test(trimmed)
@@ -127,7 +125,7 @@ export function markdownToHtml(input: string): string {
   for (const raw of lines) {
     const line = raw.trimEnd();
 
-    const headingMatch = /^(#{1,6})\s+([^\n]+)$/.exec(line);
+    const headingMatch = /^(#{1,6})\s+(.+)$/.exec(line);
     if (headingMatch) {
       flushParagraph(paragraph, out);
       closeList(out, listState);
@@ -136,7 +134,7 @@ export function markdownToHtml(input: string): string {
       continue;
     }
 
-    const olMatch = /^\s*\d+\.\s+([^\n]+)$/.exec(line);
+    const olMatch = /^\s*\d+\.\s+(.+)$/.exec(line);
     if (olMatch) {
       flushParagraph(paragraph, out);
       if (listState.type !== "ol") {
@@ -148,7 +146,7 @@ export function markdownToHtml(input: string): string {
       continue;
     }
 
-    const ulMatch = /^\s*[-*]\s+([^\n]+)$/.exec(line);
+    const ulMatch = /^\s*[-*]\s+(.+)$/.exec(line);
     if (ulMatch) {
       flushParagraph(paragraph, out);
       if (listState.type !== "ul") {
