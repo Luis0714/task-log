@@ -214,6 +214,129 @@ export async function listBugsByCreatedDateRange(
   return fetchWorkItemsByIds(auth, ids);
 }
 
+/**
+ * Lista bugs cuya iteración (`System.IterationPath`) está bajo el path del
+ * sprint indicado. NO usa el rango de fechas: el sprint aquí sí se aplica
+ * como filtro directo porque la iteración es la asociación canónica del
+ * bug al sprint (criterio 2 del filtrado por sprint).
+ */
+export async function listBugsByIterationPath(
+  auth: AdoCallerAuth,
+  sprintPath: string,
+  filters: WorkingDateRangeFilters = {},
+): Promise<AdoWorkItemOption[]> {
+  const processProfile = await resolveProcessProfile(auth);
+  const project = escapeWiqlString(auth.project);
+  const path = escapeWiqlString(sprintPath);
+
+  const conditions: string[] = [
+    `[System.TeamProject] = '${project}'`,
+    `[System.IterationPath] UNDER '${path}'`,
+    `[System.State] <> 'Removed'`,
+    `[System.WorkItemType] = '${escapeWiqlString(processProfile.bugWorkItemType)}'`,
+  ];
+
+  const teamCondition = await buildTeamScopeWiqlCondition(auth, filters.team);
+  if (teamCondition) conditions.push(teamCondition);
+
+  const assignee = filters.assignee?.trim() || WORK_ITEM_ASSIGNEE_ALL;
+  const assigneeCondition = buildAssigneeWiqlCondition(assignee);
+  if (assigneeCondition) conditions.push(assigneeCondition);
+
+  const ids = await runWiqlIdsQuery(
+    auth,
+    buildWiqlIdsQuery(conditions, "[System.ChangedDate] DESC"),
+    "No se pudieron consultar los bugs por iteración del sprint.",
+  );
+  return fetchWorkItemsByIds(auth, ids);
+}
+
+/**
+ * Lista bugs cuya historia de usuario padre pertenece al sprint indicado,
+ * independientemente de la iteración o la fecha de creación del bug
+ * (criterio 3 del filtrado por sprint).
+ */
+export async function listBugsByParentIterationPath(
+  auth: AdoCallerAuth,
+  sprintPath: string,
+  filters: WorkingDateRangeFilters = {},
+): Promise<AdoWorkItemOption[]> {
+  const processProfile = await resolveProcessProfile(auth);
+  const project = escapeWiqlString(auth.project);
+  const path = escapeWiqlString(sprintPath);
+
+  const storyConditions: string[] = [
+    `[System.TeamProject] = '${project}'`,
+    `[System.IterationPath] UNDER '${path}'`,
+    `[System.State] <> 'Removed'`,
+    `[System.WorkItemType] = '${escapeWiqlString(processProfile.backlogItemType)}'`,
+  ];
+  const teamCondition = await buildTeamScopeWiqlCondition(auth, filters.team);
+  if (teamCondition) storyConditions.push(teamCondition);
+
+  const storyIds = await runWiqlIdsQuery(
+    auth,
+    buildWiqlIdsQuery(storyConditions),
+    "No se pudieron consultar las historias del sprint para filtrar bugs por padre.",
+  );
+  if (storyIds.length === 0) return [];
+
+  const bugConditions: string[] = [
+    `[System.TeamProject] = '${project}'`,
+    `[System.State] <> 'Removed'`,
+    `[System.WorkItemType] = '${escapeWiqlString(processProfile.bugWorkItemType)}'`,
+    `[System.Parent] IN (${storyIds.join(", ")})`,
+  ];
+  const assignee = filters.assignee?.trim() || WORK_ITEM_ASSIGNEE_ALL;
+  const assigneeCondition = buildAssigneeWiqlCondition(assignee);
+  if (assigneeCondition) bugConditions.push(assigneeCondition);
+
+  const ids = await runWiqlIdsQuery(
+    auth,
+    buildWiqlIdsQuery(bugConditions, "[System.ChangedDate] DESC"),
+    "No se pudieron consultar los bugs por historia padre del sprint.",
+  );
+  return fetchWorkItemsByIds(auth, ids);
+}
+
+/**
+ * Lista todos los bugs relacionados con un sprint aplicando un OR entre
+ * tres criterios (sin AND):
+ *
+ *   1. `System.CreatedDate` dentro del rango de fechas del sprint.
+ *   2. `System.IterationPath` bajo el path del sprint.
+ *   3. La historia de usuario padre está bajo el path del sprint.
+ *
+ * Los duplicados (mismo `id` por más de un criterio) se deduplican; el
+ * orden es estable por `id`. Mantener la firma y la lógica de OR aquí
+ * garantiza que Dashboard, módulo de Bugs y estadísticas compartan el
+ * mismo criterio.
+ */
+export async function listBugsForSprint(
+  auth: AdoCallerAuth,
+  range: WorkingDateRange,
+  sprintPath: string,
+  filters: WorkingDateRangeFilters = {},
+): Promise<AdoWorkItemOption[]> {
+  const [byCreatedDate, byIteration, byParentIteration] = await Promise.all([
+    listBugsByCreatedDateRange(auth, range, filters),
+    listBugsByIterationPath(auth, sprintPath, filters),
+    listBugsByParentIterationPath(auth, sprintPath, filters),
+  ]);
+  return dedupeBugsById([...byCreatedDate, ...byIteration, ...byParentIteration]);
+}
+
+/** Dedup preservando el primer encuentro por `id`. */
+export function dedupeBugsById(
+  bugs: readonly AdoWorkItemOption[],
+): AdoWorkItemOption[] {
+  const seen = new Map<number, AdoWorkItemOption>();
+  for (const bug of bugs) {
+    if (!seen.has(bug.id)) seen.set(bug.id, bug);
+  }
+  return [...seen.values()].sort((a, b) => a.id - b.id);
+}
+
 export type ParentStoriesOptions = {
   assignee: string;
   excludeIds?: ReadonlySet<number>;
