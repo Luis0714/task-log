@@ -11,8 +11,7 @@ import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { buildSprintWorkflowSectionMetrics } from "@/lib/sprints/build-sprint-workflow-section-metrics";
 
 export type DashboardWorkflowSectionServerProps = {
-  catalog: AdoCatalogSnapshot;
-  sprintDayKey: string;
+  readonly catalog: AdoCatalogSnapshot;
 };
 
 export async function DashboardWorkflowSectionServer({

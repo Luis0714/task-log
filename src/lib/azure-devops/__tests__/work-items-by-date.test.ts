@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildCompletedWorkGtZeroCondition,
+  buildCreatedDateRangeConditions,
   buildWorkingDateRangeConditions,
 } from "@/lib/azure-devops/work-items-by-date";
 
@@ -47,6 +48,45 @@ describe("buildWorkingDateRangeConditions", () => {
 
     expect(conditions[0]).toBe("[Custom.WorkingDate] >= '2026-01-09T05:00:00.000Z'");
     expect(conditions[1]).toBe("[Custom.WorkingDate] < '2026-01-10T05:00:00.000Z'");
+  });
+});
+
+describe("buildCreatedDateRangeConditions", () => {
+  it("filtra siempre por [System.CreatedDate] (campo estándar, presente en todos los work items)", () => {
+    const conditions = buildCreatedDateRangeConditions(
+      "2026-06-22",
+      "2026-07-03",
+      TZ,
+    );
+
+    expect(conditions).toEqual([
+      "[System.CreatedDate] >= '2026-06-22T05:00:00.000Z'",
+      "[System.CreatedDate] < '2026-07-04T05:00:00.000Z'",
+    ]);
+  });
+
+  it("acepta start == end (un solo día, inclusivo)", () => {
+    const conditions = buildCreatedDateRangeConditions(
+      "2026-06-22",
+      "2026-06-22",
+      TZ,
+    );
+
+    expect(conditions).toEqual([
+      "[System.CreatedDate] >= '2026-06-22T05:00:00.000Z'",
+      "[System.CreatedDate] < '2026-06-23T05:00:00.000Z'",
+    ]);
+  });
+
+  it("respeta el cambio de hora del proyecto", () => {
+    const conditions = buildCreatedDateRangeConditions(
+      "2026-01-09",
+      "2026-01-09",
+      "America/Bogota",
+    );
+
+    expect(conditions[0]).toBe("[System.CreatedDate] >= '2026-01-09T05:00:00.000Z'");
+    expect(conditions[1]).toBe("[System.CreatedDate] < '2026-01-10T05:00:00.000Z'");
   });
 });
 

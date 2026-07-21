@@ -7,7 +7,7 @@ import {
   firstSprintDataError,
   loadSprintBacklogStates,
   loadSprintBugStates,
-  loadSprintBugs,
+  loadSprintPeriodBugs,
   loadSprintWorkItems,
 } from "@/lib/ado/load-sprint-data";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
@@ -42,10 +42,20 @@ export const loadWorkItemsBase = cache(async function loadWorkItemsBase(
   const ctx = catalogToSprintContext(catalog, assignee);
   if (!ctx) return emptySnapshot;
 
+  // Mismo criterio que el Dashboard y los módulos de Bugs/Tareas: el
+  // sprint solo aporta el rango de fechas; los bugs se consultan por
+  // fecha de creación, no por `System.IterationPath`.
   const bugsCtx = { ...ctx, assignee: WORK_ITEM_ASSIGNEE_ALL };
   const [workItems, bugs, backlogStates, bugStates] = await Promise.all([
     loadSprintWorkItems(ctx.project, ctx.sprintPath, ctx.assignee),
-    loadSprintBugs(bugsCtx.project, bugsCtx.sprintPath, bugsCtx.assignee),
+    loadSprintPeriodBugs(
+      bugsCtx.project,
+      bugsCtx.team,
+      bugsCtx.sprintPath,
+      bugsCtx.sprintStartDate,
+      bugsCtx.sprintFinishDate,
+      bugsCtx.assignee,
+    ),
     loadSprintBacklogStates(ctx.project),
     loadSprintBugStates(ctx.project),
   ]);

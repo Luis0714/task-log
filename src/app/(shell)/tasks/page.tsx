@@ -23,7 +23,7 @@ export const metadata = buildPageMetadata(PAGE_SEO.tasks);
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function TasksPage({ searchParams }: PageProps) {

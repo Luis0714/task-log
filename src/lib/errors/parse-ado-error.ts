@@ -6,6 +6,8 @@ type AdoErrorPayload = {
   };
 };
 
+const EMBEDDED_ERROR_MESSAGE = /"ErrorMessage"\s*:\s*"((?:\\.|[^"\\])*)"/;
+
 function tryParseJson(raw: string): AdoErrorPayload | null {
   try {
     return JSON.parse(raw) as AdoErrorPayload;
@@ -15,7 +17,7 @@ function tryParseJson(raw: string): AdoErrorPayload | null {
 }
 
 function extractEmbeddedErrorMessage(raw: string): string | null {
-  const match = raw.match(/"ErrorMessage"\s*:\s*"((?:\\.|[^"\\])*)"/);
+  const match = EMBEDDED_ERROR_MESSAGE.exec(raw);
   if (!match?.[1]) return null;
   return match[1].replaceAll(String.raw`\"`, '"').replaceAll(String.raw`\n`, " ").trim();
 }

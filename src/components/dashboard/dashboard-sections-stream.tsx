@@ -29,7 +29,7 @@ export function DashboardSectionsStream({
   return (
     <div className="flex flex-col gap-6">
       <Suspense key={`delivery|${sectionKey}`} fallback={<DashboardDeliverySectionSkeleton />}>
-        <DashboardDeliverySectionServer catalog={catalog} sprintDayKey={sprintDayKey} />
+        <DashboardDeliverySectionServer catalog={catalog} />
       </Suspense>
 
       <Suspense key={`hours|${sectionKey}`} fallback={<DashboardHoursSectionSkeleton />}>
@@ -37,7 +37,7 @@ export function DashboardSectionsStream({
       </Suspense>
 
       <Suspense key={`workflow|${sectionKey}`} fallback={<DashboardWorkflowSectionSkeleton />}>
-        <DashboardWorkflowSectionServer catalog={catalog} sprintDayKey={sprintDayKey} />
+        <DashboardWorkflowSectionServer catalog={catalog} />
       </Suspense>
     </div>
   );
