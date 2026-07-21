@@ -4,6 +4,7 @@ import {
   buildCompletedWorkGtZeroCondition,
   buildCreatedDateRangeConditions,
   buildWorkingDateRangeConditions,
+  dedupeBugsById,
 } from "@/lib/azure-devops/work-items-by-date";
 
 const FIELD = "Custom.WorkingDate";
@@ -111,5 +112,53 @@ describe("buildCompletedWorkGtZeroCondition", () => {
     expect(buildCompletedWorkGtZeroCondition("Custom.HoursLogged")).toBe(
       "[Custom.HoursLogged] > '0'",
     );
+  });
+});
+
+describe("dedupeBugsById", () => {
+  it("devuelve [] cuando la entrada está vacía", () => {
+    expect(dedupeBugsById([])).toEqual([]);
+  });
+
+  it("preserva un solo bug sin cambios", () => {
+    const bug = { id: 1, title: "Único" };
+    expect(dedupeBugsById([bug as never])).toEqual([bug]);
+  });
+
+  it("une tres criterios (OR) sin duplicados cuando los ids son distintos", () => {
+    const result = dedupeBugsById([
+      { id: 1, title: "Por creación" },
+      { id: 2, title: "Por iteración" },
+      { id: 3, title: "Por padre" },
+    ] as never[]);
+    expect(result.map((b) => b.id)).toEqual([1, 2, 3]);
+  });
+
+  it("deduplica cuando el mismo bug aparece en los tres criterios", () => {
+    const shared = { id: 10, title: "Bug en varios criterios" };
+    const result = dedupeBugsById([shared, shared, shared] as never[]);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBe(shared);
+  });
+
+  it("deduplica parcialmente cuando dos de tres criterios devuelven el mismo id", () => {
+    const overlap = { id: 20, title: "Overlap" };
+    const onlyByParent = { id: 30, title: "Solo por padre" };
+    const result = dedupeBugsById([
+      { id: 5, title: "Creado" },
+      overlap,
+      overlap,
+      onlyByParent,
+    ] as never[]);
+    expect(result.map((b) => b.id)).toEqual([5, 20, 30]);
+  });
+
+  it("ordena el resultado por id ascendente (orden estable)", () => {
+    const result = dedupeBugsById([
+      { id: 30, title: "c" },
+      { id: 10, title: "a" },
+      { id: 20, title: "b" },
+    ] as never[]);
+    expect(result.map((b) => b.id)).toEqual([10, 20, 30]);
   });
 });

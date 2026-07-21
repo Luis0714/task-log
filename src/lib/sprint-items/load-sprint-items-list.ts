@@ -11,7 +11,7 @@ import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { enrichItemsWithParentTitles } from "@/lib/azure-devops/work-items";
 import {
-  listBugsByCreatedDateRange,
+  listBugsForSprint,
   listTasksInWorkingDateRange,
   type WorkingDateRange,
 } from "@/lib/azure-devops/work-items-by-date";
@@ -28,11 +28,10 @@ export type SprintItemsListSnapshot = {
 const emptyList: SprintItemsListSnapshot = { items: [], error: null };
 
 /**
- * El sprint solo aporta el rango de fechas sobre el que se consultan
- * los work items. NO se aplica como filtro directo (ni por
- * `System.IterationPath`, ni por `System.AreaPath`). El módulo de
- * tareas filtra por fecha de trabajo y el de bugs por fecha de
- * creación, alineado con el Dashboard.
+ * El sprint aporta tanto el rango de fechas como su `iterationPath`.
+ * Para tareas usamos solo el rango (la fecha de trabajo ya está
+ * asociada a la tarea). Para bugs aplicamos un OR entre tres criterios
+ * — ver `listBugsForSprint` — alineado con el Dashboard.
  */
 async function listItemsForContext(
   auth: AdoCallerAuth,
@@ -46,9 +45,10 @@ async function listItemsForContext(
     finishDate: ctx.sprintFinishDate,
   };
   const filters = { assignee: ctx.assignee, team: ctx.team };
-  return kind === "tasks"
-    ? listTasksInWorkingDateRange(auth, range, filters)
-    : listBugsByCreatedDateRange(auth, range, filters);
+  if (kind === "tasks") {
+    return listTasksInWorkingDateRange(auth, range, filters);
+  }
+  return listBugsForSprint(auth, range, ctx.sprintPath, filters);
 }
 
 export const loadSprintItemsList = cache(async function loadSprintItemsList(

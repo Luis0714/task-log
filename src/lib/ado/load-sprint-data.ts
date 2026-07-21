@@ -12,7 +12,7 @@ import {
   listWorkItemsInSprint,
 } from "@/lib/azure-devops/work-items";
 import {
-  listBugsByCreatedDateRange,
+  listBugsForSprint,
   listParentStoriesForTasks,
   listTasksInWorkingDateRange,
   type WorkingDateRange,
@@ -141,20 +141,30 @@ export const loadSprintPeriodTasks = cache(async function loadSprintPeriodTasks(
 export const loadSprintPeriodBugs = cache(async function loadSprintPeriodBugs(
   project: string,
   team: string,
-  _sprintPath: string,
+  sprintPath: string,
   startDate: string | null,
   finishDate: string | null,
   assignee: string,
 ): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
   if (!startDate || !finishDate) return { data: [], error: null };
-  return loadWorkItemsInPeriod(
-    project,
-    team,
-    { startDate, finishDate },
-    assignee,
-    listBugsByCreatedDateRange,
-    "Conecta Azure DevOps para cargar Bugs del periodo.",
-  );
+  try {
+    const auth = await resolveScopedAuth(project);
+    if (!auth) {
+      return {
+        data: [],
+        error: "Conecta Azure DevOps para cargar Bugs del periodo.",
+      };
+    }
+    const data = await listBugsForSprint(
+      auth,
+      { startDate, finishDate },
+      sprintPath,
+      { assignee, team },
+    );
+    return { data, error: null };
+  } catch (cause) {
+    return { data: [], error: formatSprintDataError(cause) };
+  }
 });
 
 export const loadSprintPeriodStories = cache(async function loadSprintPeriodStories(
@@ -165,8 +175,7 @@ export const loadSprintPeriodStories = cache(async function loadSprintPeriodStor
   finishDate: string | null,
   assignee: string,
 ): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
-  // Historias del sprint y tareas del periodo no dependen entre sí: en paralelo.
-  const [sprintStories, periodTasks] = await Promise.all([
+   const [sprintStories, periodTasks] = await Promise.all([
     loadSprintWorkItems(project, sprintPath, assignee),
     loadSprintPeriodTasks(project, team, sprintPath, startDate, finishDate, assignee),
   ]);
