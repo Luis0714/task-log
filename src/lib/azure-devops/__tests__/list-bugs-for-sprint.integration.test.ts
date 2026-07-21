@@ -56,13 +56,20 @@ function makeFetchStub() {
     } catch {
       query = "";
     }
-    // Devolver una historia para que el helper parent-iteration ejecute
-    // la segunda consulta (bugs cuyo padre esté en ese set).
+    // El endpoint WIQL devuelve `workItems` (no `value`); lo mismo aplica
+    // al batch GET de work items. `runWiqlIdsQuery` mapea `data.workItems`
+    // a ids, así que devolvemos esa forma.
     if (query.includes("[System.WorkItemType] = 'Product Backlog Item'")) {
-      return new Response(JSON.stringify({ value: [{ id: 100 }] }), { status: 200 });
+      return new Response(
+        JSON.stringify({ workItems: [{ id: 100 }] }),
+        { status: 200 },
+      );
     }
-    // Para todo lo demás, responder vacío.
-    return new Response(JSON.stringify({ value: [] }), { status: 200 });
+    // Para todo lo demás (WIQL de bugs, batch GET de work items),
+    // responder vacío.
+    return new Response(JSON.stringify({ workItems: [], value: [] }), {
+      status: 200,
+    });
   });
   return { stub, calls };
 }
@@ -82,32 +89,18 @@ describe("listBugsForSprint (integration via fetch mock)", () => {
 
     await listBugsForSprint(auth, RANGE, SPRINT_PATH, FILTERS);
 
-    // Para diagnóstico: ver qué WIQL se enviaron realmente
-    const queries = calls.map((c) => {
-      try {
-        return JSON.parse(c.body).query as string;
-      } catch {
-        return c.body;
-      }
-    });
-    if (process.env.DEBUG_WIQL) {
-      // eslint-disable-next-line no-console
-      console.log("WIQL queries:", queries);
-    }
+    const queries = calls.map((c) => JSON.parse(c.body).query as string);
 
     // Criterio 1: System.CreatedDate en rango
     const createdDateQuery = queries.find(
       (q) =>
-        typeof q === "string" &&
-        q.includes("[System.CreatedDate] >=") &&
-        q.includes("[System.CreatedDate] <"),
+        q.includes("[System.CreatedDate] >=") && q.includes("[System.CreatedDate] <"),
     );
     expect(createdDateQuery).toBeDefined();
 
     // Criterio 2: System.IterationPath bajo sprint path (directo al bug)
     const iterationQuery = queries.find(
       (q) =>
-        typeof q === "string" &&
         q.includes(`[System.IterationPath] UNDER 'Proyecto A\\Sprint 42'`) &&
         q.includes(`[System.WorkItemType] = 'Bug'`),
     );
@@ -116,7 +109,6 @@ describe("listBugsForSprint (integration via fetch mock)", () => {
     // Criterio 3: System.Parent IN (story ids en sprint)
     const parentQuery = queries.find(
       (q) =>
-        typeof q === "string" &&
         q.includes("[System.Parent] IN (") &&
         q.includes(`[System.WorkItemType] = 'Bug'`),
     );
