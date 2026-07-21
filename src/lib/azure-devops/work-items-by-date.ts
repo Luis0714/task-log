@@ -37,8 +37,33 @@ function nextDayKey(dateKey: string): string {
   return new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10);
 }
 
+/**
+ * Campo estándar de Azure DevOps que contiene la fecha de creación del
+ * work item (DateTime UTC). Se usa como referencia única para filtrar
+ * bugs por rango de fechas, ya que el campo de fecha de trabajo no
+ * siempre está poblado para ese tipo de elemento.
+ */
+export const BUG_CREATED_DATE_FIELD = "System.CreatedDate";
+
 export function buildWorkingDateRangeConditions(
   workingDateField: string,
+  startKey: string,
+  endKey: string,
+  timezone: string,
+): string[] {
+  return buildDateTimeFieldRangeConditions(workingDateField, startKey, endKey, timezone);
+}
+
+export function buildCreatedDateRangeConditions(
+  startKey: string,
+  endKey: string,
+  timezone: string,
+): string[] {
+  return buildDateTimeFieldRangeConditions(BUG_CREATED_DATE_FIELD, startKey, endKey, timezone);
+}
+
+function buildDateTimeFieldRangeConditions(
+  field: string,
   startKey: string,
   endKey: string,
   timezone: string,
@@ -46,8 +71,8 @@ export function buildWorkingDateRangeConditions(
   const startInstant = toAdoDateTimeValue(startKey, "00:00", timezone);
   const endExclusiveInstant = toAdoDateTimeValue(nextDayKey(endKey), "00:00", timezone);
   return [
-    `[${workingDateField}] >= '${startInstant}'`,
-    `[${workingDateField}] < '${endExclusiveInstant}'`,
+    `[${field}] >= '${startInstant}'`,
+    `[${field}] < '${endExclusiveInstant}'`,
   ];
 }
 
@@ -138,6 +163,55 @@ export async function listBugsInWorkingDateRange(
     range,
     filters,
   );
+}
+
+/**
+ * Lista bugs cuya fecha de creación cae dentro del rango recibido.
+ *
+ * A diferencia de `listBugsInWorkingDateRange`, NO usa el campo de fecha
+ * de trabajo del proceso (que en bugs suele estar vacío). El sprint solo
+ * aporta `startDate`/`finishDate`; la consulta se hace contra
+ * `System.CreatedDate`, que es siempre un campo estándar poblado por
+ * Azure DevOps al crear el elemento. El sprint NO se aplica como filtro
+ * directo sobre los work items.
+ */
+export async function listBugsByCreatedDateRange(
+  auth: AdoCallerAuth,
+  range: WorkingDateRange,
+  filters: WorkingDateRangeFilters = {},
+): Promise<AdoWorkItemOption[]> {
+  const start = toWiqlDateLiteral(range.startDate);
+  const end = toWiqlDateLiteral(range.finishDate);
+  if (!start || !end) return [];
+
+  const processProfile = await resolveProcessProfile(auth);
+
+  const conditions = [
+    `[System.TeamProject] = '${escapeWiqlString(auth.project)}'`,
+    `[System.WorkItemType] = '${escapeWiqlString(processProfile.bugWorkItemType)}'`,
+    `[System.State] <> 'Removed'`,
+    ...buildCreatedDateRangeConditions(start, end, processProfile.timezone),
+  ];
+
+  const teamCondition = await buildTeamScopeWiqlCondition(auth, filters.team);
+  if (teamCondition) conditions.push(teamCondition);
+
+  const completedWorkCondition = buildCompletedWorkGtZeroCondition(
+    processProfile.completedWorkField,
+  );
+  if (completedWorkCondition) conditions.push(completedWorkCondition);
+
+  const assignee = filters.assignee?.trim() || WORK_ITEM_ASSIGNEE_ALL;
+  const assigneeCondition = buildAssigneeWiqlCondition(assignee);
+  if (assigneeCondition) conditions.push(assigneeCondition);
+
+  const ids = await runWiqlIdsQuery(
+    auth,
+    buildWiqlIdsQuery(conditions, "[System.ChangedDate] DESC"),
+    "No se pudieron consultar los elementos de trabajo por fecha de creación.",
+    { timePrecision: true },
+  );
+  return fetchWorkItemsByIds(auth, ids);
 }
 
 export type ParentStoriesOptions = {

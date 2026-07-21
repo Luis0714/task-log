@@ -8,14 +8,14 @@ import type { SavedConnectionTarget } from "@/lib/auth/server-state";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
 
 export type DashboardShellServerProps = {
-  sp: AdoContextSearchParams;
-  defaultProject: string | null;
-  userSessionActive: boolean;
-  adoExecutionReady: boolean;
-  connectOptions: ConnectAuthOptions;
-  savedConnectionTarget: SavedConnectionTarget | null;
-  header: DashboardHeaderData;
-  initialSprintDayKey: string;
+  readonly sp: AdoContextSearchParams;
+  readonly defaultProject: string | null;
+  readonly userSessionActive: boolean;
+  readonly adoExecutionReady: boolean;
+  readonly connectOptions: ConnectAuthOptions;
+  readonly savedConnectionTarget: SavedConnectionTarget | null;
+  readonly header: DashboardHeaderData;
+  readonly initialSprintDayKey: string;
 };
 
 export async function DashboardShellServer({

@@ -6,11 +6,11 @@ import type { SprintItemsKind } from "@/lib/sprint-items/types";
 import type { ReactNode } from "react";
 
 export type SprintItemsShellServerProps = {
-  kind: SprintItemsKind;
-  sp: AdoContextSearchParams;
-  defaultProject: string | null;
-  adoExecutionReady: boolean;
-  headerAction?: ReactNode;
+  readonly kind: SprintItemsKind;
+  readonly sp: AdoContextSearchParams;
+  readonly defaultProject: string | null;
+  readonly adoExecutionReady: boolean;
+  readonly headerAction?: ReactNode;
 };
 
 export async function SprintItemsShellServer({

@@ -6,7 +6,7 @@ import {
   firstSprintDataError,
   loadSprintBacklogStates,
   loadSprintBugStates,
-  loadSprintBugs,
+  loadSprintPeriodBugs,
   loadSprintPeriodStories,
 } from "@/lib/ado/load-sprint-data";
 import { catalogToSprintContext } from "@/lib/ado/sprint-data-context";
@@ -14,8 +14,7 @@ import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { buildDashboardDeliveryMetrics } from "@/lib/dashboard/build-dashboard-delivery-metrics";
 
 export type DashboardDeliverySectionServerProps = {
-  catalog: AdoCatalogSnapshot;
-  sprintDayKey: string;
+  readonly catalog: AdoCatalogSnapshot;
 };
 
 export async function DashboardDeliverySectionServer({
@@ -33,7 +32,14 @@ export async function DashboardDeliverySectionServer({
       ctx.sprintFinishDate,
       ctx.assignee,
     ),
-    loadSprintBugs(ctx.project, ctx.sprintPath, ctx.assignee),
+    loadSprintPeriodBugs(
+      ctx.project,
+      ctx.team,
+      ctx.sprintPath,
+      ctx.sprintStartDate,
+      ctx.sprintFinishDate,
+      ctx.assignee,
+    ),
     loadSprintBacklogStates(ctx.project),
     loadSprintBugStates(ctx.project),
   ]);

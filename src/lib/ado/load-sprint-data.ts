@@ -8,12 +8,11 @@ import { withAdoProject } from "@/lib/azure-devops/projects";
 import { loadHolidayDateKeysInRange } from "@/lib/hours/load-working-day-keys";
 import { resolveProcessProfile } from "@/lib/azure-devops/process-profile";
 import {
-  listBugItemsInSprint,
   listTasksInSprint,
   listWorkItemsInSprint,
 } from "@/lib/azure-devops/work-items";
 import {
-  listBugsInWorkingDateRange,
+  listBugsByCreatedDateRange,
   listParentStoriesForTasks,
   listTasksInWorkingDateRange,
   type WorkingDateRange,
@@ -75,23 +74,6 @@ export const loadSprintWorkItems = cache(async function loadSprintWorkItems(
       assignee,
       pbiAssigneeField,
     });
-    return { data, error: null };
-  } catch (cause) {
-    return { data: [], error: formatSprintDataError(cause) };
-  }
-});
-
-export const loadSprintBugs = cache(async function loadSprintBugs(
-  project: string,
-  sprintPath: string,
-  assignee: string,
-): Promise<SprintDataPart<AdoWorkItemOptionDto[]>> {
-  try {
-    const auth = await resolveScopedAuth(project);
-    if (!auth) {
-      return { data: [], error: "Conecta Azure DevOps para cargar Bugs del sprint." };
-    }
-    const data = await listBugItemsInSprint(auth, sprintPath, { assignee });
     return { data, error: null };
   } catch (cause) {
     return { data: [], error: formatSprintDataError(cause) };
@@ -170,7 +152,7 @@ export const loadSprintPeriodBugs = cache(async function loadSprintPeriodBugs(
     team,
     { startDate, finishDate },
     assignee,
-    listBugsInWorkingDateRange,
+    listBugsByCreatedDateRange,
     "Conecta Azure DevOps para cargar Bugs del periodo.",
   );
 });

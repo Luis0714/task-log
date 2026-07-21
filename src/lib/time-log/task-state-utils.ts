@@ -24,7 +24,7 @@ export function isCompletedTaskState(states: AdoTaskStateDto[], stateName: strin
 }
 
 export function pickDefaultOpenTaskState(
-  states: AdoTaskStateDto[],
+  states: readonly AdoTaskStateDto[],
   overrideName?: string | null,
 ): string {
   if (overrideName && states.some((state) => state.name === overrideName)) return overrideName;
@@ -47,7 +47,7 @@ export function pickDefaultOpenTaskState(
 }
 
 export function pickDefaultCompletedTaskState(
-  states: AdoTaskStateDto[],
+  states: readonly AdoTaskStateDto[],
   overrideName?: string | null,
 ): string {
   if (overrideName && states.some((state) => state.name === overrideName)) return overrideName;
@@ -55,7 +55,7 @@ export function pickDefaultCompletedTaskState(
   if (env && states.some((state) => state.name === env)) return env;
 
   const completedStates = states.filter((state) => state.category === "Completed");
-  if (completedStates.length === 0) return states[states.length - 1]?.name ?? "";
+  if (completedStates.length === 0) return states.at(-1)?.name ?? "";
 
   for (const hint of COMPLETED_NAME_HINTS) {
     const match = completedStates.find((state) => state.name.toLowerCase().includes(hint));

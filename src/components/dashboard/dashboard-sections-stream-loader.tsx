@@ -3,10 +3,10 @@ import { DashboardSectionsStream } from "@/components/dashboard/dashboard-sectio
 import type { AdoContextSearchParams } from "@/lib/ado/types";
 
 export type DashboardSectionsStreamLoaderProps = {
-  sp: AdoContextSearchParams;
-  defaultProject: string | null;
-  adoExecutionReady: boolean;
-  sprintDayKey: string;
+  readonly sp: AdoContextSearchParams;
+  readonly defaultProject: string | null;
+  readonly adoExecutionReady: boolean;
+  readonly sprintDayKey: string;
 };
 
 export async function DashboardSectionsStreamLoader({

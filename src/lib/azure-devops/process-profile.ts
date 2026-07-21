@@ -3,7 +3,10 @@ import "server-only";
 import { cache } from "react";
 
 import { ADO_FIELD_DEFAULTS } from "@/lib/azure-devops/ado-field-defaults";
-import type { AdoProcessProfile } from "@/lib/azure-devops/process-profile-types";
+import type {
+  AdoProcessProfile,
+  AdoProcessProfileFieldSource,
+} from "@/lib/azure-devops/process-profile-types";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { resolveOrDiscoverProjectConfig } from "@/lib/azure-devops/project-config-resolver";
 import {
@@ -12,21 +15,30 @@ import {
   resolveAdoTimeZone,
 } from "@/lib/azure-devops/working-date-field";
 
+type ProjectConfigSource = Awaited<
+  ReturnType<typeof resolveOrDiscoverProjectConfig>
+>["configSource"];
+
+function resolveWorkingDateFieldSource(
+  configSource: ProjectConfigSource,
+  workingDateField: string,
+): AdoProcessProfileFieldSource {
+  if (configSource === "manual") return "manual";
+  if (workingDateField === DEFAULT_WORKING_DATE_FIELD) return "default";
+  return "discovered";
+}
+
 function dbConfigToProfile(
   dbConfig: Awaited<ReturnType<typeof resolveOrDiscoverProjectConfig>>,
 ): AdoProcessProfile {
   const workingDateField = dbConfig.workingDateField ?? DEFAULT_WORKING_DATE_FIELD;
 
-  const workingDateFieldSource =
-    dbConfig.configSource === "manual"
-      ? "manual"
-      : workingDateField === DEFAULT_WORKING_DATE_FIELD
-        ? "default"
-        : "discovered";
-
   return {
     workingDateField,
-    workingDateFieldSource,
+    workingDateFieldSource: resolveWorkingDateFieldSource(
+      dbConfig.configSource,
+      workingDateField,
+    ),
     workItemDateFieldNames: buildWorkItemDateFieldNames(workingDateField),
     timezone: dbConfig.timezone ?? resolveAdoTimeZone(),
     completedWorkField: dbConfig.completedWorkField ?? null,

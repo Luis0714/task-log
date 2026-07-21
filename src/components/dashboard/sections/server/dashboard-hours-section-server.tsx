@@ -16,8 +16,8 @@ import { catalogToSprintContext } from "@/lib/ado/sprint-data-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 
 export type DashboardHoursSectionServerProps = {
-  catalog: AdoCatalogSnapshot;
-  sprintDayKey: string;
+  readonly catalog: AdoCatalogSnapshot;
+  readonly sprintDayKey: string;
 };
 
 export async function DashboardHoursSectionServer({

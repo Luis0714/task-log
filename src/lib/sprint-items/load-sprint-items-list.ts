@@ -3,13 +3,17 @@ import "server-only";
 import { cache } from "react";
 
 import { requireAdoCaller } from "@/lib/ado/require-ado-caller";
-import { catalogToSprintContext, type SprintDataContext } from "@/lib/ado/sprint-data-context";
+import {
+  catalogToSprintContext,
+  type SprintDataContext,
+} from "@/lib/ado/sprint-data-context";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
 import { withAdoProject } from "@/lib/azure-devops/projects";
 import { enrichItemsWithParentTitles } from "@/lib/azure-devops/work-items";
 import {
-  listBugsInWorkingDateRange,
+  listBugsByCreatedDateRange,
   listTasksInWorkingDateRange,
+  type WorkingDateRange,
 } from "@/lib/azure-devops/work-items-by-date";
 import type { AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import type { AdoWorkItemOption } from "@/lib/azure-devops/work-items";
@@ -23,6 +27,13 @@ export type SprintItemsListSnapshot = {
 
 const emptyList: SprintItemsListSnapshot = { items: [], error: null };
 
+/**
+ * El sprint solo aporta el rango de fechas sobre el que se consultan
+ * los work items. NO se aplica como filtro directo (ni por
+ * `System.IterationPath`, ni por `System.AreaPath`). El módulo de
+ * tareas filtra por fecha de trabajo y el de bugs por fecha de
+ * creación, alineado con el Dashboard.
+ */
 async function listItemsForContext(
   auth: AdoCallerAuth,
   kind: SprintItemsKind,
@@ -30,11 +41,14 @@ async function listItemsForContext(
 ): Promise<AdoWorkItemOption[]> {
   if (!ctx.sprintStartDate || !ctx.sprintFinishDate) return [];
 
-  const range = { startDate: ctx.sprintStartDate, finishDate: ctx.sprintFinishDate };
+  const range: WorkingDateRange = {
+    startDate: ctx.sprintStartDate,
+    finishDate: ctx.sprintFinishDate,
+  };
   const filters = { assignee: ctx.assignee, team: ctx.team };
   return kind === "tasks"
     ? listTasksInWorkingDateRange(auth, range, filters)
-    : listBugsInWorkingDateRange(auth, range, filters);
+    : listBugsByCreatedDateRange(auth, range, filters);
 }
 
 export const loadSprintItemsList = cache(async function loadSprintItemsList(

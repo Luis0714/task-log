@@ -58,7 +58,7 @@ export async function filterFieldsToProject(
 const MISSING_FIELD_PATTERN = /Cannot find field ([^.]+)\./;
 
 export function parseMissingFieldReferenceFromAdoError(body: string): string | null {
-  const match = body.match(MISSING_FIELD_PATTERN);
+  const match = MISSING_FIELD_PATTERN.exec(body);
   return match?.[1]?.trim() ?? null;
 }
 

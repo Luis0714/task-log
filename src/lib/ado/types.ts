@@ -1,12 +1,10 @@
 import type { AdoContextSelectFieldsProps } from "@/lib/filters/context-selection-types";
 import type { AssignmentSegment } from "@/lib/expected-hours";
-import type { SprintStatusMapping } from "@/lib/dashboard/sprint-status-mapping";
 import type {
   AdoProjectDto,
   AdoSprintDto,
   AdoTaskStateDto,
   AdoTeamDto,
-  AdoTeamMemberDto,
   AdoWorkItemOptionDto,
 } from "@/lib/schemas/ado-catalog";
 
@@ -37,17 +35,6 @@ export type AdoContextSearchParams = {
   sprint?: string;
   assignee?: string;
   sprintDay?: string;
-};
-
-export type WorkItemsListsSnapshot = {
-  sprintWorkItems: AdoWorkItemOptionDto[];
-  sprintBugs: AdoWorkItemOptionDto[];
-  backlogStates: AdoTaskStateDto[];
-  bugStates?: AdoTaskStateDto[];
-  userStoryMapping?: SprintStatusMapping;
-  bugMapping?: SprintStatusMapping;
-  teamMembers: AdoTeamMemberDto[];
-  error: string | null;
 };
 
 export type DashboardSprintBundle = {
