@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { IconType } from "react-icons";
 
 import { FeatureBadge } from "@/components/ui/feature-badge";
@@ -28,14 +29,22 @@ export function NavItem({
   isActive = false,
   className,
   badge,
-}: NavItemProps) {
+}:Readonly<NavItemProps>) {
   const { isMobile, setOpenMobile } = useSidebar();
+  const tooltipContent: ReactNode = badge ? (
+    <span className="inline-flex items-center gap-1.5">
+      <span>{label}</span>
+      <FeatureBadge variant={badge} />
+    </span>
+  ) : (
+    label
+  );
 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         isActive={isActive}
-        tooltip={label}
+        tooltip={{ children: tooltipContent }}
         render={
           <Link
             href={href}
@@ -74,7 +83,7 @@ export function NavItemList({
   children,
   className,
   "aria-label": ariaLabel = "Navegación principal",
-}: NavItemListProps) {
+}: Readonly<NavItemListProps>) {
   return (
     <SidebarMenu className={className} aria-label={ariaLabel}>
       {children}
