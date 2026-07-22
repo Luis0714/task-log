@@ -342,7 +342,7 @@
 
 @layer components {
   .work-item-select-item {
-    @apply mb-[4px] last:mb-0 h-auto min-h-0 cursor-pointer items-start overflow-hidden rounded-md border border-border/50 bg-muted/30 py-1.5 pl-1.5 pr-8;
+    @apply mb-1 last:mb-0 h-auto min-h-0 cursor-pointer items-start overflow-hidden rounded-md border border-border/50 bg-muted/30 py-1.5 pl-1.5 pr-8;
   }
 
   .dark .work-item-select-item {

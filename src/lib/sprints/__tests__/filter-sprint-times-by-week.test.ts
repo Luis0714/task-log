@@ -96,4 +96,59 @@ describe("filterSprintTimesByWeek", () => {
     const times = makeTimes([makeRow()]);
     expect(filterSprintTimesByWeek(times, 9)).toBe(times);
   });
+
+  it("re-ordena las filas por % de cumplimiento SEMANAL (no conserva el orden del sprint completo)", () => {
+    // Sprint completo: Ana lidera con 73.6%, Beto por debajo.
+    // En la semana 2 invertimos el escenario: Ana solo registra 8h de 32 esperadas (25%)
+    // y Beto registra 30h de 32 (93.75%). Tras filtrar a la semana 2, el
+    // orden debe invertirse para reflejar el cumplimiento semanal.
+    const ana = makeRow({
+      assignee: "Ana Gómez",
+      weeks: [
+        { taskHours: 40, bugHours: 5, newsHours: 0 },
+        { taskHours: 6, bugHours: 0, newsHours: 2 },
+      ],
+      sprint: { taskHours: 46, bugHours: 5, newsHours: 2 },
+      expectedHours: 72,
+      expectedHoursByWeek: [40, 32],
+      compliancePct: 73.6,
+    });
+    const beto = makeRow({
+      assignee: "Beto Pérez",
+      weeks: [
+        { taskHours: 5, bugHours: 0, newsHours: 0 },
+        { taskHours: 28, bugHours: 2, newsHours: 0 },
+      ],
+      sprint: { taskHours: 33, bugHours: 2, newsHours: 0 },
+      expectedHours: 72,
+      expectedHoursByWeek: [40, 32],
+      compliancePct: 48.6,
+    });
+    const times = makeTimes([ana, beto]);
+
+    // Sprint completo: Ana primero por su 73.6% global.
+    const sprint = filterSprintTimesByWeek(times, SPRINT_TIMES_WEEK_ALL);
+    expect(sprint.rows.map((row) => row.assignee)).toEqual([
+      "Ana Gómez",
+      "Beto Pérez",
+    ]);
+
+    // Semana 2: Ana 25% < Beto 93.75% → el orden debe invertirse.
+    const week2 = filterSprintTimesByWeek(times, 1);
+    expect(week2.rows.map((row) => row.assignee)).toEqual([
+      "Beto Pérez",
+      "Ana Gómez",
+    ]);
+  });
+
+  it("no muta el arreglo original de filas", () => {
+    const ana = makeRow({ assignee: "Ana" });
+    const beto = makeRow({ assignee: "Beto" });
+    const times = makeTimes([ana, beto]);
+    const snapshot = times.rows.map((row) => row.assignee);
+
+    filterSprintTimesByWeek(times, 1);
+
+    expect(times.rows.map((row) => row.assignee)).toEqual(snapshot);
+  });
 });

@@ -124,4 +124,109 @@ describe("buildCombinedSprintTimesExcel", () => {
     // Sprint(1) Persona(2) Rol(3) → semana 1: Dev(4) Bugs(5) Novedades(6) Total(7).
     expect(ws.getCell(7, 6).value).toBe("Novedades");
   });
+
+  it("ordena la hoja Resumen por % de cumplimiento descendente (mismo criterio que la tabla)", async () => {
+    // Sprint 1: Ana tiene más horas pero menor cumplimiento; Beto menos horas pero mayor cumplimiento.
+    // Sprint 2: ambos repiten el patrón para que los agregados multi-sprint tengan más horas.
+    const sprintTimes = (overrides: {
+      anaPct: number;
+      anaHours: number;
+      betoPct: number;
+      betoHours: number;
+    }): SprintTimesMetrics => ({
+      weeks: [
+        { label: "Semana 1", dateRangeLabel: "01 – 05", workingDaysCount: 5 },
+      ],
+      rows: [
+        {
+          assignee: "Ana",
+          weeks: [
+            {
+              taskHours: overrides.anaHours,
+              bugHours: 0,
+              newsHours: 0,
+            },
+          ],
+          sprint: {
+            taskHours: overrides.anaHours,
+            bugHours: 0,
+            newsHours: 0,
+          },
+          expectedHours: 100,
+          expectedHoursByWeek: [100],
+          compliancePct: overrides.anaPct,
+          semaforo: null,
+        },
+        {
+          assignee: "Beto",
+          weeks: [
+            {
+              taskHours: overrides.betoHours,
+              bugHours: 0,
+              newsHours: 0,
+            },
+          ],
+          sprint: {
+            taskHours: overrides.betoHours,
+            bugHours: 0,
+            newsHours: 0,
+          },
+          expectedHours: 100,
+          expectedHoursByWeek: [100],
+          compliancePct: overrides.betoPct,
+          semaforo: null,
+        },
+      ],
+    });
+
+    const buffer = await buildCombinedSprintTimesExcel({
+      project: "Proyecto",
+      team: "Equipo",
+      sprints: [
+        {
+          sprintName: "Sprint 1",
+          startDate: "2026-03-01",
+          finishDate: "2026-03-14",
+          times: sprintTimes({
+            anaPct: 30,
+            anaHours: 30,
+            betoPct: 90,
+            betoHours: 90,
+          }),
+        },
+        {
+          sprintName: "Sprint 2",
+          startDate: "2026-03-15",
+          finishDate: "2026-03-28",
+          times: sprintTimes({
+            anaPct: 30,
+            anaHours: 30,
+            betoPct: 90,
+            betoHours: 90,
+          }),
+        },
+      ],
+      memberRoles: emptyRoles,
+    });
+
+    const summary = await loadWorksheet(buffer, "Resumen");
+    // Layout Resumen: Persona(1) | Rol(2) | 2 sprints × 4 sub-cols | Total horas / Esperadas / % Cumpl.
+    // Persona aparece en la columna 1 de la primera fila de datos (fila 8).
+    // La celda se escribe como richText, por lo que extraemos el primer segmento.
+    const readFirstRichTextSegment = (
+      cellValue: ExcelJS.CellValue,
+    ): string => {
+      if (typeof cellValue === "object" && cellValue !== null && "richText" in cellValue) {
+        const first = (cellValue as { richText: Array<{ text: string }> })
+          .richText[0];
+        return first?.text ?? "";
+      }
+      return String(cellValue);
+    };
+    const firstPerson = readFirstRichTextSegment(summary.getCell(8, 1).value);
+    const secondPerson = readFirstRichTextSegment(summary.getCell(9, 1).value);
+    // Beto (90% cumplimiento) debe aparecer antes que Ana (30%).
+    expect(firstPerson).toBe("Beto");
+    expect(secondPerson).toBe("Ana");
+  });
 });

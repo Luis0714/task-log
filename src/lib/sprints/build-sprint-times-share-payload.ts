@@ -21,6 +21,7 @@ import {
 } from "@/lib/sprints/sprint-times-share-variant";
 import { filterSprintTimesByVisibility } from "@/lib/sprints/filter-sprint-times-by-visibility";
 import { resolveWeekExpectedHours } from "@/lib/sprints/filter-sprint-times-by-week";
+import { sortSprintTimesPersonRows } from "@/lib/sprints/sort-sprint-times-person-rows";
 import {
   sumSprintBreakdowns,
   sumWeekBreakdowns,
@@ -96,6 +97,40 @@ function computeWeekSemaforo(
   return resolveSemaforo(pct);
 }
 
+/**
+ * Ordena filas de la tabla compartida por % de cumplimiento semanal cuando
+ * aplica (variante semana). Proyecta cada fila a la shape mínima que
+ * requiere el comparador canónico (`SprintTimesPersonRow`) reusando
+ * `weekCompliancePct` cuando está presente.
+ */
+function sortSprintTimesShareRowsByWeeklyCompliance(
+  rows: SprintTimesShareTableRow[],
+): SprintTimesShareTableRow[] {
+  const projected = rows.map((row) => ({
+    assignee: row.assignee,
+    weeks: row.weeks,
+    sprint:
+      row.sprint ??
+      row.weeks.reduce<HoursBreakdown>(
+        (acc, week) => ({
+          taskHours: acc.taskHours + week.taskHours,
+          bugHours: acc.bugHours + week.bugHours,
+          newsHours: (acc.newsHours ?? 0) + (week.newsHours ?? 0),
+        }),
+        { taskHours: 0, bugHours: 0, newsHours: 0 },
+      ),
+    expectedHours: row.expectedHours,
+    expectedHoursByWeek: [],
+    compliancePct: row.weekCompliancePct ?? row.compliancePct,
+    semaforo: row.weekSemaforo ?? row.semaforo,
+  }));
+  const ordered = sortSprintTimesPersonRows(projected);
+  const byAssignee = new Map(rows.map((row) => [row.assignee, row]));
+  return ordered
+    .map((row) => byAssignee.get(row.assignee))
+    .filter((row): row is SprintTimesShareTableRow => row !== undefined);
+}
+
 function buildColumns(
   times: SprintTimesMetrics,
   variant: SprintTimesShareVariant,
@@ -132,9 +167,16 @@ function buildTableLayout(
   variant: SprintTimesShareVariant,
 ): SprintTimesShareTableLayout {
   const focusWeekIndex = resolveFocusWeekIndex(times, variant);
-  const rows = times.rows.map((row) =>
+  // En variante semanal el % de cumplimiento de cada fila se recalcula para
+  // esa semana concreta (campo `weekCompliancePct`). Para que el orden
+  // refleje la misma regla que la tabla y el Excel (cumplimiento desc),
+  // ordenamos aquí usando ese valor semanal si está disponible.
+  const mappedRows = times.rows.map((row) =>
     mapPersonRow(row, focusWeekIndex, times.weeks),
   );
+  const rows = focusWeekIndex === null
+    ? mappedRows
+    : sortSprintTimesShareRowsByWeeklyCompliance(mappedRows);
 
   const weekTotals = times.weeks.map((_, index) => sumWeekBreakdowns(times.rows, index));
   const sprintTotal = sumSprintBreakdowns(times.rows);

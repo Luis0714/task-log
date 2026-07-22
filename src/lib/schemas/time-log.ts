@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { WORKING_TIME_PATTERN } from "@/lib/date/ado-datetime";
 import { getDefaultWorkingTime } from "@/lib/time-log/task-constants";
-import { resolveDefaultWorkingDate } from "@/lib/time-log/working-date-default";
+import { getTodayDateKey } from "@/lib/time-log/working-date-default";
 import type { CreateTaskBatchItem } from "@/lib/schemas/agent";
 
 const hoursField = z
@@ -118,7 +118,10 @@ export function createTimeLogFormDefaults(
     hours: "",
     description: "",
     activity: "",
-    workingDate: resolveDefaultWorkingDate(),
+    // El campo "Fecha de trabajo" se inicializa SIEMPRE con la fecha actual
+    // del sistema: el caso de uso más frecuente es registrar el trabajo que
+    // se está realizando en este instante. Ignoramos sprint, semana y filtros.
+    workingDate: getTodayDateKey(),
     workingTime: getDefaultWorkingTime(),
     taskState: "",
     autoMarkAsDone: true,
@@ -140,7 +143,7 @@ export const TIME_LOG_TASK_STEP_DEFAULTS: Pick<
   hours: "",
   description: "",
   activity: "",
-  workingDate: resolveDefaultWorkingDate(),
+  workingDate: getTodayDateKey(),
   workingTime: getDefaultWorkingTime(),
   taskState: "",
   autoMarkAsDone: true,

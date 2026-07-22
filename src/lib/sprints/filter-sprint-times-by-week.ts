@@ -4,6 +4,7 @@ import {
 } from "@/lib/hours/hours-breakdown";
 import { roundHours } from "@/lib/number/rounding";
 import { computeCompliance } from "@/lib/reports/hours/compliance";
+import { sortSprintTimesPersonRows } from "@/lib/sprints/sort-sprint-times-person-rows";
 import type {
   SprintTimesMetrics,
   SprintTimesPersonRow,
@@ -75,6 +76,12 @@ function filterRowByWeek(
  * Restringe las métricas a la semana seleccionada, recalculando horas
  * esperadas y % cumplimiento para ese tramo (la asignación vigente puede
  * variar entre semanas).
+ *
+ * Tras recalcular el cumplimiento semanal se re-aplica el orden central
+ * (`sortSprintTimesPersonRows`), porque la persona con mayor cumplimiento
+ * del sprint completo no es necesariamente la que más destaca en una
+ * semana puntual; el reporte debe seguir el mismo criterio (cumplimiento
+ * desc) que la tabla en modo "Sprint completo".
  */
 export function filterSprintTimesByWeek(
   times: SprintTimesMetrics,
@@ -87,6 +94,8 @@ export function filterSprintTimesByWeek(
 
   return {
     weeks: [week],
-    rows: times.rows.map((row) => filterRowByWeek(row, selection, times.weeks)),
+    rows: sortSprintTimesPersonRows(
+      times.rows.map((row) => filterRowByWeek(row, selection, times.weeks)),
+    ),
   };
 }
