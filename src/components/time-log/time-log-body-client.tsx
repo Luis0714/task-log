@@ -92,7 +92,7 @@ export function TimeLogBodyClient({
 
   const requestViewChange = useCallback(
     (next: TimeLogViewId) => {
-      setOptimisticView(next);.
+      setOptimisticView(next);
       if (view === "multiple" && bulkHasData && next !== "multiple") {
         setPendingView(next);
         return;
