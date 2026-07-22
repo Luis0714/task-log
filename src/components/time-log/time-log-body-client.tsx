@@ -3,7 +3,6 @@
 import { useCallback, useState } from "react";
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
-import { FeatureBadge } from "@/components/ui/feature-badge";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { TimeLogBulkForm } from "@/components/time-log/time-log-bulk-form";
 import { TimeLogContextSection } from "@/components/time-log/time-log-context-section";
@@ -37,11 +36,7 @@ import {
 
 const TIME_LOG_VIEW_ITEMS = [
   { value: TIME_LOG_VIEWS.individual, label: "Individual" },
-  {
-    value: TIME_LOG_VIEWS.multiple,
-    label: "Múltiple",
-    badge: <FeatureBadge variant="new" floating />,
-  },
+  { value: TIME_LOG_VIEWS.multiple, label: "Múltiple" },
 ] satisfies readonly {
   value: TimeLogViewId;
   label: string;
@@ -86,20 +81,10 @@ export function TimeLogBodyClient({
   const { view, setView, isNavigating } = useTimeLogViewUrl();
   const [bulkHasData, setBulkHasData] = useState(false);
   const [pendingView, setPendingView] = useState<TimeLogViewId | null>(null);
-  // Vista que efectivamente estamos renderizando. Se retrasa respecto a la
-  // vista de la URL mientras dura la transición para que el skeleton del
-  // destino se muestre antes de que aparezca el contenido real. Se
-  // sincroniza durante el render (patrón recomendado por React para
-  // "storing information from previous renders") y no en `useEffect`,
-  // evitando renders en cascada.
   const [displayedView, setDisplayedView] = useState<TimeLogViewId>(view);
   if (displayedView !== view && !isNavigating) {
     setDisplayedView(view);
   }
-  // Vista optimista que alimenta únicamente al `SegmentedControl`. Se
-  // actualiza de forma síncrona al hacer clic en una pestaña para que el
-  // indicador visual del tab cambie al instante, sin esperar a que
-  // `router.push` complete y `useSearchParams` refleje el nuevo `modo`.
   const [optimisticView, setOptimisticView] = useState<TimeLogViewId>(view);
   if (optimisticView !== view && !isNavigating) {
     setOptimisticView(view);
@@ -107,11 +92,7 @@ export function TimeLogBodyClient({
 
   const requestViewChange = useCallback(
     (next: TimeLogViewId) => {
-      // Reflejamos la selección en el tab de inmediato; la URL y la
-      // navegación siguen su curso en paralelo.
       setOptimisticView(next);
-      if (next === view) return;
-      // Sólo pedimos confirmación al salir de Múltiple con datos sin guardar.
       if (view === "multiple" && bulkHasData && next !== "multiple") {
         setPendingView(next);
         return;
@@ -131,8 +112,6 @@ export function TimeLogBodyClient({
 
   const cancelViewChange = useCallback(() => {
     setPendingView(null);
-    // Revertimos la pestaña seleccionada a la vista real, ya que el
-    // usuario descartó el cambio.
     setOptimisticView(view);
   }, [view]);
 

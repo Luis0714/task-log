@@ -25,7 +25,11 @@ import {
 } from "@/lib/reports/excel/member-info";
 import { computeCompliance } from "@/lib/reports/hours/compliance";
 import type { SemaforoLevel } from "@/lib/reports/hours/hours-report-types";
-import type { SprintTimesMetrics } from "@/lib/sprints/sprint-stats-types";
+import { sortSprintTimesPersonRows } from "@/lib/sprints/sort-sprint-times-person-rows";
+import type {
+  SprintTimesMetrics,
+  SprintTimesPersonRow,
+} from "@/lib/sprints/sprint-stats-types";
 import {
   sumSprintBreakdowns,
   sumWeekBreakdowns,
@@ -83,6 +87,26 @@ type UserAggregate = {
   memberInfo: MemberInfo;
 };
 
+function aggregateToSortableRow(agg: UserAggregate): SprintTimesPersonRow {
+  // Proyectamos el agregado a la shape mínima que necesita el comparador
+  // central para que el Excel multi-sprint comparta el criterio con la tabla
+  // y la imagen: % de cumplimiento descendente, total de horas, "Sin asignar"
+  // al final y, por último, alfabético por nombre.
+  const { pct, level } = computeCompliance(
+    totalHoursBreakdown(agg.sprint),
+    agg.expectedHours,
+  );
+  return {
+    assignee: agg.assignee,
+    weeks: [],
+    sprint: agg.sprint,
+    expectedHours: agg.expectedHours,
+    expectedHoursByWeek: [],
+    compliancePct: pct,
+    semaforo: level,
+  };
+}
+
 function aggregateUsersAcrossSprints(
   sprints: ReadonlyArray<{ times: SprintTimesMetrics }>,
   sprintCount: number,
@@ -132,14 +156,19 @@ function aggregateUsersAcrossSprints(
     }),
   );
 
-  // Mismo orden que el helper single-sprint: total de horas desc, luego alfabético.
-  aggregates.sort((left, right) => {
-    const diff = totalHoursBreakdown(right.sprint) - totalHoursBreakdown(left.sprint);
-    if (diff !== 0) return diff;
-    return left.assignee.localeCompare(right.assignee, "es");
-  });
-
-  return aggregates;
+  // Mismo criterio que la tabla y la imagen compartida: % de cumplimiento
+  // descendente, total de horas como desempate y alfabético al final.
+  // Proyectamos a `SprintTimesPersonRow` para reusar el comparador canónico.
+  const sortKeys = sortSprintTimesPersonRows(
+    aggregates.map(aggregateToSortableRow),
+  );
+  const orderedAssignees = sortKeys.map((row) => row.assignee);
+  const aggregateByAssignee = new Map(
+    aggregates.map((agg) => [agg.assignee, agg]),
+  );
+  return orderedAssignees
+    .map((assignee) => aggregateByAssignee.get(assignee))
+    .filter((agg): agg is UserAggregate => agg !== undefined);
 }
 
 // ── Layout config ─────────────────────────────────────────────────────────────

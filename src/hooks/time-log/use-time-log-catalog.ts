@@ -9,7 +9,6 @@ import { mergeAdoContextIntoSearchParams } from "@/lib/ado/parse-context-search-
 import { useAssigneeFilterFromUrl } from "@/hooks/filters/use-assignee-filter-from-url";
 import { useCatalogAutoDefaults } from "@/hooks/time-log/use-catalog-auto-defaults";
 import { usePushWorkItemAssigneeUrl } from "@/hooks/filters/use-push-work-item-assignee-url";
-import { useSprintWorkingDate } from "@/hooks/time-log/use-sprint-working-date";
 import { useWorkItemFiltersPanel } from "@/hooks/filters/use-work-item-filters-panel";
 import { useTimeLogWorkItemFilters } from "@/hooks/time-log/use-time-log-work-item-filters";
 import { usePendingSelectField } from "@/hooks/filters/use-pending-select-field";
@@ -34,6 +33,7 @@ import type {
 } from "@/lib/time-log/load-time-log-baseline";
 import type { TimeLogFormValues } from "@/lib/schemas/time-log";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
+import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
 import { USER_FILTER_SCOPES } from "@/lib/filters/user-filter-scopes";
 
 type UseTimeLogCatalogOptions = {
@@ -45,6 +45,20 @@ type UseTimeLogCatalogOptions = {
   isTaskCreationMode: boolean;
   initialWorkItemFilters?: Partial<WorkItemFilters>;
 };
+
+/**
+ * Etiqueta legible del sprint actualmente seleccionado. Maneja los tres
+ * casos del catálogo (backlog, sprint existente, sin selección) sin
+ * recurrir a ternarios anidados.
+ */
+function resolveSelectedSprintLabel(
+  sprintPath: string,
+  selectedSprint: AdoSprintDto | undefined,
+): string | null {
+  if (isBacklogScope(sprintPath)) return BACKLOG_SPRINT_LABEL;
+  if (selectedSprint) return formatSprintOptionLabel(selectedSprint);
+  return null;
+}
 
 export type { TimeLogCatalog, TimeLogCatalogPlaceholders } from "@/lib/time-log/catalog-types";
 
@@ -78,18 +92,20 @@ export function useTimeLogCatalog({
     project === catalog.project && team === catalog.team
       ? serverBaseline.teamMembers
       : [];
-  const backlogStates =
-    project === catalog.project ? serverBaseline.backlogStates : [];
-  const taskStates =
-    project === catalog.project ? serverBaseline.taskStates : [];
+  // Estabilizar las referencias con useMemo: si los devolviéramos como `[]`
+  // literal cuando el proyecto no coincide, cada render entregaría un nuevo
+  // arreglo y dispararía innecesariamente los hooks que los consumen.
+  const backlogStates = useMemo(
+    () =>
+      project === catalog.project ? serverBaseline.backlogStates : [],
+    [project, catalog.project, serverBaseline.backlogStates],
+  );
+  const taskStates = useMemo(
+    () => (project === catalog.project ? serverBaseline.taskStates : []),
+    [project, catalog.project, serverBaseline.taskStates],
+  );
   const defaultOpenTaskState = serverBaseline.defaultOpenTaskState;
   const defaultCompletedTaskState = serverBaseline.defaultCompletedTaskState;
-  const nonWorkingDates = serverBaseline.nonWorkingDates;
-
-  const workingDayOptions = useMemo(
-    () => ({ nonWorkingDates: new Set(nonWorkingDates) }),
-    [nonWorkingDates],
-  );
 
   const [pbisNavigating, startPbisNavigation] = useTransition();
 
@@ -153,14 +169,6 @@ export function useTimeLogCatalog({
     sprints,
     sprintsLoading,
     team,
-  });
-
-  useSprintWorkingDate({
-    form,
-    sprintPath,
-    sprints,
-    sprintsLoading,
-    workingDayOptions,
   });
 
   const pbis = useMemo(
@@ -238,11 +246,10 @@ export function useTimeLogCatalog({
   });
 
   const selectedSprint = sprints.find((sprint) => sprint.path === sprintPath);
-  const selectedSprintLabel = isBacklogScope(sprintPath)
-    ? BACKLOG_SPRINT_LABEL
-    : selectedSprint
-      ? formatSprintOptionLabel(selectedSprint)
-      : null;
+  const selectedSprintLabel = resolveSelectedSprintLabel(
+    sprintPath,
+    selectedSprint,
+  );
   const selectedPbi = pbis.find((item) => String(item.id) === pbiId) ?? null;
 
   const disabledState = buildCatalogDisabledState({

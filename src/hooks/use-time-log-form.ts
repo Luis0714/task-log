@@ -11,7 +11,7 @@ import type {
   TimeLogPbisSnapshot,
   TimeLogServerBaseline,
 } from "@/lib/time-log/load-time-log-baseline";
-import { resolveWorkingDateForSprint } from "@/hooks/time-log/use-sprint-working-date";
+import { getTodayDateKey } from "@/lib/time-log/working-date-default";
 import type { AdoSprintDto } from "@/lib/schemas/ado-catalog";
 import type { WorkItemFilters } from "@/lib/schemas/work-item-filters";
 import { appToast } from "@/lib/toast";
@@ -82,8 +82,11 @@ export function useTimeLogForm({
       [],
     ),
     getDefaultWorkingDate: useCallback(
-      () => resolveWorkingDateForSprint(sprintsRef.current, form.getValues("sprintPath")),
-      [form],
+      // El default del campo "Fecha de trabajo" es SIEMPRE hoy (zona local
+      // del navegador), independiente del sprint, semana o filtros activos:
+      // el caso de uso más frecuente es registrar el trabajo en curso.
+      () => getTodayDateKey(),
+      [],
     ),
   });
 
