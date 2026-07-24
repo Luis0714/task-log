@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { loadWorkingDayKeysInRange } from "@/lib/hours/load-working-day-keys";
 import { buildHoursReport } from "@/lib/reports/hours/build-hours-report";
 import {
   fakeAuth,
@@ -31,6 +32,13 @@ function fixedWorkingDays(fromIso: string, toIso: string): string[] {
   }
   return result;
 }
+
+/**
+ * Cadena REAL: delega en el central service de festivos
+ * (`src/lib/hours/load-working-day-keys.ts`) en vez de `fixedWorkingDays`,
+ * para que un cambio en la estrategia/calendario se detecte en CI.
+ */
+const listWorkingDays = loadWorkingDayKeysInRange;
 
 /** Novedad reportada (item tipo "Novedades") para inyectar en `listReportedNews`. */
 function makeNovedad(overrides: Partial<ReportedNewsDetail> = {}): ReportedNewsDetail {
@@ -164,6 +172,45 @@ describe("buildHoursReport", () => {
     );
 
     expect(result.rows[0]?.developmentHours).toBe(5);
+  });
+
+  /**
+   * Caso de negocio reportado por el equipo (jul-2026): las horas reportadas
+   * el 2026-07-20 (Día de la Independencia) NO deben contar en el reporte.
+   * Este test usa `loadWorkingDayKeysInRange` REAL (no el helper `fixedWorkingDays`
+   * que solo excluye findes) para cerrar el hueco: si el central service no
+   * retorna el festivo, este test rompe CI.
+   */
+  it("horas en festivo real (2026-07-20) NO suman — usa el central service de festivos", async () => {
+    const result = await buildHoursReport(
+      {
+        scopes: [makeScope()],
+        period: { kind: "range", fromIso: "2026-07-15", toIso: "2026-07-25" },
+      },
+      {
+        auth: fakeAuth,
+        assignmentRepo: makeFakeAssignmentRepo([]),
+        newsStoriesRepo: makeFakeNewsStoriesRepo([
+          { workItemId: 500, projectId: "Proyecto A", teamId: "Backend" },
+        ]),
+        listTasks: async () => [
+          makeTask({ id: 1, loggedHours: 8, workingDate: "2026-07-17", parentId: 500 }), // vie, hábil
+          makeTask({ id: 2, loggedHours: 8, workingDate: "2026-07-20", parentId: 501 }), // festivo → no cuenta
+          makeTask({ id: 3, loggedHours: 4, workingDate: "2026-07-21", parentId: 502 }), // lun, hábil
+        ],
+        listBugs: async () => [],
+        listReportedNews: async () => [],
+        listWorkingDays, // cadena real, sin mock
+        loadTeamMembers: async () => [
+          { personAdoId: "user-1", personDisplayName: "Juan Pérez" },
+        ],
+        now: fixedNow,
+      },
+    );
+
+    const row = result.rows.find((r) => r.personDisplayName === "Juan Pérez");
+    // Solo 17 y 21 suman (12h). El 20-jul queda fuera por festivo.
+    expect(row?.developmentHours).toBe(12);
   });
 
   it("novedades: horas = Completed Work, días = horas / 8", async () => {

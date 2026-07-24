@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { loadColombianHolidaysForRange, type Holiday } from "@/lib/holidays";
+import { logApiError } from "@/lib/errors/log-api-error";
 import { listWorkingDayKeysBetween, toLocalDateKey } from "@/lib/working-days";
 
 /**
@@ -48,7 +49,10 @@ const PICKER_WINDOW_DAYS = 366;
 /**
  * Festivos en una ventana de ±1 año alrededor de hoy, para pickers de día
  * que no tienen un rango propio. Degrada a lista vacía si el proveedor de
- * festivos falla: un picker sin festivos marcados no debe bloquear la vista.
+ * festivos falla: un picker sin festivos marcados no debe bloquear la vista,
+ * pero el fallo se loguea para que `GET /api/health/holidays` y los logs del
+ * servidor lo expongan (un picker silenciosamente sin festivos era el modo en
+ * que el 20-jul podía colarse como hábil en pickers).
  */
 export const loadHolidayDateKeysAroundToday = cache(
   async function loadHolidayDateKeysAroundToday(): Promise<string[]> {
@@ -58,7 +62,8 @@ export const loadHolidayDateKeysAroundToday = cache(
     to.setDate(to.getDate() + PICKER_WINDOW_DAYS);
     try {
       return await loadHolidayDateKeysInRange(toLocalDateKey(from), toLocalDateKey(to));
-    } catch {
+    } catch (cause) {
+      logApiError("loadHolidayDateKeysAroundToday", cause);
       return [];
     }
   },
