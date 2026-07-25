@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { computeSprintHoursSeries } from "@/lib/dashboard/sprint-hours-series";
 import { formatSprintDayChartLabel } from "@/lib/dashboard/sprint-days";
+import { loadHolidayDateKeysInRange } from "@/lib/hours/load-working-day-keys";
 import { toLocalDateKey } from "@/lib/working-days";
 import type { SprintWorkingDay } from "@/lib/dashboard/sprint-days";
 
@@ -168,5 +169,56 @@ describe("computeSprintHoursSeries", () => {
     expect(result[1]?.cumulativeHours).toBe(4); // festivo: repite
     expect(result[2]?.cumulativeHours).toBe(4); // festivo: repite
     expect(result[3]?.cumulativeHours).toBe(4); // primer laborable tras festivos: 0
+  });
+
+  /**
+   * Caso de negocio reportado por el equipo (jul-2026): el 2026-07-20
+   * (Día de la Independencia) debe aparecer como festivo en el chart del
+   * dashboard y las horas de ese día NO deben sumar. Usa el central service
+   * (`loadHolidayDateKeysInRange`) en vez de un set hardcoded.
+   */
+  it("2026-07-20 (Independencia) del central service: no suma y se marca isHoliday", async () => {
+    const nonWorkingDates = new Set(
+      await loadHolidayDateKeysInRange("2026-07-13", "2026-07-31"),
+    );
+
+    const days = buildCalendar([
+      "2026-07-13", // lun festivo (Virgen de Chiquinquirá)
+      "2026-07-14",
+      "2026-07-15",
+      "2026-07-16",
+      "2026-07-17",
+      "2026-07-20", // lun festivo (Independencia)
+      "2026-07-21",
+      "2026-07-22",
+      "2026-07-23",
+      "2026-07-24",
+    ]);
+
+    const tasks = [
+      { loggedHours: 2, workingDate: "2026-07-14" },
+      { loggedHours: 8, workingDate: "2026-07-20" }, // festivo → no cuenta
+      { loggedHours: 3, workingDate: "2026-07-21" },
+    ];
+
+    const result = computeSprintHoursSeries(
+      days,
+      tasks,
+      [],
+      [{ pct: 100, from: "2026-07-13", to: null }],
+      { nonWorkingDates },
+    );
+
+    // El festivo 2026-07-20 está marcado como tal.
+    const july20 = result.find((p) => p.dayKey === "2026-07-20");
+    expect(july20?.isHoliday).toBe(true);
+    expect(july20?.totalHours).toBe(0);
+    // La curva no avanza en el festivo (repite 2h de la última hábil 14-jul).
+    expect(july20?.cumulativeHours).toBe(2);
+    // El 21 (lun siguiente) sigue siendo hábil y suma sus 3h.
+    const july21 = result.find((p) => p.dayKey === "2026-07-21");
+    expect(july21?.isHoliday).toBe(false);
+    expect(july21?.totalHours).toBe(3);
+    expect(july21?.cumulativeHours).toBe(5);
   });
 });

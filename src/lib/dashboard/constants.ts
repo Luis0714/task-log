@@ -1,2 +1,5 @@
-/** Objetivo de horas del sprint cuando no hay estimaciones en los work items. */
-export const DEFAULT_SPRINT_HOURS_TARGET = 40;
+/**
+ * El target del sprint se deriva SIEMPRE del calendario cuando hay sprint
+ * activo. El fallback "sin calendario" vive en [`expected-hours`] →
+ * [`DEFAULT_SPRINT_HOURS_TARGET`] (importado donde se necesita).
+ */

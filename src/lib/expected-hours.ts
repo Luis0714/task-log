@@ -1,6 +1,15 @@
 import { roundToDecimals, roundHours } from "@/lib/number/rounding";
 import { HOURS_PER_WORKING_DAY } from "@/lib/working-days";
 
+/**
+ * Fallback del target del sprint cuando NO hay días hábiles resueltos
+ * (sin sprint activo, sprint sin fechas, o error del calendario). Única
+ * constante de la plataforma con este valor: cualquier caller que derive
+ * horas esperadas desde el calendario debe pasar este fallback (o uno
+ * propio) para mantener una sola fuente de verdad.
+ */
+export const DEFAULT_SPRINT_HOURS_TARGET = 40;
+
 export type AssignmentSegment = Readonly<{
   /** Porcentaje entero 1..100 vigente en el tramo. */
   pct: number;
@@ -81,4 +90,32 @@ export function expectedHoursForDay(
   return roundHours(
     HOURS_PER_WORKING_DAY * (resolveAssignmentPct(dayKey, segments) / 100),
   );
+}
+
+/**
+ * Target del sprint derivado del calendario + tramos de asignación. Es el
+ * ÚNICO punto donde la meta del sprint se calcula a partir del set de días
+ * hábiles resuelto (que ya excluye fines de semana + festivos del central
+ * service).
+ *
+ * - Si `sprintDayKeys` está vacío (sin sprint o sprint sin fechas) cae al
+ *   `fallback` (default: [`DEFAULT_SPRINT_HOURS_TARGET`]).
+ * - Si hay días, delega en `computeExpectedHours(sprintDayKeys, segments)`,
+ *   que ya pondera cada día por su % de asignación vigente. Un festivo entre
+ *   semana (caso del 2026-07-20) REDUCE el target en proporción a los
+ *   días hábiles reales: sprint lun 20-jul → vie 24-jul con festivo = 4
+ *   hábiles × 8h × % = 32h (al 100%), no 40h.
+ *
+ * Usado por el dashboard del sprint (`build-dashboard-metrics.ts`) y por
+ * cualquier builder que necesite la meta del sprint: garantiza que un
+ * festivo entre semana reduce el target en proporción a los días hábiles
+ * reales.
+ */
+export function resolveSprintHoursTarget(
+  sprintDayKeys: readonly string[],
+  segments: readonly AssignmentSegment[],
+  fallback: number = DEFAULT_SPRINT_HOURS_TARGET,
+): number {
+  if (sprintDayKeys.length === 0) return fallback;
+  return computeExpectedHours(sprintDayKeys, segments).expectedHours;
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildSprintTimesMetrics } from "@/lib/sprints/build-sprint-times-metrics";
+import { loadHolidayDateKeysInRange } from "@/lib/hours/load-working-day-keys";
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
 // Sprint de dos semanas: 2026-06-15 (lun) a 2026-06-26 (vie).
@@ -51,6 +52,39 @@ describe("buildSprintTimesMetrics", () => {
 
     const row = metrics.rows.find((r) => r.assignee === "Ana Gómez");
     expect(row?.sprint.taskHours).toBe(1);
+  });
+
+  /**
+   * Caso de negocio reportado por el equipo (jul-2026): horas reportadas el
+   * 2026-07-20 (Día de la Independencia) NO deben contar. Este test usa el
+   * servicio central de festivos (`loadHolidayDateKeysInRange`) en vez de un
+   * festivo inyectado, para cerrar el hueco entre el calendario único y el
+   * motor del sprint.
+   */
+  it("horas reportadas el 2026-07-20 (Día de la Independencia) NO cuentan con festivos del central service", async () => {
+    const nonWorkingDates = await loadHolidayDateKeysInRange(
+      "2026-07-13",
+      "2026-07-31",
+    );
+
+    const metrics = buildSprintTimesMetrics({
+      tasks: [
+        makeItem({ id: 1, workingDate: "2026-07-13", loggedHours: 8 }), // Virgen de Chiquinquirá (festivo)
+        makeItem({ id: 2, workingDate: "2026-07-20", loggedHours: 8 }), // Independencia (festivo)
+        makeItem({ id: 3, workingDate: "2026-07-21", loggedHours: 2 }), // lun siguiente, hábil
+      ],
+      bugs: [],
+      sprintStartDate: "2026-07-13",
+      sprintFinishDate: "2026-07-31",
+      nonWorkingDates,
+    });
+
+    const row = metrics.rows.find((r) => r.assignee === "Ana Gómez");
+    expect(row?.sprint.taskHours).toBe(2);
+
+    // El sprint debe contar los días hábiles excluyendo ambos festivos.
+    const week = metrics.weeks[0];
+    expect(week?.workingDaysCount).toBeLessThan(15); // 13 días naturales → <15 hábiles
   });
 
   it("separa tasks y bugs por semana y persona", () => {

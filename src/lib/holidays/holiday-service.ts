@@ -1,4 +1,5 @@
 import type { Holiday, HolidayStrategy } from "@/lib/holidays/holiday-strategy";
+import { normalizeIsoDateKey } from "@/lib/working-days";
 
 export class HolidayService {
   constructor(private readonly strategy: HolidayStrategy) {}
@@ -19,8 +20,10 @@ export class HolidayService {
     fromIso: string,
     toIso: string,
   ): Promise<Holiday[]> {
-    const fromYear = Number(fromIso.slice(0, 4));
-    const toYear = Number(toIso.slice(0, 4));
+    const fromKey = normalizeIsoDateKey(fromIso);
+    const toKey = normalizeIsoDateKey(toIso);
+    const fromYear = Number(fromKey.slice(0, 4));
+    const toYear = Number(toKey.slice(0, 4));
     if (Number.isNaN(fromYear) || Number.isNaN(toYear)) return [];
 
     const years = new Set<number>();
@@ -31,7 +34,7 @@ export class HolidayService {
     );
     return batches
       .flat()
-      .filter((h) => h.date >= fromIso && h.date <= toIso)
+      .filter((h) => h.date >= fromKey && h.date <= toKey)
       .sort((a, b) => a.date.localeCompare(b.date));
   }
 }

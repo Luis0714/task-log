@@ -1,6 +1,6 @@
 import type { AdoWorkItemOptionDto } from "@/lib/schemas/ado-catalog";
 
-import { DEFAULT_SPRINT_HOURS_TARGET } from "@/lib/dashboard/constants";
+import { DEFAULT_SPRINT_HOURS_TARGET } from "@/lib/expected-hours";
 import { HOURS_PER_WORKING_DAY } from "@/lib/working-days";
 import {
   stateMatchesCategory,

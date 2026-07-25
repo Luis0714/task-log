@@ -4,6 +4,22 @@ export type WorkingDayFilterOptions = {
   nonWorkingDates?: ReadonlySet<string>;
 };
 
+/**
+ * Normaliza una clave ISO que podría llegar con sufijo de hora
+ * (`"2026-07-20T00:00:00.000Z"`, formato típico de Azure DevOps) a la
+ * clave civil `"YYYY-MM-DD"` que usa el resto de la plataforma. Sin
+ * normalización, la comparación lexicográfica falla silenciosamente:
+ * `"2026-07-20" >= "2026-07-20T00:00:00.000Z"` es `false`, así que un
+ * festivo entre semana puede colarse como día hábil (bug del 2026-07-20).
+ *
+ * Devuelve el valor original si no matchea el patrón — los callers que
+ * esperaban un error de input mantienen su comportamiento.
+ */
+export function normalizeIsoDateKey(value: string): string {
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim());
+  return match ? match[1] : value;
+}
+
 export function isWeekendKey(dateKey: string): boolean {
   const date = parseLocalDateKey(dateKey);
   if (!date) return false;
