@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import { loadColombianHolidaysForRange, type Holiday } from "@/lib/holidays";
 import { logApiError } from "@/lib/errors/log-api-error";
-import { listWorkingDayKeysBetween, toLocalDateKey } from "@/lib/working-days";
+import { listWorkingDayKeysBetween, normalizeIsoDateKey, toLocalDateKey } from "@/lib/working-days";
 
 /**
  * Calendario ÚNICO de la plataforma: lunes a viernes menos festivos
@@ -16,8 +16,15 @@ export const loadWorkingDayKeysInRange = cache(
     fromIso: string,
     toIso: string,
   ): Promise<string[]> {
-    const holidays = await loadColombianHolidaysForRange(fromIso, toIso);
-    return filterWorkingDays(fromIso, toIso, holidays);
+    // ADO devuelve startDate/finishDate como ISO con sufijo de hora
+    // (`"2026-07-20T00:00:00.000Z"`); normalizamos a `"YYYY-MM-DD"` para
+    // que el filtro del holiday service y el cálculo del calendario
+    // coincidan con el formato interno. Sin esto, festivo entre semana
+    // se cuela como hábil (bug del 2026-07-20 reportado por el equipo).
+    const fromKey = normalizeIsoDateKey(fromIso);
+    const toKey = normalizeIsoDateKey(toIso);
+    const holidays = await loadColombianHolidaysForRange(fromKey, toKey);
+    return filterWorkingDays(fromKey, toKey, holidays);
   },
 );
 
@@ -30,7 +37,9 @@ export const loadHolidayDateKeysInRange = cache(
     fromIso: string,
     toIso: string,
   ): Promise<string[]> {
-    const holidays = await loadColombianHolidaysForRange(fromIso, toIso);
+    const fromKey = normalizeIsoDateKey(fromIso);
+    const toKey = normalizeIsoDateKey(toIso);
+    const holidays = await loadColombianHolidaysForRange(fromKey, toKey);
     return holidays.map((holiday) => holiday.date);
   },
 );

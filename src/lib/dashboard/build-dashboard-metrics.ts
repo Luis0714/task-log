@@ -25,9 +25,9 @@ import type { DashboardMetrics } from "@/lib/dashboard/types";
 import { resolveCurrentSprint } from "@/lib/ado/resolve-current-sprint";
 import type { AssignmentSegment } from "@/lib/expected-hours";
 import {
-  computeExpectedHours,
   expectedHoursForDay,
   resolveAssignmentPct,
+  resolveSprintHoursTarget,
 } from "@/lib/expected-hours";
 import { type WorkingDayFilterOptions } from "@/lib/working-days";
 
@@ -96,10 +96,7 @@ export function buildDashboardMetrics({
     workingDayKeys: new Set([hoursDayKey]),
   });
   const allSprintDayKeys = sprintWorkingDays.map((d) => d.value);
-  const hoursSprintTarget =
-    allSprintDayKeys.length > 0
-      ? computeExpectedHours(allSprintDayKeys, segments).expectedHours
-      : 0;
+  const hoursSprintTarget = resolveSprintHoursTarget(allSprintDayKeys, segments);
   const hoursSprintCurrent = computeHoursBreakdown({
     tasks: bundle.tasks,
     bugs: bundle.bugs,

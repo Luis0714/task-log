@@ -6,8 +6,68 @@ import {
   loadWorkingDayKeysInRange,
 } from "@/lib/hours/load-working-day-keys";
 import type { Holiday } from "@/lib/holidays";
+import { normalizeIsoDateKey } from "@/lib/working-days";
 
 const H = (date: string): Holiday => ({ date, name: "Festivo" });
+
+/**
+ * Caso del bug del 2026-07-20 (Día de la Independencia) que el usuario
+ * reportó como día contado como hábil en el dashboard y los reportes. La
+ * causa raíz era que Azure DevOps devuelve `startDate`/`finishDate` como
+ * ISO con sufijo de hora (`"2026-07-20T00:00:00.000Z"`), pero el filtro
+ * del holiday service compara lexicográficamente con `"2026-07-20"`, así
+ * que el festivo quedaba excluido. Estos tests cubren el helper de
+ * normalización y la cadena completa con input tipo ADO.
+ */
+describe("normalizeIsoDateKey (helper anti-bug ADO ISO timestamps)", () => {
+  it("acepta YYYY-MM-DD y lo devuelve tal cual", () => {
+    expect(normalizeIsoDateKey("2026-07-20")).toBe("2026-07-20");
+  });
+
+  it("recorta el sufijo de hora estilo Azure DevOps", () => {
+    expect(normalizeIsoDateKey("2026-07-20T00:00:00.000Z")).toBe("2026-07-20");
+    expect(normalizeIsoDateKey("2026-07-20T00:00:00Z")).toBe("2026-07-20");
+    expect(normalizeIsoDateKey("2026-07-20T05:00:00.000Z")).toBe("2026-07-20");
+  });
+
+  it("recorta sufijo de zona +05:00 etc", () => {
+    expect(normalizeIsoDateKey("2026-07-20T00:00:00+05:00")).toBe("2026-07-20");
+  });
+
+  it("tolera espacios al rededor", () => {
+    expect(normalizeIsoDateKey("  2026-07-20T00:00:00.000Z  ")).toBe("2026-07-20");
+  });
+
+  it("devuelve el valor original si no matchea (no rompe callers)", () => {
+    expect(normalizeIsoDateKey("not-a-date")).toBe("not-a-date");
+  });
+});
+
+describe("loadHolidayDateKeysInRange con ISO timestamps tipo ADO", () => {
+  it("encuentra el 2026-07-20 cuando el rango viene con sufijo T00:00:00.000Z", async () => {
+    const dates = await loadHolidayDateKeysInRange(
+      "2026-07-20T00:00:00.000Z",
+      "2026-07-24T00:00:00.000Z",
+    );
+    expect(dates).toContain("2026-07-20");
+  });
+});
+
+describe("loadWorkingDayKeysInRange con ISO timestamps tipo ADO", () => {
+  it("excluye 2026-07-20 del rango 20-24 jul aunque venga con sufijo", async () => {
+    const workingDays = await loadWorkingDayKeysInRange(
+      "2026-07-20T00:00:00.000Z",
+      "2026-07-24T00:00:00.000Z",
+    );
+    expect(workingDays).not.toContain("2026-07-20");
+    expect(workingDays).toEqual([
+      "2026-07-21",
+      "2026-07-22",
+      "2026-07-23",
+      "2026-07-24",
+    ]);
+  });
+});
 
 /**
  * Regla de negocio de la plataforma (CA-26/jul-2026): el calendario único de
