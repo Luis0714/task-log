@@ -59,6 +59,18 @@ export const PAGE_SEO = {
       "Bugs del sprint con filtros por asignación, estado y fecha. Control de calidad integrado con tu flujo Agile.",
     path: "/bugs",
   },
+  pullRequests: {
+    title: "Pull Requests",
+    description:
+      "Consulta, crea y revisa pull requests de Azure DevOps desde NeosView.",
+    path: "/pull-requests",
+  },
+  releases: {
+    title: "Releases",
+    description:
+      "Consulta el estado de los releases y aprueba despliegues pendientes en Azure DevOps.",
+    path: "/releases",
+  },
   daily: {
     title: "Resumen del daily",
     description:
