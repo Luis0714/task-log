@@ -65,6 +65,12 @@ export const PAGE_SEO = {
       "Consulta, crea y revisa pull requests de Azure DevOps desde NeosView.",
     path: "/pull-requests",
   },
+  pullRequestNew: {
+    title: "Nueva Pull Request",
+    description:
+      "Crea un pull request eligiendo repositorio, rama origen y rama destino.",
+    path: "/pull-requests/new",
+  },
   releases: {
     title: "Releases",
     description:

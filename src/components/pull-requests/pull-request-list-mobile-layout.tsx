@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Plus, SlidersHorizontal } from "lucide-react";
 
 import { PullRequestEmpty } from "@/components/pull-requests/pull-request-empty";
@@ -10,7 +11,10 @@ import { CreateFab } from "@/components/shared/create-fab";
 import { SearchField } from "@/components/shared/search-field";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
-import { PULL_REQUEST_SEARCH_PLACEHOLDER } from "@/lib/pull-requests/copy";
+import {
+  CREATE_PULL_REQUEST_FAB_LABEL,
+  PULL_REQUEST_SEARCH_PLACEHOLDER,
+} from "@/lib/pull-requests/copy";
 import type { PullRequestFiltersFormModel } from "@/lib/pull-requests/filter-form-model";
 import type { PullRequestListItem, PullRequestTab } from "@/lib/pull-requests/types";
 
@@ -19,6 +23,8 @@ export type PullRequestListMobileLayoutProps = PullRequestFiltersFormModel & {
   description: string;
   items: readonly PullRequestListItem[];
   hasActiveFilters: boolean;
+  notice?: ReactNode;
+  createHref: string;
   filtersOpen: boolean;
   onFiltersOpenChange: (open: boolean) => void;
   onSearchChange: (value: string) => void;
@@ -32,6 +38,8 @@ export function PullRequestListMobileLayout({
   hasActiveFilters,
   filters,
   people,
+  notice,
+  createHref,
   filtersOpen,
   onFiltersOpenChange,
   onChange,
@@ -62,13 +70,19 @@ export function PullRequestListMobileLayout({
 
       <PullRequestQuickTabs value={filters.tab} onValueChange={onTabChange} />
 
+      {notice}
+
       {items.length === 0 ? (
         <PullRequestEmpty hasActiveFilters={hasActiveFilters} />
       ) : (
         <PullRequestList items={items} density="compact" />
       )}
 
-      <CreateFab label="Crear PR" icon={<Plus />} />
+      <CreateFab
+        label={CREATE_PULL_REQUEST_FAB_LABEL}
+        icon={<Plus />}
+        href={createHref}
+      />
 
       <PullRequestFiltersSheet
         open={filtersOpen}

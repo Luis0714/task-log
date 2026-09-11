@@ -1,7 +1,8 @@
 "use client";
 
+import type { ReactNode } from "react";
+import Link from "next/link";
 import { Plus } from "lucide-react";
-
 import { PullRequestEmpty } from "@/components/pull-requests/pull-request-empty";
 import { PullRequestFiltersPanel } from "@/components/pull-requests/pull-request-filters-panel";
 import { PullRequestList } from "@/components/pull-requests/pull-request-list";
@@ -9,7 +10,10 @@ import { PullRequestQuickTabs } from "@/components/pull-requests/pull-request-qu
 import { SearchField } from "@/components/shared/search-field";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
-import { PULL_REQUEST_SEARCH_PLACEHOLDER } from "@/lib/pull-requests/copy";
+import {
+  NEW_PULL_REQUEST_LABEL,
+  PULL_REQUEST_SEARCH_PLACEHOLDER,
+} from "@/lib/pull-requests/copy";
 import type { PullRequestFiltersFormModel } from "@/lib/pull-requests/filter-form-model";
 import type { PullRequestListItem, PullRequestTab } from "@/lib/pull-requests/types";
 
@@ -18,6 +22,8 @@ export type PullRequestListDesktopLayoutProps = PullRequestFiltersFormModel & {
   description: string;
   items: readonly PullRequestListItem[];
   hasActiveFilters: boolean;
+  notice?: ReactNode;
+  createHref: string;
   onSearchChange: (value: string) => void;
   onTabChange: (tab: PullRequestTab) => void;
 };
@@ -29,6 +35,8 @@ export function PullRequestListDesktopLayout({
   hasActiveFilters,
   filters,
   people,
+  notice,
+  createHref,
   onChange,
   onSearchChange,
   onTabChange,
@@ -39,9 +47,9 @@ export function PullRequestListDesktopLayout({
         title={title}
         description={description}
         action={
-          <Button type="button">
+          <Button type="button" nativeButton={false} render={<Link href={createHref} />}>
             <Plus />
-            Nueva Pull Request
+            {NEW_PULL_REQUEST_LABEL}
           </Button>
         }
       />
@@ -57,6 +65,7 @@ export function PullRequestListDesktopLayout({
             placeholder={PULL_REQUEST_SEARCH_PLACEHOLDER}
           />
           <PullRequestQuickTabs value={filters.tab} onValueChange={onTabChange} />
+          {notice}
           {items.length === 0 ? (
             <PullRequestEmpty hasActiveFilters={hasActiveFilters} />
           ) : (
