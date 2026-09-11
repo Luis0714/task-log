@@ -1,5 +1,5 @@
 import { SuperAdminPageShell } from "@/components/auth/super-admin-page-shell";
-import { ComingSoonPage } from "@/components/layout/coming-soon-page";
+import { PullRequestListView } from "@/components/pull-requests/pull-request-list-view";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
 
@@ -12,7 +12,7 @@ export default async function PullRequestsPage() {
 
   return (
     <SuperAdminPageShell title={title} description={description}>
-      <ComingSoonPage title={title} description={description} />
+      <PullRequestListView title={title} />
     </SuperAdminPageShell>
   );
 }
