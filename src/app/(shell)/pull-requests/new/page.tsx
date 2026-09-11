@@ -1,5 +1,5 @@
 import { SuperAdminPageShell } from "@/components/auth/super-admin-page-shell";
-import { PullRequestCreateView } from "@/components/pull-requests/pull-request-create-view";
+import { PullRequestCreateScreen } from "@/components/pull-requests/pull-request-create-screen";
 import { parseNewPullRequestQuery } from "@/lib/pull-requests/create-query";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { PAGE_SEO } from "@/lib/seo/pages";
@@ -14,12 +14,14 @@ type PageProps = {
 
 export default async function NewPullRequestPage({ searchParams }: PageProps) {
   const { title, description } = PAGE_SEO.pullRequestNew;
+  const params = await searchParams;
 
   return (
     <SuperAdminPageShell title={title} description={description}>
-      <PullRequestCreateView
+      <PullRequestCreateScreen
         title={title}
-        initialQuery={parseNewPullRequestQuery(await searchParams)}
+        searchParams={params}
+        initialQuery={parseNewPullRequestQuery(params)}
       />
     </SuperAdminPageShell>
   );

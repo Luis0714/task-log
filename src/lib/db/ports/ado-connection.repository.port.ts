@@ -27,4 +27,6 @@ export interface AdoConnectionRepository {
     userId: string,
     defaults: AdoConnectionContextDefaults,
   ): Promise<boolean>;
+  loadDefaultRepository(userId: string): Promise<string | null>;
+  updateDefaultRepository(userId: string, repository: string): Promise<boolean>;
 }

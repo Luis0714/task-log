@@ -6,3 +6,6 @@ export const CREATE_PULL_REQUEST_MOCK_TOAST =
   "Maqueta: aún no se publica en Azure DevOps. La rama origen ya viene precargada.";
 export const NO_CHANGES_TO_MERGE_MESSAGE =
   "No hay cambios para fusionar entre las ramas seleccionadas.";
+export const LARGE_COMMIT_MERGE_MESSAGE =
+  "Este pull request fusionará más de 100 commits. Revisa origen y destino para confirmar que es intencional.";
+export const DESCRIPTION_MAX_LENGTH = 4000;

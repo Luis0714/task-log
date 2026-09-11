@@ -8,17 +8,23 @@ import type { NewPullRequestQuery } from "@/lib/pull-requests/create-query";
 export type PullRequestCreateViewProps = {
   title: string;
   initialQuery: NewPullRequestQuery;
+  defaultRepository: string | null;
+  project: string | null;
+  team: string | null;
 };
 
 export function PullRequestCreateView({
   title,
   initialQuery,
+  defaultRepository,
+  project,
+  team,
 }: PullRequestCreateViewProps) {
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-6">
       <PageHeader
         title={title}
-        description="Elige repositorio, rama origen y destino. Si llegas desde el aviso de rama reciente, el origen ya viene seleccionado."
+        description="Elige repositorio, ramas, revisores y work items. El repositorio predeterminado se rellena solo."
         action={
           <Button
             variant="outline"
@@ -29,7 +35,12 @@ export function PullRequestCreateView({
           </Button>
         }
       />
-      <PullRequestCreateForm initialQuery={initialQuery} />
+      <PullRequestCreateForm
+        initialQuery={initialQuery}
+        defaultRepository={defaultRepository}
+        project={project}
+        team={team}
+      />
     </div>
   );
 }

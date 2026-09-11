@@ -94,6 +94,7 @@ export const adoConnections = pgTable(
     organization: text("organization").notNull(),
     project: text("project").notNull(),
     team: text("team"),
+    defaultRepository: text("default_repository"),
     /**
      * JSON cifrado (AES-256-GCM): `{ pat }` o `{ refreshToken }`.
      * Ver `encryptAdoSecrets` / `decryptAdoSecrets`.
