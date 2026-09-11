@@ -11,17 +11,13 @@ export type LinkableWorkItemRowProps = {
 
 export function LinkableWorkItemRow({ item, className }: LinkableWorkItemRowProps) {
   return (
-    <span className={cn("flex min-w-0 flex-1 items-center gap-2 overflow-hidden", className)}>
+    <span className={cn("flex min-w-0 flex-1 items-center gap-2", className)}>
       <WorkItemKindIcon kind={item.kind} />
       <WorkItemId id={item.id} size="xs" />
       <span className="min-w-0 flex-1 truncate" title={item.title}>
         {item.title}
       </span>
-      {item.state ? (
-        <span title={item.state} className="shrink-0">
-          <PbiStateDot state={item.state} className="size-1.5" />
-        </span>
-      ) : null}
+      {item.state ? <PbiStateDot state={item.state} className="size-2" /> : null}
     </span>
   );
 }

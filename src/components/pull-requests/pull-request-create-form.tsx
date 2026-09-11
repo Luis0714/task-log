@@ -139,85 +139,90 @@ export function PullRequestCreateForm({
       />
 
       {comparison && !comparison.hasChanges ? <NoChangesToMergeNotice /> : null}
-      {showLargeCommitWarning ? (
-        <LargeCommitMergeNotice key={`${source}->${target}`} />
-      ) : null}
 
-      <LinkableWorkItemsField
-        items={linkableWorkItems.items}
-        value={linkedWorkItemIds}
-        includeBacklog={includeBacklog}
-        loading={linkableWorkItems.loading}
-        error={linkableWorkItems.error}
-        onChange={handleLinkedWorkItemsChange}
-        onIncludeBacklogChange={setIncludeBacklog}
-      />
+      {hasChanges ? (
+        <>
+          {showLargeCommitWarning ? (
+            <LargeCommitMergeNotice key={`${source}->${target}`} />
+          ) : null}
 
-      <div className="flex flex-col gap-1.5">
-        <Label required htmlFor="pull-request-title">
-          Título
-        </Label>
-        <Input
-          id="pull-request-title"
-          value={title}
-          onChange={(event) => {
-            setTitleTouched(true);
-            setTitle(event.target.value);
-          }}
-          placeholder="Título del pull request"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="pull-request-description">Descripción</Label>
-        <RichTextarea
-          value={description}
-          placeholder="Describe el código que se va a revisar"
-          onChange={(html) => {
-            setDescriptionTouched(true);
-            setDescription(html);
-          }}
-        />
-      </div>
-
-      <PersonPickList
-        id="optional-reviewers"
-        label="Revisores opcionales"
-        placeholder="Buscar para añadir"
-        members={reviewerMembers}
-        selectedIds={optionalReviewers}
-        loading={people.loading}
-        onChange={setOptionalReviewers}
-      />
-      <PersonPickList
-        id="required-reviewers"
-        label="Revisores requeridos"
-        placeholder="Buscar para añadir"
-        members={reviewerMembers}
-        selectedIds={requiredReviewers}
-        loading={people.loading}
-        onChange={setRequiredReviewers}
-      />
-
-      <ProjectTagsField
-        project={project}
-        value={tags}
-        onChange={setTags}
-        label="Tags"
-      />
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <label className="flex items-center gap-2 text-sm">
-          <Checkbox
-            checked={autoComplete}
-            onCheckedChange={(checked) => setAutoComplete(checked === true)}
+          <LinkableWorkItemsField
+            items={linkableWorkItems.items}
+            value={linkedWorkItemIds}
+            includeBacklog={includeBacklog}
+            loading={linkableWorkItems.loading}
+            error={linkableWorkItems.error}
+            onChange={handleLinkedWorkItemsChange}
+            onIncludeBacklogChange={setIncludeBacklog}
           />
-          Completar automáticamente al aprobar
-        </label>
-        <Button type="submit" disabled={!canSubmit}>
-          {CREATE_PULL_REQUEST_LABEL}
-        </Button>
-      </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label required htmlFor="pull-request-title">
+              Título
+            </Label>
+            <Input
+              id="pull-request-title"
+              value={title}
+              onChange={(event) => {
+                setTitleTouched(true);
+                setTitle(event.target.value);
+              }}
+              placeholder="Título del pull request"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="pull-request-description">Descripción</Label>
+            <RichTextarea
+              value={description}
+              placeholder="Describe el código que se va a revisar"
+              onChange={(html) => {
+                setDescriptionTouched(true);
+                setDescription(html);
+              }}
+            />
+          </div>
+
+          <PersonPickList
+            id="optional-reviewers"
+            label="Revisores opcionales"
+            placeholder="Buscar para añadir"
+            members={reviewerMembers}
+            selectedIds={optionalReviewers}
+            loading={people.loading}
+            onChange={setOptionalReviewers}
+          />
+          <PersonPickList
+            id="required-reviewers"
+            label="Revisores requeridos"
+            placeholder="Buscar para añadir"
+            members={reviewerMembers}
+            selectedIds={requiredReviewers}
+            loading={people.loading}
+            onChange={setRequiredReviewers}
+          />
+
+          <ProjectTagsField
+            project={project}
+            value={tags}
+            onChange={setTags}
+            label="Tags"
+          />
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={autoComplete}
+                onCheckedChange={(checked) => setAutoComplete(checked === true)}
+              />
+              Completar automáticamente al aprobar
+            </label>
+            <Button type="submit" disabled={!canSubmit}>
+              {CREATE_PULL_REQUEST_LABEL}
+            </Button>
+          </div>
+        </>
+      ) : null}
     </form>
   );
 }

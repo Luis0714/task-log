@@ -27,11 +27,7 @@ export function LinkableWorkItemSelectedRow({
           <span className="truncate" title={label}>
             {label}
           </span>
-          {item.state ? (
-            <span title={item.state} className="shrink-0">
-              <PbiStateDot state={item.state} className="size-1.5" />
-            </span>
-          ) : null}
+          {item.state ? <PbiStateDot state={item.state} className="size-2" /> : null}
         </p>
       </div>
       <Button

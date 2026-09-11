@@ -40,7 +40,7 @@ export function LinkableWorkItemsPopup({
                 <ComboboxItem
                   key={item.id}
                   value={item}
-                  className="overflow-hidden whitespace-nowrap"
+                  className="overflow-hidden"
                 >
                   <LinkableWorkItemRow item={item} />
                 </ComboboxItem>

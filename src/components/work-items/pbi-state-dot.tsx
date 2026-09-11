@@ -14,7 +14,8 @@ export function PbiStateDot({ state, className }: PbiStateDotProps) {
 
   return (
     <span
-      className={cn("size-2 shrink-0 rounded-full", className)}
+      title={state}
+      className={cn("inline-block size-2 shrink-0 rounded-full", className)}
       style={dotStyle}
       aria-hidden
     />
