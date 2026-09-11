@@ -10,24 +10,17 @@ import { CreateFab } from "@/components/shared/create-fab";
 import { SearchField } from "@/components/shared/search-field";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
-import type {
-  PullRequestFilterState,
-  PullRequestListItem,
-  PullRequestTab,
-} from "@/lib/pull-requests/types";
+import { PULL_REQUEST_SEARCH_PLACEHOLDER } from "@/lib/pull-requests/copy";
+import type { PullRequestFiltersFormModel } from "@/lib/pull-requests/filter-form-model";
+import type { PullRequestListItem, PullRequestTab } from "@/lib/pull-requests/types";
 
-export type PullRequestListMobileLayoutProps = {
+export type PullRequestListMobileLayoutProps = PullRequestFiltersFormModel & {
   title: string;
   description: string;
   items: readonly PullRequestListItem[];
   hasActiveFilters: boolean;
-  filters: PullRequestFilterState;
   filtersOpen: boolean;
   onFiltersOpenChange: (open: boolean) => void;
-  projects: readonly string[];
-  repositories: readonly string[];
-  authors: readonly string[];
-  onFiltersChange: (next: PullRequestFilterState) => void;
   onSearchChange: (value: string) => void;
   onTabChange: (tab: PullRequestTab) => void;
 };
@@ -38,12 +31,10 @@ export function PullRequestListMobileLayout({
   items,
   hasActiveFilters,
   filters,
+  people,
   filtersOpen,
   onFiltersOpenChange,
-  projects,
-  repositories,
-  authors,
-  onFiltersChange,
+  onChange,
   onSearchChange,
   onTabChange,
 }: PullRequestListMobileLayoutProps) {
@@ -56,7 +47,7 @@ export function PullRequestListMobileLayout({
           id="pull-request-search-mobile"
           value={filters.search}
           onValueChange={onSearchChange}
-          placeholder="Buscar por ID, rama o autor…"
+          placeholder={PULL_REQUEST_SEARCH_PLACEHOLDER}
           className="flex-1"
         />
         <Button
@@ -83,10 +74,8 @@ export function PullRequestListMobileLayout({
         open={filtersOpen}
         onOpenChange={onFiltersOpenChange}
         filters={filters}
-        projects={projects}
-        repositories={repositories}
-        authors={authors}
-        onChange={onFiltersChange}
+        people={people}
+        onChange={onChange}
       />
     </div>
   );

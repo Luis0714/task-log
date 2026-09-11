@@ -8,11 +8,17 @@ import { usePullRequestListMock } from "@/hooks/pull-requests/use-pull-request-l
 
 export type PullRequestListViewProps = {
   title: string;
+  project: string | null;
+  team: string | null;
 };
 
-export function PullRequestListView({ title }: PullRequestListViewProps) {
+export function PullRequestListView({
+  title,
+  project,
+  team,
+}: PullRequestListViewProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const list = usePullRequestListMock();
+  const list = usePullRequestListMock({ project, team });
   const description = `${list.activeCount} PRs activos`;
 
   return (
@@ -23,12 +29,10 @@ export function PullRequestListView({ title }: PullRequestListViewProps) {
         items={list.items}
         hasActiveFilters={list.hasActiveFilters}
         filters={list.filters}
+        people={list.people}
         filtersOpen={filtersOpen}
         onFiltersOpenChange={setFiltersOpen}
-        projects={list.projects}
-        repositories={list.repositories}
-        authors={list.authors}
-        onFiltersChange={list.setFilters}
+        onChange={list.setFilters}
         onSearchChange={list.setSearch}
         onTabChange={list.setTab}
       />
@@ -38,10 +42,8 @@ export function PullRequestListView({ title }: PullRequestListViewProps) {
         items={list.items}
         hasActiveFilters={list.hasActiveFilters}
         filters={list.filters}
-        projects={list.projects}
-        repositories={list.repositories}
-        authors={list.authors}
-        onFiltersChange={list.setFilters}
+        people={list.people}
+        onChange={list.setFilters}
         onSearchChange={list.setSearch}
         onTabChange={list.setTab}
       />

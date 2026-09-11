@@ -1,23 +1,16 @@
 "use client";
 
 import { PullRequestFiltersForm } from "@/components/pull-requests/pull-request-filters-form";
-import type { PullRequestFilterState } from "@/lib/pull-requests/types";
+import type { PullRequestFiltersFormModel } from "@/lib/pull-requests/filter-form-model";
 import { cn } from "@/lib/utils";
 
-export type PullRequestFiltersPanelProps = {
-  filters: PullRequestFilterState;
-  projects: readonly string[];
-  repositories: readonly string[];
-  authors: readonly string[];
-  onChange: (next: PullRequestFilterState) => void;
+export type PullRequestFiltersPanelProps = PullRequestFiltersFormModel & {
   className?: string;
 };
 
 export function PullRequestFiltersPanel({
   filters,
-  projects,
-  repositories,
-  authors,
+  people,
   onChange,
   className,
 }: PullRequestFiltersPanelProps) {
@@ -29,13 +22,7 @@ export function PullRequestFiltersPanel({
       )}
     >
       <p className="font-heading mb-4 text-sm font-medium">Filtros</p>
-      <PullRequestFiltersForm
-        filters={filters}
-        projects={projects}
-        repositories={repositories}
-        authors={authors}
-        onChange={onChange}
-      />
+      <PullRequestFiltersForm filters={filters} people={people} onChange={onChange} />
     </aside>
   );
 }

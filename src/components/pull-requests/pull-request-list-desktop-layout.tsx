@@ -9,18 +9,15 @@ import { PullRequestQuickTabs } from "@/components/pull-requests/pull-request-qu
 import { SearchField } from "@/components/shared/search-field";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
-import type { PullRequestFilterState, PullRequestListItem, PullRequestTab } from "@/lib/pull-requests/types";
+import { PULL_REQUEST_SEARCH_PLACEHOLDER } from "@/lib/pull-requests/copy";
+import type { PullRequestFiltersFormModel } from "@/lib/pull-requests/filter-form-model";
+import type { PullRequestListItem, PullRequestTab } from "@/lib/pull-requests/types";
 
-export type PullRequestListDesktopLayoutProps = {
+export type PullRequestListDesktopLayoutProps = PullRequestFiltersFormModel & {
   title: string;
   description: string;
   items: readonly PullRequestListItem[];
   hasActiveFilters: boolean;
-  filters: PullRequestFilterState;
-  projects: readonly string[];
-  repositories: readonly string[];
-  authors: readonly string[];
-  onFiltersChange: (next: PullRequestFilterState) => void;
   onSearchChange: (value: string) => void;
   onTabChange: (tab: PullRequestTab) => void;
 };
@@ -31,10 +28,8 @@ export function PullRequestListDesktopLayout({
   items,
   hasActiveFilters,
   filters,
-  projects,
-  repositories,
-  authors,
-  onFiltersChange,
+  people,
+  onChange,
   onSearchChange,
   onTabChange,
 }: PullRequestListDesktopLayoutProps) {
@@ -52,20 +47,14 @@ export function PullRequestListDesktopLayout({
       />
 
       <div className="flex min-h-0 flex-1 gap-4">
-        <PullRequestFiltersPanel
-          filters={filters}
-          projects={projects}
-          repositories={repositories}
-          authors={authors}
-          onChange={onFiltersChange}
-        />
+        <PullRequestFiltersPanel filters={filters} people={people} onChange={onChange} />
 
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <SearchField
             id="pull-request-search-desktop"
             value={filters.search}
             onValueChange={onSearchChange}
-            placeholder="Buscar por ID, rama o autor…"
+            placeholder={PULL_REQUEST_SEARCH_PLACEHOLDER}
           />
           <PullRequestQuickTabs value={filters.tab} onValueChange={onTabChange} />
           {items.length === 0 ? (

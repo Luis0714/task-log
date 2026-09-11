@@ -1,4 +1,4 @@
-export const PULL_REQUEST_STATUSES = [
+export const PULL_REQUEST_VOTE_STATUSES = [
   "needs_review",
   "approved",
   "changes_requested",
@@ -6,37 +6,41 @@ export const PULL_REQUEST_STATUSES = [
   "draft",
 ] as const;
 
-export type PullRequestStatus = (typeof PULL_REQUEST_STATUSES)[number];
+export type PullRequestVoteStatus = (typeof PULL_REQUEST_VOTE_STATUSES)[number];
 
-export const PULL_REQUEST_TABS = ["all", "mine", "to_review", "pending"] as const;
-
-export type PullRequestTab = (typeof PULL_REQUEST_TABS)[number];
-
-export const PULL_REQUEST_FILTER_STATUSES = [
-  "all",
+export const PULL_REQUEST_LIFECYCLE_STATUSES = [
   "active",
-  "approved",
-  "changes_requested",
-  "draft",
+  "completed",
+  "abandoned",
 ] as const;
 
-export type PullRequestFilterStatus =
-  (typeof PULL_REQUEST_FILTER_STATUSES)[number];
+export type PullRequestLifecycleStatus =
+  (typeof PULL_REQUEST_LIFECYCLE_STATUSES)[number];
+
+export const PULL_REQUEST_TABS = [
+  "mine",
+  "active",
+  "completed",
+  "abandoned",
+] as const;
+
+export type PullRequestTab = (typeof PULL_REQUEST_TABS)[number];
 
 export type PullRequestListItem = {
   id: number;
   title: string;
-  status: PullRequestStatus;
+  status: PullRequestVoteStatus;
+  lifecycleStatus: PullRequestLifecycleStatus;
   approvalSummary: string | null;
   sourceBranch: string;
   targetBranch: string;
   author: string;
+  reviewers: readonly string[];
   commentCount: number;
   changedFileCount: number;
   updatedAt: string;
   isMine: boolean;
   needsMyReview: boolean;
-  isPending: boolean;
   repository: string;
   project: string;
 };
@@ -44,18 +48,9 @@ export type PullRequestListItem = {
 export type PullRequestFilterState = {
   search: string;
   tab: PullRequestTab;
-  projects: string[];
-  repositories: string[];
-  prStatus: PullRequestFilterStatus;
-  author: string;
-  reviewer: string;
+  createdBy: string;
+  assignedTo: string;
 };
 
 export const ANY_FILTER_VALUE = "anyone";
 export const ME_FILTER_VALUE = "me";
-
-export function isPullRequestFilterStatus(
-  value: string,
-): value is PullRequestFilterStatus {
-  return (PULL_REQUEST_FILTER_STATUSES as readonly string[]).includes(value);
-}

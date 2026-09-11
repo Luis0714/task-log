@@ -3,30 +3,37 @@
 import { useMemo, useState } from "react";
 
 import { filterPullRequests } from "@/lib/pull-requests/filter-pull-requests";
-import { hasActivePullRequestFilters, uniqueAuthors } from "@/lib/pull-requests/filter-helpers";
-import {
-  MOCK_FILTER_PROJECTS,
-  MOCK_FILTER_REPOSITORIES,
-  MOCK_PULL_REQUESTS,
-} from "@/lib/pull-requests/mock-pull-requests";
+import { hasActivePullRequestFilters } from "@/lib/pull-requests/filter-helpers";
+import { MOCK_PULL_REQUESTS } from "@/lib/pull-requests/mock-pull-requests";
 import {
   ANY_FILTER_VALUE,
   type PullRequestFilterState,
   type PullRequestTab,
 } from "@/lib/pull-requests/types";
+import { useTeamMembers } from "@/hooks/use-team-members";
 
 const INITIAL_FILTERS: PullRequestFilterState = {
   search: "",
-  tab: "all",
-  projects: [],
-  repositories: [],
-  prStatus: "all",
-  author: ANY_FILTER_VALUE,
-  reviewer: ANY_FILTER_VALUE,
+  tab: "active",
+  createdBy: ANY_FILTER_VALUE,
+  assignedTo: ANY_FILTER_VALUE,
 };
 
-export function usePullRequestListMock() {
+export type UsePullRequestListMockParams = {
+  project: string | null;
+  team: string | null;
+};
+
+export function usePullRequestListMock({
+  project,
+  team,
+}: UsePullRequestListMockParams) {
   const [filters, setFilters] = useState<PullRequestFilterState>(INITIAL_FILTERS);
+  const peopleQuery = useTeamMembers({
+    project,
+    team,
+    enabled: Boolean(project && team),
+  });
 
   const items = useMemo(
     () => filterPullRequests(MOCK_PULL_REQUESTS, filters),
@@ -34,7 +41,7 @@ export function usePullRequestListMock() {
   );
 
   const activeCount = MOCK_PULL_REQUESTS.filter(
-    (item) => item.status !== "draft",
+    (item) => item.lifecycleStatus === "active",
   ).length;
 
   return {
@@ -42,9 +49,11 @@ export function usePullRequestListMock() {
     items,
     activeCount,
     hasActiveFilters: hasActivePullRequestFilters(filters),
-    projects: MOCK_FILTER_PROJECTS,
-    repositories: MOCK_FILTER_REPOSITORIES,
-    authors: uniqueAuthors(MOCK_PULL_REQUESTS),
+    people: {
+      members: peopleQuery.members,
+      membersLoading: peopleQuery.loading,
+      membersError: peopleQuery.error,
+    },
     setSearch: (search: string) => setFilters((current) => ({ ...current, search })),
     setTab: (tab: PullRequestTab) => setFilters((current) => ({ ...current, tab })),
     setFilters,

@@ -2,36 +2,23 @@
 
 import { FiltersBottomSheet } from "@/components/filters/filters-bottom-sheet";
 import { PullRequestFiltersForm } from "@/components/pull-requests/pull-request-filters-form";
-import type { PullRequestFilterState } from "@/lib/pull-requests/types";
+import type { PullRequestFiltersFormModel } from "@/lib/pull-requests/filter-form-model";
 
-export type PullRequestFiltersSheetProps = {
+export type PullRequestFiltersSheetProps = PullRequestFiltersFormModel & {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  filters: PullRequestFilterState;
-  projects: readonly string[];
-  repositories: readonly string[];
-  authors: readonly string[];
-  onChange: (next: PullRequestFilterState) => void;
 };
 
 export function PullRequestFiltersSheet({
   open,
   onOpenChange,
   filters,
-  projects,
-  repositories,
-  authors,
+  people,
   onChange,
 }: PullRequestFiltersSheetProps) {
   return (
-    <FiltersBottomSheet open={open} onOpenChange={onOpenChange} title="Filtros rápidos">
-      <PullRequestFiltersForm
-        filters={filters}
-        projects={projects}
-        repositories={repositories}
-        authors={authors}
-        onChange={onChange}
-      />
+    <FiltersBottomSheet open={open} onOpenChange={onOpenChange} title="Filtros">
+      <PullRequestFiltersForm filters={filters} people={people} onChange={onChange} />
     </FiltersBottomSheet>
   );
 }

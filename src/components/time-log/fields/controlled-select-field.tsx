@@ -26,17 +26,14 @@ export type ControlledSelectFieldProps = {
   placeholder: string;
   options: FormSelectOption[];
   disabled?: boolean;
-  /** Muestra un spinner inline junto al valor mientras se cargan datos dependientes. */
   loading?: boolean;
   error?: string | null;
   triggerClassName?: string;
   displayValue?: ReactNode;
-  /** Texto completo en hover del trigger (p. ej. nombres largos de equipo). */
   triggerTitle?: string;
-  /** Opciones multilínea en el listado (p. ej. equipos con nombres largos). */
   itemTextWrap?: boolean;
   contentClassName?: string;
-  /** Mensaje centrado cuando `options` está vacío y el control no está en loading. */
+  alignItemWithTrigger?: boolean;
   emptyMessage?: ReactNode;
   onValueChange: (value: string) => void;
 };
@@ -56,6 +53,7 @@ export function ControlledSelectField({
   itemTextWrap = false,
   contentClassName,
   emptyMessage,
+  alignItemWithTrigger = false,
   onValueChange,
 }: ControlledSelectFieldProps) {
   return (
@@ -67,7 +65,7 @@ export function ControlledSelectField({
           if (!next) return;
           onValueChange(next);
         }}
-        disabled={disabled}
+        disabled={disabled || loading}
       >
         <SelectTrigger className={cn("w-full min-w-0", triggerClassName)} title={triggerTitle}>
           <SelectValue placeholder={placeholder}>
@@ -80,7 +78,10 @@ export function ControlledSelectField({
             />
           ) : null}
         </SelectTrigger>
-        <SelectContent className={contentClassName}>
+        <SelectContent
+          alignItemWithTrigger={alignItemWithTrigger}
+          className={contentClassName}
+        >
           {options.length > 0 ? (
             options.map((option) => (
               <SelectItem

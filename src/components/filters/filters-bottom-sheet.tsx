@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { SlidersHorizontal } from "lucide-react";
 
+import { PopupPortalContainerProvider } from "@/components/ui/popup-portal-container-provider";
 import {
   Sheet,
   SheetContent,
@@ -23,18 +24,23 @@ export function FiltersBottomSheet({
   title = "Filtros rápidos",
   children,
 }: FiltersBottomSheetProps) {
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
+        ref={setPortalContainer}
         side="bottom"
-        className="max-h-[85dvh] gap-0 rounded-t-2xl p-0"
+        className="max-h-[85dvh] gap-0 overflow-visible rounded-t-2xl p-0"
       >
-        <div className="bg-muted-foreground/30 mx-auto mt-2 h-1 w-10 rounded-full" aria-hidden />
-        <SheetHeader className="border-border flex-row items-center gap-2 border-b px-4 py-3">
-          <SlidersHorizontal className="size-4" aria-hidden />
-          <SheetTitle>{title}</SheetTitle>
-        </SheetHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
+        <PopupPortalContainerProvider container={portalContainer}>
+          <div className="bg-muted-foreground/30 mx-auto mt-2 h-1 w-10 rounded-full" aria-hidden />
+          <SheetHeader className="border-border flex-row items-center gap-2 border-b px-4 py-3">
+            <SlidersHorizontal className="size-4" aria-hidden />
+            <SheetTitle>{title}</SheetTitle>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
+        </PopupPortalContainerProvider>
       </SheetContent>
     </Sheet>
   );

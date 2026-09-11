@@ -9,38 +9,15 @@ function matchesSearch(item: PullRequestListItem, search: string): boolean {
   const query = search.trim().toLowerCase();
   if (!query) return true;
 
-  const haystack = [
-    String(item.id),
-    item.title,
-    item.author,
-    item.sourceBranch,
-    item.targetBranch,
-    item.repository,
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  return haystack.includes(query);
+  return `${item.id} ${item.title}`.toLowerCase().includes(query);
 }
 
-function matchesTab(item: PullRequestListItem, tab: PullRequestFilterState["tab"]): boolean {
-  if (tab === "mine") return item.isMine;
-  if (tab === "to_review") return item.needsMyReview;
-  if (tab === "pending") return item.isPending;
-  return true;
-}
-
-function matchesPrStatus(
+function matchesTab(
   item: PullRequestListItem,
-  prStatus: PullRequestFilterState["prStatus"],
+  tab: PullRequestFilterState["tab"],
 ): boolean {
-  if (prStatus === "all") return true;
-  if (prStatus === "active") {
-    return item.status !== "draft" && item.status !== "approved";
-  }
-  if (prStatus === "approved") return item.status === "approved";
-  if (prStatus === "changes_requested") return item.status === "changes_requested";
-  return item.status === "draft";
+  if (tab === "mine") return item.isMine || item.needsMyReview;
+  return item.lifecycleStatus === tab;
 }
 
 export function filterPullRequests(
@@ -50,20 +27,16 @@ export function filterPullRequests(
   return items.filter((item) => {
     if (!matchesSearch(item, filters.search)) return false;
     if (!matchesTab(item, filters.tab)) return false;
-    if (filters.projects.length > 0 && !filters.projects.includes(item.project)) {
+    if (filters.createdBy !== ANY_FILTER_VALUE && item.author !== filters.createdBy) {
       return false;
     }
+    if (filters.assignedTo === ME_FILTER_VALUE) return item.needsMyReview;
     if (
-      filters.repositories.length > 0 &&
-      !filters.repositories.includes(item.repository)
+      filters.assignedTo !== ANY_FILTER_VALUE &&
+      !item.reviewers.includes(filters.assignedTo)
     ) {
       return false;
     }
-    if (!matchesPrStatus(item, filters.prStatus)) return false;
-    if (filters.author !== ANY_FILTER_VALUE && item.author !== filters.author) {
-      return false;
-    }
-    if (filters.reviewer === ME_FILTER_VALUE && !item.needsMyReview) return false;
     return true;
   });
 }

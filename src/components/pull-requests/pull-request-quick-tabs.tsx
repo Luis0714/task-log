@@ -4,10 +4,10 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import type { PullRequestTab } from "@/lib/pull-requests/types";
 
 const TAB_ITEMS = [
-  { value: "all", label: "Todos" },
-  { value: "mine", label: "Mis PRs" },
-  { value: "to_review", label: "Por revisar" },
-  { value: "pending", label: "Pendientes" },
+  { value: "mine", label: "Míos" },
+  { value: "active", label: "Activos" },
+  { value: "completed", label: "Completados" },
+  { value: "abandoned", label: "Abandonados" },
 ] as const satisfies ReadonlyArray<{ value: PullRequestTab; label: string }>;
 
 export type PullRequestQuickTabsProps = {
@@ -24,7 +24,7 @@ export function PullRequestQuickTabs({
       items={TAB_ITEMS}
       value={value}
       onValueChange={onValueChange}
-      ariaLabel="Filtro rápido de pull requests"
+      ariaLabel="Estado del pull request"
       size="sm"
       fullWidth
       className="overflow-x-auto"

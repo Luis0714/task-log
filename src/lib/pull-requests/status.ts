@@ -1,4 +1,4 @@
-import type { PullRequestStatus } from "@/lib/pull-requests/types";
+import type { PullRequestVoteStatus } from "@/lib/pull-requests/types";
 
 export type PullRequestStatusTone = {
   label: string;
@@ -7,7 +7,7 @@ export type PullRequestStatusTone = {
 };
 
 export const PULL_REQUEST_STATUS_TONES: Record<
-  PullRequestStatus,
+  PullRequestVoteStatus,
   PullRequestStatusTone
 > = {
   needs_review: {
