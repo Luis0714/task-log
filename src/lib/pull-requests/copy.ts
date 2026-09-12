@@ -17,3 +17,10 @@ export const DESCRIPTION_MAX_LENGTH = 4000;
 export const DEFAULT_TARGET_BRANCH = "main";
 export const PULL_REQUEST_LIST_ERROR =
   "No se pudieron cargar los pull requests de Azure DevOps.";
+export const PULL_REQUEST_DETAIL_ERROR =
+  "No se pudo cargar el detalle del pull request en Azure DevOps.";
+export const PULL_REQUEST_BACK_TO_LIST_LABEL = "Volver al listado";
+export const COPY_PR_HELP_MESSAGE_LABEL = "Copiar mensaje para Teams";
+export const COPY_PR_HELP_MESSAGE_SUCCESS =
+  "Mensaje copiado. Ya lo puedes pegar en Teams.";
+export const COPY_PR_HELP_MESSAGE_ERROR = "No se pudo copiar el mensaje.";

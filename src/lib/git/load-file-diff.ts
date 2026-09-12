@@ -7,6 +7,7 @@ import {
   resolveGitRepositoryId,
 } from "@/lib/azure-devops/git";
 import type { GitFileChange, GitFileChangeKind } from "@/lib/git/changeset";
+import { isGitCommitId } from "@/lib/git/is-git-commit-id";
 import { buildLineDiffHunks, countDiffStats } from "@/lib/git/line-diff";
 
 const MAX_FILE_CHARS = 200_000;
@@ -35,9 +36,11 @@ export async function loadFileDiff(input: LoadFileDiffInput): Promise<GitFileCha
   }
 
   const repositoryId = await resolveGitRepositoryId(auth, input.repository);
+  const sourceType = isGitCommitId(source) ? "commit" : "branch";
+  const targetType = isGitCommitId(target) ? "commit" : "branch";
   const [after, before] = await Promise.all([
-    getGitFileContent(auth, repositoryId, path, source),
-    getGitFileContent(auth, repositoryId, path, target),
+    getGitFileContent(auth, repositoryId, path, source, sourceType),
+    getGitFileContent(auth, repositoryId, path, target, targetType),
   ]);
 
   if (before == null && after == null) {

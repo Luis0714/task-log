@@ -71,6 +71,12 @@ export const PAGE_SEO = {
       "Crea un pull request eligiendo repositorio, rama origen y rama destino.",
     path: "/pull-requests/new",
   },
+  pullRequestDetail: {
+    title: "Detalle del Pull Request",
+    description:
+      "Revisa estado, archivos, conflictos y votos de un pull request de Azure DevOps.",
+    path: "/pull-requests",
+  },
   releases: {
     title: "Releases",
     description:
