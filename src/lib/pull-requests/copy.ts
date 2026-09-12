@@ -19,6 +19,16 @@ export const PULL_REQUEST_LIST_ERROR =
   "No se pudieron cargar los pull requests de Azure DevOps.";
 export const PULL_REQUEST_DETAIL_ERROR =
   "No se pudo cargar el detalle del pull request en Azure DevOps.";
+export const PULL_REQUEST_THREADS_ERROR =
+  "No se pudieron cargar los comentarios del pull request.";
+export const PULL_REQUEST_COMMENT_PLACEHOLDER = "Escribe un comentario…";
+export const PULL_REQUEST_REPLY_PLACEHOLDER = "Responder…";
+export const PULL_REQUEST_COMMENT_SUBMIT = "Comentar";
+export const PULL_REQUEST_REPLY_SUBMIT = "Responder";
+export const PULL_REQUEST_COMMENT_SUCCESS = "Comentario publicado";
+export const PULL_REQUEST_REPLY_SUCCESS = "Respuesta publicada";
+export const PULL_REQUEST_THREAD_STATUS_SUCCESS =
+  "Estado del comentario actualizado";
 export const PULL_REQUEST_BACK_TO_LIST_LABEL = "Volver al listado";
 export const COPY_PR_HELP_MESSAGE_LABEL = "Copiar mensaje para Teams";
 export const COPY_PR_HELP_MESSAGE_SUCCESS =

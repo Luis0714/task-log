@@ -7,6 +7,7 @@ import {
 import { oauthRedirect } from "@/lib/auth/oauth-http";
 import { requirePersistenceForOAuth } from "@/lib/auth/require-user-persistence";
 import { getTaskPilotSession } from "@/lib/auth/session";
+import { toAssignableLoginRole } from "@/lib/auth/super-admin-role";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,9 @@ export async function GET(request: Request) {
     return redirectWithAuthError(detail);
   }
 
-  const selectedRole = new URL(request.url).searchParams.get("role") ?? undefined;
+  const selectedRole = toAssignableLoginRole(
+    new URL(request.url).searchParams.get("role"),
+  );
   const state = generateOAuthState();
   const { verifier, challenge } = generatePkcePair();
 

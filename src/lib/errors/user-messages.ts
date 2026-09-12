@@ -11,6 +11,10 @@ export const USER_MESSAGES = {
   accountDisabled:
     "Tu cuenta está deshabilitada. Pide al administrador que la habilite para poder iniciar sesión.",
   invalidCredentials: "Usuario o contraseña incorrectos.",
+  superAdminConnectionMissing:
+    "No hay una conexión guardada. Inicia sesión una vez con Microsoft para poder entrar como Super Admin.",
+  superAdminTokenExpired:
+    "Tu conexión con Microsoft expiró. Elige otro rol e inicia sesión una vez con Microsoft para renovarla.",
   invalidForm: "Revisa los datos del formulario e inténtalo de nuevo.",
   invalidJsonBody: "No pudimos leer los datos enviados. Inténtalo de nuevo.",
   invalidWorkItemId: "El elemento de trabajo no es válido.",

@@ -2,6 +2,7 @@ import "server-only";
 
 import { eq } from "drizzle-orm";
 
+import { toAssignableLoginRole } from "@/lib/auth/super-admin-role";
 import {
   findUserAdoConnectionRow,
   insertAdoConnectionRecord,
@@ -46,11 +47,12 @@ export const drizzleEntraUserRepository: EntraUserRepository = {
     // Resolve role by name if provided
     let newRoleId: string | null = null;
     let newRoleName: string | null = null;
-    if (input.selectedRole) {
+    const selectedRole = toAssignableLoginRole(input.selectedRole);
+    if (selectedRole) {
       const roleRow = await getDb()
         .select({ id: roles.id, name: roles.name })
         .from(roles)
-        .where(eq(roles.name, input.selectedRole))
+        .where(eq(roles.name, selectedRole))
         .limit(1);
       if (roleRow[0]) {
         newRoleId = roleRow[0].id;

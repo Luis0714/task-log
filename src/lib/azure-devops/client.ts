@@ -16,6 +16,10 @@ export function adoProjectBase(auth: AdoCallerAuth): string {
   return `https://dev.azure.com/${encodeURIComponent(auth.organization)}/${encodeURIComponent(auth.project)}`;
 }
 
+export function adoVsrmProjectBase(auth: AdoCallerAuth): string {
+  return `https://vsrm.dev.azure.com/${encodeURIComponent(auth.organization)}/${encodeURIComponent(auth.project)}`;
+}
+
 export async function adoFetch(
   auth: AdoCallerAuth,
   url: string,

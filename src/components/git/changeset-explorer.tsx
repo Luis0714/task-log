@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { ChangedFileTree } from "@/components/git/changed-file-tree";
 import { ChangesetSummary } from "@/components/git/changeset-summary";
 import { FileDiffPanel } from "@/components/git/file-diff-panel";
 import { useFileDiff } from "@/hooks/git/use-file-diff";
-import type { GitFileChange } from "@/lib/git/changeset";
+import type { GitDiffLine, GitFileChange } from "@/lib/git/changeset";
 import { buildFileTree } from "@/lib/git/file-tree";
 import { sumDiffStats } from "@/lib/git/sum-diff-stats";
 
@@ -20,9 +20,18 @@ export type ChangesetExplorerQuery = {
 export type ChangesetExplorerProps = {
   files: readonly GitFileChange[];
   query: ChangesetExplorerQuery;
+  fileExtra?: (filePath: string) => ReactNode;
+  onAddComment?: (filePath: string, line: GitDiffLine) => void;
+  renderAfterLine?: (filePath: string, line: GitDiffLine) => ReactNode;
 };
 
-export function ChangesetExplorer({ files, query }: ChangesetExplorerProps) {
+export function ChangesetExplorer({
+  files,
+  query,
+  fileExtra,
+  onAddComment,
+  renderAfterLine,
+}: ChangesetExplorerProps) {
   const [selectedPath, setSelectedPath] = useState<string | null>(
     () => files[0]?.path ?? null,
   );
@@ -74,6 +83,17 @@ export function ChangesetExplorer({ files, query }: ChangesetExplorerProps) {
             file={diff.file ?? selected}
             loading={diff.loading}
             error={diff.error}
+            fileExtra={selected ? fileExtra?.(selected.path) : null}
+            onAddComment={
+              selected && onAddComment
+                ? (line) => onAddComment(selected.path, line)
+                : undefined
+            }
+            renderAfterLine={
+              selected && renderAfterLine
+                ? (line) => renderAfterLine(selected.path, line)
+                : undefined
+            }
           />
         </div>
       </div>

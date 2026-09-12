@@ -1,8 +1,12 @@
+import { MessageSquarePlus } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import type { GitDiffLine } from "@/lib/git/changeset";
 import { cn } from "@/lib/utils";
 
 export type DiffLineProps = {
   line: GitDiffLine;
+  onAddComment?: () => void;
 };
 
 const LINE_CLASS: Record<GitDiffLine["type"], string> = {
@@ -17,14 +21,28 @@ const PREFIX: Record<GitDiffLine["type"], string> = {
   deletion: "−",
 };
 
-export function DiffLine({ line }: DiffLineProps) {
+export function DiffLine({ line, onAddComment }: DiffLineProps) {
+  const canComment = Boolean(onAddComment && (line.oldNumber || line.newNumber));
+
   return (
     <div
       className={cn(
-        "grid grid-cols-[2rem_2rem_minmax(0,1fr)] font-mono text-[11px] leading-5 sm:text-xs",
+        "group/diff-line relative grid grid-cols-[2rem_2rem_minmax(0,1fr)] font-mono text-[11px] leading-5 sm:text-xs",
         LINE_CLASS[line.type],
       )}
     >
+      {canComment ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          className="absolute top-0.5 right-1 z-10 bg-background/90 opacity-0 group-hover/diff-line:opacity-100 focus-visible:opacity-100"
+          aria-label="Comentar esta línea"
+          onClick={onAddComment}
+        >
+          <MessageSquarePlus />
+        </Button>
+      ) : null}
       <span className="select-none px-1 text-right text-muted-foreground tabular-nums">
         {line.oldNumber ?? ""}
       </span>

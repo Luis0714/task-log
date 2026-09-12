@@ -23,12 +23,38 @@ function mapStatusState(state: string | undefined): PullRequestCheckState {
   return "pending";
 }
 
+function combinedLabel(...parts: Array<string | undefined>): string {
+  return parts
+    .map((part) => part?.trim() ?? "")
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function isCoverageCheck(label: string): boolean {
+  return label.includes("coverage");
+}
+
+function isBuildCheck(label: string): boolean {
+  if (!label || isCoverageCheck(label)) return false;
+  return (
+    label.includes("build") ||
+    label.includes("pipeline") ||
+    label.includes("continuous-integration") ||
+    label.includes("continuous integration")
+  );
+}
+
 function statusLabel(status: AdoPullRequestStatus): string {
-  const name = status.context?.name?.trim() || status.description?.trim() || "Comprobación";
-  if (status.description?.trim() && status.description.trim() !== name) {
-    return `${name}: ${status.description.trim()}`;
-  }
-  return name;
+  return status.context?.name?.trim() || status.description?.trim() || "Build";
+}
+
+function policyLabel(policy: AdoPolicyEvaluation): string {
+  return (
+    policy.configuration?.displayName?.trim() ||
+    policy.configuration?.type?.displayName?.trim() ||
+    "Build"
+  );
 }
 
 export function buildDetailChecks(input: {
@@ -49,10 +75,12 @@ export function buildDetailChecks(input: {
   };
 
   for (const policy of input.policies) {
-    const label =
-      policy.configuration?.displayName?.trim() ||
-      policy.configuration?.type?.displayName?.trim();
-    if (!label) continue;
+    const label = policyLabel(policy);
+    const haystack = combinedLabel(
+      label,
+      policy.configuration?.type?.displayName,
+    );
+    if (!isBuildCheck(haystack)) continue;
     push({
       id: policy.evaluationId || `policy-${label}`,
       label,
@@ -61,20 +89,27 @@ export function buildDetailChecks(input: {
   }
 
   for (const status of input.statuses) {
+    const label = statusLabel(status);
+    const haystack = combinedLabel(
+      label,
+      status.context?.name,
+      status.context?.genre,
+      status.description,
+    );
+    if (!isBuildCheck(haystack)) continue;
     push({
-      id: status.id != null ? `status-${status.id}` : `status-${statusLabel(status)}`,
-      label: statusLabel(status),
+      id: status.id != null ? `status-${status.id}` : `status-${label}`,
+      label,
       state: mapStatusState(status.state),
     });
   }
 
-  for (const reviewer of input.reviewers.filter((item) => item.isRequired)) {
-    const approved = isApprovedVote(reviewer.vote);
+  const required = input.reviewers.filter((reviewer) => reviewer.isRequired);
+  if (required.length > 0) {
+    const approved = required.every((reviewer) => isApprovedVote(reviewer.vote));
     push({
-      id: `reviewer-${reviewer.id}`,
-      label: approved
-        ? `${reviewer.displayName} aprobó`
-        : `${reviewer.displayName} debe aprobar`,
+      id: "required-review",
+      label: approved ? "Revisión requerida aprobada" : "Revisión requerida",
       state: approved ? "succeeded" : "pending",
     });
   }
@@ -85,13 +120,7 @@ export function buildDetailChecks(input: {
       label: "Hay conflictos de fusión",
       state: "failed",
     });
-  } else if (input.lifecycleStatus === "completed") {
-    push({
-      id: "merge-conflicts",
-      label: "Sin conflictos de fusión",
-      state: "succeeded",
-    });
-  } else if (input.lifecycleStatus === "active") {
+  } else if (input.lifecycleStatus !== "abandoned") {
     push({
       id: "merge-conflicts",
       label: "Sin conflictos de fusión",

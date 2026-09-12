@@ -40,12 +40,12 @@ export function PullRequestCard({ item, className }: PullRequestCardProps) {
         href={href}
         aria-label={`Abrir pull request #${item.id}: ${item.title}`}
         className={cn(
-          "absolute inset-0 z-0 rounded-xl",
+          "absolute inset-0 z-10 rounded-xl",
           "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
         )}
       />
 
-      <div className="relative flex items-start justify-between gap-2">
+      <div className="pointer-events-none relative z-20 flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
             <PullRequestId id={item.id} />
@@ -58,6 +58,7 @@ export function PullRequestCard({ item, className }: PullRequestCardProps) {
             pullRequestId={item.id}
             project={item.project}
             repository={item.repository}
+            className="pointer-events-auto"
           />
           <div className="flex flex-col items-end gap-1">
             {item.hasConflicts ? <PullRequestConflictBadge /> : null}
@@ -73,10 +74,10 @@ export function PullRequestCard({ item, className }: PullRequestCardProps) {
       <GitBranchPair
         source={item.sourceBranch}
         target={item.targetBranch}
-        className="relative mt-2"
+        className="pointer-events-none relative z-20 mt-2"
       />
 
-      <div className="relative mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+      <div className="pointer-events-none relative z-20 mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <PersonLabel name={item.author} className="min-w-0 flex-1 text-muted-foreground" />
         {item.commentCount > 0 ? (
           <IconCount

@@ -19,8 +19,13 @@ export type UpdateUserInput = {
   isActive?: boolean;
 };
 
+export type SuperAdminUser = {
+  userId: string;
+};
+
 export interface UserRepository {
   listAllWithRoles(): Promise<UserWithRole[]>;
   listRoles(): Promise<{ id: string; name: string; displayName: string }[]>;
   updateUser(userId: string, data: UpdateUserInput): Promise<void>;
+  findActiveSuperAdmin(email?: string): Promise<SuperAdminUser | null>;
 }

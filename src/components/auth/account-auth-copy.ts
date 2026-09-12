@@ -7,8 +7,7 @@ const LOCAL_ACCOUNT_FIELDS = {
 export const ACCOUNT_AUTH_COPY = {
   login: {
     title: "Iniciar sesión",
-    description:
-      "Entra con el correo y la contraseña de TaskPilot que elegiste al registrarte.",
+    description: "Elige tu rol para continuar. El equipo entra con Microsoft.",
     ...LOCAL_ACCOUNT_FIELDS,
     passwordPlaceholder: "Tu contraseña",
     submit: "Entrar",
@@ -20,6 +19,13 @@ export const ACCOUNT_AUTH_COPY = {
     microsoftHint:
       "Si aún no tienes cuenta, la crearemos al continuar con Microsoft.",
     microsoftAdminHint: "Si algo falla, avisa a tu administrador de TI.",
+  },
+  superAdmin: {
+    passwordLabel: "Contraseña",
+    passwordPlaceholder: "Tu contraseña de Super Admin",
+    submit: "Entrar",
+    submitting: "Entrando…",
+    hint: "Entras con tu conexión de Azure DevOps ya guardada. No pasa por Microsoft.",
   },
   register: {
     title: "Crear cuenta",

@@ -363,13 +363,31 @@
   }
 }
 
+@keyframes release-approve-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(245 158 11 / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgb(245 158 11 / 0);
+  }
+}
+
 @layer utilities {
   .animate-feature-badge-glow {
     animation: feature-badge-glow 1.8s ease-out infinite;
   }
 
+  .animate-release-approve-pulse {
+    animation: release-approve-pulse 1.6s ease-out infinite;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .animate-feature-badge-glow {
+      animation: none;
+    }
+
+    .animate-release-approve-pulse {
       animation: none;
     }
   }
