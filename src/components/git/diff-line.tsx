@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 export type DiffLineProps = Readonly<{
   line: GitDiffLine;
+  isActiveChange?: boolean;
   onAddComment?: () => void;
 }>;
 
@@ -21,7 +22,7 @@ const PREFIX: Record<GitDiffLine["type"], string> = {
   deletion: "−",
 };
 
-export function DiffLine({ line, onAddComment }: DiffLineProps) {
+export function DiffLine({ line, isActiveChange = false, onAddComment }: DiffLineProps) {
   const canComment = Boolean(onAddComment && (line.oldNumber || line.newNumber));
 
   return (
@@ -29,6 +30,7 @@ export function DiffLine({ line, onAddComment }: DiffLineProps) {
       className={cn(
         "group/diff-line relative grid grid-cols-[2rem_2rem_minmax(0,1fr)] font-mono text-[11px] leading-5 sm:text-xs",
         LINE_CLASS[line.type],
+        isActiveChange && "bg-primary/10 ring-1 ring-inset ring-primary/40",
       )}
     >
       {canComment ? (
