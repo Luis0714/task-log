@@ -7,6 +7,7 @@ import { buildRootMetadata } from "@/lib/seo/metadata";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import "sileo/styles.css";
+import "./sileo-overrides.css";
 
 const satoshi = localFont({
   variable: "--font-satoshi",

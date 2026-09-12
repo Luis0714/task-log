@@ -17,9 +17,9 @@ export function useSaveDefaultRepository() {
       setPending(true);
       try {
         await saveDefaultRepositoryRequest(repository);
-        appToast.success(
-          "Repositorio predeterminado guardado. Se usará al crear pull requests.",
-        );
+        appToast.success("Repositorio predeterminado guardado", {
+          description: "Se usará al crear pull requests.",
+        });
         router.refresh();
       } catch (cause) {
         appToast.fromError(cause, "No se pudo guardar el repositorio predeterminado.");

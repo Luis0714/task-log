@@ -1,0 +1,35 @@
+/* Sileo mide el título en nowrap y ensancha la pastilla.
+ * Un mensaje largo + posición top-right recorta el inicio fuera del viewport. */
+[data-sileo-toast] {
+  max-width: min(var(--sileo-width), calc(100vw - 2rem));
+}
+
+[data-sileo-header] {
+  max-width: min(var(--_pw, 100%), 100%);
+}
+
+[data-sileo-header-stack],
+[data-sileo-header-inner] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+[data-sileo-title] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+}
+
+[data-sileo-description] {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+[data-sileo-viewport][data-theme="light"] [data-sileo-description] {
+  color: rgb(0 0 0 / 0.7);
+}
+
+[data-sileo-viewport][data-theme="dark"] [data-sileo-description] {
+  color: rgb(255 255 255 / 0.75);
+}

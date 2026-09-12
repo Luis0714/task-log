@@ -21,7 +21,8 @@ import { useLinkableWorkItems } from "@/hooks/work-items/use-linkable-work-items
 import { useTeamMembers } from "@/hooks/use-team-members";
 import {
   CREATE_PULL_REQUEST_LABEL,
-  CREATE_PULL_REQUEST_MOCK_TOAST,
+  CREATE_PULL_REQUEST_MOCK_TOAST_DESCRIPTION,
+  CREATE_PULL_REQUEST_MOCK_TOAST_TITLE,
 } from "@/lib/pull-requests/copy";
 import {
   compareBranchesMock,
@@ -110,7 +111,9 @@ export function PullRequestCreateForm({
       onSubmit={(event) => {
         event.preventDefault();
         if (!canSubmit) return;
-        appToast.info(CREATE_PULL_REQUEST_MOCK_TOAST);
+        appToast.info(CREATE_PULL_REQUEST_MOCK_TOAST_TITLE, {
+          description: CREATE_PULL_REQUEST_MOCK_TOAST_DESCRIPTION,
+        });
       }}
     >
       <div className="flex flex-col gap-1.5">
