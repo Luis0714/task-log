@@ -7,12 +7,15 @@ export type BranchComparisonInput = {
 export type BranchComparison = {
   hasChanges: boolean;
   aheadCount: number;
+  fileCount: number;
 };
 
 export const LARGE_COMMIT_THRESHOLD = 100;
 
-const NO_CHANGES_PAIRS = new Set(["feat/HU175→develop"]);
-const LARGE_COMMIT_PAIRS = new Set(["feat/HU175→main"]);
+const COMPARE_COUNTS: Record<string, Pick<BranchComparison, "aheadCount" | "fileCount">> = {
+  "feat/HU175→develop": { aheadCount: 1, fileCount: 5 },
+  "feat/HU175→main": { aheadCount: 135, fileCount: 48 },
+};
 
 function pairKey(source: string, target: string): string {
   return `${source}→${target}`;
@@ -24,13 +27,22 @@ export function compareBranchesMock({
 }: BranchComparisonInput): BranchComparison | null {
   if (!source || !target) return null;
 
-  if (source === target || NO_CHANGES_PAIRS.has(pairKey(source, target))) {
-    return { hasChanges: false, aheadCount: 0 };
+  if (source === target) {
+    return { hasChanges: false, aheadCount: 0, fileCount: 0 };
   }
 
-  if (LARGE_COMMIT_PAIRS.has(pairKey(source, target))) {
-    return { hasChanges: true, aheadCount: 135 };
-  }
+  const counts = COMPARE_COUNTS[pairKey(source, target)] ?? {
+    aheadCount: 4,
+    fileCount: 8,
+  };
 
-  return { hasChanges: true, aheadCount: 4 };
+  return {
+    hasChanges: true,
+    aheadCount: counts.aheadCount,
+    fileCount: counts.fileCount,
+  };
+}
+
+export function isLargeCommitMerge(comparison: BranchComparison): boolean {
+  return comparison.hasChanges && comparison.aheadCount >= LARGE_COMMIT_THRESHOLD;
 }

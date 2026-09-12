@@ -1,5 +1,4 @@
 import type { AdoWorkItemOption } from "@/lib/azure-devops/work-items";
-import { htmlToPlainText } from "@/lib/html/html-to-plain-text";
 import type {
   LinkableWorkItemDto,
   LinkableWorkItemKind,
@@ -15,7 +14,7 @@ export function mapAssignedWorkItem(
     type: item.type,
     kind: resolveKind(item.type, kinds),
     state: item.state,
-    description: item.description ? htmlToPlainText(item.description) : "",
+    description: item.description?.trim() ?? "",
   };
 }
 
