@@ -23,7 +23,7 @@ function Toaster({
       options={{
         ...options,
         styles: {
-          title: "normal-case! min-w-0! truncate!",
+          title: "normal-case! min-w-0!",
           ...options?.styles,
         },
       }}

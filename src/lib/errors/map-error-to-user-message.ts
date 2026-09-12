@@ -27,5 +27,5 @@ export function mapErrorToUserMessage(
     return fallback;
   }
 
-  return fallback;
+  return raw;
 }

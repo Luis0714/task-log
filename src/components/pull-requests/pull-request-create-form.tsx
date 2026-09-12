@@ -22,13 +22,13 @@ import { LinkableWorkItemsField } from "@/components/work-items/linkable-work-it
 import { useBranchCompare } from "@/hooks/git/use-branch-compare";
 import { useGitBranches } from "@/hooks/git/use-git-branches";
 import { useGitRepositories } from "@/hooks/git/use-git-repositories";
+import { useCreatePullRequest } from "@/hooks/pull-requests/use-create-pull-request";
 import { useSaveDefaultRepository } from "@/hooks/pull-requests/use-save-default-repository";
 import { useLinkableWorkItems } from "@/hooks/work-items/use-linkable-work-items";
 import { useTeamMembers } from "@/hooks/use-team-members";
 import {
   CREATE_PULL_REQUEST_LABEL,
-  CREATE_PULL_REQUEST_MOCK_TOAST_DESCRIPTION,
-  CREATE_PULL_REQUEST_MOCK_TOAST_TITLE,
+  CREATE_PULL_REQUEST_PENDING_LABEL,
 } from "@/lib/pull-requests/copy";
 import { isLargeCommitMerge } from "@/lib/pull-requests/compare-branches";
 import type { NewPullRequestQuery } from "@/lib/pull-requests/create-query";
@@ -40,7 +40,6 @@ import {
 } from "@/lib/pull-requests/work-item-draft";
 import { isEmptyRichText } from "@/lib/html/html-to-plain-text";
 import { addedWorkItemId } from "@/lib/work-items/linkable-work-item-options";
-import { appToast } from "@/lib/toast";
 
 export type PullRequestCreateFormProps = {
   initialQuery: NewPullRequestQuery;
@@ -56,6 +55,7 @@ export function PullRequestCreateForm({
   team,
 }: PullRequestCreateFormProps) {
   const { saveDefaultRepository, saveDefaultRepositoryPending } = useSaveDefaultRepository();
+  const { create, pending: creating } = useCreatePullRequest();
   const people = useTeamMembers({
     project,
     team,
@@ -118,7 +118,9 @@ export function PullRequestCreateForm({
   const sameBranch = Boolean(source && target && source === target);
   const hasChanges = commits.length > 0 || files.length > 0;
   const showLargeCommitWarning = isLargeCommitMerge(commits.length);
-  const canSubmit = Boolean(repository && source && target && title.trim() && hasChanges);
+  const canSubmit = Boolean(
+    project && repository && source && target && title.trim() && hasChanges && !creating,
+  );
   const compareQuery = project
     ? { project, repository, source, target }
     : null;
@@ -142,9 +144,19 @@ export function PullRequestCreateForm({
       className="flex w-full max-w-3xl flex-col gap-5"
       onSubmit={(event) => {
         event.preventDefault();
-        if (!canSubmit) return;
-        appToast.info(CREATE_PULL_REQUEST_MOCK_TOAST_TITLE, {
-          description: CREATE_PULL_REQUEST_MOCK_TOAST_DESCRIPTION,
+        if (!canSubmit || !project) return;
+        void create({
+          project,
+          repository,
+          source,
+          target,
+          title: title.trim(),
+          description,
+          optionalReviewers,
+          requiredReviewers,
+          tags,
+          linkedWorkItemIds: linkedWorkItemIds.map(Number),
+          autoComplete,
         });
       }}
     >
@@ -274,7 +286,7 @@ export function PullRequestCreateForm({
                     Completar automáticamente al aprobar
                   </label>
                   <Button type="submit" disabled={!canSubmit}>
-                    {CREATE_PULL_REQUEST_LABEL}
+                    {creating ? CREATE_PULL_REQUEST_PENDING_LABEL : CREATE_PULL_REQUEST_LABEL}
                   </Button>
                 </div>
               </>
