@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  MAX_FILE_DIFF_PATHS,
+  sanitizeGitDiffPath,
+} from "@/lib/git/is-git-file-path";
+
 export const gitCompareQuerySchema = z.object({
   project: z.string().trim().min(1, "Indica el proyecto."),
   repository: z.string().trim().min(1, "Indica el repositorio."),
@@ -7,8 +12,19 @@ export const gitCompareQuerySchema = z.object({
   target: z.string().trim().min(1, "Indica la rama destino."),
 });
 
+const gitDiffPathSchema = z
+  .string()
+  .trim()
+  .min(1, "Indica el archivo.")
+  .refine((value) => sanitizeGitDiffPath(value) !== null, "Ruta de archivo inválida.");
+
 export const gitFileDiffQuerySchema = gitCompareQuerySchema.extend({
-  path: z.string().trim().min(1, "Indica el archivo."),
+  path: gitDiffPathSchema,
+});
+
+export const gitFileDiffsRequestSchema = gitCompareQuerySchema.extend({
+  paths: z.array(gitDiffPathSchema).min(1).max(MAX_FILE_DIFF_PATHS),
+  priorityPath: gitDiffPathSchema.optional().nullable(),
 });
 
 const gitDiffLineSchema = z.object({
@@ -49,3 +65,11 @@ export const gitCompareResponseSchema = z.object({
 export const gitFileDiffResponseSchema = z.object({
   file: gitFileChangeSchema,
 });
+
+export const gitFileDiffStreamEventSchema = z.union([
+  gitFileDiffResponseSchema,
+  z.object({
+    path: z.string(),
+    error: z.string(),
+  }),
+]);

@@ -12,6 +12,7 @@ export type PullRequestListBodyProps = Readonly<{
   loading: boolean;
   error: string | null;
   hasActiveFilters: boolean;
+  createHref?: string;
 }>;
 
 export function PullRequestListBody({
@@ -20,6 +21,7 @@ export function PullRequestListBody({
   loading,
   error,
   hasActiveFilters,
+  createHref,
 }: PullRequestListBodyProps) {
   if (loading) return <PullRequestListSkeleton />;
 
@@ -34,7 +36,12 @@ export function PullRequestListBody({
   }
 
   if (items.length === 0) {
-    return <PullRequestEmpty hasActiveFilters={hasActiveFilters} />;
+    return (
+      <PullRequestEmpty
+        hasActiveFilters={hasActiveFilters}
+        createHref={createHref}
+      />
+    );
   }
 
   return <PullRequestList items={items} density={density} />;
