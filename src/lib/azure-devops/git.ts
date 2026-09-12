@@ -38,6 +38,7 @@ export type BranchFileDiff = {
   files: GitFileChange[];
   commonCommit: string | null;
   sourceCommit: string | null;
+  aheadCount: number;
 };
 
 type AdoGitItem = {
@@ -172,39 +173,52 @@ function mapFileChange(change: AdoGitChange): GitFileChange | null {
   };
 }
 
-function toBranchVersion(branch: string, qualified = false) {
-  const name = normalizeGitBranchName(branch);
-  return {
-    version: qualified ? `refs/heads/${name}` : name,
-    versionType: "branch" as const,
-  };
+type GitVersionRef = {
+  version: string;
+  versionType: "branch" | "commit";
+};
+
+function mapCommitList(payload: { value?: AdoGitCommit[] }): GitCommit[] {
+  return (payload.value ?? [])
+    .map(mapCommit)
+    .filter((commit): commit is GitCommit => Boolean(commit));
 }
 
-async function fetchCommitsBatch(
+async function fetchCommitsAheadOf(
   auth: AdoCallerAuth,
   repositoryId: string,
-  source: string,
-  target: string,
-  qualified: boolean,
-): Promise<GitCommit[] | null> {
-  const url = `${adoProjectBase(auth)}/_apis/git/repositories/${encodeURIComponent(repositoryId)}/commitsbatch?$top=${COMMIT_TOP}&api-version=${API_VERSION}`;
-  const res = await adoFetch(auth, url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      itemVersion: toBranchVersion(source, qualified),
-      compareVersion: toBranchVersion(target, qualified),
-    }),
+  itemVersion: GitVersionRef,
+  compareVersion: GitVersionRef,
+): Promise<GitCommit[]> {
+  const query = new URLSearchParams({
+    "searchCriteria.$top": String(COMMIT_TOP),
+    "searchCriteria.itemVersion.version": itemVersion.version,
+    "searchCriteria.itemVersion.versionType": itemVersion.versionType,
+    "searchCriteria.compareVersion.version": compareVersion.version,
+    "searchCriteria.compareVersion.versionType": compareVersion.versionType,
+    "api-version": API_VERSION,
   });
-  if (res.status === 404) return null;
+  const url = `${adoProjectBase(auth)}/_apis/git/repositories/${encodeURIComponent(repositoryId)}/commits?${query}`;
+  const res = await adoFetch(auth, url);
   if (!res.ok) {
     throw new Error(await readAdoError(res, "No se pudieron cargar los commits."));
   }
 
-  const payload = (await res.json()) as { value?: AdoGitCommit[] };
-  return (payload.value ?? [])
-    .map(mapCommit)
-    .filter((commit): commit is GitCommit => Boolean(commit));
+  return mapCommitList((await res.json()) as { value?: AdoGitCommit[] });
+}
+
+async function getGitCommit(
+  auth: AdoCallerAuth,
+  repositoryId: string,
+  commitId: string,
+): Promise<GitCommit | null> {
+  const url = `${adoProjectBase(auth)}/_apis/git/repositories/${encodeURIComponent(repositoryId)}/commits/${encodeURIComponent(commitId)}?api-version=${API_VERSION}`;
+  const res = await adoFetch(auth, url);
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(await readAdoError(res, "No se pudo cargar el commit."));
+  }
+  return mapCommit((await res.json()) as AdoGitCommit);
 }
 
 export async function listGitBranchNames(
@@ -228,16 +242,39 @@ export async function listGitBranchNames(
     .sort((left, right) => left.localeCompare(right, "es"));
 }
 
-export async function listCommitsBetweenBranches(
+export async function listCommitsForPullRequest(
   auth: AdoCallerAuth,
   repositoryId: string,
   source: string,
   target: string,
+  range: { sourceCommit: string | null; commonCommit: string | null; aheadCount: number },
 ): Promise<GitCommit[]> {
-  const commits = await fetchCommitsBatch(auth, repositoryId, source, target, false);
-  if (commits && commits.length > 0) return commits;
+  if (range.aheadCount === 1 && range.sourceCommit) {
+    const tip = await getGitCommit(auth, repositoryId, range.sourceCommit);
+    if (tip) return [tip];
+  }
 
-  return (await fetchCommitsBatch(auth, repositoryId, source, target, true)) ?? [];
+  if (range.sourceCommit && range.commonCommit && range.sourceCommit !== range.commonCommit) {
+    const byMergeBase = await fetchCommitsAheadOf(
+      auth,
+      repositoryId,
+      { version: range.sourceCommit, versionType: "commit" },
+      { version: range.commonCommit, versionType: "commit" },
+    );
+    if (byMergeBase.length > 0) return byMergeBase;
+  }
+
+  const byBranch = await fetchCommitsAheadOf(
+    auth,
+    repositoryId,
+    { version: normalizeGitBranchName(source), versionType: "branch" },
+    { version: normalizeGitBranchName(target), versionType: "branch" },
+  );
+  if (byBranch.length > 0) return byBranch;
+
+  if (!range.sourceCommit) return [];
+  const tip = await getGitCommit(auth, repositoryId, range.sourceCommit);
+  return tip ? [tip] : [];
 }
 
 export async function listFileChangesBetweenBranches(
@@ -276,6 +313,7 @@ export async function listFileChangesBetweenBranches(
     files,
     commonCommit: payload.commonCommit ?? null,
     sourceCommit: payload.targetCommit ?? null,
+    aheadCount: payload.aheadCount ?? 0,
   };
 }
 

@@ -2,7 +2,7 @@ import "server-only";
 
 import { getScopedProjectAuth } from "@/lib/ado/get-scoped-project-auth";
 import {
-  listCommitsBetweenBranches,
+  listCommitsForPullRequest,
   listFileChangesBetweenBranches,
   normalizeGitBranchName,
   resolveGitRepositoryId,
@@ -32,11 +32,13 @@ export async function loadBranchCompare(
   }
 
   const repositoryId = await resolveGitRepositoryId(auth, input.repository);
-  const [diff, commits] = await Promise.all([
-    listFileChangesBetweenBranches(auth, repositoryId, source, target),
-    listCommitsBetweenBranches(auth, repositoryId, source, target),
-  ]);
+  const diff = await listFileChangesBetweenBranches(auth, repositoryId, source, target);
   const files = diff.files.filter((file) => isGitFilePath(file.path));
+  const commits = await listCommitsForPullRequest(auth, repositoryId, source, target, {
+    sourceCommit: diff.sourceCommit,
+    commonCommit: diff.commonCommit,
+    aheadCount: diff.aheadCount,
+  });
 
   return {
     commits,
