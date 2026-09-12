@@ -3,14 +3,23 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { DiffChangeNav } from "@/components/git/diff-change-nav";
-import { DiffHunk } from "@/components/git/diff-hunk";
 import { DiffStat } from "@/components/git/diff-stat";
+import { FileDiffHunks } from "@/components/git/file-diff-hunks";
 import { FileTypeIcon } from "@/components/git/file-type-icon";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDiffChangeNavigation } from "@/hooks/git/use-diff-change-navigation";
+import { useDiffChangeHotkeys } from "@/hooks/git/use-diff-change-hotkeys";
 import type { GitDiffLine, GitFileChange } from "@/lib/git/changeset";
+import { diffChangeElementId } from "@/lib/git/diff-changes";
 import { fileNameFromPath } from "@/lib/git/file-name";
 import { cn } from "@/lib/utils";
+
+export type FileDiffChangeNavigation = {
+  activeIndex: number;
+  globalIndex: number;
+  globalTotal: number;
+  onPrev: () => void;
+  onNext: () => void;
+};
 
 export type FileDiffPanelProps = Readonly<{
   file: GitFileChange | null;
@@ -18,6 +27,7 @@ export type FileDiffPanelProps = Readonly<{
   error?: string | null;
   fileHeading?: ReactNode;
   fileExtra?: ReactNode;
+  changeNavigation?: FileDiffChangeNavigation;
   onAddComment?: (line: GitDiffLine) => void;
   renderAfterLine?: (line: GitDiffLine) => ReactNode;
 }>;
@@ -30,25 +40,65 @@ function FileDiffStatus({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
+function scrollChangeIntoView(id: string, container: HTMLElement | null) {
+  const element = document.getElementById(id);
+  if (!element) return;
+
+  if (!container) {
+    element.scrollIntoView({ block: "center", behavior: "smooth" });
+    return;
+  }
+
+  const elementRect = element.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+  const offset =
+    elementRect.top -
+    containerRect.top -
+    containerRect.height / 2 +
+    elementRect.height / 2;
+  container.scrollTo({ top: container.scrollTop + offset, behavior: "smooth" });
+}
+
+function noop() {}
+
 export function FileDiffPanel({
   file,
   loading = false,
   error = null,
   fileHeading,
   fileExtra,
+  changeNavigation,
   onAddComment,
   renderAfterLine,
 }: FileDiffPanelProps) {
+  const rootRef = useRef<HTMLElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const navigation = useDiffChangeNavigation({
-    hunks: file?.hunks ?? [],
-    resetKey: file?.path ?? "",
-    containerRef: scrollerRef,
-  });
+  const activeChangeId =
+    file && changeNavigation && changeNavigation.activeIndex >= 0
+      ? diffChangeElementId(file.path, changeNavigation.activeIndex)
+      : null;
 
   useEffect(() => {
+    if (activeChangeId) {
+      const id = activeChangeId;
+      requestAnimationFrame(() => {
+        scrollChangeIntoView(id, scrollerRef.current);
+      });
+      return;
+    }
     scrollerRef.current?.scrollTo({ top: 0 });
-  }, [file?.path]);
+  }, [activeChangeId, file?.path]);
+
+  const onNext = changeNavigation?.onNext;
+  const onPrev = changeNavigation?.onPrev;
+  const globalTotal = changeNavigation?.globalTotal ?? 0;
+
+  useDiffChangeHotkeys(
+    Boolean(onNext && onPrev && globalTotal > 0),
+    onPrev ?? noop,
+    onNext ?? noop,
+    rootRef,
+  );
 
   const heading = (
     <header className="flex min-w-0 flex-wrap items-center gap-2 border-b px-3 py-2">
@@ -66,12 +116,12 @@ export function FileDiffPanel({
             </h3>
           ) : null)}
       </div>
-      {!loading && file && navigation.changes.length > 0 ? (
+      {changeNavigation && changeNavigation.globalTotal > 0 ? (
         <DiffChangeNav
-          activeIndex={navigation.activeIndex}
-          total={navigation.changes.length}
-          onPrev={navigation.goPrev}
-          onNext={navigation.goNext}
+          activeIndex={changeNavigation.globalIndex - 1}
+          total={changeNavigation.globalTotal}
+          onPrev={changeNavigation.onPrev}
+          onNext={changeNavigation.onNext}
         />
       ) : null}
       {!loading && file ? (
@@ -82,8 +132,11 @@ export function FileDiffPanel({
 
   if (loading) {
     return (
-      <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-card">
-        {fileHeading ? heading : null}
+      <section
+        ref={rootRef}
+        className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-card"
+      >
+        {fileHeading || changeNavigation ? heading : null}
         <div className="flex min-h-40 flex-1 flex-col gap-2 px-3 py-3">
           <Skeleton className="h-5 w-2/3" />
           <Skeleton className="h-32 w-full" />
@@ -94,8 +147,11 @@ export function FileDiffPanel({
 
   if (error) {
     return (
-      <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-card">
-        {fileHeading ? heading : null}
+      <section
+        ref={rootRef}
+        className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-card"
+      >
+        {fileHeading || changeNavigation ? heading : null}
         <FileDiffStatus>
           <span className="text-destructive">{error}</span>
         </FileDiffStatus>
@@ -105,35 +161,30 @@ export function FileDiffPanel({
 
   if (!file) {
     return (
-      <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-card">
-        {fileHeading ? heading : null}
+      <section
+        ref={rootRef}
+        className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-card"
+      >
+        {fileHeading || changeNavigation ? heading : null}
         <FileDiffStatus>Selecciona un archivo para ver el diff.</FileDiffStatus>
       </section>
     );
   }
 
   return (
-    <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-card">
+    <section
+      ref={rootRef}
+      className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-card"
+    >
       {heading}
       {fileExtra}
       <div ref={scrollerRef} className="min-h-0 flex-1 overflow-auto overscroll-contain">
-        {file.hunks.length === 0 ? (
-          <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-            Sin diferencias de contenido.
-          </p>
-        ) : (
-          file.hunks.map((hunk, hunkIndex) => (
-            <DiffHunk
-              key={`${hunk.header}-${hunkIndex}`}
-              hunk={hunk}
-              hunkIndex={hunkIndex}
-              changes={navigation.changes}
-              activeChangeId={navigation.activeId}
-              onAddComment={onAddComment}
-              renderAfterLine={renderAfterLine}
-            />
-          ))
-        )}
+        <FileDiffHunks
+          file={file}
+          activeChangeIndex={changeNavigation?.activeIndex ?? -1}
+          onAddComment={onAddComment}
+          renderAfterLine={renderAfterLine}
+        />
       </div>
     </section>
   );

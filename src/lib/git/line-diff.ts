@@ -1,4 +1,5 @@
 import type { GitDiffHunk, GitDiffLine } from "@/lib/git/changeset";
+import { lcsIndexPairs } from "@/lib/git/lcs-pairs";
 
 const CONTEXT_LINES = 3;
 const MAX_LCS_LINES = 600;
@@ -6,41 +7,6 @@ const MAX_LCS_LINES = 600;
 function splitLines(text: string): string[] {
   if (!text) return [];
   return text.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
-}
-
-function lcsPairs(before: string[], after: string[]): Array<[number, number]> {
-  const beforeCount = before.length;
-  const afterCount = after.length;
-  const table: Uint16Array[] = Array.from(
-    { length: beforeCount + 1 },
-    () => new Uint16Array(afterCount + 1),
-  );
-
-  for (let beforeIndex = beforeCount - 1; beforeIndex >= 0; beforeIndex -= 1) {
-    for (let afterIndex = afterCount - 1; afterIndex >= 0; afterIndex -= 1) {
-      table[beforeIndex][afterIndex] =
-        before[beforeIndex] === after[afterIndex]
-          ? table[beforeIndex + 1][afterIndex + 1] + 1
-          : Math.max(table[beforeIndex + 1][afterIndex], table[beforeIndex][afterIndex + 1]);
-    }
-  }
-
-  const pairs: Array<[number, number]> = [];
-  let beforeIndex = 0;
-  let afterIndex = 0;
-  while (beforeIndex < beforeCount && afterIndex < afterCount) {
-    if (before[beforeIndex] === after[afterIndex]) {
-      pairs.push([beforeIndex, afterIndex]);
-      beforeIndex += 1;
-      afterIndex += 1;
-    } else if (table[beforeIndex + 1][afterIndex] >= table[beforeIndex][afterIndex + 1]) {
-      beforeIndex += 1;
-    } else {
-      afterIndex += 1;
-    }
-  }
-
-  return pairs;
 }
 
 function collectLines(before: string[], after: string[]): GitDiffLine[] {
@@ -59,7 +25,7 @@ function collectLines(before: string[], after: string[]): GitDiffLine[] {
     ];
   }
 
-  const pairs = lcsPairs(before, after);
+  const pairs = lcsIndexPairs(before, after);
   const lines: GitDiffLine[] = [];
   let beforeIndex = 0;
   let afterIndex = 0;

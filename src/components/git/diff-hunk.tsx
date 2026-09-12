@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 
 import { DiffLine } from "@/components/git/diff-line";
 import type { GitDiffHunk, GitDiffLine } from "@/lib/git/changeset";
@@ -6,6 +6,7 @@ import {
   findDiffChangeAtLine,
   type DiffChangeAnchor,
 } from "@/lib/git/diff-changes";
+import { inlineDiffsForLines } from "@/lib/git/inline-diff";
 
 export type DiffHunkProps = Readonly<{
   hunk: GitDiffHunk;
@@ -24,6 +25,8 @@ export function DiffHunk({
   onAddComment,
   renderAfterLine,
 }: DiffHunkProps) {
+  const inlineByLine = useMemo(() => inlineDiffsForLines(hunk.lines), [hunk.lines]);
+
   return (
     <div className="min-w-0">
       <p className="bg-muted/80 px-2 py-1 font-mono text-[11px] text-muted-foreground">
@@ -37,10 +40,11 @@ export function DiffHunk({
           <div
             key={`${hunk.header}-${index}`}
             id={isChangeStart ? change?.id : undefined}
-            className={isChangeStart ? "scroll-mt-2" : undefined}
+            className={isChangeStart ? "scroll-mt-16" : undefined}
           >
             <DiffLine
               line={line}
+              inline={inlineByLine[index]}
               isActiveChange={change?.id === activeChangeId}
               onAddComment={onAddComment ? () => onAddComment(line) : undefined}
             />
