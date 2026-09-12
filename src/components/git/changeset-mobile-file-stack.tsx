@@ -67,7 +67,7 @@ export function ChangesetMobileFileStack({
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <div className="sticky top-14 z-10 -mx-4 flex items-center gap-2 border-b bg-background/95 px-4 py-2 backdrop-blur-md">
+      <div className="sticky top-14 z-20 -mx-4 flex items-center gap-2 border-b bg-background/95 px-4 py-2 backdrop-blur-md">
         <ChangesetMobileFilePicker
           nodes={tree}
           selected={selected}

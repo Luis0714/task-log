@@ -40,7 +40,7 @@ export function DiffHunk({
           <div
             key={`${hunk.header}-${index}`}
             id={isChangeStart ? change?.id : undefined}
-            className={isChangeStart ? "scroll-mt-16" : undefined}
+            className={isChangeStart ? "scroll-mt-28" : undefined}
           >
             <DiffLine
               line={line}

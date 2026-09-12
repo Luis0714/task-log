@@ -101,7 +101,7 @@ export function FileDiffPanel({
   );
 
   const heading = (
-    <header className="flex min-w-0 flex-wrap items-center gap-2 border-b px-3 py-2">
+    <header className="relative z-10 flex min-w-0 flex-wrap items-center gap-2 border-b bg-card px-3 py-2">
       <div
         className={cn(
           "flex min-w-0 items-center",

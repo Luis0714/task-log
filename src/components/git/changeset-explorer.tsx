@@ -48,10 +48,18 @@ export function ChangesetExplorer({
   const cache = useFileDiffCache(query, filesKey);
 
   const loadFile = cache.load;
+  const prefetchAll = cache.prefetchAll;
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- filesKey is the path-list identity
+  const filePaths = useMemo(() => files.map((file) => file.path), [filesKey]);
 
   useEffect(() => {
     setSelectedPath(files[0]?.path ?? null);
   }, [files]);
+
+  useEffect(() => {
+    prefetchAll(filePaths, filePaths[0] ?? null);
+  }, [filePaths, prefetchAll]);
 
   useEffect(() => {
     if (selectedPath) loadFile(selectedPath);

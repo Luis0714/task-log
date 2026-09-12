@@ -51,7 +51,7 @@ export function DiffLine({
           type="button"
           variant="ghost"
           size="icon-xs"
-          className="absolute top-0.5 right-1 z-10 bg-background/90 opacity-0 group-hover/diff-line:opacity-100 focus-visible:opacity-100"
+          className="pointer-events-none absolute top-0.5 left-0.5 z-1 bg-background/95 opacity-0 group-hover/diff-line:pointer-events-auto group-hover/diff-line:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
           aria-label="Comentar esta línea"
           onClick={onAddComment}
         >

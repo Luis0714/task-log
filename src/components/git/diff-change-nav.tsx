@@ -67,7 +67,7 @@ export function DiffChangeNav({
         : `${activeIndex + 1} de ${total}`;
 
   return (
-    <div className="inline-flex shrink-0 items-center gap-0.5 rounded-lg border bg-background p-0.5">
+    <div className="relative z-1 inline-flex shrink-0 items-center gap-0.5 rounded-lg border bg-background p-0.5">
       <ChangeNavButton
         label="Cambio anterior"
         shortcut="↑"
