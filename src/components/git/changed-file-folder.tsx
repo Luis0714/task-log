@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronRight, Folder } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { DiffStat } from "@/components/git/diff-stat";
+import { FileTypeIcon } from "@/components/git/file-type-icon";
 import {
   Collapsible,
   CollapsibleContent,
@@ -31,7 +32,7 @@ export function ChangedFileFolder({ folder, children }: ChangedFileFolderProps) 
           className="size-3.5 shrink-0 text-muted-foreground transition-transform group-aria-expanded/folder-btn:rotate-90"
           aria-hidden
         />
-        <Folder className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+        <FileTypeIcon name={folder.name} folder />
         <span className="min-w-0 flex-1 truncate font-medium">{folder.name}</span>
         <DiffStat additions={folder.additions} deletions={folder.deletions} />
       </CollapsibleTrigger>

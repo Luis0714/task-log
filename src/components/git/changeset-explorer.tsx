@@ -1,25 +1,58 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ChangedFileTree } from "@/components/git/changed-file-tree";
 import { ChangesetSummary } from "@/components/git/changeset-summary";
 import { FileDiffPanel } from "@/components/git/file-diff-panel";
+import { useFileDiff } from "@/hooks/git/use-file-diff";
 import type { GitFileChange } from "@/lib/git/changeset";
 import { buildFileTree } from "@/lib/git/file-tree";
 import { sumDiffStats } from "@/lib/git/sum-diff-stats";
 
-export type ChangesetExplorerProps = {
-  files: readonly GitFileChange[];
+export type ChangesetExplorerQuery = {
+  project: string;
+  repository: string;
+  source: string;
+  target: string;
 };
 
-export function ChangesetExplorer({ files }: ChangesetExplorerProps) {
+export type ChangesetExplorerProps = {
+  files: readonly GitFileChange[];
+  query: ChangesetExplorerQuery;
+};
+
+export function ChangesetExplorer({ files, query }: ChangesetExplorerProps) {
   const [selectedPath, setSelectedPath] = useState<string | null>(
     () => files[0]?.path ?? null,
   );
-  const tree = useMemo(() => buildFileTree(files), [files]);
-  const stats = useMemo(() => sumDiffStats(files), [files]);
-  const selected = files.find((file) => file.path === selectedPath) ?? files[0] ?? null;
+  const [resolvedByPath, setResolvedByPath] = useState<Record<string, GitFileChange>>({});
+  const diff = useFileDiff({
+    ...query,
+    path: selectedPath,
+  });
+
+  useEffect(() => {
+    setSelectedPath(files[0]?.path ?? null);
+    setResolvedByPath({});
+  }, [files]);
+
+  useEffect(() => {
+    const resolved = diff.file;
+    if (!resolved) return;
+    setResolvedByPath((current) => ({
+      ...current,
+      [resolved.path]: resolved,
+    }));
+  }, [diff.file]);
+
+  const displayFiles = useMemo(
+    () => files.map((file) => resolvedByPath[file.path] ?? file),
+    [files, resolvedByPath],
+  );
+  const tree = useMemo(() => buildFileTree(displayFiles), [displayFiles]);
+  const stats = useMemo(() => sumDiffStats(displayFiles), [displayFiles]);
+  const selected = displayFiles.find((file) => file.path === selectedPath) ?? null;
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -37,7 +70,11 @@ export function ChangesetExplorer({ files }: ChangesetExplorerProps) {
           />
         </aside>
         <div className="min-w-0 flex-1">
-          <FileDiffPanel file={selected} />
+          <FileDiffPanel
+            file={diff.file ?? selected}
+            loading={diff.loading}
+            error={diff.error}
+          />
         </div>
       </div>
     </div>

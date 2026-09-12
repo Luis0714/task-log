@@ -33,4 +33,6 @@ export type GitCommit = {
 export type GitChangeset = {
   commits: GitCommit[];
   files: GitFileChange[];
+  commonCommit?: string | null;
+  sourceCommit?: string | null;
 };

@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Info } from "lucide-react";
 
+import { BranchCompareLoading } from "@/components/git/branch-compare-loading";
 import { DefaultRepositoryHint } from "@/components/pull-requests/default-repository-hint";
 import { LargeCommitMergeNotice } from "@/components/pull-requests/large-commit-merge-notice";
 import { NoChangesToMergeNotice } from "@/components/pull-requests/no-changes-to-merge-notice";
 import { PullRequestCreateCompareTabs } from "@/components/pull-requests/pull-request-create-compare-tabs";
 import { GitBranchPairPicker } from "@/components/shared/git-branch-pair-picker";
+import { NoticeBanner } from "@/components/shared/notice-banner";
 import { ProjectTagsField } from "@/components/tags/project-tags-field";
 import { PersonPickList } from "@/components/team-members/person-pick-list";
 import { ControlledSelectField } from "@/components/time-log/fields/controlled-select-field";
@@ -16,6 +19,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RichTextarea } from "@/components/ui/rich-textarea-lazy";
 import { LinkableWorkItemsField } from "@/components/work-items/linkable-work-items-field";
+import { useBranchCompare } from "@/hooks/git/use-branch-compare";
+import { useGitBranches } from "@/hooks/git/use-git-branches";
+import { useGitRepositories } from "@/hooks/git/use-git-repositories";
 import { useSaveDefaultRepository } from "@/hooks/pull-requests/use-save-default-repository";
 import { useLinkableWorkItems } from "@/hooks/work-items/use-linkable-work-items";
 import { useTeamMembers } from "@/hooks/use-team-members";
@@ -24,17 +30,9 @@ import {
   CREATE_PULL_REQUEST_MOCK_TOAST_DESCRIPTION,
   CREATE_PULL_REQUEST_MOCK_TOAST_TITLE,
 } from "@/lib/pull-requests/copy";
-import { buildMockChangeset } from "@/lib/git/mock-changeset";
-import {
-  compareBranchesMock,
-  isLargeCommitMerge,
-} from "@/lib/pull-requests/compare-branches";
+import { isLargeCommitMerge } from "@/lib/pull-requests/compare-branches";
 import type { NewPullRequestQuery } from "@/lib/pull-requests/create-query";
-import {
-  DEFAULT_TARGET_BRANCH,
-  MOCK_GIT_BRANCH_OPTIONS,
-  MOCK_GIT_REPOSITORIES,
-} from "@/lib/pull-requests/mock-git-refs";
+import { DEFAULT_TARGET_BRANCH } from "@/lib/pull-requests/mock-git-refs";
 import { pickCreateRepository } from "@/lib/pull-requests/pick-create-repository";
 import {
   workItemDraftDescription,
@@ -43,8 +41,6 @@ import {
 import { isEmptyRichText } from "@/lib/html/html-to-plain-text";
 import { addedWorkItemId } from "@/lib/work-items/linkable-work-item-options";
 import { appToast } from "@/lib/toast";
-
-const repositoryOptions = MOCK_GIT_REPOSITORIES.map((value) => ({ value, label: value }));
 
 export type PullRequestCreateFormProps = {
   initialQuery: NewPullRequestQuery;
@@ -72,11 +68,40 @@ export function PullRequestCreateForm({
     includeBacklog,
   });
 
-  const [repository, setRepository] = useState(() =>
-    pickCreateRepository(initialQuery.repository, defaultRepository, MOCK_GIT_REPOSITORIES),
+  const repositories = useGitRepositories(project);
+  const [repository, setRepository] = useState(
+    () => initialQuery.repository || defaultRepository || "",
   );
+  const branches = useGitBranches(project, repository);
   const [source, setSource] = useState(initialQuery.source);
   const [target, setTarget] = useState(initialQuery.target || DEFAULT_TARGET_BRANCH);
+
+  useEffect(() => {
+    if (repositories.names.length === 0) return;
+    if (repositories.names.includes(repository)) return;
+    setRepository(
+      pickCreateRepository(initialQuery.repository, defaultRepository, repositories.names),
+    );
+  }, [defaultRepository, initialQuery.repository, repositories.names, repository]);
+
+  useEffect(() => {
+    const names = branches.options.map((option) => option.name);
+    if (names.length === 0) return;
+    const fallbackTarget =
+      names.find((name) => name === "develop") ??
+      names.find((name) => name === "main") ??
+      names.find((name) => name === "master") ??
+      names[0] ??
+      "";
+    if (!source || !names.includes(source)) {
+      setSource(names.find((name) => name !== fallbackTarget) ?? names[0] ?? "");
+    }
+    if (!target || !names.includes(target)) {
+      setTarget(fallbackTarget);
+    }
+  }, [branches.options, source, target]);
+
+  const repositoryOptions = repositories.names.map((value) => ({ value, label: value }));
   const [linkedWorkItemIds, setLinkedWorkItemIds] = useState<string[]>([]);
   const [title, setTitle] = useState(initialQuery.source);
   const [description, setDescription] = useState("");
@@ -87,16 +112,16 @@ export function PullRequestCreateForm({
   const [tags, setTags] = useState<string[]>([]);
   const [autoComplete, setAutoComplete] = useState(false);
 
-  const comparison = compareBranchesMock({ repository, source, target });
-  const hasChanges = comparison?.hasChanges ?? false;
-  const aheadCount = comparison?.aheadCount ?? 0;
-  const fileCount = comparison?.fileCount ?? 0;
-  const showLargeCommitWarning = Boolean(comparison && isLargeCommitMerge(comparison));
+  const compare = useBranchCompare({ project, repository, source, target });
+  const commits = compare.changeset?.commits ?? [];
+  const files = compare.changeset?.files ?? [];
+  const sameBranch = Boolean(source && target && source === target);
+  const hasChanges = commits.length > 0 || files.length > 0;
+  const showLargeCommitWarning = isLargeCommitMerge(commits.length);
   const canSubmit = Boolean(repository && source && target && title.trim() && hasChanges);
-  const changeset = useMemo(() => {
-    if (!hasChanges) return null;
-    return buildMockChangeset(source, target, aheadCount, fileCount);
-  }, [aheadCount, fileCount, hasChanges, source, target]);
+  const compareQuery = project
+    ? { project, repository, source, target }
+    : null;
 
   const reviewerMembers = useMemo(() => people.members, [people.members]);
 
@@ -128,7 +153,9 @@ export function PullRequestCreateForm({
           label="Repositorio"
           required
           value={repository}
-          placeholder="Selecciona un repositorio"
+          placeholder={
+            repositories.loading ? "Cargando repositorios..." : "Selecciona un repositorio"
+          }
           options={repositoryOptions}
           onValueChange={setRepository}
         />
@@ -141,26 +168,38 @@ export function PullRequestCreateForm({
       </div>
 
       <GitBranchPairPicker
-        branches={MOCK_GIT_BRANCH_OPTIONS}
+        branches={branches.options}
         source={source}
         target={target}
         onSourceChange={setSource}
         onTargetChange={setTarget}
       />
 
-      {comparison && !comparison.hasChanges ? <NoChangesToMergeNotice /> : null}
+      {sameBranch ? <NoChangesToMergeNotice /> : null}
+      {compare.loading ? <BranchCompareLoading /> : null}
+      {compare.error ? (
+        <NoticeBanner
+          icon={<Info className="text-destructive mt-0.5 size-4 shrink-0" aria-hidden />}
+        >
+          <p>{compare.error}</p>
+        </NoticeBanner>
+      ) : null}
+      {!compare.loading && !compare.error && !sameBranch && compare.changeset && !hasChanges ? (
+        <NoChangesToMergeNotice />
+      ) : null}
 
-      {hasChanges && comparison ? (
+      {hasChanges && compareQuery ? (
         <>
           {showLargeCommitWarning ? (
             <LargeCommitMergeNotice key={`${source}->${target}`} />
           ) : null}
 
           <PullRequestCreateCompareTabs
-            fileCount={comparison.fileCount}
-            commitCount={comparison.aheadCount}
-            commits={changeset?.commits ?? []}
-            files={changeset?.files ?? []}
+            fileCount={files.length}
+            commitCount={commits.length}
+            commits={commits}
+            files={files}
+            compareQuery={compareQuery}
             overview={
               <>
                 <LinkableWorkItemsField

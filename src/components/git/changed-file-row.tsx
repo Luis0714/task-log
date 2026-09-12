@@ -1,7 +1,7 @@
-import { FileCode } from "lucide-react";
-
 import { DiffStat } from "@/components/git/diff-stat";
+import { FileTypeIcon } from "@/components/git/file-type-icon";
 import type { GitFileChange } from "@/lib/git/changeset";
+import { fileNameFromPath } from "@/lib/git/file-name";
 import { cn } from "@/lib/utils";
 
 export type ChangedFileRowProps = {
@@ -11,7 +11,7 @@ export type ChangedFileRowProps = {
 };
 
 export function ChangedFileRow({ change, selected, onSelect }: ChangedFileRowProps) {
-  const name = change.path.split("/").at(-1) ?? change.path;
+  const name = fileNameFromPath(change.path);
 
   return (
     <button
@@ -23,7 +23,7 @@ export function ChangedFileRow({ change, selected, onSelect }: ChangedFileRowPro
         selected ? "bg-muted text-foreground" : "hover:bg-muted/70",
       )}
     >
-      <FileCode className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+      <FileTypeIcon name={name} />
       <span className="min-w-0 flex-1 truncate">{name}</span>
       <DiffStat additions={change.additions} deletions={change.deletions} />
     </button>

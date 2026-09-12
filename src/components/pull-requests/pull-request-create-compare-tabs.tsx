@@ -2,7 +2,10 @@
 
 import type { ReactNode } from "react";
 
-import { ChangesetExplorer } from "@/components/git/changeset-explorer";
+import {
+  ChangesetExplorer,
+  type ChangesetExplorerQuery,
+} from "@/components/git/changeset-explorer";
 import { CommitList } from "@/components/git/commit-list";
 import { PullRequestTabCount } from "@/components/pull-requests/pull-request-tab-count";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +16,7 @@ export type PullRequestCreateCompareTabsProps = {
   commitCount: number;
   commits: readonly GitCommit[];
   files: readonly GitFileChange[];
+  compareQuery: ChangesetExplorerQuery;
   overview: ReactNode;
 };
 
@@ -21,6 +25,7 @@ export function PullRequestCreateCompareTabs({
   commitCount,
   commits,
   files,
+  compareQuery,
   overview,
 }: PullRequestCreateCompareTabsProps) {
   return (
@@ -41,7 +46,7 @@ export function PullRequestCreateCompareTabs({
         {overview}
       </TabsContent>
       <TabsContent value="files" className="min-w-0 pt-2">
-        <ChangesetExplorer files={files} />
+        <ChangesetExplorer files={files} query={compareQuery} />
       </TabsContent>
       <TabsContent value="commits" className="min-w-0 pt-2">
         <CommitList commits={commits} />
