@@ -44,7 +44,24 @@ type AdoGitItem = {
   content?: string;
   isFolder?: boolean;
   gitObjectType?: string;
+  objectId?: string;
+  path?: string;
+  contentMetadata?: { isBinary?: boolean };
 };
+
+function parseAdoGitItem(body: string): AdoGitItem | null {
+  const trimmed = body.trim();
+  if (!trimmed.startsWith("{")) return null;
+  try {
+    const item = JSON.parse(trimmed) as AdoGitItem;
+    if (item.gitObjectType || item.objectId || item.contentMetadata || item.isFolder != null) {
+      return item;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 export function normalizeGitBranchName(value: string): string {
   return value.trim().replace(/^refs\/heads\//, "");
@@ -277,7 +294,9 @@ export async function getGitFileContent(
     "api-version": API_VERSION,
   });
   const url = `${adoProjectBase(auth)}/_apis/git/repositories/${encodeURIComponent(repositoryId)}/items?${query}`;
-  const res = await adoFetch(auth, url);
+  const res = await adoFetch(auth, url, {
+    headers: { Accept: "application/json" },
+  });
 
   if (res.status === 404) return null;
   if (!res.ok) {
@@ -286,7 +305,17 @@ export async function getGitFileContent(
     throw new Error(message);
   }
 
-  const item = (await res.json()) as AdoGitItem;
-  if (item.isFolder || item.gitObjectType === "tree") return null;
-  return typeof item.content === "string" ? item.content : "";
+  const body = await res.text();
+  const item = parseAdoGitItem(body);
+  if (!item) return body;
+  if (item.isFolder || item.gitObjectType === "tree" || item.contentMetadata?.isBinary) {
+    return null;
+  }
+  if (typeof item.content === "string") return item.content;
+
+  const raw = await adoFetch(auth, url, {
+    headers: { Accept: "text/plain" },
+  });
+  if (raw.status === 404 || !raw.ok) return null;
+  return raw.text();
 }
