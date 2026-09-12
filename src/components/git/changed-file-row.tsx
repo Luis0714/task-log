@@ -4,11 +4,11 @@ import type { GitFileChange } from "@/lib/git/changeset";
 import { fileNameFromPath } from "@/lib/git/file-name";
 import { cn } from "@/lib/utils";
 
-export type ChangedFileRowProps = {
+export type ChangedFileRowProps = Readonly<{
   change: GitFileChange;
   selected: boolean;
   onSelect: (path: string) => void;
-};
+}>;
 
 export function ChangedFileRow({ change, selected, onSelect }: ChangedFileRowProps) {
   const name = fileNameFromPath(change.path);

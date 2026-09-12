@@ -3,9 +3,9 @@ import { CircleCheck } from "lucide-react";
 import { RelativeTimeLabel } from "@/components/shared/relative-time-label";
 import type { GitCommit } from "@/lib/git/changeset";
 
-export type CommitRowProps = {
+export type CommitRowProps = Readonly<{
   commit: GitCommit;
-};
+}>;
 
 export function CommitRow({ commit }: CommitRowProps) {
   return (

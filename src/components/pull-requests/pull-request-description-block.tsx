@@ -1,8 +1,8 @@
 import { RichTextContent } from "@/components/ui/rich-text-content";
 
-export type PullRequestDescriptionBlockProps = {
+export type PullRequestDescriptionBlockProps = Readonly<{
   description: string;
-};
+}>;
 
 export function PullRequestDescriptionBlock({
   description,

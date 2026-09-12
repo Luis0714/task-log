@@ -6,13 +6,13 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-export type PullRequestCommentComposerProps = {
+export type PullRequestCommentComposerProps = Readonly<{
   placeholder: string;
   submitLabel: string;
   pending?: boolean;
   onSubmit: (content: string) => Promise<boolean>;
   onCancel?: () => void;
-};
+}>;
 
 export function PullRequestCommentComposer({
   placeholder,

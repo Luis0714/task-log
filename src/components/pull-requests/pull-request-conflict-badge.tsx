@@ -1,9 +1,9 @@
 import { StatusDotBadge } from "@/components/shared/status-dot-badge";
 import { cn } from "@/lib/utils";
 
-export type PullRequestConflictBadgeProps = {
+export type PullRequestConflictBadgeProps = Readonly<{
   className?: string;
-};
+}>;
 
 export function PullRequestConflictBadge({ className }: PullRequestConflictBadgeProps) {
   return (

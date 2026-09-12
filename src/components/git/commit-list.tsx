@@ -1,9 +1,9 @@
 import { CommitRow } from "@/components/git/commit-row";
 import type { GitCommit } from "@/lib/git/changeset";
 
-export type CommitListProps = {
+export type CommitListProps = Readonly<{
   commits: readonly GitCommit[];
-};
+}>;
 
 export function CommitList({ commits }: CommitListProps) {
   if (commits.length === 0) {

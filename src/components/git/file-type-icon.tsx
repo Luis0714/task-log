@@ -5,10 +5,10 @@ import { resolveFileTypeIcon } from "@/lib/git/file-type-icon";
 
 const ICON_SIZE = 16;
 
-export type FileTypeIconProps = {
+export type FileTypeIconProps = Readonly<{
   name: string;
   folder?: boolean;
-};
+}>;
 
 export function FileTypeIcon({ name, folder = false }: FileTypeIconProps) {
   if (folder) {

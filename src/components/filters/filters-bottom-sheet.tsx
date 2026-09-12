@@ -11,12 +11,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-export type FiltersBottomSheetProps = {
+export type FiltersBottomSheetProps = Readonly<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title?: string;
   children: ReactNode;
-};
+}>;
 
 export function FiltersBottomSheet({
   open,

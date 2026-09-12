@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils";
 
-export type DiffStatProps = {
+export type DiffStatProps = Readonly<{
   additions: number;
   deletions: number;
   className?: string;
-};
+}>;
 
 export function DiffStat({ additions, deletions, className }: DiffStatProps) {
   return (

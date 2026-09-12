@@ -5,11 +5,11 @@ import { AuthRequiredPageLayout } from "@/components/auth/auth-required-page-lay
 import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
 import { getServerAuthBootstrap } from "@/lib/auth/server-state";
 
-export type SuperAdminPageShellProps = {
+export type SuperAdminPageShellProps = Readonly<{
   title: string;
   description: string;
   children: ReactNode;
-};
+}>;
 
 export async function SuperAdminPageShell({
   title,

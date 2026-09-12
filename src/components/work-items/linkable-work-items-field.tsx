@@ -15,7 +15,13 @@ import {
 } from "@/lib/work-items/linkable-work-item-options";
 import { resolveRememberedWorkItems } from "@/lib/work-items/remember-linkable-work-items";
 
-export type LinkableWorkItemsFieldProps = {
+function emptyLinkableWorkItemsMessage(query: string, includeBacklog: boolean): string {
+  if (query.trim()) return "No hay coincidencias.";
+  if (includeBacklog) return "No hay HUs, bugs o tareas en el backlog.";
+  return "No hay HUs, bugs o tareas en el sprint actual.";
+}
+
+export type LinkableWorkItemsFieldProps = Readonly<{
   items: readonly LinkableWorkItemDto[];
   value: readonly string[];
   includeBacklog: boolean;
@@ -23,7 +29,7 @@ export type LinkableWorkItemsFieldProps = {
   error?: string | null;
   onChange: (value: string[]) => void;
   onIncludeBacklogChange: (checked: boolean) => void;
-};
+}>;
 
 export function LinkableWorkItemsField({
   items,
@@ -48,11 +54,7 @@ export function LinkableWorkItemsField({
     () => filterLinkableWorkItems(availableItems, query),
     [availableItems, query],
   );
-  const emptyMessage = query.trim()
-    ? "No hay coincidencias."
-    : includeBacklog
-      ? "No hay HUs, bugs o tareas en el backlog."
-      : "No hay HUs, bugs o tareas en el sprint actual.";
+  const emptyMessage = emptyLinkableWorkItemsMessage(query, includeBacklog);
 
   function handleSelect(item: LinkableWorkItemDto | null) {
     if (!item) return;

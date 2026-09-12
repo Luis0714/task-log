@@ -3,11 +3,11 @@ import type { ReactNode } from "react";
 import { DiffLine } from "@/components/git/diff-line";
 import type { GitDiffHunk, GitDiffLine } from "@/lib/git/changeset";
 
-export type DiffHunkProps = {
+export type DiffHunkProps = Readonly<{
   hunk: GitDiffHunk;
   onAddComment?: (line: GitDiffLine) => void;
   renderAfterLine?: (line: GitDiffLine) => ReactNode;
-};
+}>;
 
 export function DiffHunk({ hunk, onAddComment, renderAfterLine }: DiffHunkProps) {
   return (

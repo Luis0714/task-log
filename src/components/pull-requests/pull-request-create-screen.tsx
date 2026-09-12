@@ -4,11 +4,11 @@ import { parseAdoContextSearchParams } from "@/lib/ado/parse-context-search-para
 import { PullRequestCreateView } from "@/components/pull-requests/pull-request-create-view";
 import type { NewPullRequestQuery } from "@/lib/pull-requests/create-query";
 
-export type PullRequestCreateScreenProps = {
+export type PullRequestCreateScreenProps = Readonly<{
   title: string;
   searchParams: Record<string, string | string[] | undefined>;
   initialQuery: NewPullRequestQuery;
-};
+}>;
 
 export async function PullRequestCreateScreen({
   title,

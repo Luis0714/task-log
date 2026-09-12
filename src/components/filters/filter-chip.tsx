@@ -2,13 +2,13 @@
 
 import { cn } from "@/lib/utils";
 
-export type FilterChipProps = {
+export type FilterChipProps = Readonly<{
   label: string;
   selected?: boolean;
   onSelect?: () => void;
   className?: string;
   dotClassName?: string;
-};
+}>;
 
 export function FilterChip({
   label,

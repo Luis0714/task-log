@@ -5,13 +5,13 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import type { NewPullRequestQuery } from "@/lib/pull-requests/create-query";
 
-export type PullRequestCreateViewProps = {
+export type PullRequestCreateViewProps = Readonly<{
   title: string;
   initialQuery: NewPullRequestQuery;
   defaultRepository: string | null;
   project: string | null;
   team: string | null;
-};
+}>;
 
 export function PullRequestCreateView({
   title,

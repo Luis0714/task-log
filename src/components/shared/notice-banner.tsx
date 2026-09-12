@@ -4,14 +4,14 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type NoticeBannerProps = {
+export type NoticeBannerProps = Readonly<{
   icon?: ReactNode;
   children: ReactNode;
   action?: ReactNode;
   onDismiss?: () => void;
   dismissLabel?: string;
   className?: string;
-};
+}>;
 
 export function NoticeBanner({
   icon,
@@ -22,8 +22,7 @@ export function NoticeBanner({
   className,
 }: NoticeBannerProps) {
   return (
-    <div
-      role="status"
+    <output
       className={cn(
         "bg-card flex flex-col gap-3 rounded-lg border px-3 py-3 sm:flex-row sm:items-center sm:justify-between",
         className,
@@ -49,6 +48,6 @@ export function NoticeBanner({
           ) : null}
         </div>
       ) : null}
-    </div>
+    </output>
   );
 }

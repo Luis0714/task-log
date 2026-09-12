@@ -1,9 +1,9 @@
 import { PullRequestConflictFiles } from "@/components/pull-requests/pull-request-conflict-files";
 
-export type PullRequestConflictsPanelProps = {
+export type PullRequestConflictsPanelProps = Readonly<{
   hasConflicts: boolean;
   files: readonly string[];
-};
+}>;
 
 export function PullRequestConflictsPanel({
   hasConflicts,

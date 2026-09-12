@@ -2,11 +2,11 @@ import { ChangedFileFolder } from "@/components/git/changed-file-folder";
 import { ChangedFileRow } from "@/components/git/changed-file-row";
 import type { FileTreeNode } from "@/lib/git/file-tree";
 
-export type ChangedFileTreeProps = {
+export type ChangedFileTreeProps = Readonly<{
   nodes: readonly FileTreeNode[];
   selectedPath: string | null;
   onSelect: (path: string) => void;
-};
+}>;
 
 export function ChangedFileTree({
   nodes,

@@ -1,8 +1,8 @@
 import { FileTypeIcon } from "@/components/git/file-type-icon";
 
-export type PullRequestConflictFilesProps = {
+export type PullRequestConflictFilesProps = Readonly<{
   files: readonly string[];
-};
+}>;
 
 export function PullRequestConflictFiles({ files }: PullRequestConflictFilesProps) {
   if (files.length === 0) return null;

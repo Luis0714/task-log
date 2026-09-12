@@ -4,11 +4,11 @@ import { Plus } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-export type FilterAddChipProps = {
+export type FilterAddChipProps = Readonly<{
   label?: string;
   onClick?: () => void;
   className?: string;
-};
+}>;
 
 export function FilterAddChip({
   label = "Añadir",

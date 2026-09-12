@@ -12,10 +12,10 @@ import {
 } from "@/components/ui/collapsible";
 import type { FileTreeFolder } from "@/lib/git/file-tree";
 
-export type ChangedFileFolderProps = {
+export type ChangedFileFolderProps = Readonly<{
   folder: FileTreeFolder;
   children: ReactNode;
-};
+}>;
 
 export function ChangedFileFolder({ folder, children }: ChangedFileFolderProps) {
   return (

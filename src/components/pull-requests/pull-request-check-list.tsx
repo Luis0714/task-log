@@ -1,9 +1,9 @@
 import { PullRequestCheckItem } from "@/components/pull-requests/pull-request-check-item";
 import type { PullRequestDetailCheck } from "@/lib/pull-requests/detail-types";
 
-export type PullRequestCheckListProps = {
+export type PullRequestCheckListProps = Readonly<{
   checks: readonly PullRequestDetailCheck[];
-};
+}>;
 
 export function PullRequestCheckList({ checks }: PullRequestCheckListProps) {
   if (checks.length === 0) return null;

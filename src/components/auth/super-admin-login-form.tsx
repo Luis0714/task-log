@@ -22,11 +22,11 @@ export function SuperAdminLoginForm() {
       <p className="text-muted-foreground text-xs leading-relaxed">{copy.hint}</p>
 
       <div className="space-y-1.5">
-        <Label htmlFor="super-admin-password">{copy.passwordLabel}</Label>
+        <Label htmlFor="super-admin-password">{copy.secretLabel}</Label>
         <PasswordInput
           id="super-admin-password"
           autoComplete="current-password"
-          placeholder={copy.passwordPlaceholder}
+          placeholder={copy.secretPlaceholder}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />

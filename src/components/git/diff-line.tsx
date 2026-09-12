@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import type { GitDiffLine } from "@/lib/git/changeset";
 import { cn } from "@/lib/utils";
 
-export type DiffLineProps = {
+export type DiffLineProps = Readonly<{
   line: GitDiffLine;
   onAddComment?: () => void;
-};
+}>;
 
 const LINE_CLASS: Record<GitDiffLine["type"], string> = {
   context: "bg-transparent text-foreground",

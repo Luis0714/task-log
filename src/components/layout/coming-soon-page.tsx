@@ -1,9 +1,9 @@
 import { PageHeader } from "@/components/layout/page-header";
 
-export type ComingSoonPageProps = {
+export type ComingSoonPageProps = Readonly<{
   title: string;
   description: string;
-};
+}>;
 
 export function ComingSoonPage({ title, description }: ComingSoonPageProps) {
   return (

@@ -17,13 +17,13 @@ export type ChangesetExplorerQuery = {
   target: string;
 };
 
-export type ChangesetExplorerProps = {
+export type ChangesetExplorerProps = Readonly<{
   files: readonly GitFileChange[];
   query: ChangesetExplorerQuery;
   fileExtra?: (filePath: string) => ReactNode;
   onAddComment?: (filePath: string, line: GitDiffLine) => void;
   renderAfterLine?: (filePath: string, line: GitDiffLine) => ReactNode;
-};
+}>;
 
 export function ChangesetExplorer({
   files,

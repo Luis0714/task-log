@@ -14,14 +14,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { PullRequestDetail } from "@/lib/pull-requests/detail-types";
 
-export type PullRequestDetailActionsProps = {
+export type PullRequestDetailActionsProps = Readonly<{
   detail: PullRequestDetail;
   pending: boolean;
   onVote: (vote: number) => void;
   onAbandon: () => Promise<boolean>;
   onReactivate: () => void;
   onCancelAutoComplete: () => void;
-};
+}>;
 
 export function PullRequestDetailActions({
   detail,

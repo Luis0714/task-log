@@ -2,9 +2,9 @@ import { RelativeTimeLabel } from "@/components/shared/relative-time-label";
 import { PersonLabel } from "@/components/team-members/person-label";
 import type { PullRequestThreadComment } from "@/lib/pull-requests/thread-types";
 
-export type PullRequestCommentItemProps = {
+export type PullRequestCommentItemProps = Readonly<{
   comment: PullRequestThreadComment;
-};
+}>;
 
 export function PullRequestCommentItem({ comment }: PullRequestCommentItemProps) {
   return (

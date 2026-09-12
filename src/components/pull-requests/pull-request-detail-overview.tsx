@@ -7,7 +7,7 @@ import { PullRequestLifecycleNotice } from "@/components/pull-requests/pull-requ
 import type { PullRequestDetail } from "@/lib/pull-requests/detail-types";
 import type { PullRequestThread, PullRequestThreadStatus } from "@/lib/pull-requests/thread-types";
 
-export type PullRequestDetailOverviewProps = {
+export type PullRequestDetailOverviewProps = Readonly<{
   detail: PullRequestDetail;
   generalThreads: readonly PullRequestThread[];
   threadsLoading?: boolean;
@@ -17,7 +17,7 @@ export type PullRequestDetailOverviewProps = {
   onCreateComment: (content: string) => Promise<boolean>;
   onReply: (threadId: number, content: string) => Promise<boolean>;
   onStatusChange: (threadId: number, status: PullRequestThreadStatus) => Promise<boolean>;
-};
+}>;
 
 export function PullRequestDetailOverview({
   detail,

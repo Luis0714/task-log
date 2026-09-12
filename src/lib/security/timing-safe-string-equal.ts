@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "crypto";
+import { timingSafeEqual } from "node:crypto";
 
 /**
  * Compara dos strings en tiempo constante (padding a la misma longitud).

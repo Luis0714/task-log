@@ -19,19 +19,20 @@ import { buildPullRequestDetailHref } from "@/lib/pull-requests/detail-path";
 import type { PullRequestListItem } from "@/lib/pull-requests/types";
 import { cn } from "@/lib/utils";
 
-export type PullRequestCardProps = {
+export type PullRequestCardProps = Readonly<{
   item: PullRequestListItem;
   density?: "compact" | "comfortable";
   className?: string;
-};
+}>;
 
-export function PullRequestCard({ item, className }: PullRequestCardProps) {
+export function PullRequestCard({ item, density = "compact", className }: PullRequestCardProps) {
   const href = buildPullRequestDetailHref(item.id, item.repository);
 
   return (
     <article
       className={cn(
-        "relative w-full rounded-xl border bg-card p-3 text-left transition-colors",
+        "relative w-full rounded-xl border bg-card text-left transition-colors",
+        density === "comfortable" ? "p-4" : "p-3",
         "hover:border-border/80 hover:bg-muted/30",
         className,
       )}

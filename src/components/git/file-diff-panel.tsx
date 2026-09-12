@@ -7,14 +7,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { GitDiffLine, GitFileChange } from "@/lib/git/changeset";
 import { fileNameFromPath } from "@/lib/git/file-name";
 
-export type FileDiffPanelProps = {
+export type FileDiffPanelProps = Readonly<{
   file: GitFileChange | null;
   loading?: boolean;
   error?: string | null;
   fileExtra?: ReactNode;
   onAddComment?: (line: GitDiffLine) => void;
   renderAfterLine?: (line: GitDiffLine) => ReactNode;
-};
+}>;
 
 export function FileDiffPanel({
   file,

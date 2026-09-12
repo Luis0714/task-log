@@ -1,11 +1,11 @@
 import { SaveAsDefaultLinkButton } from "@/components/filters/save-as-default-button";
 
-export type DefaultRepositoryHintProps = {
+export type DefaultRepositoryHintProps = Readonly<{
   repository: string;
   defaultRepository: string | null;
   pending?: boolean;
   onSave: (repository: string) => Promise<void> | void;
-};
+}>;
 
 export function DefaultRepositoryHint({
   repository,

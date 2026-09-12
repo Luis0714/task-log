@@ -1,15 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Info } from "lucide-react";
 
-import { BranchCompareLoading } from "@/components/git/branch-compare-loading";
 import { DefaultRepositoryHint } from "@/components/pull-requests/default-repository-hint";
-import { LargeCommitMergeNotice } from "@/components/pull-requests/large-commit-merge-notice";
-import { NoChangesToMergeNotice } from "@/components/pull-requests/no-changes-to-merge-notice";
-import { PullRequestCreateCompareTabs } from "@/components/pull-requests/pull-request-create-compare-tabs";
+import { PullRequestCreateComparePanel } from "@/components/pull-requests/pull-request-create-compare-panel";
 import { GitBranchPairPicker } from "@/components/shared/git-branch-pair-picker";
-import { NoticeBanner } from "@/components/shared/notice-banner";
 import { ProjectTagsField } from "@/components/tags/project-tags-field";
 import { PersonPickList } from "@/components/team-members/person-pick-list";
 import { ControlledSelectField } from "@/components/time-log/fields/controlled-select-field";
@@ -26,14 +21,18 @@ import { useCreatePullRequest } from "@/hooks/pull-requests/use-create-pull-requ
 import { useSaveDefaultRepository } from "@/hooks/pull-requests/use-save-default-repository";
 import { useLinkableWorkItems } from "@/hooks/work-items/use-linkable-work-items";
 import { useTeamMembers } from "@/hooks/use-team-members";
+import { isLargeCommitMerge } from "@/lib/pull-requests/compare-branches";
 import {
   CREATE_PULL_REQUEST_LABEL,
   CREATE_PULL_REQUEST_PENDING_LABEL,
+  DEFAULT_TARGET_BRANCH,
 } from "@/lib/pull-requests/copy";
-import { isLargeCommitMerge } from "@/lib/pull-requests/compare-branches";
 import type { NewPullRequestQuery } from "@/lib/pull-requests/create-query";
-import { DEFAULT_TARGET_BRANCH } from "@/lib/pull-requests/copy";
 import { pickCreateRepository } from "@/lib/pull-requests/pick-create-repository";
+import {
+  resolveCreateSourceBranch,
+  resolveCreateTargetBranch,
+} from "@/lib/pull-requests/sync-create-branches";
 import {
   workItemDraftDescription,
   workItemDraftTitle,
@@ -41,12 +40,12 @@ import {
 import { isEmptyRichText } from "@/lib/html/html-to-plain-text";
 import { addedWorkItemId } from "@/lib/work-items/linkable-work-item-options";
 
-export type PullRequestCreateFormProps = {
+export type PullRequestCreateFormProps = Readonly<{
   initialQuery: NewPullRequestQuery;
   defaultRepository: string | null;
   project: string | null;
   team: string | null;
-};
+}>;
 
 export function PullRequestCreateForm({
   initialQuery,
@@ -87,18 +86,10 @@ export function PullRequestCreateForm({
   useEffect(() => {
     const names = branches.options.map((option) => option.name);
     if (names.length === 0) return;
-    const fallbackTarget =
-      names.find((name) => name === "develop") ??
-      names.find((name) => name === "main") ??
-      names.find((name) => name === "master") ??
-      names[0] ??
-      "";
-    if (!source || !names.includes(source)) {
-      setSource(names.find((name) => name !== fallbackTarget) ?? names[0] ?? "");
-    }
-    if (!target || !names.includes(target)) {
-      setTarget(fallbackTarget);
-    }
+    const nextTarget = resolveCreateTargetBranch(names, target);
+    const nextSource = resolveCreateSourceBranch(names, source, nextTarget);
+    if (nextSource !== source) setSource(nextSource);
+    if (nextTarget !== target) setTarget(nextTarget);
   }, [branches.options, source, target]);
 
   const repositoryOptions = repositories.names.map((value) => ({ value, label: value }));
@@ -187,113 +178,96 @@ export function PullRequestCreateForm({
         onTargetChange={setTarget}
       />
 
-      {sameBranch ? <NoChangesToMergeNotice /> : null}
-      {compare.loading ? <BranchCompareLoading /> : null}
-      {compare.error ? (
-        <NoticeBanner
-          icon={<Info className="text-destructive mt-0.5 size-4 shrink-0" aria-hidden />}
-        >
-          <p>{compare.error}</p>
-        </NoticeBanner>
-      ) : null}
-      {!compare.loading && !compare.error && !sameBranch && compare.changeset && !hasChanges ? (
-        <NoChangesToMergeNotice />
-      ) : null}
+      <PullRequestCreateComparePanel
+        sameBranch={sameBranch}
+        loading={compare.loading}
+        error={compare.error}
+        hasChangeset={Boolean(compare.changeset)}
+        hasChanges={hasChanges}
+        showLargeCommitWarning={showLargeCommitWarning}
+        compareQuery={compareQuery}
+        commits={commits}
+        files={files}
+        overview={
+          <>
+            <LinkableWorkItemsField
+              items={linkableWorkItems.items}
+              value={linkedWorkItemIds}
+              includeBacklog={includeBacklog}
+              loading={linkableWorkItems.loading}
+              error={linkableWorkItems.error}
+              onChange={handleLinkedWorkItemsChange}
+              onIncludeBacklogChange={setIncludeBacklog}
+            />
 
-      {hasChanges && compareQuery ? (
-        <>
-          {showLargeCommitWarning ? (
-            <LargeCommitMergeNotice key={`${source}->${target}`} />
-          ) : null}
+            <div className="flex flex-col gap-1.5">
+              <Label required htmlFor="pull-request-title">
+                Título
+              </Label>
+              <Input
+                id="pull-request-title"
+                value={title}
+                onChange={(event) => {
+                  setTitleTouched(true);
+                  setTitle(event.target.value);
+                }}
+                placeholder="Título del pull request"
+              />
+            </div>
 
-          <PullRequestCreateCompareTabs
-            fileCount={files.length}
-            commitCount={commits.length}
-            commits={commits}
-            files={files}
-            compareQuery={compareQuery}
-            overview={
-              <>
-                <LinkableWorkItemsField
-                  items={linkableWorkItems.items}
-                  value={linkedWorkItemIds}
-                  includeBacklog={includeBacklog}
-                  loading={linkableWorkItems.loading}
-                  error={linkableWorkItems.error}
-                  onChange={handleLinkedWorkItemsChange}
-                  onIncludeBacklogChange={setIncludeBacklog}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="pull-request-description">Descripción</Label>
+              <RichTextarea
+                value={description}
+                placeholder="Describe el código que se va a revisar"
+                onChange={(html) => {
+                  setDescription(html);
+                  if (!isEmptyRichText(html)) setDescriptionTouched(true);
+                }}
+              />
+            </div>
+
+            <PersonPickList
+              id="optional-reviewers"
+              label="Revisores opcionales"
+              placeholder="Buscar para añadir"
+              members={reviewerMembers}
+              selectedIds={optionalReviewers}
+              loading={people.loading}
+              onChange={setOptionalReviewers}
+            />
+            <PersonPickList
+              id="required-reviewers"
+              label="Revisores requeridos"
+              placeholder="Buscar para añadir"
+              members={reviewerMembers}
+              selectedIds={requiredReviewers}
+              loading={people.loading}
+              onChange={setRequiredReviewers}
+            />
+
+            <ProjectTagsField
+              project={project}
+              value={tags}
+              onChange={setTags}
+              label="Tags"
+            />
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={autoComplete}
+                  onCheckedChange={(checked) => setAutoComplete(checked === true)}
                 />
-
-                <div className="flex flex-col gap-1.5">
-                  <Label required htmlFor="pull-request-title">
-                    Título
-                  </Label>
-                  <Input
-                    id="pull-request-title"
-                    value={title}
-                    onChange={(event) => {
-                      setTitleTouched(true);
-                      setTitle(event.target.value);
-                    }}
-                    placeholder="Título del pull request"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="pull-request-description">Descripción</Label>
-                  <RichTextarea
-                    value={description}
-                    placeholder="Describe el código que se va a revisar"
-                    onChange={(html) => {
-                      setDescription(html);
-                      if (!isEmptyRichText(html)) setDescriptionTouched(true);
-                    }}
-                  />
-                </div>
-
-                <PersonPickList
-                  id="optional-reviewers"
-                  label="Revisores opcionales"
-                  placeholder="Buscar para añadir"
-                  members={reviewerMembers}
-                  selectedIds={optionalReviewers}
-                  loading={people.loading}
-                  onChange={setOptionalReviewers}
-                />
-                <PersonPickList
-                  id="required-reviewers"
-                  label="Revisores requeridos"
-                  placeholder="Buscar para añadir"
-                  members={reviewerMembers}
-                  selectedIds={requiredReviewers}
-                  loading={people.loading}
-                  onChange={setRequiredReviewers}
-                />
-
-                <ProjectTagsField
-                  project={project}
-                  value={tags}
-                  onChange={setTags}
-                  label="Tags"
-                />
-
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={autoComplete}
-                      onCheckedChange={(checked) => setAutoComplete(checked === true)}
-                    />
-                    Completar automáticamente al aprobar
-                  </label>
-                  <Button type="submit" disabled={!canSubmit}>
-                    {creating ? CREATE_PULL_REQUEST_PENDING_LABEL : CREATE_PULL_REQUEST_LABEL}
-                  </Button>
-                </div>
-              </>
-            }
-          />
-        </>
-      ) : null}
+                Completar automáticamente al aprobar
+              </label>
+              <Button type="submit" disabled={!canSubmit}>
+                {creating ? CREATE_PULL_REQUEST_PENDING_LABEL : CREATE_PULL_REQUEST_LABEL}
+              </Button>
+            </div>
+          </>
+        }
+      />
     </form>
   );
 }

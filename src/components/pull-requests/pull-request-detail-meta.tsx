@@ -6,9 +6,9 @@ import { PullRequestRepoBadge } from "@/components/pull-requests/pull-request-re
 import { PersonLabel } from "@/components/team-members/person-label";
 import type { PullRequestDetail } from "@/lib/pull-requests/detail-types";
 
-export type PullRequestDetailMetaProps = {
+export type PullRequestDetailMetaProps = Readonly<{
   detail: PullRequestDetail;
-};
+}>;
 
 export function PullRequestDetailMeta({ detail }: PullRequestDetailMetaProps) {
   return (

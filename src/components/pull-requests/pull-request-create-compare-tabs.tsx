@@ -11,14 +11,14 @@ import { PullRequestTabCount } from "@/components/pull-requests/pull-request-tab
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { GitCommit, GitFileChange } from "@/lib/git/changeset";
 
-export type PullRequestCreateCompareTabsProps = {
+export type PullRequestCreateCompareTabsProps = Readonly<{
   fileCount: number;
   commitCount: number;
   commits: readonly GitCommit[];
   files: readonly GitFileChange[];
   compareQuery: ChangesetExplorerQuery;
   overview: ReactNode;
-};
+}>;
 
 export function PullRequestCreateCompareTabs({
   fileCount,

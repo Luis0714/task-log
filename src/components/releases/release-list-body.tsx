@@ -4,17 +4,16 @@ import { ReleaseEmpty } from "@/components/releases/release-empty";
 import { ReleaseList } from "@/components/releases/release-list";
 import { ReleaseListSkeleton } from "@/components/releases/release-list-skeleton";
 import { NoticeBanner } from "@/components/shared/notice-banner";
-import { RELEASE_LIST_ERROR } from "@/lib/releases/copy";
 import type { ReleaseListItem, ReleaseStage } from "@/lib/releases/types";
 
-export type ReleaseListBodyProps = {
+export type ReleaseListBodyProps = Readonly<{
   items: readonly ReleaseListItem[];
   loading: boolean;
   error: string | null;
   hasActiveFilters: boolean;
   disabled?: boolean;
   onApprove?: (item: ReleaseListItem, stage: ReleaseStage) => void;
-};
+}>;
 
 export function ReleaseListBody({
   items,
@@ -31,7 +30,7 @@ export function ReleaseListBody({
       <NoticeBanner
         icon={<Info className="text-destructive mt-0.5 size-4 shrink-0" aria-hidden />}
       >
-        <p>{error || RELEASE_LIST_ERROR}</p>
+        <p>{error}</p>
       </NoticeBanner>
     );
   }

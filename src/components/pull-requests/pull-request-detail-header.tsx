@@ -9,14 +9,14 @@ import { Button } from "@/components/ui/button";
 import { PULL_REQUEST_BACK_TO_LIST_LABEL } from "@/lib/pull-requests/copy";
 import type { PullRequestDetail } from "@/lib/pull-requests/detail-types";
 
-export type PullRequestDetailHeaderProps = {
+export type PullRequestDetailHeaderProps = Readonly<{
   detail: PullRequestDetail;
   pending: boolean;
   onVote: (vote: number) => void;
   onAbandon: () => Promise<boolean>;
   onReactivate: () => void;
   onCancelAutoComplete: () => void;
-};
+}>;
 
 export function PullRequestDetailHeader({
   detail,

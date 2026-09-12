@@ -1,10 +1,10 @@
 import { DiffStat } from "@/components/git/diff-stat";
 
-export type ChangesetSummaryProps = {
+export type ChangesetSummaryProps = Readonly<{
   fileCount: number;
   additions: number;
   deletions: number;
-};
+}>;
 
 export function ChangesetSummary({
   fileCount,

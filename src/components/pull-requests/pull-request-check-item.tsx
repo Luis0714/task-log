@@ -15,9 +15,9 @@ const CHECK_ICON_CLASS = {
   pending: "text-muted-foreground",
 } as const;
 
-export type PullRequestCheckItemProps = {
+export type PullRequestCheckItemProps = Readonly<{
   check: PullRequestDetailCheck;
-};
+}>;
 
 export function PullRequestCheckItem({ check }: PullRequestCheckItemProps) {
   const Icon = CHECK_ICON[check.state];

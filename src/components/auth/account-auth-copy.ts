@@ -21,8 +21,8 @@ export const ACCOUNT_AUTH_COPY = {
     microsoftAdminHint: "Si algo falla, avisa a tu administrador de TI.",
   },
   superAdmin: {
-    passwordLabel: "Contraseña",
-    passwordPlaceholder: "Tu contraseña de Super Admin",
+    secretLabel: "Clave de Super Admin",
+    secretPlaceholder: "Escribe tu clave de Super Admin",
     submit: "Entrar",
     submitting: "Entrando…",
     hint: "Entras con tu conexión de Azure DevOps ya guardada. No pasa por Microsoft.",
