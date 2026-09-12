@@ -36,15 +36,16 @@ export async function applyContextDefaultsToSession(
   }
 
   if (!connection?.project?.trim()) {
-    return { connection, changed: false };
+    const repositoryChanged = await applyMissingRepository(session, userId);
+    return { connection, changed: repositoryChanged };
   }
 
-  if (hasBothDefaults(session)) {
-    return { connection, changed: false };
-  }
+  const projectTeamChanged = hasBothDefaults(session)
+    ? false
+    : applyMissingDefaults(session, connection);
+  const repositoryChanged = await applyMissingRepository(session, userId);
 
-  const changed = applyMissingDefaults(session, connection);
-  return { connection, changed };
+  return { connection, changed: projectTeamChanged || repositoryChanged };
 }
 
 function hasBothDefaults(session: TaskPilotSessionData): boolean {
@@ -72,4 +73,20 @@ function applyMissingDefaults(
   }
 
   return changed;
+}
+
+async function applyMissingRepository(
+  session: TaskPilotSessionData,
+  userId: string,
+): Promise<boolean> {
+  if (session.defaultRepository?.trim()) return false;
+
+  try {
+    const repository = await getRepositories().adoConnection.loadDefaultRepository(userId);
+    if (!repository) return false;
+    session.defaultRepository = repository;
+    return true;
+  } catch {
+    return false;
+  }
 }

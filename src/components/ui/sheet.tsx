@@ -41,6 +41,7 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  ref,
   ...props
 }: Readonly<SheetPrimitive.Popup.Props & {
   side?: "top" | "right" | "bottom" | "left"
@@ -50,6 +51,7 @@ function SheetContent({
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Popup
+        ref={ref}
         data-slot="sheet-content"
         data-side={side}
         className={cn(

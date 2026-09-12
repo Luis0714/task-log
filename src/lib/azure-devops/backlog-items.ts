@@ -15,8 +15,8 @@ const BACKLOG_ITEMS_LIMIT = 500;
 
 export type BacklogWorkItemsFilters = {
   assignee?: string;
-  /** Acota a las áreas del equipo (mismo alcance que su backlog en Azure Boards). */
   team?: string;
+  workItemType?: string;
 };
 
 export async function listBacklogWorkItems(
@@ -25,9 +25,10 @@ export async function listBacklogWorkItems(
 ): Promise<AdoWorkItemOption[]> {
   const processProfile = await resolveProcessProfile(auth);
 
+  const workItemType = filters.workItemType?.trim() || processProfile.backlogItemType;
   const conditions = [
     `[System.TeamProject] = '${escapeWiqlString(auth.project)}'`,
-    `[System.WorkItemType] = '${escapeWiqlString(processProfile.backlogItemType)}'`,
+    `[System.WorkItemType] = '${escapeWiqlString(workItemType)}'`,
     `[System.State] <> 'Removed'`,
   ];
 
@@ -41,7 +42,7 @@ export async function listBacklogWorkItems(
   const ids = await runWiqlIdsQuery(
     auth,
     buildWiqlIdsQuery(conditions, "[System.ChangedDate] DESC"),
-    "No se pudieron consultar las historias del backlog.",
+    "No se pudieron consultar los work items del backlog.",
   );
   return fetchWorkItemsByIds(auth, ids.slice(0, BACKLOG_ITEMS_LIMIT));
 }

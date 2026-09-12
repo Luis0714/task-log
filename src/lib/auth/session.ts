@@ -13,6 +13,7 @@ export type TaskPilotSessionData = {
   defaultOrg?: string;
   defaultProject?: string;
   defaultTeam?: string;
+  defaultRepository?: string;
   userRole?: string;
 };
 
@@ -26,6 +27,7 @@ export function clearSessionCredentials(session: TaskPilotSessionData): void {
   session.defaultOrg = undefined;
   session.defaultProject = undefined;
   session.defaultTeam = undefined;
+  session.defaultRepository = undefined;
   session.userRole = undefined;
 }
 

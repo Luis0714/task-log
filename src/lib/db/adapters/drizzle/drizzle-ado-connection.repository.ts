@@ -42,4 +42,30 @@ export const drizzleAdoConnectionRepository: AdoConnectionRepository = {
 
     return rows.length > 0;
   },
+
+  async loadDefaultRepository(userId) {
+    const rows = await getDb()
+      .select({ defaultRepository: adoConnections.defaultRepository })
+      .from(adoConnections)
+      .where(eq(adoConnections.userId, userId))
+      .limit(1);
+
+    return rows[0]?.defaultRepository?.trim() || null;
+  },
+
+  async updateDefaultRepository(userId, repository) {
+    const value = repository.trim();
+    if (!value) return false;
+
+    const rows = await getDb()
+      .update(adoConnections)
+      .set({
+        defaultRepository: value,
+        updatedAt: new Date(),
+      })
+      .where(eq(adoConnections.userId, userId))
+      .returning({ id: adoConnections.id });
+
+    return rows.length > 0;
+  },
 };

@@ -1,0 +1,37 @@
+import { NextResponse } from "next/server";
+
+import { loginSuperAdmin } from "@/lib/auth/login-super-admin";
+import { parseAuthPostBody } from "@/lib/auth/parse-auth-post-body";
+import { requireUserPersistence } from "@/lib/auth/require-user-persistence";
+import { USER_MESSAGES } from "@/lib/errors/user-messages";
+import { loginSuperAdminBodySchema } from "@/lib/schemas/login-super-admin";
+
+export const dynamic = "force-dynamic";
+
+export async function POST(req: Request) {
+  const gate = requireUserPersistence();
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.message }, { status: gate.status });
+  }
+
+  const parsed = await parseAuthPostBody(req, loginSuperAdminBodySchema);
+  if (!parsed.ok) return parsed.response;
+
+  try {
+    const result = await loginSuperAdmin(parsed.data);
+    if (!result.ok) {
+      const status = result.reason === "invalid_credentials" ? 401 : 400;
+      return NextResponse.json(
+        { error: result.message, reason: result.reason },
+        { status },
+      );
+    }
+
+    return NextResponse.json({ ok: true, landing: result.landing });
+  } catch {
+    return NextResponse.json(
+      { error: USER_MESSAGES.genericRetry },
+      { status: 500 },
+    );
+  }
+}

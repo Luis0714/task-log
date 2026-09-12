@@ -1,5 +1,6 @@
 "use client";
 
+import { SUPER_ADMIN_ROLE } from "@/lib/auth/super-admin-role";
 import { cn } from "@/lib/utils";
 
 const ROLES = [
@@ -9,6 +10,7 @@ const ROLES = [
   { slug: "product_owner", label: "Product Owner" },
   { slug: "product_manager", label: "Product Manager" },
   { slug: "designer", label: "Designer" },
+  { slug: SUPER_ADMIN_ROLE, label: "Super Admin" },
 ] as const;
 
 type RoleSelectorProps = {

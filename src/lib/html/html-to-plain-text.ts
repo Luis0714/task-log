@@ -16,6 +16,10 @@ export function htmlToPlainText(html: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
+export function isEmptyRichText(html: string): boolean {
+  return htmlToPlainText(html).length === 0;
+}
+
 function decodeHtmlEntities(value: string): string {
   return value
     .replace(/&nbsp;/gi, " ")

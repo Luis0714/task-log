@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth/hydrate-oauth-session";
 import { getRepositories } from "@/lib/db";
 import type { TaskPilotSessionData } from "@/lib/auth/session";
+import { toAssignableLoginRole } from "@/lib/auth/super-admin-role";
 
 export class EntraSignInIncompleteError extends Error {
   constructor() {
@@ -44,7 +45,8 @@ export type CompleteEntraOAuthResult = {
 export async function completeEntraOAuthSignIn(
   input: CompleteEntraOAuthInput,
 ): Promise<CompleteEntraOAuthResult> {
-  const { session, refreshToken, accessToken, email, selectedRole } = input;
+  const { session, refreshToken, accessToken, email } = input;
+  const selectedRole = toAssignableLoginRole(input.selectedRole);
 
   const adoProfile = await fetchAdoProfile(accessToken);
   const profile: AdoProfileSession = adoProfile;

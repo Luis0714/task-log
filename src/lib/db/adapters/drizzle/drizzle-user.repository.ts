@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 
 import { getDb } from "@/lib/db/client";
 import type { UpdateUserInput, UserRepository } from "@/lib/db/ports/user.repository.port";
@@ -55,5 +55,27 @@ export const drizzleUserRepository: UserRepository = {
     if (data.isActive !== undefined) set.isActive = data.isActive;
     if (Object.keys(set).length === 0) return;
     await getDb().update(users).set(set).where(eq(users.id, userId));
+  },
+
+  async findActiveSuperAdmin(email) {
+    const filters = [
+      eq(roles.name, "super_admin"),
+      eq(users.isActive, true),
+    ];
+    const normalizedEmail = email?.trim().toLowerCase();
+    if (normalizedEmail) {
+      filters.push(sql`lower(${users.email}) = ${normalizedEmail}`);
+    }
+
+    const rows = await getDb()
+      .select({ id: users.id })
+      .from(users)
+      .innerJoin(roles, eq(users.roleId, roles.id))
+      .where(and(...filters))
+      .orderBy(asc(users.createdAt))
+      .limit(1);
+
+    const row = rows[0];
+    return row ? { userId: row.id } : null;
   },
 };

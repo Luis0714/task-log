@@ -1,0 +1,48 @@
+"use client";
+
+import { useMemo } from "react";
+
+import { TagsCombobox } from "@/components/tags/tags-combobox";
+import { useProjectWorkItemTags } from "@/hooks/tags/use-project-work-item-tags";
+import { mergeWorkItemTagOptions } from "@/lib/tags/tag-combobox-option";
+
+export type ProjectTagsFieldProps = {
+  project: string | null;
+  value: readonly string[];
+  onChange: (value: string[]) => void;
+  label?: string;
+  disabled?: boolean;
+};
+
+export function ProjectTagsField({
+  project,
+  value,
+  onChange,
+  label = "Tags",
+  disabled = false,
+}: ProjectTagsFieldProps) {
+  const { tags, loading, error } = useProjectWorkItemTags(project ?? "");
+  const options = useMemo(
+    () => mergeWorkItemTagOptions(tags, value),
+    [tags, value],
+  );
+
+  return (
+    <div className="space-y-2">
+      <TagsCombobox
+        id="project-tags"
+        label={label}
+        options={options}
+        value={Array.isArray(value) ? value : []}
+        loading={loading}
+        multiple
+        disabled={disabled || Boolean(error)}
+        placeholder="Selecciona tags…"
+        searchPlaceholder="Buscar tag…"
+        emptyMessage="No se encontraron tags en el proyecto."
+        onValueChange={onChange}
+      />
+      {error ? <p className="text-destructive text-sm">{error}</p> : null}
+    </div>
+  );
+}
