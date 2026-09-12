@@ -24,12 +24,10 @@
 [data-sileo-description] {
   overflow-wrap: anywhere;
   white-space: normal;
-}
-
-[data-sileo-viewport][data-theme="light"] [data-sileo-description] {
-  color: rgb(0 0 0 / 0.7);
+  /* Sileo pinta la descripción en blanco sobre pastilla clara. */
+  color: #17171c !important;
 }
 
 [data-sileo-viewport][data-theme="dark"] [data-sileo-description] {
-  color: rgb(255 255 255 / 0.75);
+  color: #f4f4f5 !important;
 }

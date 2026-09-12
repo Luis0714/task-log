@@ -15,17 +15,15 @@ function Toaster({
   ...props
 }: Readonly<ToasterProps>) {
   const { resolvedTheme } = useTheme();
-  const isLight = resolvedTheme === "light";
 
   return (
     <SileoToaster
-      theme={isLight ? "light" : "dark"}
+      theme={resolvedTheme === "dark" ? "dark" : "light"}
       offset={offset}
       options={{
         ...options,
         styles: {
           title: "normal-case! min-w-0! truncate!",
-          description: isLight ? "text-black/70!" : "text-white/75!",
           ...options?.styles,
         },
       }}

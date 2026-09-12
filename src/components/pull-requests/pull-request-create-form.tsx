@@ -24,6 +24,7 @@ import {
   CREATE_PULL_REQUEST_MOCK_TOAST_DESCRIPTION,
   CREATE_PULL_REQUEST_MOCK_TOAST_TITLE,
 } from "@/lib/pull-requests/copy";
+import { buildMockChangeset } from "@/lib/git/mock-changeset";
 import {
   compareBranchesMock,
   isLargeCommitMerge,
@@ -88,8 +89,14 @@ export function PullRequestCreateForm({
 
   const comparison = compareBranchesMock({ repository, source, target });
   const hasChanges = comparison?.hasChanges ?? false;
+  const aheadCount = comparison?.aheadCount ?? 0;
+  const fileCount = comparison?.fileCount ?? 0;
   const showLargeCommitWarning = Boolean(comparison && isLargeCommitMerge(comparison));
   const canSubmit = Boolean(repository && source && target && title.trim() && hasChanges);
+  const changeset = useMemo(() => {
+    if (!hasChanges) return null;
+    return buildMockChangeset(source, target, aheadCount, fileCount);
+  }, [aheadCount, fileCount, hasChanges, source, target]);
 
   const reviewerMembers = useMemo(() => people.members, [people.members]);
 
@@ -152,6 +159,8 @@ export function PullRequestCreateForm({
           <PullRequestCreateCompareTabs
             fileCount={comparison.fileCount}
             commitCount={comparison.aheadCount}
+            commits={changeset?.commits ?? []}
+            files={changeset?.files ?? []}
             overview={
               <>
                 <LinkableWorkItemsField
