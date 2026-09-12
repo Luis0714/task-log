@@ -14,3 +14,6 @@ export const NO_CHANGES_TO_MERGE_MESSAGE =
 export const LARGE_COMMIT_MERGE_MESSAGE =
   "Este pull request fusionará más de 100 commits. Revisa origen y destino para confirmar que es intencional.";
 export const DESCRIPTION_MAX_LENGTH = 4000;
+export const DEFAULT_TARGET_BRANCH = "main";
+export const PULL_REQUEST_LIST_ERROR =
+  "No se pudieron cargar los pull requests de Azure DevOps.";

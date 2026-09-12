@@ -39,6 +39,7 @@ export type PullRequestListItem = {
   commentCount: number;
   changedFileCount: number;
   updatedAt: string;
+  hasConflicts: boolean;
   isMine: boolean;
   needsMyReview: boolean;
   repository: string;
@@ -48,9 +49,11 @@ export type PullRequestListItem = {
 export type PullRequestFilterState = {
   search: string;
   tab: PullRequestTab;
+  repository: string;
   createdBy: string;
   assignedTo: string;
 };
 
 export const ANY_FILTER_VALUE = "anyone";
 export const ME_FILTER_VALUE = "me";
+export const ALL_REPOSITORIES_VALUE = "all";

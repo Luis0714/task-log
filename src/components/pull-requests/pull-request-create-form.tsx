@@ -32,7 +32,7 @@ import {
 } from "@/lib/pull-requests/copy";
 import { isLargeCommitMerge } from "@/lib/pull-requests/compare-branches";
 import type { NewPullRequestQuery } from "@/lib/pull-requests/create-query";
-import { DEFAULT_TARGET_BRANCH } from "@/lib/pull-requests/mock-git-refs";
+import { DEFAULT_TARGET_BRANCH } from "@/lib/pull-requests/copy";
 import { pickCreateRepository } from "@/lib/pull-requests/pick-create-repository";
 import {
   workItemDraftDescription,

@@ -3,9 +3,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { PullRequestEmpty } from "@/components/pull-requests/pull-request-empty";
 import { PullRequestFiltersPanel } from "@/components/pull-requests/pull-request-filters-panel";
-import { PullRequestList } from "@/components/pull-requests/pull-request-list";
+import { PullRequestListBody } from "@/components/pull-requests/pull-request-list-body";
 import { PullRequestQuickTabs } from "@/components/pull-requests/pull-request-quick-tabs";
 import { SearchField } from "@/components/shared/search-field";
 import { Button } from "@/components/ui/button";
@@ -21,6 +20,8 @@ export type PullRequestListDesktopLayoutProps = PullRequestFiltersFormModel & {
   title: string;
   description: string;
   items: readonly PullRequestListItem[];
+  loading: boolean;
+  error: string | null;
   hasActiveFilters: boolean;
   notice?: ReactNode;
   createHref: string;
@@ -32,9 +33,12 @@ export function PullRequestListDesktopLayout({
   title,
   description,
   items,
+  loading,
+  error,
   hasActiveFilters,
   filters,
   people,
+  repositories,
   notice,
   createHref,
   onChange,
@@ -55,7 +59,12 @@ export function PullRequestListDesktopLayout({
       />
 
       <div className="flex min-h-0 flex-1 gap-4">
-        <PullRequestFiltersPanel filters={filters} people={people} onChange={onChange} />
+        <PullRequestFiltersPanel
+          filters={filters}
+          people={people}
+          repositories={repositories}
+          onChange={onChange}
+        />
 
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <SearchField
@@ -66,11 +75,13 @@ export function PullRequestListDesktopLayout({
           />
           <PullRequestQuickTabs value={filters.tab} onValueChange={onTabChange} />
           {notice}
-          {items.length === 0 ? (
-            <PullRequestEmpty hasActiveFilters={hasActiveFilters} />
-          ) : (
-            <PullRequestList items={items} density="comfortable" />
-          )}
+          <PullRequestListBody
+            items={items}
+            density="comfortable"
+            loading={loading}
+            error={error}
+            hasActiveFilters={hasActiveFilters}
+          />
         </div>
       </div>
     </div>

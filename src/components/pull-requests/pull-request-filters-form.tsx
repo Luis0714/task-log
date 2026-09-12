@@ -6,13 +6,18 @@ import {
   buildPersonFilterOptions,
   personFilterDisplayValue,
 } from "@/lib/pull-requests/person-filter-options";
-import { ME_FILTER_VALUE } from "@/lib/pull-requests/types";
+import { ALL_REPOSITORIES_VALUE, ME_FILTER_VALUE } from "@/lib/pull-requests/types";
 
 export function PullRequestFiltersForm({
   filters,
   people,
+  repositories,
   onChange,
 }: PullRequestFiltersFormModel) {
+  const repositoryOptions = [
+    { value: ALL_REPOSITORIES_VALUE, label: "Todos los repositorios" },
+    ...repositories.names.map((name) => ({ value: name, label: name })),
+  ];
   const createdByOptions = buildPersonFilterOptions(people.members);
   const assignedToOptions = buildPersonFilterOptions(people.members, [
     { value: ME_FILTER_VALUE, label: "Tú (asignado)" },
@@ -20,6 +25,19 @@ export function PullRequestFiltersForm({
 
   return (
     <div className="flex flex-col gap-4">
+      <ControlledSelectField
+        label="Repositorio"
+        value={filters.repository}
+        placeholder="Todos los repositorios"
+        options={repositoryOptions}
+        loading={repositories.loading}
+        displayValue={
+          filters.repository === ALL_REPOSITORIES_VALUE
+            ? "Todos los repositorios"
+            : filters.repository
+        }
+        onValueChange={(repository) => onChange({ ...filters, repository })}
+      />
       <ControlledSelectField
         label="Creado por"
         value={filters.createdBy}

@@ -3,9 +3,8 @@
 import type { ReactNode } from "react";
 import { Plus, SlidersHorizontal } from "lucide-react";
 
-import { PullRequestEmpty } from "@/components/pull-requests/pull-request-empty";
 import { PullRequestFiltersSheet } from "@/components/pull-requests/pull-request-filters-sheet";
-import { PullRequestList } from "@/components/pull-requests/pull-request-list";
+import { PullRequestListBody } from "@/components/pull-requests/pull-request-list-body";
 import { PullRequestQuickTabs } from "@/components/pull-requests/pull-request-quick-tabs";
 import { CreateFab } from "@/components/shared/create-fab";
 import { SearchField } from "@/components/shared/search-field";
@@ -22,6 +21,8 @@ export type PullRequestListMobileLayoutProps = PullRequestFiltersFormModel & {
   title: string;
   description: string;
   items: readonly PullRequestListItem[];
+  loading: boolean;
+  error: string | null;
   hasActiveFilters: boolean;
   notice?: ReactNode;
   createHref: string;
@@ -35,9 +36,12 @@ export function PullRequestListMobileLayout({
   title,
   description,
   items,
+  loading,
+  error,
   hasActiveFilters,
   filters,
   people,
+  repositories,
   notice,
   createHref,
   filtersOpen,
@@ -72,11 +76,13 @@ export function PullRequestListMobileLayout({
 
       {notice}
 
-      {items.length === 0 ? (
-        <PullRequestEmpty hasActiveFilters={hasActiveFilters} />
-      ) : (
-        <PullRequestList items={items} density="compact" />
-      )}
+      <PullRequestListBody
+        items={items}
+        density="compact"
+        loading={loading}
+        error={error}
+        hasActiveFilters={hasActiveFilters}
+      />
 
       <CreateFab
         label={CREATE_PULL_REQUEST_FAB_LABEL}
@@ -89,6 +95,7 @@ export function PullRequestListMobileLayout({
         onOpenChange={onFiltersOpenChange}
         filters={filters}
         people={people}
+        repositories={repositories}
         onChange={onChange}
       />
     </div>

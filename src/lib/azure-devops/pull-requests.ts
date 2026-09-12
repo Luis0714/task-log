@@ -6,6 +6,34 @@ import { adoListErrorMessage } from "@/lib/azure-devops/wiql";
 import { normalizeGitBranchName } from "@/lib/azure-devops/git";
 
 const API_VERSION = "7.1";
+const LIST_TOP = 200;
+
+export type AdoPullRequestLifecycle = "active" | "completed" | "abandoned";
+
+export type AdoListedIdentity = {
+  id?: string;
+  displayName?: string;
+};
+
+export type AdoListedReviewer = AdoListedIdentity & {
+  vote?: number;
+  isRequired?: boolean;
+};
+
+export type AdoListedPullRequest = {
+  pullRequestId?: number;
+  title?: string;
+  status?: string | number;
+  isDraft?: boolean;
+  creationDate?: string;
+  closedDate?: string;
+  createdBy?: AdoListedIdentity;
+  reviewers?: AdoListedReviewer[];
+  sourceRefName?: string;
+  targetRefName?: string;
+  mergeStatus?: string | number;
+  repository?: { name?: string; project?: { name?: string } };
+};
 
 export type AdoPullRequestReviewer = {
   id: string;
@@ -129,4 +157,25 @@ export async function enablePullRequestAutoComplete(
   if (!res.ok) {
     throw new Error(await readAdoError(res, "No se pudo activar el autocompletado."));
   }
+}
+
+export async function listAdoPullRequests(
+  auth: AdoCallerAuth,
+  status: AdoPullRequestLifecycle,
+  repositoryId?: string,
+): Promise<AdoListedPullRequest[]> {
+  const query = new URLSearchParams({
+    "searchCriteria.status": status,
+    $top: String(LIST_TOP),
+    "api-version": API_VERSION,
+  });
+  if (repositoryId) query.set("searchCriteria.repositoryId", repositoryId);
+  const url = `${adoProjectBase(auth)}/_apis/git/pullrequests?${query}`;
+  const res = await adoFetch(auth, url);
+  if (!res.ok) {
+    throw new Error(await readAdoError(res, "No se pudieron listar los pull requests."));
+  }
+
+  const payload = (await res.json()) as { value?: AdoListedPullRequest[] };
+  return payload.value ?? [];
 }

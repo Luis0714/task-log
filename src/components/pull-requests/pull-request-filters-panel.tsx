@@ -11,6 +11,7 @@ export type PullRequestFiltersPanelProps = PullRequestFiltersFormModel & {
 export function PullRequestFiltersPanel({
   filters,
   people,
+  repositories,
   onChange,
   className,
 }: PullRequestFiltersPanelProps) {
@@ -22,7 +23,12 @@ export function PullRequestFiltersPanel({
       )}
     >
       <p className="font-heading mb-4 text-sm font-medium">Filtros</p>
-      <PullRequestFiltersForm filters={filters} people={people} onChange={onChange} />
+      <PullRequestFiltersForm
+        filters={filters}
+        people={people}
+        repositories={repositories}
+        onChange={onChange}
+      />
     </aside>
   );
 }

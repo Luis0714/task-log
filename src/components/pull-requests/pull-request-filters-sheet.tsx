@@ -14,11 +14,17 @@ export function PullRequestFiltersSheet({
   onOpenChange,
   filters,
   people,
+  repositories,
   onChange,
 }: PullRequestFiltersSheetProps) {
   return (
     <FiltersBottomSheet open={open} onOpenChange={onOpenChange} title="Filtros">
-      <PullRequestFiltersForm filters={filters} people={people} onChange={onChange} />
+      <PullRequestFiltersForm
+        filters={filters}
+        people={people}
+        repositories={repositories}
+        onChange={onChange}
+      />
     </FiltersBottomSheet>
   );
 }

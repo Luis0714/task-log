@@ -1,4 +1,5 @@
 import {
+  ALL_REPOSITORIES_VALUE,
   ANY_FILTER_VALUE,
   ME_FILTER_VALUE,
   type PullRequestFilterState,
@@ -26,6 +27,12 @@ export function filterPullRequests(
 ): PullRequestListItem[] {
   return items.filter((item) => {
     if (!matchesSearch(item, filters.search)) return false;
+    if (
+      filters.repository !== ALL_REPOSITORIES_VALUE &&
+      item.repository !== filters.repository
+    ) {
+      return false;
+    }
     if (!matchesTab(item, filters.tab)) return false;
     if (filters.createdBy !== ANY_FILTER_VALUE && item.author !== filters.createdBy) {
       return false;

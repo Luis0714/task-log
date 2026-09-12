@@ -4,7 +4,9 @@ import { FileDiff, MessageSquare } from "lucide-react";
 
 import { PullRequestId } from "@/components/pull-requests/pull-request-id";
 import { PullRequestMineBadge } from "@/components/pull-requests/pull-request-mine-badge";
+import { PullRequestNeedsReviewBadge } from "@/components/pull-requests/pull-request-needs-review-badge";
 import { PullRequestRepoBadge } from "@/components/pull-requests/pull-request-repo-badge";
+import { PullRequestConflictBadge } from "@/components/pull-requests/pull-request-conflict-badge";
 import { PullRequestStatusBadge } from "@/components/pull-requests/pull-request-status-badge";
 import { PullRequestTitle } from "@/components/pull-requests/pull-request-title";
 import { GitBranchPair } from "@/components/shared/git-branch-pair";
@@ -23,12 +25,9 @@ export type PullRequestCardProps = {
 
 export function PullRequestCard({
   item,
-  density = "compact",
   onSelect,
   className,
 }: PullRequestCardProps) {
-  const comfortable = density === "comfortable";
-
   return (
     <button
       type="button"
@@ -44,15 +43,18 @@ export function PullRequestCard({
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
             <PullRequestId id={item.id} />
-            {comfortable ? <PullRequestRepoBadge repository={item.repository} /> : null}
+            <PullRequestRepoBadge repository={item.repository} />
           </div>
           <PullRequestTitle title={item.title} className="mt-1" />
         </div>
-        <PullRequestStatusBadge
-          status={item.status}
-          summary={item.approvalSummary}
-          className="max-w-36"
-        />
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          {item.hasConflicts ? <PullRequestConflictBadge /> : null}
+          <PullRequestStatusBadge
+            status={item.status}
+            summary={item.approvalSummary}
+            className="max-w-36"
+          />
+        </div>
       </div>
 
       <GitBranchPair
@@ -63,17 +65,22 @@ export function PullRequestCard({
 
       <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <PersonLabel name={item.author} className="min-w-0 flex-1 text-muted-foreground" />
-        <IconCount
-          icon={<MessageSquare />}
-          count={item.commentCount}
-          label="Comentarios"
-        />
-        <IconCount
-          icon={<FileDiff />}
-          count={item.changedFileCount}
-          label="Archivos modificados"
-        />
+        {item.commentCount > 0 ? (
+          <IconCount
+            icon={<MessageSquare />}
+            count={item.commentCount}
+            label="Comentarios"
+          />
+        ) : null}
+        {item.changedFileCount > 0 ? (
+          <IconCount
+            icon={<FileDiff />}
+            count={item.changedFileCount}
+            label="Archivos modificados"
+          />
+        ) : null}
         <RelativeTimeLabel isoDate={item.updatedAt} />
+        {item.needsMyReview ? <PullRequestNeedsReviewBadge /> : null}
         {item.isMine ? <PullRequestMineBadge /> : null}
       </div>
     </button>

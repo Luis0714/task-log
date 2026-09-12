@@ -7,8 +7,14 @@ export type PullRequestFilterPeople = {
   membersError: string | null;
 };
 
+export type PullRequestFilterRepos = {
+  names: readonly string[];
+  loading: boolean;
+};
+
 export type PullRequestFiltersFormModel = {
   filters: PullRequestFilterState;
   people: PullRequestFilterPeople;
+  repositories: PullRequestFilterRepos;
   onChange: (next: PullRequestFilterState) => void;
 };
