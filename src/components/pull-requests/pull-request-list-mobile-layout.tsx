@@ -10,6 +10,7 @@ import { CreateFab } from "@/components/shared/create-fab";
 import { SearchField } from "@/components/shared/search-field";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
+import { cn } from "@/lib/utils";
 import {
   CREATE_PULL_REQUEST_FAB_LABEL,
   PULL_REQUEST_SEARCH_PLACEHOLDER,
@@ -50,8 +51,15 @@ export function PullRequestListMobileLayout({
   onSearchChange,
   onTabChange,
 }: PullRequestListMobileLayoutProps) {
+  const showCreateFab = !loading && !error && items.length > 0;
+
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col gap-4 pb-20 md:hidden">
+    <div
+      className={cn(
+        "flex min-h-0 w-full flex-1 flex-col gap-4 md:hidden",
+        showCreateFab && "pb-20",
+      )}
+    >
       <PageHeader title={title} description={description} />
 
       <div className="flex items-center gap-2">
@@ -82,13 +90,16 @@ export function PullRequestListMobileLayout({
         loading={loading}
         error={error}
         hasActiveFilters={hasActiveFilters}
+        createHref={createHref}
       />
 
-      <CreateFab
-        label={CREATE_PULL_REQUEST_FAB_LABEL}
-        icon={<Plus />}
-        href={createHref}
-      />
+      {showCreateFab ? (
+        <CreateFab
+          label={CREATE_PULL_REQUEST_FAB_LABEL}
+          icon={<Plus />}
+          href={createHref}
+        />
+      ) : null}
 
       <PullRequestFiltersSheet
         open={filtersOpen}
