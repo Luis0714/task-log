@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 
 import { PullRequestVoteMenu } from "@/components/pull-requests/pull-request-vote-menu";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,7 +18,7 @@ export type PullRequestDetailActionsProps = {
   detail: PullRequestDetail;
   pending: boolean;
   onVote: (vote: number) => void;
-  onAbandon: () => void;
+  onAbandon: () => Promise<boolean>;
   onReactivate: () => void;
   onCancelAutoComplete: () => void;
 };
@@ -29,6 +31,8 @@ export function PullRequestDetailActions({
   onReactivate,
   onCancelAutoComplete,
 }: PullRequestDetailActionsProps) {
+  const [abandonOpen, setAbandonOpen] = useState(false);
+
   if (detail.lifecycleStatus === "completed") {
     return (
       <div className="flex flex-wrap items-center justify-end gap-2">
@@ -72,15 +76,20 @@ export function PullRequestDetailActions({
           <span className="sr-only">Más acciones</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            onClick={() => {
-              if (window.confirm("¿Abandonar este pull request?")) onAbandon();
-            }}
-          >
+          <DropdownMenuItem onClick={() => setAbandonOpen(true)}>
             Abandonar
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <ConfirmDialog
+        open={abandonOpen}
+        onOpenChange={setAbandonOpen}
+        title="Abandonar pull request"
+        description="El pull request se marcará como abandonado en Azure DevOps. Podrás reactivarlo después."
+        confirmLabel="Abandonar"
+        confirmVariant="destructive"
+        onConfirm={onAbandon}
+      />
     </div>
   );
 }

@@ -28,23 +28,29 @@ export function PullRequestCopyHelpButton({
   });
 
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            disabled={copying}
-            aria-label={COPY_PR_HELP_MESSAGE_LABEL}
-            className={cn("text-muted-foreground relative z-10", className)}
-            onClick={() => void copyHelpMessage()}
-          />
-        }
-      >
-        <Send aria-hidden />
-      </TooltipTrigger>
-      <TooltipContent>{COPY_PR_HELP_MESSAGE_LABEL}</TooltipContent>
-    </Tooltip>
+    <span
+      className={cn("relative z-10 inline-flex", className)}
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              disabled={copying}
+              aria-label={COPY_PR_HELP_MESSAGE_LABEL}
+              className="text-muted-foreground"
+              onClick={() => void copyHelpMessage()}
+            />
+          }
+        >
+          <Send aria-hidden />
+        </TooltipTrigger>
+        <TooltipContent>{COPY_PR_HELP_MESSAGE_LABEL}</TooltipContent>
+      </Tooltip>
+    </span>
   );
 }

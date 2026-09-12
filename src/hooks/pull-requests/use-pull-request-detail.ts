@@ -65,7 +65,7 @@ export function usePullRequestDetail({
 
   const mutate = useCallback(
     async (mutation: PullRequestMutation, successMessage: string) => {
-      if (!projectName || pending) return;
+      if (!projectName || pending) return false;
       setPending(true);
       try {
         const result = await updatePullRequestRequest(
@@ -78,12 +78,14 @@ export function usePullRequestDetail({
         );
         if (!result.ok) {
           appToast.error(result.error);
-          return;
+          return false;
         }
         setSnapshot({ key: requestKey, detail: result.detail, error: null });
         appToast.success(successMessage);
+        return true;
       } catch (cause) {
         appToast.fromError(cause, "No se pudo actualizar el pull request.");
+        return false;
       } finally {
         setPending(false);
       }

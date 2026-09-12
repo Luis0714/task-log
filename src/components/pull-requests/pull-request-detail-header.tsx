@@ -13,7 +13,7 @@ export type PullRequestDetailHeaderProps = {
   detail: PullRequestDetail;
   pending: boolean;
   onVote: (vote: number) => void;
-  onAbandon: () => void;
+  onAbandon: () => Promise<boolean>;
   onReactivate: () => void;
   onCancelAutoComplete: () => void;
 };

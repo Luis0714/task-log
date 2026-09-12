@@ -1,24 +1,5 @@
-/* Sileo mide el título en nowrap y ensancha la pastilla.
- * Un mensaje largo + posición top-right recorta el inicio fuera del viewport. */
-[data-sileo-toast] {
-  max-width: min(var(--sileo-width), calc(100vw - 2rem));
-}
-
-[data-sileo-header] {
-  max-width: min(var(--_pw, 100%), 100%);
-}
-
-[data-sileo-header-stack],
-[data-sileo-header-inner] {
-  min-width: 0;
-  max-width: 100%;
-}
-
 /* La pastilla de Sileo es clara en ambos temas. El texto debe ser oscuro. */
 [data-sileo-title] {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   text-transform: none;
   color: #17171c !important;
 }
@@ -37,4 +18,14 @@
 [data-sileo-viewport][data-theme="dark"] [data-sileo-description],
 [data-sileo-viewport][data-theme="light"] [data-sileo-description] {
   color: #3f3f46 !important;
+}
+
+@media (max-width: 767px) {
+  [data-sileo-viewport] {
+    z-index: 80;
+  }
+
+  [data-sileo-toast] {
+    max-width: calc(100vw - 2rem);
+  }
 }
