@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { reviewTimeAverages } from "@/lib/review-times/averages";
 import { buildReviewTimeRows } from "@/lib/review-times/build-review-time-rows";
 import { formatOpenDuration, formatReviewDuration, durationBetween } from "@/lib/review-times/duration";
+import { workingDurationMs } from "@/lib/review-times/working-duration";
 import { filterReviewTimeRows } from "@/lib/review-times/filter-rows";
 import { mapThreadSignals } from "@/lib/review-times/map-review-signals";
 import { currentMonthKey, isCreatedInMonth, monthWindow } from "@/lib/review-times/month";
@@ -194,13 +195,25 @@ describe("resolveReadyAt", () => {
   });
 });
 
+const ZONE = "America/Bogota";
+
 describe("duración y promedios", () => {
-  it("formatea minutos, horas y días", () => {
+  it("formatea minutos, horas y jornadas de 8:00 a 17:00", () => {
     expect(formatReviewDuration(45 * 60_000)).toBe("45 min");
     expect(formatReviewDuration((6 * 60 + 20) * 60_000)).toBe("6 h 20 min");
-    expect(formatReviewDuration((26 * 60) * 60_000)).toBe("1 d 2 h");
+    expect(formatReviewDuration(11 * 60 * 60_000)).toBe("1 d 2 h");
     expect(formatOpenDuration(5 * 60 * 60_000)).toBe("Lleva 5 h");
-    expect(durationBetween("2026-10-20T18:00:00.000Z", "2026-10-20T14:00:00.000Z")).toBe(0);
+    expect(durationBetween("2026-10-20T18:00:00.000Z", "2026-10-20T14:00:00.000Z", ZONE)).toBe(0);
+  });
+
+  it("ignora noches y fines de semana", () => {
+    const fridayFourPm = "2026-10-16T21:00:00.000Z";
+    const mondayNineAm = "2026-10-19T14:00:00.000Z";
+    expect(workingDurationMs(fridayFourPm, mondayNineAm, ZONE)).toBe(2 * 60 * 60_000);
+
+    const tuesdayEvening = "2026-10-20T23:00:00.000Z";
+    const wednesdayMorning = "2026-10-21T13:30:00.000Z";
+    expect(workingDurationMs(tuesdayEvening, wednesdayMorning, ZONE)).toBe(30 * 60_000);
   });
 
   it("ignora filas abiertas y las que no tienen revisor obligatorio", () => {
@@ -218,7 +231,7 @@ describe("duración y promedios", () => {
         reviewedAt: "2026-10-20T15:00:00.000Z",
         approvedAt: "2026-10-20T15:00:00.000Z",
       }),
-    ]);
+    ], ZONE);
 
     expect(averages.reviewCount).toBe(1);
     expect(averages.approvalCount).toBe(1);

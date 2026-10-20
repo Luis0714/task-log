@@ -24,17 +24,22 @@ function AverageCard({
 
 export function ReviewTimesSummary({ averages }: Readonly<{ averages: ReviewTimeAverages }>) {
   return (
-    <div className="grid gap-3 md:grid-cols-2">
-      <AverageCard
-        title="Tiempo promedio de revisión"
-        ms={averages.reviewMs}
-        detail={subtitle(averages.reviewCount, "revisión", "revisiones")}
-      />
-      <AverageCard
-        title="Tiempo promedio de aprobación"
-        ms={averages.approvalMs}
-        detail={subtitle(averages.approvalCount, "aprobación", "aprobaciones")}
-      />
+    <div className="flex flex-col gap-2">
+      <div className="grid gap-3 md:grid-cols-2">
+        <AverageCard
+          title="Tiempo promedio de revisión"
+          ms={averages.reviewMs}
+          detail={subtitle(averages.reviewCount, "revisión", "revisiones")}
+        />
+        <AverageCard
+          title="Tiempo promedio de aprobación"
+          ms={averages.approvalMs}
+          detail={subtitle(averages.approvalCount, "aprobación", "aprobaciones")}
+        />
+      </div>
+      <p className="text-muted-foreground text-xs">
+        Los tiempos cuentan solo de lunes a viernes, entre las 8:00 y las 17:00.
+      </p>
     </div>
   );
 }

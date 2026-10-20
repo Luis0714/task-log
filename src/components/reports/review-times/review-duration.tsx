@@ -12,7 +12,7 @@ export type ReviewDurationProps = {
 
 export function ReviewDuration({ start, end, openFrom, timeZone }: Readonly<ReviewDurationProps>) {
   if (start && end) {
-    const ms = durationBetween(start, end);
+    const ms = durationBetween(start, end, timeZone);
     return (
       <div className="min-w-0">
         <p className="text-sm font-semibold tabular-nums">
@@ -26,7 +26,7 @@ export function ReviewDuration({ start, end, openFrom, timeZone }: Readonly<Revi
   }
 
   if (openFrom) {
-    const ms = durationBetween(openFrom, new Date().toISOString());
+    const ms = durationBetween(openFrom, new Date().toISOString(), timeZone);
     return (
       <div className="min-w-0">
         <p className="text-sm font-semibold tabular-nums">

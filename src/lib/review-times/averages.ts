@@ -7,21 +7,28 @@ export function averageMilliseconds(values: readonly number[]): number | null {
   return Math.round(total / values.length);
 }
 
-function collect(rows: readonly ReviewTimeRow[], endOf: (row: ReviewTimeRow) => string | null): number[] {
+function collect(
+  rows: readonly ReviewTimeRow[],
+  timeZone: string,
+  endOf: (row: ReviewTimeRow) => string | null,
+): number[] {
   const values: number[] = [];
   for (const row of rows) {
     if (!row.reviewerId) continue;
     const end = endOf(row);
     if (!end) continue;
-    const ms = durationBetween(row.createdAt, end);
+    const ms = durationBetween(row.createdAt, end, timeZone);
     if (ms != null) values.push(ms);
   }
   return values;
 }
 
-export function reviewTimeAverages(rows: readonly ReviewTimeRow[]): ReviewTimeAverages {
-  const review = collect(rows, (row) => row.reviewedAt);
-  const approval = collect(rows, (row) => row.approvedAt);
+export function reviewTimeAverages(
+  rows: readonly ReviewTimeRow[],
+  timeZone: string,
+): ReviewTimeAverages {
+  const review = collect(rows, timeZone, (row) => row.reviewedAt);
+  const approval = collect(rows, timeZone, (row) => row.approvedAt);
   return {
     reviewMs: averageMilliseconds(review),
     reviewCount: review.length,

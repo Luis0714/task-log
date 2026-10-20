@@ -26,7 +26,11 @@ const EMPTY_FILTERS: ReviewTimeLocalFilters = {
   search: "",
 };
 
-export function useReviewTimesReport(project: string, initialMonthKey: string) {
+export function useReviewTimesReport(
+  project: string,
+  initialMonthKey: string,
+  timeZone: string,
+) {
   const [monthKey, setMonthKey] = useState(initialMonthKey);
   const [repositories, setRepositories] = useState<string[]>([]);
   const [applied, setApplied] = useState<ReviewTimesQueryState | null>(null);
@@ -44,7 +48,7 @@ export function useReviewTimesReport(project: string, initialMonthKey: string) {
     () => (report ? filterReviewTimeRows(report.rows, filters) : []),
     [filters, report],
   );
-  const averages = useMemo(() => reviewTimeAverages(rows), [rows]);
+  const averages = useMemo(() => reviewTimeAverages(rows, timeZone), [rows, timeZone]);
 
   const generate = async () => {
     request.current?.abort();

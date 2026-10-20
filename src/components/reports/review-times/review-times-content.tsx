@@ -30,7 +30,7 @@ export function ReviewTimesContent({
   initialMonthKey,
   timeZone,
 }: Readonly<ReviewTimesContentProps>) {
-  const report = useReviewTimesReport(project, initialMonthKey);
+  const report = useReviewTimesReport(project, initialMonthKey, timeZone);
   const sourceRows = useMemo(() => report.report?.rows ?? [], [report.report]);
   const reviewerOptions = useMemo(
     () => distinctPeople(sourceRows, (row) => row.reviewerId, (row) => row.reviewerName),
