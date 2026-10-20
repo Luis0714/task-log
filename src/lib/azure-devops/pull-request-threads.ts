@@ -46,6 +46,7 @@ export type AdoPullRequestThread = {
   isDeleted?: boolean;
   comments?: AdoPullRequestThreadComment[];
   threadContext?: AdoPullRequestThreadContext | null;
+  properties?: Record<string, unknown>;
 };
 
 async function readAdoError(res: Response, fallback: string): Promise<string> {

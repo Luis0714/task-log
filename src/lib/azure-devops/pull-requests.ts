@@ -6,7 +6,6 @@ import { adoListErrorMessage } from "@/lib/azure-devops/wiql";
 import { normalizeGitBranchName } from "@/lib/azure-devops/git";
 
 const API_VERSION = "7.1";
-const LIST_TOP = 200;
 
 export type AdoPullRequestLifecycle = "active" | "completed" | "abandoned";
 
@@ -32,7 +31,11 @@ export type AdoListedPullRequest = {
   sourceRefName?: string;
   targetRefName?: string;
   mergeStatus?: string | number;
-  repository?: { name?: string; project?: { name?: string } };
+  repository?: {
+    id?: string;
+    name?: string;
+    project?: { id?: string; name?: string };
+  };
 };
 
 export type AdoPullRequestReviewer = {
@@ -159,17 +162,27 @@ export async function enablePullRequestAutoComplete(
   }
 }
 
+export type PullRequestCreatedWindow = {
+  minTime: string;
+  maxTime: string;
+};
+
+export const PULL_REQUEST_LIST_TOP = 200;
+
 export async function listAdoPullRequests(
   auth: AdoCallerAuth,
   status: AdoPullRequestLifecycle,
   repositoryId?: string,
+  window?: PullRequestCreatedWindow,
 ): Promise<AdoListedPullRequest[]> {
   const query = new URLSearchParams({
     "searchCriteria.status": status,
-    $top: String(LIST_TOP),
+    $top: String(PULL_REQUEST_LIST_TOP),
     "api-version": API_VERSION,
   });
   if (repositoryId) query.set("searchCriteria.repositoryId", repositoryId);
+  if (window?.minTime) query.set("searchCriteria.minTime", window.minTime);
+  if (window?.maxTime) query.set("searchCriteria.maxTime", window.maxTime);
   const url = `${adoProjectBase(auth)}/_apis/git/pullrequests?${query}`;
   const res = await adoFetch(auth, url);
   if (!res.ok) {

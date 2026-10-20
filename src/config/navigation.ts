@@ -95,6 +95,12 @@ const ALL_NAVIGATION: NavGroupConfig[] = [
         icon: TbReportSearch,
         roles: ["super_admin", "product_manager", "product_owner", "scrum_master"],
       },
+      {
+        href: "/reports/review-times",
+        label: "Tiempos de revisión",
+        icon: GitPullRequest,
+        roles: ["super_admin", "product_manager", "product_owner", "scrum_master"],
+      },
     ],
   },
   {

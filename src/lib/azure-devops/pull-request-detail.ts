@@ -71,10 +71,12 @@ export type AdoPullRequestStatus = {
 export type AdoPolicyEvaluation = {
   evaluationId?: string;
   status?: string;
+  completedDate?: string;
   configuration?: {
     displayName?: string;
     isEnabled?: boolean;
-    type?: { displayName?: string };
+    isBlocking?: boolean;
+    type?: { id?: string; displayName?: string };
   };
 };
 
