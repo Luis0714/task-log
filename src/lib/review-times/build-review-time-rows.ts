@@ -7,7 +7,12 @@ import type {
   ReviewTimePullRequest,
   ReviewTimeRow,
 } from "@/lib/review-times/types";
-import { NO_REQUIRED_REVIEWER_NAME } from "@/lib/review-times/types";
+
+const NO_REVIEWER_MARK = "—";
+
+function requiredReviewers(pullRequest: ReviewTimePullRequest) {
+  return pullRequest.reviewers.filter((reviewer) => reviewer.isRequired && reviewer.id.trim());
+}
 
 export function buildReviewTimeRows(input: {
   pullRequest: ReviewTimePullRequest;
@@ -15,7 +20,7 @@ export function buildReviewTimeRows(input: {
   policies: readonly PolicySignal[];
 }): ReviewTimeRow[] {
   const ready = resolveReadyAt(input.policies);
-  const required = input.pullRequest.reviewers.filter((reviewer) => reviewer.isRequired && reviewer.id.trim());
+  const reviewers = requiredReviewers(input.pullRequest);
   const shared = {
     pullRequestId: input.pullRequest.id,
     title: input.pullRequest.title,
@@ -26,14 +31,15 @@ export function buildReviewTimeRows(input: {
     readyAt: ready.readyAt,
     readyState: ready.readyState,
     isDraft: input.pullRequest.isDraft,
+    isCompleted: input.pullRequest.isCompleted,
   };
 
-  if (required.length === 0) {
+  if (reviewers.length === 0) {
     return [
       {
         ...shared,
         reviewerId: null,
-        reviewerName: NO_REQUIRED_REVIEWER_NAME,
+        reviewerName: NO_REVIEWER_MARK,
         reviewedAt: null,
         approvedAt: null,
         status: "pending_review",
@@ -41,8 +47,8 @@ export function buildReviewTimeRows(input: {
     ];
   }
 
-  return required.map((reviewer) => {
-    const milestones = resolveReviewMilestones(input.signals, reviewer.id);
+  return reviewers.map((reviewer) => {
+    const milestones = resolveReviewMilestones(input.signals, reviewer);
     return {
       ...shared,
       reviewerId: reviewer.id,

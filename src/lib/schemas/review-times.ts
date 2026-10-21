@@ -24,6 +24,7 @@ export const reviewTimeRowSchema = z.object({
   readyAt: z.string().nullable(),
   readyState: z.enum(READY_STATES),
   isDraft: z.boolean(),
+  isCompleted: z.boolean(),
   status: z.enum(REVIEW_TIME_STATUSES),
 });
 
@@ -32,6 +33,7 @@ export const reviewTimesResponseSchema = z.object({
   truncated: z.boolean(),
   currentUserId: z.string().nullable(),
   monthKey: z.string(),
+  organization: z.string(),
 });
 
 export type ReviewTimesResponse = z.infer<typeof reviewTimesResponseSchema>;

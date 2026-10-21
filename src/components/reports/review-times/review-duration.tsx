@@ -2,40 +2,40 @@
 
 import { durationBetween, formatOpenDuration, formatReviewDuration } from "@/lib/review-times/duration";
 import { formatReviewDate } from "@/lib/review-times/format-review-date";
+import type { ReviewTimeRow } from "@/lib/review-times/types";
 
-export type ReviewDurationProps = {
-  start: string | null;
-  end: string | null;
-  openFrom: string | null;
-  timeZone: string;
-};
+export function ReviewDate({
+  iso,
+  timeZone,
+}: Readonly<{ iso: string | null; timeZone: string }>) {
+  if (!iso) return <span className="text-muted-foreground">—</span>;
+  return <span className="tabular-nums">{formatReviewDate(iso, timeZone)}</span>;
+}
 
-export function ReviewDuration({ start, end, openFrom, timeZone }: Readonly<ReviewDurationProps>) {
-  if (start && end) {
-    const ms = durationBetween(start, end, timeZone);
+export function ApprovalDuration({
+  row,
+  timeZone,
+}: Readonly<{ row: ReviewTimeRow; timeZone: string }>) {
+  if (row.approvedAt) {
+    const ms = durationBetween(row.createdAt, row.approvedAt, timeZone);
     return (
-      <div className="min-w-0">
-        <p className="text-sm font-semibold tabular-nums">
-          {ms == null ? "—" : formatReviewDuration(ms)}
-        </p>
-        <p className="text-muted-foreground text-xs">
-          {formatReviewDate(start, timeZone)} → {formatReviewDate(end, timeZone)}
-        </p>
-      </div>
+      <span className="font-semibold tabular-nums">
+        {ms == null ? "—" : formatReviewDuration(ms)}
+      </span>
     );
   }
 
-  if (openFrom) {
-    const ms = durationBetween(openFrom, new Date().toISOString(), timeZone);
-    return (
-      <div className="min-w-0">
-        <p className="text-sm font-semibold tabular-nums">
-          {ms == null ? "—" : formatOpenDuration(ms)}
-        </p>
-        <p className="text-muted-foreground text-xs">desde {formatReviewDate(openFrom, timeZone)}</p>
-      </div>
-    );
+  if (!row.reviewerId) {
+    if (row.isCompleted) {
+      return <span className="font-semibold tabular-nums">{formatReviewDuration(0)}</span>;
+    }
+    return <span className="text-muted-foreground">—</span>;
   }
 
-  return <span className="text-muted-foreground">—</span>;
+  const waiting = durationBetween(row.createdAt, new Date().toISOString(), timeZone);
+  return (
+    <span className="font-semibold tabular-nums">
+      {waiting == null ? "—" : formatOpenDuration(waiting)}
+    </span>
+  );
 }

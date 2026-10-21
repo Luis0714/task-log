@@ -24,6 +24,7 @@ function pullRequest(): ReviewTimePullRequest {
     authorName: "Sergio",
     createdAt: "2026-10-20T14:10:00.000Z",
     isDraft: false,
+    isCompleted: false,
     reviewers: [{ id: REVIEWER, displayName: "Ana Gómez", isRequired: true }],
   };
 }
@@ -43,6 +44,7 @@ function row(overrides: Partial<ReviewTimeRow> = {}): ReviewTimeRow {
     readyAt: null,
     readyState: "none",
     isDraft: false,
+    isCompleted: false,
     status: "approved",
     ...overrides,
   };
@@ -128,6 +130,7 @@ describe("mapThreadSignals", () => {
     expect(signals).toEqual([
       {
         authorId: REVIEWER,
+        authorName: "",
         publishedAt: "2026-10-20T18:00:00.000Z",
         kind: "vote",
         vote: 10,
@@ -238,6 +241,26 @@ describe("duración y promedios", () => {
     expect(averages.reviewMs).toBe(4 * 60 * 60_000);
     expect(averages.approvalMs).toBe(6 * 60 * 60_000);
   });
+
+  it("cuenta 0 cuando el pull request se completó sin revisor obligatorio", () => {
+    const averages = reviewTimeAverages(
+      [
+        row({
+          reviewerId: null,
+          reviewerName: "—",
+          reviewedAt: null,
+          approvedAt: null,
+          isCompleted: true,
+          status: "pending_review",
+        }),
+      ],
+      ZONE,
+    );
+
+    expect(averages.reviewCount).toBe(0);
+    expect(averages.approvalCount).toBe(1);
+    expect(averages.approvalMs).toBe(0);
+  });
 });
 
 describe("filterReviewTimeRows", () => {
@@ -298,7 +321,33 @@ describe("buildReviewTimeRows", () => {
     expect(rows[1]?.approvedAt).toBeNull();
   });
 
-  it("deja una fila vacía cuando no hay revisor obligatorio", () => {
+  it("no toma comentarios de Sonar como revisor cuando no hay requerido", () => {
+    const rows = buildReviewTimeRows({
+      pullRequest: {
+        ...pullRequest(),
+        isCompleted: true,
+        reviewers: [],
+      },
+      signals: [
+        {
+          authorId: "sonar",
+          authorName: "Miguel Angel Barrera Ospina",
+          publishedAt: "2026-10-20T18:00:00.000Z",
+          kind: "text",
+          vote: null,
+        },
+      ],
+      policies: [],
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.reviewerName).toBe("—");
+    expect(rows[0]?.reviewerId).toBeNull();
+    expect(rows[0]?.approvedAt).toBeNull();
+    expect(rows[0]?.isCompleted).toBe(true);
+  });
+
+  it("deja la rayita cuando no hay revisor obligatorio", () => {
     const [built] = buildReviewTimeRows({
       pullRequest: { ...pullRequest(), reviewers: [] },
       signals: [],
@@ -306,7 +355,7 @@ describe("buildReviewTimeRows", () => {
     });
 
     expect(built?.reviewerId).toBeNull();
-    expect(built?.reviewerName).toBe("Sin revisor obligatorio");
+    expect(built?.reviewerName).toBe("—");
     expect(built?.reviewedAt).toBeNull();
   });
 });

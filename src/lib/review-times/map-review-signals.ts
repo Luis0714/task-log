@@ -5,7 +5,7 @@ import type {
   ReviewThreadSource,
 } from "@/lib/review-times/types";
 
-const VOTE_CONTENT = /^voted\s+(-?\d+)$/i;
+const VOTE_CONTENT = /voted\s+(-?\d+)/i;
 
 function propertyValue(properties: Record<string, unknown> | undefined, key: string): string | null {
   const raw = properties?.[key];
@@ -31,10 +31,21 @@ function voteFromContent(content: string | undefined): number | null {
   return Number.isFinite(vote) ? vote : null;
 }
 
+function namedProperty(properties: Record<string, unknown> | undefined, suffix: string): string | null {
+  if (!properties) return null;
+  const needle = suffix.toLowerCase();
+  for (const [key, value] of Object.entries(properties)) {
+    if (!key.toLowerCase().endsWith(needle)) continue;
+    const read = propertyValue({ [key]: value }, key);
+    if (read != null) return read;
+  }
+  return null;
+}
+
 function threadVote(thread: ReviewThreadSource): number | null {
-  const threadType = propertyValue(thread.properties, "CodeReviewThreadType");
+  const threadType = namedProperty(thread.properties, "CodeReviewThreadType");
   if (threadType !== "VoteUpdate") return null;
-  const raw = propertyValue(thread.properties, "CodeReviewVoteResult");
+  const raw = namedProperty(thread.properties, "CodeReviewVoteResult");
   if (raw == null) return null;
   const vote = Number(raw);
   return Number.isFinite(vote) ? vote : null;
@@ -58,7 +69,8 @@ export function mapThreadSignals(threads: readonly ReviewThreadSource[]): Review
 
     for (const comment of thread.comments ?? []) {
       if (comment.isDeleted) continue;
-      const authorId = comment.author?.id?.trim();
+      const authorId = comment.author?.id?.trim() || comment.author?.uniqueName?.trim();
+      const authorName = comment.author?.displayName?.trim() || "";
       const at = publishedAt(comment);
       if (!authorId || !at) continue;
 
@@ -66,11 +78,11 @@ export function mapThreadSignals(threads: readonly ReviewThreadSource[]): Review
       const kind = commentKind(comment.commentType);
       const vote = propertyVote ?? contentVote;
       if (vote != null && (kind === "system" || contentVote != null)) {
-        signals.push({ authorId, publishedAt: at, kind: "vote", vote });
+        signals.push({ authorId, authorName, publishedAt: at, kind: "vote", vote });
         continue;
       }
       if (kind === "text") {
-        signals.push({ authorId, publishedAt: at, kind: "text", vote: null });
+        signals.push({ authorId, authorName, publishedAt: at, kind: "text", vote: null });
       }
     }
   }

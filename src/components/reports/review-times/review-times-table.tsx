@@ -1,33 +1,39 @@
 "use client";
 
-import Link from "next/link";
-
-import {
-  readyLabel,
-  ReviewTimesRowCard,
-  segmentOf,
-} from "@/components/reports/review-times/review-times-row-card";
-import { ReviewDuration } from "@/components/reports/review-times/review-duration";
+import { ReviewTimesColumnHint } from "@/components/reports/review-times/review-times-column-hint";
+import { ApprovalDuration, ReviewDate } from "@/components/reports/review-times/review-duration";
+import { ReviewTimesPullRequestLink } from "@/components/reports/review-times/review-times-pull-request-link";
+import { ReviewTimesRowCard } from "@/components/reports/review-times/review-times-row-card";
 import { StickyTable, type StickyTableColumn } from "@/components/ui/sticky-table";
-import { buildPullRequestDetailHref } from "@/lib/pull-requests/detail-path";
 import type { ReviewTimeRow } from "@/lib/review-times/types";
 
-function columns(timeZone: string): StickyTableColumn<ReviewTimeRow>[] {
+function columns(
+  timeZone: string,
+  organization: string,
+  project: string,
+): StickyTableColumn<ReviewTimeRow>[] {
   return [
     {
       key: "pullRequest",
-      header: "Pull request",
+      header: (
+        <ReviewTimesColumnHint
+          label="Pull request"
+          hint="Título del cambio. El enlace abre el pull request en Azure DevOps."
+        />
+      ),
+      headerClassName: "whitespace-normal",
       widthClass: "min-w-56",
       sticky: { leftClass: "left-0", isLast: true },
       bodyClassName: "whitespace-normal",
       render: (row) => (
         <div className="min-w-0">
-          <Link
-            href={buildPullRequestDetailHref(row.pullRequestId, row.repository)}
-            className="font-medium hover:underline"
-          >
-            #{row.pullRequestId} {row.title}
-          </Link>
+          <ReviewTimesPullRequestLink
+            organization={organization}
+            project={project}
+            repository={row.repository}
+            pullRequestId={row.pullRequestId}
+            title={row.title}
+          />
           <p className="text-muted-foreground text-xs">
             {row.authorName}
             {row.isDraft ? " · Borrador" : ""} · {row.repository}
@@ -37,34 +43,69 @@ function columns(timeZone: string): StickyTableColumn<ReviewTimeRow>[] {
     },
     {
       key: "reviewer",
-      header: "Revisor",
+      header: (
+        <ReviewTimesColumnHint
+          label="Revisor"
+          hint="Persona obligatoria del repositorio. Si no hay, se muestra —."
+        />
+      ),
+      headerClassName: "whitespace-normal",
       widthClass: "min-w-36",
       bodyClassName: "whitespace-normal",
-      render: (row) => row.reviewerName,
+      render: (row) =>
+        row.reviewerId ? (
+          row.reviewerName
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
     },
     {
-      key: "review",
-      header: "Creación → revisión",
-      widthClass: "min-w-44",
-      render: (row) => <ReviewDuration {...segmentOf(row, "review")} timeZone={timeZone} />,
+      key: "created",
+      header: (
+        <ReviewTimesColumnHint
+          label="Fecha de creación"
+          hint="Momento en que se abrió el pull request."
+        />
+      ),
+      headerClassName: "whitespace-normal",
+      widthClass: "min-w-36",
+      render: (row) => <ReviewDate iso={row.createdAt} timeZone={timeZone} />,
     },
     {
-      key: "approval",
-      header: "Revisión → aprobación",
-      widthClass: "min-w-44",
-      render: (row) => <ReviewDuration {...segmentOf(row, "approval")} timeZone={timeZone} />,
+      key: "reviewed",
+      header: (
+        <ReviewTimesColumnHint
+          label="Fecha de revisión"
+          hint="Primer comentario o voto del revisor obligatorio."
+        />
+      ),
+      headerClassName: "whitespace-normal",
+      widthClass: "min-w-36",
+      render: (row) => <ReviewDate iso={row.reviewedAt} timeZone={timeZone} />,
     },
     {
-      key: "total",
-      header: "Creación → aprobación",
-      widthClass: "min-w-44",
-      render: (row) => <ReviewDuration {...segmentOf(row, "total")} timeZone={timeZone} />,
-    },
-    {
-      key: "ready",
-      header: "Listo para aprobar",
+      key: "approved",
+      header: (
+        <ReviewTimesColumnHint
+          label="Fecha de aprobación"
+          hint="Primera vez que el revisor obligatorio aprobó, o aprobó con sugerencias."
+        />
+      ),
+      headerClassName: "whitespace-normal",
       widthClass: "min-w-40",
-      render: (row) => readyLabel(row, timeZone),
+      render: (row) => <ReviewDate iso={row.approvedAt} timeZone={timeZone} />,
+    },
+    {
+      key: "duration",
+      header: (
+        <ReviewTimesColumnHint
+          label="Duración hasta aprobación"
+          hint="Tiempo de lunes a viernes, de 8:00 a 17:00, desde la creación hasta la aprobación. Si se completó sin revisor, es 0 min."
+        />
+      ),
+      headerClassName: "whitespace-normal",
+      widthClass: "min-w-40",
+      render: (row) => <ApprovalDuration row={row} timeZone={timeZone} />,
     },
   ];
 }
@@ -72,15 +113,29 @@ function columns(timeZone: string): StickyTableColumn<ReviewTimeRow>[] {
 export function ReviewTimesTable({
   rows,
   timeZone,
-}: Readonly<{ rows: readonly ReviewTimeRow[]; timeZone: string }>) {
+  organization,
+  project,
+}: Readonly<{
+  rows: readonly ReviewTimeRow[];
+  timeZone: string;
+  organization: string;
+  project: string;
+}>) {
   return (
     <StickyTable
-      columns={columns(timeZone)}
+      columns={columns(timeZone, organization, project)}
       rows={rows}
       getRowKey={(row) => `${row.pullRequestId}-${row.reviewerId ?? "none"}`}
-      tableClassName="min-w-[68rem]"
+      tableClassName="min-w-[56rem]"
       rowClassName="border-b last:border-b-0"
-      renderCard={(row) => <ReviewTimesRowCard row={row} timeZone={timeZone} />}
+      renderCard={(row) => (
+        <ReviewTimesRowCard
+          row={row}
+          timeZone={timeZone}
+          organization={organization}
+          project={project}
+        />
+      )}
     />
   );
 }

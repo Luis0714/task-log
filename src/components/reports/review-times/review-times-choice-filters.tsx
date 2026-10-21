@@ -76,6 +76,9 @@ export function ReviewTimesChoiceFilters({
             "repositorios",
           )}
           disabled={repositoryOptions.length === 0}
+          searchable
+          searchPlaceholder="Buscar repositorio…"
+          emptySearchMessage="Sin repositorios que coincidan."
         />
       ) : null}
       <MultiCheckboxFilter

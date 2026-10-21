@@ -10,8 +10,6 @@ export const READY_STATES = ["none", "pending", "ready"] as const;
 
 export type ReadyState = (typeof READY_STATES)[number];
 
-export const NO_REQUIRED_REVIEWER_NAME = "Sin revisor obligatorio";
-
 export type ReviewTimeReviewer = {
   id: string;
   displayName: string;
@@ -26,11 +24,13 @@ export type ReviewTimePullRequest = {
   authorName: string;
   createdAt: string;
   isDraft: boolean;
+  isCompleted: boolean;
   reviewers: readonly ReviewTimeReviewer[];
 };
 
 export type ReviewCommentSignal = {
   authorId: string;
+  authorName?: string;
   publishedAt: string;
   kind: "text" | "vote";
   vote: number | null;
@@ -58,6 +58,7 @@ export type ReviewTimeRow = {
   readyAt: string | null;
   readyState: ReadyState;
   isDraft: boolean;
+  isCompleted: boolean;
   status: ReviewTimeStatus;
 };
 
@@ -84,7 +85,7 @@ export type ReviewThreadSource = {
     publishedDate?: string;
     lastUpdatedDate?: string;
     content?: string;
-    author?: { id?: string };
+    author?: { id?: string; displayName?: string; uniqueName?: string };
   }>;
 };
 

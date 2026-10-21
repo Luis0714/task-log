@@ -11,10 +11,14 @@ function collect(
   rows: readonly ReviewTimeRow[],
   timeZone: string,
   endOf: (row: ReviewTimeRow) => string | null,
+  countCompletedWithoutReviewer: boolean,
 ): number[] {
   const values: number[] = [];
   for (const row of rows) {
-    if (!row.reviewerId) continue;
+    if (!row.reviewerId) {
+      if (countCompletedWithoutReviewer && row.isCompleted) values.push(0);
+      continue;
+    }
     const end = endOf(row);
     if (!end) continue;
     const ms = durationBetween(row.createdAt, end, timeZone);
@@ -27,8 +31,8 @@ export function reviewTimeAverages(
   rows: readonly ReviewTimeRow[],
   timeZone: string,
 ): ReviewTimeAverages {
-  const review = collect(rows, timeZone, (row) => row.reviewedAt);
-  const approval = collect(rows, timeZone, (row) => row.approvedAt);
+  const review = collect(rows, timeZone, (row) => row.reviewedAt, false);
+  const approval = collect(rows, timeZone, (row) => row.approvedAt, true);
   return {
     reviewMs: averageMilliseconds(review),
     reviewCount: review.length,

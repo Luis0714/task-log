@@ -35,6 +35,7 @@ export type ReviewTimesSnapshot = {
   truncated: boolean;
   currentUserId: string | null;
   monthKey: string;
+  organization: string;
 };
 
 type ListedPage = {
@@ -67,8 +68,9 @@ function mapListedPullRequest(pullRequest: AdoListedPullRequest): ReviewTimePull
     authorName: pullRequest.createdBy?.displayName?.trim() || "Autor",
     createdAt,
     isDraft: Boolean(pullRequest.isDraft),
+    isCompleted: String(pullRequest.status ?? "").toLowerCase() === "completed" || String(pullRequest.status) === "3",
     reviewers: (pullRequest.reviewers ?? []).flatMap((reviewer) => {
-      const reviewerId = reviewer.id?.trim();
+      const reviewerId = reviewer.id?.trim() || reviewer.uniqueName?.trim();
       if (!reviewerId) return [];
       return [
         {
@@ -183,5 +185,6 @@ export async function loadReviewTimes(input: LoadReviewTimesInput): Promise<Revi
     truncated: pages.some((page) => page.truncated),
     currentUserId: profile?.id ?? null,
     monthKey: input.monthKey,
+    organization: auth.organization,
   };
 }

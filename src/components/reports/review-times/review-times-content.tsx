@@ -89,7 +89,12 @@ export function ReviewTimesContent({
         <ReportsTimeLogEmptyState message={emptyMessage} />
       ) : null}
       {report.rows.length > 0 ? (
-        <ReviewTimesTable rows={report.rows} timeZone={timeZone} />
+        <ReviewTimesTable
+          rows={report.rows}
+          timeZone={timeZone}
+          organization={report.report?.organization ?? ""}
+          project={project}
+        />
       ) : null}
     </div>
   );

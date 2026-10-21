@@ -90,6 +90,9 @@ export function ReviewTimesFiltersBar(props: Readonly<ReviewTimesFiltersBarProps
               "repositorios",
             )}
             disabled={props.repositoryOptions.length === 0}
+            searchable
+            searchPlaceholder="Buscar repositorio…"
+            emptySearchMessage="Sin repositorios que coincidan."
           />
         </div>
         <div className="flex gap-2">

@@ -12,6 +12,7 @@ export type AdoPullRequestLifecycle = "active" | "completed" | "abandoned";
 export type AdoListedIdentity = {
   id?: string;
   displayName?: string;
+  uniqueName?: string;
 };
 
 export type AdoListedReviewer = AdoListedIdentity & {

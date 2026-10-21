@@ -1,84 +1,86 @@
-import Link from "next/link";
+"use client";
 
-import { ReviewDuration } from "@/components/reports/review-times/review-duration";
-import { buildPullRequestDetailHref } from "@/lib/pull-requests/detail-path";
-import { formatReviewDate } from "@/lib/review-times/format-review-date";
+import { ReviewTimesColumnHint } from "@/components/reports/review-times/review-times-column-hint";
+import { ApprovalDuration, ReviewDate } from "@/components/reports/review-times/review-duration";
+import { ReviewTimesPullRequestLink } from "@/components/reports/review-times/review-times-pull-request-link";
 import type { ReviewTimeRow } from "@/lib/review-times/types";
-
-export function readyLabel(row: ReviewTimeRow, timeZone: string): string {
-  if (row.readyState === "none") return "Sin pasos automáticos";
-  if (row.readyState === "pending") return "Pendiente";
-  return formatReviewDate(row.readyAt, timeZone) || "Listo";
-}
 
 export function ReviewTimesRowCard({
   row,
   timeZone,
-}: Readonly<{ row: ReviewTimeRow; timeZone: string }>) {
+  organization,
+  project,
+}: Readonly<{
+  row: ReviewTimeRow;
+  timeZone: string;
+  organization: string;
+  project: string;
+}>) {
   return (
     <article className="flex flex-col gap-3">
       <div className="min-w-0">
-        <Link
-          href={buildPullRequestDetailHref(row.pullRequestId, row.repository)}
-          className="font-medium hover:underline"
-        >
-          #{row.pullRequestId} {row.title}
-        </Link>
+        <ReviewTimesPullRequestLink
+          organization={organization}
+          project={project}
+          repository={row.repository}
+          pullRequestId={row.pullRequestId}
+          title={row.title}
+        />
         <p className="text-muted-foreground text-xs">
           {row.authorName} · revisor {row.reviewerName}
           {row.isDraft ? " · Borrador" : ""}
         </p>
         <p className="text-muted-foreground text-xs">{row.repository}</p>
       </div>
-      <DurationLine label="Creación → revisión" row={row} kind="review" timeZone={timeZone} />
-      <DurationLine label="Revisión → aprobación" row={row} kind="approval" timeZone={timeZone} />
-      <DurationLine label="Creación → aprobación" row={row} kind="total" timeZone={timeZone} />
-      <p className="text-muted-foreground text-xs">
-        Listo para aprobar{" "}
-        <span className="text-foreground">{readyLabel(row, timeZone)}</span>
-      </p>
+      <dl className="flex flex-col gap-1.5 text-sm">
+        <DateLine
+          label="Fecha de creación"
+          hint="Momento en que se abrió el pull request."
+          iso={row.createdAt}
+          timeZone={timeZone}
+        />
+        <DateLine
+          label="Fecha de revisión"
+          hint="Primer comentario o voto del revisor obligatorio."
+          iso={row.reviewedAt}
+          timeZone={timeZone}
+        />
+        <DateLine
+          label="Fecha de aprobación"
+          hint="Primera vez que el revisor obligatorio aprobó, o aprobó con sugerencias."
+          iso={row.approvedAt}
+          timeZone={timeZone}
+        />
+        <div className="flex items-start justify-between gap-3">
+          <dt className="min-w-0">
+            <ReviewTimesColumnHint
+              label="Duración hasta aprobación"
+              hint="Tiempo de lunes a viernes, de 8:00 a 17:00, desde la creación hasta la aprobación. Si se completó sin revisor, es 0 min."
+            />
+          </dt>
+          <dd>
+            <ApprovalDuration row={row} timeZone={timeZone} />
+          </dd>
+        </div>
+      </dl>
     </article>
   );
 }
 
-function DurationLine({
+function DateLine({
   label,
-  row,
-  kind,
+  hint,
+  iso,
   timeZone,
-}: Readonly<{
-  label: string;
-  row: ReviewTimeRow;
-  kind: "review" | "approval" | "total";
-  timeZone: string;
-}>) {
-  const segment = segmentOf(row, kind);
+}: Readonly<{ label: string; hint: string; iso: string | null; timeZone: string }>) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <p className="text-muted-foreground text-xs">{label}</p>
-      <ReviewDuration {...segment} timeZone={timeZone} />
+      <dt className="min-w-0">
+        <ReviewTimesColumnHint label={label} hint={hint} />
+      </dt>
+      <dd>
+        <ReviewDate iso={iso} timeZone={timeZone} />
+      </dd>
     </div>
   );
-}
-
-export function segmentOf(row: ReviewTimeRow, kind: "review" | "approval" | "total") {
-  if (kind === "review") {
-    return {
-      start: row.reviewedAt ? row.createdAt : null,
-      end: row.reviewedAt,
-      openFrom: row.reviewerId && !row.reviewedAt ? row.createdAt : null,
-    };
-  }
-  if (kind === "approval") {
-    return {
-      start: row.reviewedAt && row.approvedAt ? row.reviewedAt : null,
-      end: row.approvedAt,
-      openFrom: row.reviewedAt && !row.approvedAt ? row.reviewedAt : null,
-    };
-  }
-  return {
-    start: row.approvedAt ? row.createdAt : null,
-    end: row.approvedAt,
-    openFrom: null,
-  };
 }
