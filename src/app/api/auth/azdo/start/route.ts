@@ -6,6 +6,7 @@ import {
 } from "@/lib/auth/entra";
 import { oauthRedirect } from "@/lib/auth/oauth-http";
 import { requirePersistenceForOAuth } from "@/lib/auth/require-user-persistence";
+import { sanitizeReturnPath } from "@/lib/auth/return-path";
 import { getTaskPilotSession } from "@/lib/auth/session";
 import { toAssignableLoginRole } from "@/lib/auth/super-admin-role";
 
@@ -24,14 +25,14 @@ export async function GET(request: Request) {
     return redirectWithAuthError(detail);
   }
 
-  const selectedRole = toAssignableLoginRole(
-    new URL(request.url).searchParams.get("role"),
-  );
+  const requestUrl = new URL(request.url);
+  const selectedRole = toAssignableLoginRole(requestUrl.searchParams.get("role"));
+  const returnTo = sanitizeReturnPath(requestUrl.searchParams.get("returnTo")) ?? undefined;
   const state = generateOAuthState();
   const { verifier, challenge } = generatePkcePair();
 
   const session = await getTaskPilotSession();
-  session.pendingOAuth = { state, codeVerifier: verifier, selectedRole };
+  session.pendingOAuth = { state, codeVerifier: verifier, selectedRole, returnTo };
   await session.save();
 
   const url = buildAuthorizeUrl({ state, codeChallenge: challenge });

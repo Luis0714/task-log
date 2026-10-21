@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { completeAuthSession } from "@/lib/auth/complete-auth-session";
+import { readCurrentReturnPath } from "@/lib/auth/return-path";
 import { loginSuperAdmin } from "@/services/auth/login-super-admin.service";
 
 export function useSuperAdminLoginForm() {
@@ -24,7 +25,7 @@ export function useSuperAdminLoginForm() {
       return;
     }
 
-    completeAuthSession(router, result.landing ?? "/");
+    completeAuthSession(router, readCurrentReturnPath() ?? result.landing ?? "/");
   }, [password, router]);
 
   return {

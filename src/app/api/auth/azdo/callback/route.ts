@@ -10,13 +10,15 @@ import {
 } from "@/lib/auth/entra";
 import { oauthRedirect } from "@/lib/auth/oauth-http";
 import { requirePersistenceForOAuth } from "@/lib/auth/require-user-persistence";
-import { resolveRoleLanding } from "@/lib/auth/role-landing";
+import { resolvePostLoginPath } from "@/lib/auth/return-path";
 import { destroyTaskPilotSession, getTaskPilotSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
-function redirectTo(path: string, search: string) {
-  return oauthRedirect(new URL(`${path}${search}`, getAuthBaseUrl()));
+function redirectAfterSignIn(destination: string) {
+  const url = new URL(destination, getAuthBaseUrl());
+  url.searchParams.set("azdo", "connected");
+  return oauthRedirect(url);
 }
 
 function redirectLogin(detail: string) {
@@ -85,7 +87,7 @@ export async function GET(req: Request) {
     });
 
     await session.save();
-    return redirectTo(resolveRoleLanding(session.userRole), "?azdo=connected");
+    return redirectAfterSignIn(resolvePostLoginPath(pending.returnTo, session.userRole));
   } catch (error) {
     if (error instanceof EntraSignInDisabledError) {
       await destroyTaskPilotSession().catch(() => undefined);

@@ -1,21 +1,21 @@
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 import { beginAuthRehydration } from "@/lib/auth/auth-rehydration";
+import { sanitizeReturnPath } from "@/lib/auth/return-path";
 
 /** Rehidrata la UI tras login/registro cuando la sesión ya está en cookie. */
 export function completeAuthSession(
   router: AppRouterInstance,
   destination = "/",
 ): void {
-  const targetPath = destination.split("?")[0] || "/";
-  const onTargetPage = window.location.pathname === targetPath;
+  const target = sanitizeReturnPath(destination) ?? "/";
+  const current = `${window.location.pathname}${window.location.search}`;
 
-  if (onTargetPage) {
-    beginAuthRehydration();
+  beginAuthRehydration();
+  if (current === target) {
     router.refresh();
     return;
   }
 
-  beginAuthRehydration();
-  window.location.assign(destination);
+  window.location.assign(target);
 }
