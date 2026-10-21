@@ -9,7 +9,7 @@ export function ReviewDate({
   timeZone,
 }: Readonly<{ iso: string | null; timeZone: string }>) {
   if (!iso) return <span className="text-muted-foreground">—</span>;
-  return <span className="tabular-nums">{formatReviewDate(iso, timeZone)}</span>;
+  return <span className="whitespace-nowrap tabular-nums">{formatReviewDate(iso, timeZone)}</span>;
 }
 
 export function FirstReviewDuration({
@@ -24,7 +24,7 @@ export function FirstReviewDuration({
   if (firstReviewedAt) {
     const ms = durationBetween(row.createdAt, firstReviewedAt, timeZone);
     return (
-      <span className="font-semibold tabular-nums">
+      <span className="font-semibold whitespace-nowrap tabular-nums">
         {ms == null ? "—" : formatReviewDuration(ms)}
       </span>
     );
@@ -36,7 +36,7 @@ export function FirstReviewDuration({
 
   const waiting = durationBetween(row.createdAt, new Date().toISOString(), timeZone);
   return (
-    <span className="font-semibold tabular-nums">
+    <span className="font-semibold whitespace-nowrap tabular-nums">
       {waiting == null ? "—" : formatOpenDuration(waiting)}
     </span>
   );
@@ -49,7 +49,7 @@ export function ApprovalDuration({
   if (row.approvedAt) {
     const ms = durationBetween(row.createdAt, row.approvedAt, timeZone);
     return (
-      <span className="font-semibold tabular-nums">
+      <span className="font-semibold whitespace-nowrap tabular-nums">
         {ms == null ? "—" : formatReviewDuration(ms)}
       </span>
     );
@@ -57,14 +57,18 @@ export function ApprovalDuration({
 
   if (!row.reviewerId) {
     if (row.isCompleted) {
-      return <span className="font-semibold tabular-nums">{formatReviewDuration(0)}</span>;
+      return (
+        <span className="font-semibold whitespace-nowrap tabular-nums">
+          {formatReviewDuration(0)}
+        </span>
+      );
     }
     return <span className="text-muted-foreground">—</span>;
   }
 
   const waiting = durationBetween(row.createdAt, new Date().toISOString(), timeZone);
   return (
-    <span className="font-semibold tabular-nums">
+    <span className="font-semibold whitespace-nowrap tabular-nums">
       {waiting == null ? "—" : formatOpenDuration(waiting)}
     </span>
   );
