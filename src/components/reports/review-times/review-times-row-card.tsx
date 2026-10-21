@@ -7,6 +7,7 @@ import {
   ReviewDate,
 } from "@/components/reports/review-times/review-duration";
 import { ReviewTimesPullRequestLink } from "@/components/reports/review-times/review-times-pull-request-link";
+import { ReviewTimesReviewerLine } from "@/components/reports/review-times/review-times-reviewer-line";
 import type { ReviewTimeRow } from "@/lib/review-times/types";
 
 export function ReviewTimesRowCard({
@@ -33,10 +34,10 @@ export function ReviewTimesRowCard({
           title={row.title}
         />
         <p className="text-muted-foreground text-xs">
-          {row.authorName} · revisor {row.reviewerName}
-          {row.isDraft ? " · Borrador" : ""}
+          {row.authorName}
+          {row.isDraft ? " · Borrador" : ""} · {row.repository}
         </p>
-        <p className="text-muted-foreground text-xs">{row.repository}</p>
+        <ReviewTimesReviewerLine name={row.reviewerName} />
       </div>
       <dl className="flex flex-col gap-1.5 text-sm">
         <DateLine

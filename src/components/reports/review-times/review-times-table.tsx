@@ -8,6 +8,7 @@ import {
 } from "@/components/reports/review-times/review-duration";
 import { firstReviewedAtByPullRequest } from "@/lib/review-times/averages";
 import { ReviewTimesPullRequestLink } from "@/components/reports/review-times/review-times-pull-request-link";
+import { ReviewTimesReviewerLine } from "@/components/reports/review-times/review-times-reviewer-line";
 import { ReviewTimesRowCard } from "@/components/reports/review-times/review-times-row-card";
 import { StickyTable, type StickyTableColumn } from "@/components/ui/sticky-table";
 import { TruncatedTextTooltip } from "@/components/ui/truncated-text-tooltip";
@@ -37,7 +38,7 @@ function columns(
         />
       ),
       headerClassName: HEADER_CELL,
-      widthClass: "w-72 max-w-72",
+      widthClass: "w-80 max-w-80",
       sticky: { leftClass: "left-0", isLast: true },
       bodyClassName: BODY_CELL,
       render: (row) => (
@@ -54,26 +55,9 @@ function columns(
             text={pullRequestMeta(row)}
             className="text-muted-foreground text-xs font-normal"
           />
+          <ReviewTimesReviewerLine name={row.reviewerName} />
         </div>
       ),
-    },
-    {
-      key: "reviewer",
-      header: (
-        <ReviewTimesColumnHint
-          label="Revisor"
-          hint="Persona obligatoria del repositorio. Si no hay, se muestra —."
-        />
-      ),
-      headerClassName: HEADER_CELL,
-      widthClass: "w-48 max-w-48",
-      bodyClassName: BODY_CELL,
-      render: (row) =>
-        row.reviewerId ? (
-          <TruncatedTextTooltip text={row.reviewerName} className="font-normal" />
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        ),
     },
     {
       key: "created",
@@ -166,7 +150,7 @@ export function ReviewTimesTable({
       columns={columns(timeZone, organization, project, firstReviewByPullRequest)}
       rows={rows}
       getRowKey={(row) => `${row.pullRequestId}-${row.reviewerId ?? "none"}`}
-      tableClassName="min-w-[95rem]"
+      tableClassName="min-w-[85rem]"
       rowClassName="border-b last:border-b-0"
       renderCard={(row) => (
         <ReviewTimesRowCard
