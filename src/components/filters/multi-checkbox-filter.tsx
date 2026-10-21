@@ -1,10 +1,11 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import type { ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FilterPresetRow } from "@/components/filters/filter-preset-row";
 import { filterFieldTriggerClassName } from "@/components/filters/filter-field-trigger-classes";
@@ -36,6 +37,10 @@ export type MultiCheckboxFilterProps = {
   triggerLabel: string;
   presets?: MultiCheckboxFilterPreset[];
   disabled?: boolean;
+  /** Campo de texto que filtra las opciones por su etiqueta, como el buscador de historias. */
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  emptySearchMessage?: string;
   /**
    * Por opción, indica si debe mostrarse deshabilitada (no se permite
    * marcarla). Las opciones ya seleccionadas se mantienen activas para que
@@ -44,6 +49,21 @@ export type MultiCheckboxFilterProps = {
   isOptionDisabled?: (value: string) => boolean;
   className?: string;
 };
+
+function optionSearchText(option: MultiCheckboxFilterOption): string {
+  return typeof option.label === "string" ? option.label : option.value;
+}
+
+function filterOptions(
+  options: readonly MultiCheckboxFilterOption[],
+  query: string,
+): MultiCheckboxFilterOption[] {
+  const needle = query.trim().toLocaleLowerCase();
+  if (!needle) return [...options];
+  return options.filter((option) =>
+    optionSearchText(option).toLocaleLowerCase().includes(needle),
+  );
+}
 
 export function MultiCheckboxFilter({
   id,
@@ -54,10 +74,16 @@ export function MultiCheckboxFilter({
   triggerLabel,
   presets = [],
   disabled = false,
+  searchable = false,
+  searchPlaceholder = "Buscar…",
+  emptySearchMessage = "Sin coincidencias.",
   isOptionDisabled,
   className,
 }: MultiCheckboxFilterProps) {
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
   const selectedSet = new Set(selected);
+  const visibleOptions = searchable ? filterOptions(options, query) : options;
 
   const toggleValue = (value: string, checked: boolean) => {
     if (checked) {
@@ -70,7 +96,15 @@ export function MultiCheckboxFilter({
   return (
     <div className={cn("space-y-1.5", className)}>
       <Label htmlFor={id}>{label}</Label>
-      <Popover>
+      <Popover
+        onOpenChange={(open) => {
+          if (!open) {
+            setQuery("");
+            return;
+          }
+          requestAnimationFrame(() => searchRef.current?.focus());
+        }}
+      >
         <PopoverTrigger
           id={id}
           disabled={disabled || options.length === 0}
@@ -95,8 +129,25 @@ export function MultiCheckboxFilter({
           {presets.length > 0 && options.length > 0 ? (
             <div className="bg-border my-2 h-px" />
           ) : null}
+          {searchable ? (
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={searchPlaceholder}
+              autoComplete="off"
+              spellCheck={false}
+              aria-label={searchPlaceholder}
+              className="mb-2 h-8"
+              ref={searchRef}
+            />
+          ) : null}
           <div className="max-h-60 space-y-0.5 overflow-y-auto">
-            {options.map((option) => {
+            {visibleOptions.length === 0 ? (
+              <p className="text-muted-foreground px-2 py-3 text-center text-sm">
+                {emptySearchMessage}
+              </p>
+            ) : null}
+            {visibleOptions.map((option) => {
               const checked = selectedSet.has(option.value);
               // Sólo deshabilitamos opciones NO seleccionadas: el usuario
               // siempre debe poder des-marcar las que ya marcó.

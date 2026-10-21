@@ -101,6 +101,12 @@ export const PAGE_SEO = {
       "Genera un reporte de horas trabajadas por periodo con horas esperadas, desarrollo, bugs, novedades y % de cumplimiento por persona, proyecto y equipo. Exporta a Excel.",
     path: "/reports/time-log",
   },
+  reportsReviewTimes: {
+    title: "Tiempos de revisión",
+    description:
+      "Consulta el tiempo promedio de revisión y de aprobación de los pull requests creados en el mes, con el detalle de cada revisor obligatorio.",
+    path: "/reports/review-times",
+  },
   reportsSprintHours: {
     title: "Reporte de horas por sprint",
     description:
