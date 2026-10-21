@@ -14,8 +14,11 @@ type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function ReportsReviewTimesPage({ searchParams }: PageProps) {
-  const { auth, defaultProject } = await resolvePageAuth(searchParams);
+export default async function ReportsReviewTimesPage({
+  searchParams,
+}: Readonly<PageProps>) {
+  const rawSearchParams = await searchParams;
+  const { auth, defaultProject } = await resolvePageAuth(Promise.resolve(rawSearchParams));
   const showLiveData = canLoadLiveAdoContent(auth);
 
   return (
@@ -26,6 +29,7 @@ export default async function ReportsReviewTimesPage({ searchParams }: PageProps
       savedConnectionTarget={auth.savedConnectionTarget}
       shell={
         <ReviewTimesShellServer
+          searchParams={rawSearchParams}
           defaultProject={defaultProject}
           adoExecutionReady={showLiveData}
         />

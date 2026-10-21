@@ -5,10 +5,19 @@ export function ReviewTimesSkeleton() {
     <div className="flex w-full flex-col gap-5">
       <PageHeaderSkeleton />
       <div className="bg-muted h-28 animate-pulse rounded-md" />
+      <ReviewTimesResultsSkeleton />
+    </div>
+  );
+}
+
+export function ReviewTimesResultsSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
       <div className="grid gap-3 md:grid-cols-2">
         <div className="bg-muted h-24 animate-pulse rounded-md" />
         <div className="bg-muted h-24 animate-pulse rounded-md" />
       </div>
+      <div className="bg-muted h-64 animate-pulse rounded-md" />
     </div>
   );
 }
