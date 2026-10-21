@@ -49,7 +49,7 @@ export function ReviewTimesResults({
   );
   const averages = useMemo(() => reviewTimeAverages(rows, timeZone), [rows, timeZone]);
 
-  let emptyMessage = "No hay pull requests en este mes.";
+  let emptyMessage = "No hay pull requests en este periodo.";
   if (sourceRows.length > 0 && rows.length === 0) {
     emptyMessage = "Ningún pull request coincide con los filtros.";
   }

@@ -4,19 +4,19 @@ import type { ReviewTimesSnapshot } from "@/lib/review-times/load-review-times";
 
 export async function ReviewTimesReportServer({
   project,
-  monthKey,
+  monthKeys,
   repositories,
   timeZone,
 }: Readonly<{
   project: string;
-  monthKey: string;
+  monthKeys: readonly string[];
   repositories: readonly string[];
   timeZone: string;
 }>) {
   let report: ReviewTimesSnapshot | null = null;
   let error: string | null = null;
   try {
-    report = await loadReviewTimes({ project, monthKey, repositories });
+    report = await loadReviewTimes({ project, monthKeys, repositories });
   } catch (cause) {
     error = cause instanceof Error ? cause.message : "No se pudieron calcular los tiempos de revisión.";
   }

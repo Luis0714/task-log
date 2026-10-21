@@ -13,7 +13,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const parsed = reviewTimesQuerySchema.safeParse({
     project: url.searchParams.get("project") ?? "",
-    monthKey: url.searchParams.get("monthKey") ?? "",
+    monthKeys: url.searchParams.getAll("month"),
     repositories: url.searchParams.getAll("repository"),
   });
 

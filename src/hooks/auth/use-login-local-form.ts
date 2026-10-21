@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { loginLocal } from "@/services/auth/login-local.service";
 import { completeAuthSession } from "@/lib/auth/complete-auth-session";
+import { readCurrentReturnPath } from "@/lib/auth/return-path";
 
 export type UseLoginLocalFormOptions = {
   onSuccess?: () => void;
@@ -41,7 +42,7 @@ export function useLoginLocalForm(options?: UseLoginLocalFormOptions) {
       return;
     }
 
-    completeAuthSession(router, result.landing ?? "/");
+    completeAuthSession(router, readCurrentReturnPath() ?? result.landing ?? "/");
     onSuccess?.();
   }, [email, onSuccess, onUserNotFound, password, router]);
 

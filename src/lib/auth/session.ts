@@ -5,7 +5,12 @@ import type { SessionAuthMethod } from "@/lib/auth/session-auth-method";
 
 export type TaskPilotSessionData = {
   taskPilotUserId?: string;
-  pendingOAuth?: { state: string; codeVerifier: string; selectedRole?: string };
+  pendingOAuth?: {
+    state: string;
+    codeVerifier: string;
+    selectedRole?: string;
+    returnTo?: string;
+  };
   sessionAuthMethod?: SessionAuthMethod;
   azdoPat?: string;
   azdoRefreshToken?: string;

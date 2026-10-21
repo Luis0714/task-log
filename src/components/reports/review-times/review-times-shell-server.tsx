@@ -44,7 +44,7 @@ export async function ReviewTimesShellServer({
     redirect(reviewTimesHref(params));
   }
 
-  const reportKey = `${parsed.state.monthKey}|${parsed.state.allRepositories ? "*" : parsed.state.repositories.join("|")}`;
+  const reportKey = `${parsed.state.monthKeys.join(",")}|${parsed.state.allRepositories ? "*" : parsed.state.repositories.join("|")}`;
 
   return (
     <ReviewTimesPageShell
@@ -60,7 +60,7 @@ export async function ReviewTimesShellServer({
         <Suspense key={reportKey} fallback={<ReviewTimesResultsSkeleton />}>
           <ReviewTimesReportServer
             project={defaultProject}
-            monthKey={parsed.state.monthKey}
+            monthKeys={parsed.state.monthKeys}
             repositories={parsed.state.allRepositories ? [] : parsed.state.repositories}
             timeZone={timeZone}
           />

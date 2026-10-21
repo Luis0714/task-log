@@ -3,10 +3,16 @@ import { describe, expect, it } from "vitest";
 import { reviewTimeAverages } from "@/lib/review-times/averages";
 import { buildReviewTimeRows } from "@/lib/review-times/build-review-time-rows";
 import { formatOpenDuration, formatReviewDuration, durationBetween } from "@/lib/review-times/duration";
+import { formatReviewDate } from "@/lib/review-times/format-review-date";
 import { workingDurationMs } from "@/lib/review-times/working-duration";
 import { filterReviewTimeRows } from "@/lib/review-times/filter-rows";
 import { mapThreadSignals } from "@/lib/review-times/map-review-signals";
-import { currentMonthKey, isCreatedInMonth, monthWindow } from "@/lib/review-times/month";
+import {
+  currentMonthKey,
+  isCreatedInMonth,
+  monthWindow,
+  normalizeMonthKeys,
+} from "@/lib/review-times/month";
 import { resolveReadyAt } from "@/lib/review-times/resolve-ready-at";
 import { resolveReviewMilestones } from "@/lib/review-times/resolve-review-milestones";
 import type { ReviewTimePullRequest, ReviewTimeRow } from "@/lib/review-times/types";
@@ -201,6 +207,11 @@ describe("resolveReadyAt", () => {
 const ZONE = "America/Bogota";
 
 describe("duración y promedios", () => {
+  it("muestra la hora en formato de 12 horas", () => {
+    expect(formatReviewDate("2026-10-20T20:41:00.000Z", ZONE)).toBe("20 de oct, 03:41 PM");
+    expect(formatReviewDate("2026-10-20T14:05:00.000Z", ZONE)).toBe("20 de oct, 09:05 AM");
+  });
+
   it("formatea minutos, horas y jornadas de 8:00 a 17:00", () => {
     expect(formatReviewDuration(45 * 60_000)).toBe("45 min");
     expect(formatReviewDuration((6 * 60 + 20) * 60_000)).toBe("6 h 20 min");
@@ -242,7 +253,7 @@ describe("duración y promedios", () => {
     expect(averages.approvalMs).toBe(6 * 60 * 60_000);
   });
 
-  it("cuenta 0 cuando el pull request se completó sin revisor obligatorio", () => {
+  it("no promedia un pull request completado sin revisor obligatorio", () => {
     const averages = reviewTimeAverages(
       [
         row({
@@ -258,8 +269,48 @@ describe("duración y promedios", () => {
     );
 
     expect(averages.reviewCount).toBe(0);
+    expect(averages.approvalCount).toBe(0);
+    expect(averages.approvalMs).toBeNull();
+  });
+
+  it("promedia la primera aprobación requerida una vez por pull request", () => {
+    const averages = reviewTimeAverages(
+      [
+        row({
+          reviewerId: "ana",
+          approvedAt: "2026-10-20T20:00:00.000Z",
+        }),
+        row({
+          reviewerId: "luis",
+          reviewerName: "Luis",
+          approvedAt: "2026-10-20T18:00:00.000Z",
+        }),
+      ],
+      ZONE,
+    );
+
     expect(averages.approvalCount).toBe(1);
-    expect(averages.approvalMs).toBe(0);
+    expect(averages.approvalMs).toBe(4 * 60 * 60_000);
+  });
+
+  it("promedia la primera revisión una vez por pull request", () => {
+    const averages = reviewTimeAverages(
+      [
+        row({
+          reviewerId: "ana",
+          reviewedAt: "2026-10-20T18:00:00.000Z",
+        }),
+        row({
+          reviewerId: "luis",
+          reviewerName: "Luis",
+          reviewedAt: "2026-10-20T16:00:00.000Z",
+        }),
+      ],
+      ZONE,
+    );
+
+    expect(averages.reviewCount).toBe(1);
+    expect(averages.reviewMs).toBe(2 * 60 * 60_000);
   });
 });
 
@@ -368,6 +419,22 @@ describe("monthWindow", () => {
     expect(isCreatedInMonth("2026-10-01T05:00:00.000Z", window!)).toBe(true);
     expect(isCreatedInMonth("2026-09-30T04:59:00.000Z", window!)).toBe(false);
     expect(isCreatedInMonth("2026-11-01T05:00:00.000Z", window!)).toBe(false);
+  });
+
+  it("conserva como máximo tres meses válidos", () => {
+    expect(monthWindow("2026-all", "America/Bogota")).toBeNull();
+    expect(
+      normalizeMonthKeys(
+        ["2026-12", "2026-01", "2026-all", "2026-06", "2026-03"],
+        "America/Bogota",
+      ),
+    ).toEqual(["2026-01", "2026-03", "2026-06"]);
+    expect(
+      normalizeMonthKeys(["2025-12", "2026-01", "2026-02"], "America/Bogota"),
+    ).toEqual(["2025-12"]);
+    expect(normalizeMonthKeys([], "America/Bogota", new Date("2026-10-20T15:00:00.000Z"))).toEqual([
+      "2026-10",
+    ]);
   });
 
   it("resuelve el mes actual en la zona del proyecto", () => {
