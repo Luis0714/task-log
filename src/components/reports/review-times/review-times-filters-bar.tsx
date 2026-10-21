@@ -53,8 +53,8 @@ export function ReviewTimesFiltersBar({
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <Label>Periodo</Label>
           <ReviewTimesMonthFields
-            monthKey={url.state.monthKey}
-            onMonthKeyChange={url.setMonthKey}
+            monthKeys={url.state.monthKeys}
+            onMonthKeysChange={url.setMonthKeys}
           />
         </div>
         <div className="hidden min-w-64 flex-1 md:block">

@@ -1,4 +1,4 @@
-import { currentMonthKey, monthWindow } from "@/lib/review-times/month";
+import { normalizeMonthKeys } from "@/lib/review-times/month";
 import {
   REVIEW_TIME_STATUSES,
   type ReviewTimeLocalFilters,
@@ -17,7 +17,7 @@ const STATUS_PARAM = "status";
 const SEARCH_PARAM = "q";
 
 export type ReviewTimesUrlState = {
-  monthKey: string;
+  monthKeys: readonly string[];
   repositories: readonly string[];
   allRepositories: boolean;
   reviewerIds: readonly string[];
@@ -68,11 +68,10 @@ export function parseReviewTimesSearchParams(
   raw: SearchParamRecord,
   options: ParseReviewTimesOptions,
 ): { state: ReviewTimesUrlState; isCanonical: boolean } {
-  const requestedMonth = first(raw[MONTH_PARAM]);
-  const monthIsValid = monthWindow(requestedMonth, options.timeZone) != null;
-  const monthKey = monthIsValid
-    ? requestedMonth
-    : currentMonthKey(options.timeZone, options.now);
+  const requestedMonths = uniqueValues(raw[MONTH_PARAM]);
+  const monthKeys = normalizeMonthKeys(requestedMonths, options.timeZone, options.now);
+  const monthsMatch =
+    requestedMonths.length === monthKeys.length && sameMembers(requestedMonths, monthKeys);
 
   const explicitAll = first(raw[REPOS_SCOPE_PARAM]) === ALL_REPOSITORIES;
   const listed = uniqueValues(raw[REPOSITORY_PARAM]);
@@ -90,7 +89,7 @@ export function parseReviewTimesSearchParams(
   const allRepositories = repositories.length === 0;
 
   const state: ReviewTimesUrlState = {
-    monthKey,
+    monthKeys,
     repositories,
     allRepositories,
     reviewerIds: uniqueValues(raw[REVIEWER_PARAM]),
@@ -105,7 +104,7 @@ export function parseReviewTimesSearchParams(
 
   return {
     state,
-    isCanonical: monthIsValid && repositoriesMatch,
+    isCanonical: monthsMatch && repositoriesMatch,
   };
 }
 
@@ -131,7 +130,7 @@ export function applyReviewTimesSearchParams(
   state: ReviewTimesUrlState,
 ): URLSearchParams {
   const params = new URLSearchParams(current.toString());
-  params.set(MONTH_PARAM, state.monthKey);
+  replaceList(params, MONTH_PARAM, state.monthKeys);
   params.delete(REPOSITORY_PARAM);
   params.delete(REPOS_SCOPE_PARAM);
   if (state.allRepositories) {

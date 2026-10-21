@@ -27,14 +27,14 @@ export function ReviewTimesSummary({ averages }: Readonly<{ averages: ReviewTime
     <div className="flex flex-col gap-2">
       <div className="grid gap-3 md:grid-cols-2">
         <AverageCard
-          title="Tiempo promedio de revisión"
+          title="Tiempo promedio hasta la primera revisión"
           ms={averages.reviewMs}
-          detail={subtitle(averages.reviewCount, "revisión", "revisiones")}
+          detail={subtitle(averages.reviewCount, "pull request", "pull requests")}
         />
         <AverageCard
-          title="Tiempo promedio de aprobación"
+          title="Tiempo promedio hasta la aprobación de la persona requerida"
           ms={averages.approvalMs}
-          detail={subtitle(averages.approvalCount, "aprobación", "aprobaciones")}
+          detail={subtitle(averages.approvalCount, "pull request", "pull requests")}
         />
       </div>
       <p className="text-muted-foreground text-xs">

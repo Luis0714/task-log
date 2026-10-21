@@ -24,10 +24,8 @@ export async function fetchReviewTimes(
   query: ReviewTimesQuery,
   signal?: AbortSignal,
 ): Promise<FetchReviewTimesResult> {
-  const params = new URLSearchParams({
-    project: query.project,
-    monthKey: query.monthKey,
-  });
+  const params = new URLSearchParams({ project: query.project });
+  for (const monthKey of query.monthKeys) params.append("month", monthKey);
   for (const repository of query.repositories) {
     params.append("repository", repository);
   }

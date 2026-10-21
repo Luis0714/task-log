@@ -18,7 +18,7 @@ describe("parseReviewTimesSearchParams", () => {
     const parsed = parseReviewTimesSearchParams({ project: "NARP" }, OPTIONS);
 
     expect(parsed.isCanonical).toBe(false);
-    expect(parsed.state.monthKey).toBe("2026-10");
+    expect(parsed.state.monthKeys).toEqual(["2026-10"]);
     expect(parsed.state.repositories).toEqual(["NARP-WEB"]);
     expect(parsed.state.allRepositories).toBe(false);
   });
@@ -30,8 +30,18 @@ describe("parseReviewTimesSearchParams", () => {
     );
 
     expect(parsed.isCanonical).toBe(true);
-    expect(parsed.state.monthKey).toBe("2026-09");
+    expect(parsed.state.monthKeys).toEqual(["2026-09"]);
     expect(parsed.state.repositories).toEqual(["task-log", "NARP-WEB"]);
+  });
+
+  it("acepta hasta tres meses y descarta el resto", () => {
+    const parsed = parseReviewTimesSearchParams(
+      { month: ["2026-12", "2026-01", "2026-all", "2026-06", "2026-03"] },
+      OPTIONS,
+    );
+
+    expect(parsed.isCanonical).toBe(false);
+    expect(parsed.state.monthKeys).toEqual(["2026-01", "2026-03", "2026-06"]);
   });
 
   it("deja todos los repositorios cuando la url lo pide", () => {

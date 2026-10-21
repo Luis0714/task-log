@@ -1,7 +1,12 @@
 "use client";
 
 import { ReviewTimesColumnHint } from "@/components/reports/review-times/review-times-column-hint";
-import { ApprovalDuration, ReviewDate } from "@/components/reports/review-times/review-duration";
+import {
+  ApprovalDuration,
+  FirstReviewDuration,
+  ReviewDate,
+} from "@/components/reports/review-times/review-duration";
+import { firstReviewedAtByPullRequest } from "@/lib/review-times/averages";
 import { ReviewTimesPullRequestLink } from "@/components/reports/review-times/review-times-pull-request-link";
 import { ReviewTimesRowCard } from "@/components/reports/review-times/review-times-row-card";
 import { StickyTable, type StickyTableColumn } from "@/components/ui/sticky-table";
@@ -11,6 +16,7 @@ function columns(
   timeZone: string,
   organization: string,
   project: string,
+  firstReviewByPullRequest: ReadonlyMap<number, string>,
 ): StickyTableColumn<ReviewTimeRow>[] {
   return [
     {
@@ -84,6 +90,24 @@ function columns(
       render: (row) => <ReviewDate iso={row.reviewedAt} timeZone={timeZone} />,
     },
     {
+      key: "firstReview",
+      header: (
+        <ReviewTimesColumnHint
+          label="Tiempo hasta primera revisión"
+          hint="Tiempo de jornada desde la creación hasta la primera revisión del pull request. El promedio cuenta este valor una vez por pull request."
+        />
+      ),
+      headerClassName: "whitespace-normal",
+      widthClass: "min-w-44",
+      render: (row) => (
+        <FirstReviewDuration
+          row={row}
+          firstReviewedAt={firstReviewByPullRequest.get(row.pullRequestId) ?? null}
+          timeZone={timeZone}
+        />
+      ),
+    },
+    {
       key: "approved",
       header: (
         <ReviewTimesColumnHint
@@ -121,12 +145,13 @@ export function ReviewTimesTable({
   organization: string;
   project: string;
 }>) {
+  const firstReviewByPullRequest = firstReviewedAtByPullRequest(rows);
   return (
     <StickyTable
-      columns={columns(timeZone, organization, project)}
+      columns={columns(timeZone, organization, project, firstReviewByPullRequest)}
       rows={rows}
       getRowKey={(row) => `${row.pullRequestId}-${row.reviewerId ?? "none"}`}
-      tableClassName="min-w-[56rem]"
+      tableClassName="min-w-[68rem]"
       rowClassName="border-b last:border-b-0"
       renderCard={(row) => (
         <ReviewTimesRowCard
@@ -134,6 +159,7 @@ export function ReviewTimesTable({
           timeZone={timeZone}
           organization={organization}
           project={project}
+          firstReviewedAt={firstReviewByPullRequest.get(row.pullRequestId) ?? null}
         />
       )}
     />

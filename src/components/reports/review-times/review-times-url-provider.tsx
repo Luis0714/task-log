@@ -32,7 +32,7 @@ type ReviewTimesUrlContextValue = {
   isNavigating: boolean;
   people: ReviewTimesPeople;
   setPeople: (people: ReviewTimesPeople) => void;
-  setMonthKey: (monthKey: string) => void;
+  setMonthKeys: (monthKeys: string[]) => void;
   setRepositories: (repositories: string[]) => void;
   setReviewerIds: (reviewerIds: string[]) => void;
   setAuthorIds: (authorIds: string[]) => void;
@@ -127,7 +127,15 @@ export function ReviewTimesUrlProvider({
       isNavigating,
       people,
       setPeople,
-      setMonthKey: (monthKey) => publishRef.current({ ...stateRef.current, monthKey }, "navigate"),
+      setMonthKeys: (monthKeys) => {
+        const next = { ...stateRef.current, monthKeys };
+        stateRef.current = next;
+        setState(next);
+        if (repositoryTimer.current) clearTimeout(repositoryTimer.current);
+        repositoryTimer.current = setTimeout(() => {
+          publishRef.current(stateRef.current, "navigate");
+        }, REPOSITORY_NAVIGATION_DELAY_MS);
+      },
       setRepositories: (repositories) => {
         const next = {
           ...stateRef.current,

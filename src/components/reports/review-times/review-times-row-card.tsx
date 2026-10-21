@@ -1,7 +1,11 @@
 "use client";
 
 import { ReviewTimesColumnHint } from "@/components/reports/review-times/review-times-column-hint";
-import { ApprovalDuration, ReviewDate } from "@/components/reports/review-times/review-duration";
+import {
+  ApprovalDuration,
+  FirstReviewDuration,
+  ReviewDate,
+} from "@/components/reports/review-times/review-duration";
 import { ReviewTimesPullRequestLink } from "@/components/reports/review-times/review-times-pull-request-link";
 import type { ReviewTimeRow } from "@/lib/review-times/types";
 
@@ -10,11 +14,13 @@ export function ReviewTimesRowCard({
   timeZone,
   organization,
   project,
+  firstReviewedAt,
 }: Readonly<{
   row: ReviewTimeRow;
   timeZone: string;
   organization: string;
   project: string;
+  firstReviewedAt: string | null;
 }>) {
   return (
     <article className="flex flex-col gap-3">
@@ -45,6 +51,21 @@ export function ReviewTimesRowCard({
           iso={row.reviewedAt}
           timeZone={timeZone}
         />
+        <div className="flex items-start justify-between gap-3">
+          <dt className="min-w-0">
+            <ReviewTimesColumnHint
+              label="Tiempo hasta primera revisión"
+              hint="Tiempo de jornada desde la creación hasta la primera revisión del pull request. El promedio cuenta este valor una vez por pull request."
+            />
+          </dt>
+          <dd>
+            <FirstReviewDuration
+              row={row}
+              firstReviewedAt={firstReviewedAt}
+              timeZone={timeZone}
+            />
+          </dd>
+        </div>
         <DateLine
           label="Fecha de aprobación"
           hint="Primera vez que el revisor obligatorio aprobó, o aprobó con sugerencias."

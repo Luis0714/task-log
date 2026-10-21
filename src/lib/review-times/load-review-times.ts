@@ -26,7 +26,7 @@ const LISTED_STATUSES = ["active", "completed"] as const;
 
 export type LoadReviewTimesInput = {
   project: string;
-  monthKey: string;
+  monthKeys: readonly string[];
   repositories: readonly string[];
 };
 
@@ -34,7 +34,7 @@ export type ReviewTimesSnapshot = {
   rows: ReviewTimeRow[];
   truncated: boolean;
   currentUserId: string | null;
-  monthKey: string;
+  monthKeys: string[];
   organization: string;
 };
 
@@ -106,6 +106,20 @@ function withRepositoryId(
   };
 }
 
+async function listRepositoryMonths(
+  auth: AdoCallerAuth,
+  repositoryId: string,
+  windows: readonly MonthWindow[],
+): Promise<ListedPage> {
+  const pages = await Promise.all(
+    windows.map((window) => listRepositoryPullRequests(auth, repositoryId, window)),
+  );
+  return {
+    items: pages.flatMap((page) => page.items),
+    truncated: pages.some((page) => page.truncated),
+  };
+}
+
 async function listRepositoryPullRequests(
   auth: AdoCallerAuth,
   repositoryId: string,
@@ -164,17 +178,22 @@ export async function loadReviewTimes(input: LoadReviewTimesInput): Promise<Revi
   const auth = await getScopedProjectAuth(input.project);
   if (!auth) throw new Error("No hay conexión con Azure DevOps.");
 
-  const window = monthWindow(input.monthKey, resolveAdoTimeZone());
-  if (!window) throw new Error("Mes inválido.");
+  const timeZone = resolveAdoTimeZone();
+  const windows = input.monthKeys
+    .map((monthKey) => monthWindow(monthKey, timeZone))
+    .filter((window): window is MonthWindow => window != null);
+  if (windows.length === 0) throw new Error("Mes inválido.");
 
   const available = await listGitRepositories(auth);
   const repositories = chosenRepositories(available, input.repositories);
   const pages = await mapWithConcurrency(repositories, LIST_CONCURRENCY, (repository) =>
-    listRepositoryPullRequests(auth, repository.id, window),
+    listRepositoryMonths(auth, repository.id, windows),
   );
-  const pullRequests = uniquePullRequests(pages.flatMap((page) => page.items)).filter((item) =>
-    item.creationDate ? isCreatedInMonth(item.creationDate, window) : false,
-  );
+  const pullRequests = uniquePullRequests(pages.flatMap((page) => page.items)).filter((item) => {
+    const createdAt = item.creationDate;
+    if (!createdAt) return false;
+    return windows.some((window) => isCreatedInMonth(createdAt, window));
+  });
   const grouped = await mapWithConcurrency(pullRequests, DETAIL_CONCURRENCY, (pullRequest) =>
     rowsForPullRequest(auth, pullRequest),
   );
@@ -184,7 +203,7 @@ export async function loadReviewTimes(input: LoadReviewTimesInput): Promise<Revi
     rows: grouped.flat(),
     truncated: pages.some((page) => page.truncated),
     currentUserId: profile?.id ?? null,
-    monthKey: input.monthKey,
+    monthKeys: [...input.monthKeys],
     organization: auth.organization,
   };
 }
