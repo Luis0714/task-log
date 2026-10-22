@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "subagentStop": [
+      {
+        "command": "node .cursor/hooks/check-step.mjs",
+        "matcher": "step-implementer",
+        "timeout": 180,
+        "loop_limit": 1
+      }
+    ]
+  }
+}

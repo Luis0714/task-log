@@ -1,0 +1,22 @@
+---
+description: User-story workflow that requires human approval between analysis, implementation steps, and review.
+alwaysApply: true
+---
+
+# User-controlled development workflow
+
+- Never implement a full user story in one pass.
+- Define the analysis, the implementation plan, and the expected result before writing code.
+- Do not implement until the user approves the plan.
+- Split the implementation into small, independent, and verifiable steps.
+- Execute only the step the user explicitly selected.
+- Do not continue to the next step automatically, even when the current step finishes successfully.
+- Before editing, confirm the step scope and review its dependencies.
+- Do not include refactors or extra features outside the approved scope.
+- If you find an ambiguity, a blocker, or a relevant architecture decision, stop and ask the user.
+- When a step finishes, report the files changed, what changed, the checks you ran, and what is still pending.
+- Leave the changes available for review. The user decides whether to request fixes, accept the step, or continue.
+- Never run git commit, git push, pull request creation, or equivalent operations unless the user explicitly asks.
+- If the user requests fixes, work on those findings first and do not move to the next step.
+- Keep the plan updated when the user approves a scope change.
+- Follow the other project rules and the existing conventions.

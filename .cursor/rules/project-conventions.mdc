@@ -1,0 +1,15 @@
+---
+description: Rules for implementing features while following this repository's conventions.
+alwaysApply: true
+---
+
+- Before implementing, inspect the feature structure and at least one existing example of similar behavior.
+- Follow the feature-based organization, file names, import conventions, and patterns already established in the repository.
+- Import modules under `src/app`, `src/features`, `src/entities`, and `src/shared` only with the aliases in `tsconfig.json`: `@app/*`, `@features/*`, `@entities/*`, and `@shared/*`. Do not reach those folders with relative paths.
+- Reuse shared components, types, hooks, utilities, and UI components when they fit.
+- Keep input and output types explicit. Do not duplicate contracts or create an equivalent type when a reusable one already exists.
+- Separate API, Server Actions, hooks, and components according to the existing architecture.
+- Centralize error handling, notifications, and validation through the existing mechanisms. Do not invent parallel patterns.
+- Do not invent endpoints, parameters, responses, or business rules. If information is missing, identify it before assuming it.
+- Make the smallest change that fits the task. Do not reorganize files or change public contracts without a need.
+- When finished, run the available checks and report the files changed, the validations you ran, and anything left unverified.
