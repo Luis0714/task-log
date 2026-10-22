@@ -1,0 +1,13 @@
+---
+description: Clean-code and maintainability principles for the whole project.
+alwaysApply: true
+---
+
+- Write simple, readable, explicit code that is easy to maintain. Prefer clarity over unnecessary abstractions.
+- Apply single responsibility, DRY when duplication is real, and KISS. Do not generalize code ahead of time.
+- Use descriptive names that match the business domain. Avoid ambiguous abbreviations, confusing booleans, and functions with multiple responsibilities.
+- Avoid `any`, unjustified type assertions, duplicated code, magic values, and comments that repeat what the code already says.
+- Handle loading, error, empty, and success states explicitly when they apply.
+- Reuse existing utilities before creating new ones. Do not add dependencies without a justified need.
+- Do not refactor code outside the task scope without a concrete reason.
+- Follow the repository's existing conventions and verify changes with the available validation tools.

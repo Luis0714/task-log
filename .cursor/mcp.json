@@ -1,10 +1,14 @@
 {
   "mcpServers": {
-    "shadcn": {
-      "command": "npx",
+    "ado": {
+      "command": "npx.cmd",
       "args": [
-        "shadcn@latest",
-        "mcp"
+        "-y",
+        "@azure-devops/mcp",
+        "technologyfactory",
+        "-d",
+        "core",
+        "work-items"
       ]
     }
   }

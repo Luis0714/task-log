@@ -1,0 +1,13 @@
+---
+description: Architecture practices for React and Next.js with the App Router.
+alwaysApply: true
+---
+
+- Use Server Components by default. Add `"use client"` only when the component needs state, effects, or browser interactions.
+- Keep presentation, interaction logic, and data access separate, following the project's conventions.
+- Do not turn a component into a client component only to use a hook when the logic can be resolved on the server.
+- Prefer passing data from the server into client components over repeating requests or moving logic to the browser without need.
+- Use Server Actions for write operations when that matches the project pattern. Centralize queries and mutations through the existing data-access layers.
+- Validate every received value on the server and apply the required authorization checks. Never rely only on client-side validation.
+- Avoid duplicate requests, unnecessary cascades, and data waterfalls. Use Next.js rendering, cache, and revalidation only for a real need.
+- Respect the server and client boundary. Never expose secrets or server-only code to the browser.

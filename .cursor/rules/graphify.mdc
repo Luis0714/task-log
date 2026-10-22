@@ -1,0 +1,29 @@
+---
+description: Orient code exploration with the codebase-memory MCP or graphify before reading files
+alwaysApply: true
+---
+
+Before exploring the repository with Read, Grep, Glob, or a shell search, orient with a knowledge graph. Use one of the two below. Do not start with a broad file search.
+
+1. **Codebase Memory MCP** (`user-codebase-memory-mcp`), when this repository is indexed:
+   - `list_projects` to confirm the project is indexed. If it is not, use graphify.
+   - `get_architecture` for modules, dependencies, and structure.
+   - `search_graph` to find functions, classes, routes, and symbols.
+   - `trace_path` for callers and callees.
+   - `get_code_snippet` for the source of a symbol the graph already named.
+   - `search_code` for text search enriched by the graph.
+2. **Graphify**, when the MCP has no index for this repo or does not answer the question. The graph is at `graphify-out/`.
+   - `graphify query "<question>"` for a scoped subgraph.
+   - `graphify path "<A>" "<B>"` for a dependency path between two symbols.
+   - `graphify explain "<concept>"` for the nodes related to a concept.
+   - If `graphify-out/wiki/index.md` exists, navigate it instead of reading raw files.
+   - Read `graphify-out/GRAPH_REPORT.md` only when query, path, and explain are not enough for a broad architecture review.
+
+This applies to you and to every subagent you spawn. The agents in `.cursor/agents/` already require this rule. When you spawn any other subagent that explores code, include this rule in its prompt. Do not skip the graph because files are already known or because you are executing a plan. The graph surfaces cross-file dependencies that grep and Read cannot find.
+
+Use Read, Grep, or Glob only when:
+
+1. The graph already named the file or symbol and you need those specific lines to edit or verify them.
+2. Neither graph is available: the codebase-memory project is not indexed and `graphify-out/graph.json` does not exist.
+
+After you change code files, run `graphify update .` so the graphify graph stays current. Do not start a full codebase-memory reindex as part of a step.
