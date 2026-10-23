@@ -14,6 +14,7 @@ import {
 import { useReviewTimesUrl } from "@/components/reports/review-times/review-times-url-provider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useOptimisticValue } from "@/hooks/use-optimistic-value";
 import { selectionTriggerLabel, type PersonOption } from "@/lib/review-times/person-options";
 
 export function ReviewTimesFiltersBar({
@@ -28,6 +29,17 @@ export function ReviewTimesFiltersBar({
   currentUserId: string | null;
 }>) {
   const url = useReviewTimesUrl();
+  const [visibleProject, commitProject] = useOptimisticValue(project);
+  const repositoriesLoading = visibleProject !== project;
+  const shownRepositoryOptions = repositoriesLoading ? [] : repositoryOptions;
+  const repositoryTriggerLabel = repositoriesLoading
+    ? "Cargando repositorios…"
+    : selectionTriggerLabel(
+        url.state.repositories,
+        repositoryOptions,
+        "Todos los repositorios",
+        "repositorios",
+      );
   const [moreOpen, setMoreOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const repositories = [...url.state.repositories];
@@ -51,8 +63,9 @@ export function ReviewTimesFiltersBar({
     search: url.state.search,
     onSearchChange: url.setSearch,
     repositories,
-    repositoryOptions,
+    repositoryOptions: shownRepositoryOptions,
     onRepositoriesChange: url.setRepositories,
+    repositoriesLoading,
   };
 
   return (
@@ -66,24 +79,19 @@ export function ReviewTimesFiltersBar({
           />
         </div>
         <ReviewTimesProjectField
-          project={project}
+          project={visibleProject}
           projects={projects}
-          onProjectChange={url.setProject}
+          onProjectChange={(next) => commitProject(next, () => url.setProject(next))}
         />
         <div className="hidden min-w-64 flex-1 md:block">
           <MultiCheckboxFilter
             id="review-times-repositories-desktop"
             label="Repositorios"
-            options={repositoryOptions}
-            selected={repositories}
+            options={shownRepositoryOptions}
+            selected={repositoriesLoading ? [] : repositories}
             onSelectedChange={url.setRepositories}
-            triggerLabel={selectionTriggerLabel(
-              repositories,
-              repositoryOptions,
-              "Todos los repositorios",
-              "repositorios",
-            )}
-            disabled={repositoryOptions.length === 0}
+            triggerLabel={repositoryTriggerLabel}
+            disabled={repositoriesLoading || repositoryOptions.length === 0}
             searchable
             searchPlaceholder="Buscar repositorio…"
             emptySearchMessage="Sin repositorios que coincidan."

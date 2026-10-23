@@ -29,6 +29,7 @@ export type ReviewTimesChoiceFiltersProps = {
   onStatusesChange: (values: ReviewTimeStatus[]) => void;
   search: string;
   onSearchChange: (value: string) => void;
+  repositoriesLoading?: boolean;
 };
 
 export function ReviewTimesChoiceFilters({
@@ -47,6 +48,7 @@ export function ReviewTimesChoiceFilters({
   onStatusesChange,
   search,
   onSearchChange,
+  repositoriesLoading = false,
   idPrefix,
 }: Readonly<ReviewTimesChoiceFiltersProps>) {
   const youPreset =
@@ -66,16 +68,20 @@ export function ReviewTimesChoiceFilters({
         <MultiCheckboxFilter
           id={`${idPrefix}-repositories`}
           label="Repositorios"
-          options={repositoryOptions}
-          selected={[...repositories]}
+          options={repositoriesLoading ? [] : repositoryOptions}
+          selected={repositoriesLoading ? [] : [...repositories]}
           onSelectedChange={onRepositoriesChange}
-          triggerLabel={selectionTriggerLabel(
-            repositories,
-            repositoryOptions,
-            "Todos los repositorios",
-            "repositorios",
-          )}
-          disabled={repositoryOptions.length === 0}
+          triggerLabel={
+            repositoriesLoading
+              ? "Cargando repositorios…"
+              : selectionTriggerLabel(
+                  repositories,
+                  repositoryOptions,
+                  "Todos los repositorios",
+                  "repositorios",
+                )
+          }
+          disabled={repositoriesLoading || repositoryOptions.length === 0}
           searchable
           searchPlaceholder="Buscar repositorio…"
           emptySearchMessage="Sin repositorios que coincidan."
