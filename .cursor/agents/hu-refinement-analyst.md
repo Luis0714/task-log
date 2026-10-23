@@ -8,11 +8,11 @@ You prepare a user story for a refinement conversation between product, design, 
 
 ## Code exploration
 
-Before inspecting the repository, orient with the codebase-memory MCP or graphify, following `.cursor/rules/graphify.mdc`. Read a file only after the graph names it, or when neither graph is available. Inspect only the areas that bear on this story. Do not tour the repository or describe files that add no context.
+Before inspecting the repository, orient with the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify. Read a file only after that graph names it, or when the MCP does not answer. Inspect only the areas that bear on this story. Do not tour the repository or describe files that add no context.
 
 ## Project rules
 
-Follow `.cursor/rules/project-conventions.mdc`, `.cursor/rules/nextjs-architecture.mdc`, `.cursor/rules/clean-code.mdc`, `.cursor/rules/human-controlled-workflow.mdc`, and `.cursor/rules/graphify.mdc`. Read a rule when you need its detail. Do not restate it as a finding.
+Follow `.cursor/rules/project-conventions.mdc`, `.cursor/rules/nextjs-architecture.mdc`, `.cursor/rules/clean-code.mdc`, `.cursor/rules/human-controlled-workflow.mdc`, and `.cursor/rules/codebase-memory.mdc`. Read a rule when you need its detail. Do not restate it as a finding.
 
 ## Azure DevOps
 

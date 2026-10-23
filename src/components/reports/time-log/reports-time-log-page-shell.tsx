@@ -1,6 +1,7 @@
 "use client";
 
 import { CopilotErrorAlert } from "@/components/copilot/copilot-error-alert";
+import { TimeGreeting } from "@/components/greeting/time-greeting";
 import { PageHeader } from "@/components/layout/page-header";
 import { ReportsTimeLogContent } from "@/components/reports/time-log/reports-time-log-content";
 import type { AdoCatalogSnapshot } from "@/lib/ado/types";
@@ -11,6 +12,8 @@ export type ReportsTimeLogPageShellProps = {
   adoExecutionReady: boolean;
   initialScopes: { projectIds: string[]; teamIds: string[] };
   catalogError?: string | null;
+  greetingName?: string;
+  timeZone?: string;
 };
 
 export function ReportsTimeLogPageShell({
@@ -18,9 +21,14 @@ export function ReportsTimeLogPageShell({
   adoExecutionReady,
   initialScopes,
   catalogError,
+  greetingName = "",
+  timeZone,
 }: Readonly<ReportsTimeLogPageShellProps>) {
   return (
     <div className="flex w-full flex-col gap-6 pb-6">
+      <p className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
+        <TimeGreeting name={greetingName} timeZone={timeZone} />
+      </p>
       <PageHeader
         title={PAGE_SEO.reportsTimeLog.title}
         description={PAGE_SEO.reportsTimeLog.description}

@@ -48,7 +48,7 @@ const ALL_NAVIGATION: NavGroupConfig[] = [
     title: "Trabajo",
     items: [
       { href: "/time-log", label: "Registro de tiempo", icon: Clock },
-      { href: "/solicitudes", label: "Solicitudes & Novedades", icon: FileText, badge: "new" },
+      { href: "/solicitudes", label: "Solicitudes & Novedades", icon: FileText },
       { href: "/work-items", label: "Historias de usuario", icon: ListTodo },
       { href: "/tasks", label: "Tareas", icon: CheckSquare },
       { href: "/bugs", label: "Bugs", icon: Bug },

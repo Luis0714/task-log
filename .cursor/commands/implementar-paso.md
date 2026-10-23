@@ -39,5 +39,6 @@ Do not use these agents to implement or to continue afterward: `hu-analyst`, `co
 - Do not run git commit, git push, or create a pull request.
 - Do not move on to `/revisar-paso` or `/validar-hu` on your own.
 - If the user asks for fixes on this step, fix only those points and validate again. Do not advance.
+- When the step inspects this repository, use the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify.
 
 Stop and wait for the user's review.

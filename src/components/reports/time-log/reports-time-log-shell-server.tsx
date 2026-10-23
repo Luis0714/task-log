@@ -2,6 +2,8 @@ import { ReportsTimeLogPageShell } from "@/components/reports/time-log/reports-t
 import { resolvePageCatalog } from "@/lib/ado/resolve-page-catalog";
 import type { AdoContextSearchParams } from "@/lib/ado/types";
 import { getTaskPilotSession, isIronSessionConfigured } from "@/lib/auth/session";
+import { getServerAuthProfile } from "@/lib/auth/server-state";
+import { resolveAdoTimeZone } from "@/lib/azure-devops/working-date-field";
 import { getRepositories } from "@/lib/db";
 import { USER_FILTER_SCOPES } from "@/lib/filters/user-filter-scopes";
 import { resolveSavedScopesByProject } from "@/lib/news-stories/default-scopes";
@@ -17,9 +19,11 @@ export async function ReportsTimeLogShellServer({
   defaultProject,
   adoExecutionReady,
 }: ReportsTimeLogShellServerProps) {
-  const catalog = await resolvePageCatalog(adoExecutionReady, defaultProject, sp);
-
-  const saved = await loadSavedFilters();
+  const [catalog, profile, saved] = await Promise.all([
+    resolvePageCatalog(adoExecutionReady, defaultProject, sp),
+    getServerAuthProfile(),
+    loadSavedFilters(),
+  ]);
   const savedScopes = resolveSavedScopesByProject(saved, {
     projects: catalog.projects.map((p) => p.name),
     teamsByProject: catalog.teamsByProject,
@@ -35,6 +39,8 @@ export async function ReportsTimeLogShellServer({
         projectIds: [...savedScopes.selectedProjects],
         teamIds: [...savedScopes.selectedTeams],
       }}
+      greetingName={profile.profileDisplayName ?? ""}
+      timeZone={resolveAdoTimeZone()}
     />
   );
 }

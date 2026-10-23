@@ -44,5 +44,6 @@ Do not invoke these skills: `/maquetar`, `/integration-query-mock`, `/integratio
 - Do not start the mockup or integration skills.
 - Do not move to the next step or to implementation without the user's explicit approval.
 - Follow `.cursor/rules/human-controlled-workflow.mdc`.
+- When the analysis inspects this repository, use the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify.
 
 Present the analysis for review. Wait for the user's approval or corrections.

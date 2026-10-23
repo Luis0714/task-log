@@ -34,5 +34,6 @@ Do not invoke these skills: `/maquetar`, `/integration-query-mock`, `/integratio
 - Do not report a style preference that has no impact.
 - Do not move on to `/implementar-paso` or `/validar-hu` on your own.
 - Follow `.cursor/rules/human-controlled-workflow.mdc`.
+- When the review traces code outside the diff, use the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify.
 
 The user decides whether to request fixes, accept the step, or continue.
