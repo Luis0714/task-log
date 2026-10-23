@@ -9,11 +9,13 @@ import { ReviewTimesFiltersBar } from "@/components/reports/review-times/review-
 import { ReviewTimesResultsSkeleton } from "@/components/reports/review-times/review-times-skeleton";
 import { ReviewTimesUrlProvider, useReviewTimesUrl } from "@/components/reports/review-times/review-times-url-provider";
 import { NoticeBanner } from "@/components/shared/notice-banner";
+import type { ReviewTimesProjectOption } from "@/components/reports/review-times/review-times-project-field";
 import { PAGE_SEO } from "@/lib/seo/pages";
 import type { PersonOption } from "@/lib/review-times/person-options";
 
 export type ReviewTimesPageShellProps = {
   project: string | null;
+  projects: readonly ReviewTimesProjectOption[];
   repositories: readonly string[];
   timeZone: string;
   defaultRepository: string | null;
@@ -29,6 +31,7 @@ function repositoryOptions(names: readonly string[]): PersonOption[] {
 
 export function ReviewTimesPageShell({
   project,
+  projects,
   repositories,
   timeZone,
   defaultRepository,
@@ -51,6 +54,8 @@ export function ReviewTimesPageShell({
           knownRepositories={repositories}
         >
           <ReviewTimesFiltersBar
+            project={project}
+            projects={projects}
             repositoryOptions={repositoryOptions(repositories)}
             currentUserId={currentUserId}
           />

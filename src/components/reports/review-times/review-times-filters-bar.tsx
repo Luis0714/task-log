@@ -7,15 +7,23 @@ import { FiltersBottomSheet } from "@/components/filters/filters-bottom-sheet";
 import { MultiCheckboxFilter } from "@/components/filters/multi-checkbox-filter";
 import { ReviewTimesChoiceFilters } from "@/components/reports/review-times/review-times-choice-filters";
 import { ReviewTimesMonthFields } from "@/components/reports/review-times/review-times-month-fields";
+import {
+  ReviewTimesProjectField,
+  type ReviewTimesProjectOption,
+} from "@/components/reports/review-times/review-times-project-field";
 import { useReviewTimesUrl } from "@/components/reports/review-times/review-times-url-provider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { selectionTriggerLabel, type PersonOption } from "@/lib/review-times/person-options";
 
 export function ReviewTimesFiltersBar({
+  project,
+  projects,
   repositoryOptions,
   currentUserId,
 }: Readonly<{
+  project: string;
+  projects: readonly ReviewTimesProjectOption[];
   repositoryOptions: PersonOption[];
   currentUserId: string | null;
 }>) {
@@ -57,6 +65,11 @@ export function ReviewTimesFiltersBar({
             onMonthKeysChange={url.setMonthKeys}
           />
         </div>
+        <ReviewTimesProjectField
+          project={project}
+          projects={projects}
+          onProjectChange={url.setProject}
+        />
         <div className="hidden min-w-64 flex-1 md:block">
           <MultiCheckboxFilter
             id="review-times-repositories-desktop"

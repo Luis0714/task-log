@@ -80,7 +80,8 @@ export function parseReviewTimesSearchParams(
     defaultName && options.knownRepositories.includes(defaultName),
   );
 
-  let repositories = listed;
+  const knownListed = listed.filter((name) => options.knownRepositories.includes(name));
+  let repositories = knownListed;
   if (explicitAll) {
     repositories = [];
   } else if (listed.length === 0 && defaultIsKnown && defaultName) {
