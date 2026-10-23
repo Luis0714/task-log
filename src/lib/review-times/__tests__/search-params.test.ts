@@ -44,6 +44,17 @@ describe("parseReviewTimesSearchParams", () => {
     expect(parsed.state.monthKeys).toEqual(["2026-01", "2026-03", "2026-06"]);
   });
 
+  it("descarta repositorios que no pertenecen al proyecto", () => {
+    const parsed = parseReviewTimesSearchParams(
+      { month: "2026-10", repository: ["task-log", "otro"] },
+      OPTIONS,
+    );
+
+    expect(parsed.isCanonical).toBe(false);
+    expect(parsed.state.repositories).toEqual(["task-log"]);
+    expect(parsed.state.allRepositories).toBe(false);
+  });
+
   it("deja todos los repositorios cuando la url lo pide", () => {
     const parsed = parseReviewTimesSearchParams(
       { month: "2026-10", repos: "all" },

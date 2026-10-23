@@ -33,6 +33,7 @@ type ReviewTimesUrlContextValue = {
   people: ReviewTimesPeople;
   setPeople: (people: ReviewTimesPeople) => void;
   setMonthKeys: (monthKeys: string[]) => void;
+  setProject: (project: string) => void;
   setRepositories: (repositories: string[]) => void;
   setReviewerIds: (reviewerIds: string[]) => void;
   setAuthorIds: (authorIds: string[]) => void;
@@ -102,9 +103,10 @@ export function ReviewTimesUrlProvider({
     };
   }, []);
 
-  const publish = (next: ReviewTimesUrlState, mode: "navigate" | "shallow") => {
+  const publish = (next: ReviewTimesUrlState, mode: "navigate" | "shallow", project?: string) => {
     const { pathname: currentPath, query: currentQuery } = locationRef.current;
     const params = applyReviewTimesSearchParams(new URLSearchParams(currentQuery), next);
+    if (project) params.set("project", project);
     const href = hrefFor(currentPath, params);
     const currentHref = hrefFor(currentPath, new URLSearchParams(currentQuery));
     setState(next);
@@ -127,6 +129,16 @@ export function ReviewTimesUrlProvider({
       isNavigating,
       people,
       setPeople,
+      setProject: (project) => {
+        const name = project.trim();
+        const current = new URLSearchParams(locationRef.current.query).get("project");
+        if (!name || name === current) return;
+        if (repositoryTimer.current) clearTimeout(repositoryTimer.current);
+        const next = { ...stateRef.current, repositories: [], allRepositories: false };
+        stateRef.current = next;
+        setState(next);
+        publishRef.current(next, "navigate", name);
+      },
       setMonthKeys: (monthKeys) => {
         const next = { ...stateRef.current, monthKeys };
         stateRef.current = next;
