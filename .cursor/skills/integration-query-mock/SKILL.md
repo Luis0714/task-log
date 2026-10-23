@@ -52,7 +52,7 @@ Do not implement commands, mutations, or write operations in this skill. Its onl
 
 ## 3. Required phase: inspect the repository
 
-Before implementing, orient with the codebase-memory MCP or graphify, following `.cursor/rules/graphify.mdc`. Then identify:
+Before implementing, orient with the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify. Then identify:
 
 1. The feature and the exact scope of the requested query.
 2. That feature's folder structure.

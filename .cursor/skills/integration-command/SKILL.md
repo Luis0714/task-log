@@ -51,7 +51,7 @@ This skill does not implement read queries and does not mock up screens.
 
 ## 3. Required inspection
 
-Before writing code, orient with the codebase-memory MCP or graphify, following `.cursor/rules/graphify.mdc`. Then identify:
+Before writing code, orient with the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify. Then identify:
 
 1. The feature and the exact operation (create, edit, or delete).
 2. The form or control that is already mocked up, and how it stores its state.

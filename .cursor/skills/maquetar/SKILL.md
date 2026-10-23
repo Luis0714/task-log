@@ -40,7 +40,7 @@ If the mockup reveals a functional need, note it briefly as pending. Do not impl
 
 ## 3. Required inspection
 
-Before writing code, orient with the codebase-memory MCP or graphify, following `.cursor/rules/graphify.mdc`. Then inspect the project and determine:
+Before writing code, orient with the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify. Then inspect the project and determine:
 
 1. The framework, stack, and existing conventions.
 2. The route and file where the mockup belongs.

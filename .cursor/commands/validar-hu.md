@@ -36,5 +36,6 @@ Do not invoke these skills: `/maquetar`, `/integration-query-mock`, `/integratio
 - Do not run actions that change real data or external services.
 - Do not authorize the next step.
 - Follow `.cursor/rules/human-controlled-workflow.mdc`.
+- When the validation needs the code behind a criterion, use the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify.
 
 Deliver the verification and wait for the user's decision.

@@ -73,7 +73,7 @@ Distinguish:
 
 ## Phase 3: inspect what is already implemented
 
-Orient first with the codebase-memory MCP or graphify, following `.cursor/rules/graphify.mdc`. Then read only the files and symbols that graph names, to see how much of the story is already in the repository. The plan starts from that gap. It does not start from an empty product.
+Orient first with the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify. Then read only the files and symbols that graph names, to see how much of the story is already in the repository. The plan starts from that gap. It does not start from an empty product.
 
 Review the relevant areas:
 

@@ -39,5 +39,6 @@ Do not invoke these skills: `/maquetar`, `/integration-query-mock`, `/integratio
 - Do not start the mockup or integration skills.
 - Do not treat the plan as approved. The user approves it or asks for another correction.
 - Follow `.cursor/rules/human-controlled-workflow.mdc`.
+- When the plan inspects this repository, use the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify.
 
 Show the updated plan. Wait for the user's approval.

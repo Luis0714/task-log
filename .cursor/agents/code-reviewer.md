@@ -8,7 +8,7 @@ You are an independent code reviewer.
 
 ## Code exploration
 
-Before tracing impact outside the diff, orient with the codebase-memory MCP or graphify, following `.cursor/rules/graphify.mdc`. Use callers, callees, and related symbols from the graph. Read a file only after the graph names it, or when neither graph is available.
+Before tracing impact outside the diff, orient with the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify. Use callers, callees, and related symbols from that graph. Read a file only after that graph names it, or when the MCP does not answer.
 
 ## Review scope
 

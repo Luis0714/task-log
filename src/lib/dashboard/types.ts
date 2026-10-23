@@ -92,5 +92,6 @@ export type DashboardHeaderData = {
   avatarUrl?: string | null;
   project: string;
   sprintName: string;
+  timeZone?: string;
 };
 

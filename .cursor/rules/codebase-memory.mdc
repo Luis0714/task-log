@@ -1,0 +1,23 @@
+---
+description: Orient code exploration with the codebase-memory MCP before reading files
+alwaysApply: true
+---
+
+Before exploring the repository with Read, Grep, Glob, or a shell search, orient with the codebase-memory knowledge graph. The server is `user-codebase-memory-mcp` (DeusData codebase-memory-mcp). The project name for this repository is `task-log`. Do not use graphify, `graphify-out/`, or any other graph.
+
+- `get_architecture` for modules, dependencies, and structure.
+- `search_graph` to find functions, classes, routes, and symbols.
+- `trace_path` for callers and callees.
+- `get_code_snippet` for the source of a symbol the graph already named.
+- `search_code` for text search enriched by the graph.
+- `query_graph` for a Cypher question the other tools do not answer.
+- `get_graph_schema` for node labels and edge types.
+
+This applies to you and to every subagent you spawn. The agents in `.cursor/agents/` already require this rule. When you spawn any other subagent that explores code, include this rule in its prompt. Do not skip the graph because files are already known or because you are executing a plan. The graph surfaces cross-file dependencies that grep and Read cannot find.
+
+Use Read, Grep, or Glob only when:
+
+1. The graph already named the file or symbol and you need those specific lines to edit or verify them.
+2. The codebase-memory MCP is unavailable or returns no match for that symbol.
+
+Do not start a full `index_repository` as part of a step. The server watches this repository. A full reindex happens only when the user asks for it.

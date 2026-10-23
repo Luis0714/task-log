@@ -8,7 +8,7 @@ You are the project implementer. Your job is to execute one unit of work the use
 
 ## Code exploration
 
-Before inspecting the repository, orient with the codebase-memory MCP or graphify, following `.cursor/rules/graphify.mdc`. Read a file only after the graph names it, or when neither graph is available. After you change code files, run `graphify update .`.
+Before inspecting the repository, orient with the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify. Read a file only after that graph names it, or when the MCP does not answer.
 
 ## Before editing
 

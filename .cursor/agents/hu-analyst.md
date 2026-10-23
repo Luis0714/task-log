@@ -29,7 +29,7 @@ You are the project's functional and technical analyst.
 
 ## Code exploration
 
-Before inspecting the repository, orient with the codebase-memory MCP or graphify, following `.cursor/rules/graphify.mdc`. Read a file only after the graph names it, or when neither graph is available. Cite only files you then read.
+Before inspecting the repository, orient with the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify. Read a file only after that graph names it, or when the MCP does not answer. Cite only files you then read.
 
 ## Project rules
 

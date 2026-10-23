@@ -1,5 +1,6 @@
 "use client";
 
+import { TimeGreeting } from "@/components/greeting/time-greeting";
 import type { DashboardHeaderData } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils";
 
@@ -8,13 +9,11 @@ export type DashboardHeaderProps = {
   className?: string;
 };
 
-export function DashboardHeader({ data, className }: DashboardHeaderProps) {
-  const firstName = data.displayName.split(" ")[0] ?? data.displayName;
-
+export function DashboardHeader({ data, className }: Readonly<DashboardHeaderProps>) {
   return (
     <header className={cn("min-w-0 space-y-1", className)}>
       <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
-        {firstName} 👋
+        <TimeGreeting name={data.displayName} timeZone={data.timeZone} />
       </h1>
       <p className="text-muted-foreground truncate text-sm">
         {data.sprintName}

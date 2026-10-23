@@ -7,6 +7,7 @@ import { DashboardMockSections } from "@/components/dashboard/dashboard-mock-sec
 import { DashboardSectionsStreamLoader } from "@/components/dashboard/dashboard-sections-stream-loader";
 import { AdoContextPageLayout } from "@/components/ado/ado-context-page-layout";
 import { DashboardShellSkeleton } from "@/components/skeletons/dashboard-shell-skeleton";
+import { resolveAdoTimeZone } from "@/lib/azure-devops/working-date-field";
 import { canLoadLiveAdoContent } from "@/lib/auth/auth-ui";
 import { mapAuthStateToConnectionDisplay } from "@/lib/auth/connection-display";
 import { mergeServerAuthState } from "@/lib/auth/merge-auth-state";
@@ -40,6 +41,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       ? (connection.project ?? "Sin proyecto")
       : "Vista previa — conecta para ver tu sprint",
     sprintName: "Sprint actual",
+    timeZone: resolveAdoTimeZone(),
   };
 
   return (

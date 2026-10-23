@@ -48,5 +48,6 @@ Do not invoke these skills: `/analizar-hu`, `/maquetar`, `/integration-query-moc
 - Do not write an implementation plan, test cases, or production code.
 - Do not start `/iniciar-hu`, `/plan-hu`, `/implementar-paso`, `/revisar-paso`, or `/validar-hu`.
 - Follow `.cursor/rules/human-controlled-workflow.mdc`.
+- When the refinement inspects this repository, use the codebase-memory MCP `user-codebase-memory-mcp` on project `task-log`, following `.cursor/rules/codebase-memory.mdc`. Do not use graphify.
 
 Present the refinement analysis and stop. The user decides whether anything is still unclear.
