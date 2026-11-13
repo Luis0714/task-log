@@ -80,6 +80,7 @@ export async function POST(req: Request): Promise<Response> {
         workingTime: task.workingTime,
         state: task.state,
         sprintPath: resolveExecutionSprintPath(task.sprintPath),
+        team: task.team,
         markAsDone: task.markAsDone ?? true,
       },
       authForExecute,

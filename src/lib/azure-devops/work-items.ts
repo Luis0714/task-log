@@ -10,7 +10,14 @@ import {
 import { resolveAdoCaller, type AdoCallerAuth } from "@/lib/azure-devops/resolve-auth";
 import { listTaskStates } from "@/lib/azure-devops/work-item-type-states";
 import { fetchActivityValues } from "@/lib/azure-devops/activity-values";
+import { resolveIdentityPatchValue } from "@/lib/azure-devops/resolve-identity-patch-value";
 import { ADO_FIELD_DEFAULTS } from "@/lib/azure-devops/ado-field-defaults";
+import {
+  isCompletedWorkReadOnlyError,
+  omitReadOnlyCompletedWork,
+  STANDARD_COMPLETED_WORK_FIELD,
+} from "@/lib/azure-devops/create-task-completed-work";
+import { originalEstimateFields } from "@/lib/azure-devops/original-estimate-field";
 import { resolveAdoProfile } from "@/lib/auth/resolve-ado-profile";
 import {
   buildAssigneeWiqlCondition,
@@ -73,6 +80,7 @@ export type CreateTaskParams = {
   workingTime: string;
   state: string;
   sprintPath: string;
+  team?: string;
   markAsDone?: boolean;
 };
 
@@ -121,10 +129,15 @@ async function fetchPbiContext(
   return { ok: true, areaPath, iterationPath };
 }
 
-async function resolveAssignedToValue(auth: AdoCallerAuth): Promise<string | null> {
+async function resolveAssignedToValue(
+  auth: AdoCallerAuth,
+  team?: string,
+): Promise<string | null> {
   const profile = await resolveAdoProfile(auth, { persist: true });
-  if (!profile) return null;
-  return profile.displayName.trim() || null;
+  const displayName = profile?.displayName.trim();
+  if (!displayName) return null;
+  const identity = await resolveIdentityPatchValue(auth, displayName, team);
+  return identity.trim() || displayName;
 }
 
 export async function createTaskUnderPbi(
@@ -140,14 +153,37 @@ export async function createTaskUnderPbi(
     return createTaskUnavailableStatesFailure();
   }
 
-  const activityFailure = await validateActivity(auth, params.activity);
+  if (!params.description?.trim()) {
+    return {
+      ok: false,
+      status: 422,
+      body: "La descripción es obligatoria para crear la tarea.",
+    };
+  }
+
+  const activity = await resolveRequiredActivity(auth, params.activity);
+  if (!activity) {
+    return {
+      ok: false,
+      status: 422,
+      body: "La actividad es obligatoria para crear la tarea y el proyecto no tiene valores permitidos.",
+    };
+  }
+  const activityFailure = await validateActivity(auth, activity);
   if (activityFailure) return activityFailure;
 
   const createState = pickOpenTaskState(taskStates, processProfile.taskTodoState);
-  const assignedTo = await resolveAssignedToValue(auth);
+  const assignedTo = await resolveAssignedToValue(auth, params.team);
+  if (!assignedTo) {
+    return {
+      ok: false,
+      status: 422,
+      body: "Assigned To es obligatorio y no se pudo resolver el usuario de la sesión.",
+    };
+  }
 
   const ops = buildCreateTaskPatchOps({
-    params,
+    params: { ...params, activity },
     pbiContext,
     processProfile,
     createState: createState.name,
@@ -168,6 +204,26 @@ export async function createTaskUnderPbi(
 
   const created = (await postResult.response.json()) as { id?: number };
   if (!created.id) return missingCreatedTaskIdFailure();
+
+  if (!params.markAsDone) {
+    const saved = await saveCompletedWorkAfterCreate({
+      auth,
+      taskId: created.id,
+      hours: params.hours,
+      completedWorkField:
+        processProfile.completedWorkField ?? STANDARD_COMPLETED_WORK_FIELD,
+      taskStates,
+      workingDate: params.workingDate,
+      workingTime: params.workingTime,
+    });
+    if (!saved.ok) {
+      return {
+        ok: false,
+        status: saved.status,
+        body: `La tarea #${created.id} se creó, pero no se pudieron guardar las horas: ${saved.body}`,
+      };
+    }
+  }
 
   if (!params.markAsDone) {
     return {
@@ -192,6 +248,53 @@ type AdoTaskState = {
   category: string;
   color: string;
 };
+
+async function saveCompletedWorkAfterCreate(input: {
+  auth: AdoCallerAuth;
+  taskId: number;
+  hours: number;
+  completedWorkField: string;
+  taskStates: readonly AdoTaskState[];
+  workingDate: string;
+  workingTime: string;
+}): Promise<{ ok: true } | { ok: false; status: number; body: string }> {
+  const direct = await patchCompletedWorkValue(input.auth, input.taskId, input.completedWorkField, input.hours);
+  if (direct.ok) return { ok: true };
+  if (!isCompletedWorkReadOnlyError(direct.body)) return direct;
+
+  const inProgress = input.taskStates.find((state) => state.category === "InProgress");
+  if (!inProgress) return direct;
+
+  const moved = await updateWorkItemState(
+    {
+      workItemId: input.taskId,
+      state: inProgress.name,
+      workingDate: input.workingDate,
+      workingTime: input.workingTime,
+      completedWork: input.hours,
+    },
+    input.auth,
+  );
+  if (!moved.ok) return { ok: false, status: moved.status, body: moved.body };
+  return { ok: true };
+}
+
+async function patchCompletedWorkValue(
+  auth: AdoCallerAuth,
+  taskId: number,
+  field: string,
+  hours: number,
+): Promise<{ ok: true } | { ok: false; status: number; body: string }> {
+  const url = `${adoProjectBase(auth)}/_apis/wit/workitems/${taskId}?api-version=7.1`;
+  const res = await adoFetch(auth, url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json-patch+json" },
+    body: JSON.stringify([{ op: "add", path: `/fields/${field}`, value: hours }]),
+  });
+  if (res.ok) return { ok: true };
+  const body = await res.text();
+  return { ok: false, status: res.status, body: body.slice(0, 500) };
+}
 
 function pickOpenTaskState(
   taskStates: ReadonlyArray<AdoTaskState>,
@@ -241,8 +344,12 @@ function buildCreateTaskPatchOps(input: BuildCreateTaskPatchOpsInput): JsonPatch
     { op: "add", path: `/fields/${ITERATION_PATH}`, value: iterationPath },
   ];
 
-  pushIfField(ops, processProfile.completedWorkField, params.hours);
-  pushIfField(ops, processProfile.originalEstimateField, params.hours);
+  for (const field of originalEstimateFields(processProfile.originalEstimateField)) {
+    pushIfField(ops, field, params.hours);
+  }
+  for (const field of requiredSchedulingFields(processProfile.remainingWorkField)) {
+    pushIfField(ops, field, 0);
+  }
 
   ops.push(
     {
@@ -261,16 +368,28 @@ function buildCreateTaskPatchOps(input: BuildCreateTaskPatchOpsInput): JsonPatch
     },
   );
 
-  pushIfField(ops, processProfile.remainingWorkField, 0);
-  pushIfField(ops, params.activity ? ADO_FIELD_DEFAULTS.activityField : null, params.activity ?? "");
-  pushIfField(
-    ops,
-    params.description?.trim() ? DESCRIPTION_FIELD : null,
-    params.description?.trim() ?? "",
-  );
-  pushIfField(ops, assignedTo ? ASSIGNED_TO : null, assignedTo ?? "");
+  pushIfField(ops, ADO_FIELD_DEFAULTS.activityField, params.activity?.trim() ?? "");
+  pushIfField(ops, DESCRIPTION_FIELD, params.description?.trim() ?? "");
+  pushIfField(ops, ASSIGNED_TO, assignedTo ?? "");
 
   return ops;
+}
+
+function requiredSchedulingFields(configuredField: string | null | undefined): string[] {
+  const standard = ADO_FIELD_DEFAULTS.remainingWorkField;
+  const configured = configuredField?.trim();
+  if (!configured || configured === standard) return [standard];
+  return [configured, standard];
+}
+
+async function resolveRequiredActivity(
+  auth: AdoCallerAuth,
+  activity?: string,
+): Promise<string | null> {
+  const chosen = activity?.trim();
+  if (chosen) return chosen;
+  const allowed = await fetchActivityValues(auth);
+  return allowed.find((value) => value.trim())?.trim() ?? null;
 }
 
 function pushIfField(ops: JsonPatchOp[], field: string | null, value: string | number): void {
@@ -279,7 +398,7 @@ function pushIfField(ops: JsonPatchOp[], field: string | null, value: string | n
 }
 
 type CreateTaskPostResult =
-  | { kind: "ok"; response: Response }
+  | { kind: "ok"; response: Response; omittedCompletedWork: boolean }
   | { kind: "error"; failure: { ok: false; status: number; body: string } };
 
 async function postCreateTaskOps(
@@ -293,7 +412,7 @@ async function postCreateTaskOps(
     headers: { "Content-Type": "application/json-patch+json" },
     body: JSON.stringify(ops),
   });
-  if (firstRes.ok) return { kind: "ok", response: firstRes };
+  if (firstRes.ok) return { kind: "ok", response: firstRes, omittedCompletedWork: false };
 
   const errorBody = await firstRes.text();
   const retryOps = pickRetryOpsForCreateTask(errorBody, firstRes.status, ops, workingDateField);
@@ -309,7 +428,13 @@ async function postCreateTaskOps(
     headers: { "Content-Type": "application/json-patch+json" },
     body: JSON.stringify(retryOps),
   });
-  if (retryRes.ok) return { kind: "ok", response: retryRes };
+  if (retryRes.ok) {
+    return {
+      kind: "ok",
+      response: retryRes,
+      omittedCompletedWork: isCompletedWorkReadOnlyError(errorBody),
+    };
+  }
 
   const retryErr = await retryRes.text();
   return {
@@ -325,6 +450,11 @@ function pickRetryOpsForCreateTask(
   workingDateField: string,
 ): JsonPatchOp[] | null {
   if (status !== 400 || !errorBody.includes("TF401320")) return null;
+
+  if (isCompletedWorkReadOnlyError(errorBody)) {
+    return omitReadOnlyCompletedWork(ops);
+  }
+
   const workingDatePath = `/fields/${workingDateField}`;
   const hasWorkingDateOp = ops.some(
     (op) => "path" in op && op.path === workingDatePath,

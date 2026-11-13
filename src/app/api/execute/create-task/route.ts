@@ -46,6 +46,7 @@ export async function POST(req: Request) {
       workingTime: task.workingTime,
       state: task.state,
       sprintPath: resolveExecutionSprintPath(task.sprintPath),
+      team: task.team,
       markAsDone: task.markAsDone,
     },
     authForExecute,
